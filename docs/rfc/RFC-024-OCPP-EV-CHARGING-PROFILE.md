@@ -1,11 +1,11 @@
-# RFC-024: OCPP / EV Charging Profile — `@totemsdk/industrial-ocpp`
+# RFC-024: OCPP / EV Charging Profile — `@totemsdk/act-ocpp`
 
-**Status:** Draft — design specification
+**Status:** Implemented (RC) — `@totemsdk/act-ocpp`; vendor CSMS/charger bindings and OCPP 2.1 remain open
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-021 (Catalogue & Decision Binding), RFC-022 (Prepared-Command Binding & Async Lifecycle), RFC-023 (Physical-Effect Policy Enforcement), RFC-011 (Domain Model)
-**Touches:** new package `@totemsdk/industrial-ocpp`; `@totemsdk/industrial-action`; `@totemsdk/edge`
+**Touches:** new package `@totemsdk/act-ocpp`; `@totemsdk/act-core`; `@totemsdk/edge`
 
 ---
 
@@ -15,7 +15,7 @@ EV charging is the strongest first commercial demonstrator for governed
 industrial action: it has a mature, documented control protocol (OCPP), real
 financial consequences (energy settlement), physical safety limits (power,
 energy, connector state) and naturally asynchronous sessions. This RFC specifies
-`@totemsdk/industrial-ocpp`: an RFC-011 **profile** that registers charging
+`@totemsdk/act-ocpp`: an RFC-011 **profile** that registers charging
 resources, interlocks, error taxonomy and definitions, plus a bounded OCPP
 adapter, so start/stop, charging-limit, reservation and session/meter
 reconciliation all execute through the governed edge runtime (RFC-010) with the
@@ -43,7 +43,7 @@ retains electrical protection and the control loop.
 
 ### 2.2 What exists
 
-- `@totemsdk/industrial-action` profiles already bind resources to protocol
+- `@totemsdk/act-core` profiles already bind resources to protocol
   addresses and wire units (`profiles.ts`, `resources.ts`).
 - The device error taxonomy (`error-taxonomy.ts`) is the extension point for
   OCPP status/error mapping.
@@ -87,7 +87,7 @@ on `@totemsdk/edge`; the wire transport is injected).
 ### 5.2 Package shape
 
 ```
-@totemsdk/industrial-ocpp
+@totemsdk/act-ocpp
   src/transport.ts      OcppTransportPort (injected: CSMS or charger stack)
   src/adapter.ts        OCPP operations → PreparedDeviceOp + actuate/reconcile/cancel
   src/profile.ts        IndustrialProfile: resources, interlocks, taxonomy, definitions
@@ -259,4 +259,4 @@ idempotent via `operationId`).
 - `docs/rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md` — async sessions
 - `docs/rfc/RFC-023-PHYSICAL-EFFECT-POLICY-ENFORCEMENT.md` — power/energy limits
 - `packages/edge-modbus/src/{gateway,transport}.ts` — adapter port convention
-- `packages/industrial-action/src/{profiles,resources,error-taxonomy}.ts`
+- `packages/act-core/src/{profiles,resources,error-taxonomy}.ts`

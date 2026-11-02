@@ -29,12 +29,14 @@ import type {
 import {
   createTimelockDescriptor,
   createHTLCDescriptor,
+  buildHTLCScript,
   createMASTDescriptor,
   createExchangeDescriptor,
   createFlashCashDescriptor,
   createSlowCashDescriptor,
   createEmptyMMRProof
 } from './types.js';
+import { computeScriptAddress } from './witness-serializer.js';
 
 function kissHex(hex: string): string {
   const raw = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
@@ -153,10 +155,13 @@ export class HTLCHelper {
   
   /**
    * Create an HTLC script.
-   * 
+   *
    * The script allows:
-   * - Recipient to claim with preimage before timeout
-   * - Sender to refund after timeout
+   * - Recipient to claim with preimage at or before the timeout
+   * - Sender to refund after the timeout
+   *
+   * The two paths are mutually exclusive in time: a claim is invalid once the
+   * refund path is valid.
    */
   static createHTLC(
     senderPublicKey: string,
@@ -165,12 +170,10 @@ export class HTLCHelper {
     timeoutBlock: bigint,
     algorithm: 'sha3' | 'sha2' = 'sha3'
   ): { script: string; address: string } {
-    const hashFunc = algorithm === 'sha2' ? 'SHA2' : 'SHA3';
-    
-    const script = `IF @BLOCK GT ${timeoutBlock} AND SIGNEDBY(${kissHex(senderPublicKey)}) THEN RETURN TRUE ENDIF RETURN (SIGNEDBY(${kissHex(recipientPublicKey)}) AND ${hashFunc}(STATE(1)) EQ ${kissHex(hashLock)})`;
-    
+    const script = buildHTLCScript(senderPublicKey, recipientPublicKey, hashLock, timeoutBlock, algorithm);
+
     const address = computeScriptAddress(script);
-    
+
     return { script, address };
   }
   
@@ -586,13 +589,6 @@ export class StatefulGameHelper {
   ): boolean {
     return currentRound === previousRound + 1;
   }
-}
-
-function computeScriptAddress(script: string): string {
-  const cleanScript = script.trim().toUpperCase();
-  const scriptBytes = new TextEncoder().encode(cleanScript);
-  const hashBytes = sha3_256(scriptBytes);
-  return bytesToHex(hashBytes);
 }
 
 function encodeSimpleProof(siblingHash: string, isLeft: boolean): string {

@@ -25,6 +25,7 @@ import type {
 import {
   createTimelockDescriptor,
   createHTLCDescriptor,
+  buildHTLCScript,
   createMASTDescriptor,
   createExchangeDescriptor,
   createFlashCashDescriptor,
@@ -150,10 +151,13 @@ export class HTLCHelper {
   
   /**
    * Create an HTLC script.
-   * 
+   *
    * The script allows:
-   * - Recipient to claim with preimage before timeout
-   * - Sender to refund after timeout
+   * - Recipient to claim with preimage at or before the timeout
+   * - Sender to refund after the timeout
+   *
+   * The two paths are mutually exclusive in time: a claim is invalid once the
+   * refund path is valid.
    */
   static createHTLC(
     senderPublicKey: string,
@@ -162,12 +166,10 @@ export class HTLCHelper {
     timeoutBlock: bigint,
     algorithm: 'sha3' | 'sha2' = 'sha3'
   ): { script: string; address: string } {
-    const hashFunc = algorithm === 'sha2' ? 'SHA2' : 'SHA3';
-    
-    const script = `IF @BLOCK GT ${timeoutBlock} AND SIGNEDBY(${kissHex(senderPublicKey)}) THEN RETURN TRUE ENDIF RETURN (SIGNEDBY(${kissHex(recipientPublicKey)}) AND ${hashFunc}(STATE(1)) EQ ${kissHex(hashLock)})`;
-    
+    const script = buildHTLCScript(senderPublicKey, recipientPublicKey, hashLock, timeoutBlock, algorithm);
+
     const address = computeScriptAddress(script);
-    
+
     return { script, address };
   }
   

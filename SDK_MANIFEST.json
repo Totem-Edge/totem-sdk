@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 69,
+  "total": 74,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -56,10 +56,13 @@
         "@totemsdk/edge-can",
         "@totemsdk/edge-coap",
         "@totemsdk/edge-grpc",
+        "@totemsdk/edge-gnss",
         "@totemsdk/edge-lorawan",
+        "@totemsdk/edge-mavlink",
         "@totemsdk/edge-matter",
         "@totemsdk/edge-modbus",
         "@totemsdk/edge-nfc",
+        "@totemsdk/edge-ocpp",
         "@totemsdk/edge-opcua",
         "@totemsdk/edge-ros2",
         "@totemsdk/pear",
@@ -69,8 +72,10 @@
         "@totemsdk/p2p-hub",
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
-        "@totemsdk/industrial-action",
-        "@totemsdk/connect"
+        "@totemsdk/act-core",
+        "@totemsdk/connect",
+        "@totemsdk/act-ocpp",
+        "@totemsdk/act-mavlink"
       ]
     },
     "verifiable-claims": {
@@ -506,6 +511,30 @@
       }
     },
     {
+      "name": "@totemsdk/edge-gnss",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for GNSS — GPS/RTK fixes, NMEA 0183 parsing, location proofs",
+      "domain": "edge-computing",
+      "keywords": [
+        "gnss",
+        "gps",
+        "rtk",
+        "nmea",
+        "location"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createGnssGateway, createGnssSensorBridge, parseNmeaFix, GnssTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
       "name": "@totemsdk/edge-lorawan",
       "version": "0.2.3",
       "description": "Edge runtime adapter for LoRaWAN — agriculture, asset tracking, long-range sensors",
@@ -524,6 +553,30 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createLorawanGateway, createLorawanSensorBridge, LorawanGatewayConfig, LorawanTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/edge-mavlink",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for MAVLink — drone telemetry, heartbeat, commands, wire framing",
+      "domain": "edge-computing",
+      "keywords": [
+        "mavlink",
+        "drone",
+        "uav",
+        "telemetry",
+        "commands"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createMavlinkGateway, createMavlinkSensorBridge, encodeFrame, decodeFrames, MavlinkTransportPort",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -627,6 +680,30 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createNfcGateway, NfcGatewayConfig, NfcTransportPort, encodeNdefMessage, decodeNdefMessage",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/edge-ocpp",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for OCPP — EV charging wire protocol and meter proofs",
+      "domain": "edge-computing",
+      "keywords": [
+        "ocpp",
+        "ev-charging",
+        "ocpp16j",
+        "ocpp201",
+        "metering"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createOcppGateway, createOcppSensorBridge, parseOcppFrame, OcppTransportPort",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -1292,7 +1369,7 @@
     },
     {
       "name": "@totemsdk/recursive-mast",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "Recursive MAST + PREVSTATE — composable policy trees, proof chains, state transitions, delegation",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1461,22 +1538,27 @@
     },
     {
       "name": "@totemsdk/tx-builder",
-      "version": "0.2.2",
-      "description": "Transaction builder for Minima — coin selection, multisig, WOTS signing",
+      "version": "0.3.0",
+      "description": "Transaction builder for Minima — local transaction/witness assembly, coin selection, fee/change, HTLC, signing, and submission",
       "domain": "payment-network",
       "keywords": [
         "transaction",
         "builder",
         "coin-selection",
-        "multisig"
+        "multisig",
+        "htlc",
+        "witness",
+        "fee",
+        "wots"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.4.2"
+        "@totemsdk/core": "^1.4.2",
+        "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "TxBuilder, buildTransaction, selectCoins, addInput, addOutput, sign, MultiSigConfig",
+      "exportsDescription": "buildTransaction, serializeWitness, serializeForTxnImport, buildScriptProof, HTLC builders, CoinProvider, buildFundedPayment, signer/lease helpers, mineTransaction, submitSignedTxn, assembleViaNode",
       "custody": {
         "classification": "non-custodial",
         "reason": "builds transactions; holds no on-chain value"
@@ -1587,7 +1669,7 @@
       }
     },
     {
-      "name": "@totemsdk/industrial-action",
+      "name": "@totemsdk/act-core",
       "version": "0.5.0",
       "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
@@ -1611,7 +1693,61 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IndustrialActionDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
+      "exportsDescription": "ActCoreDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/act-ocpp",
+      "version": "0.1.0",
+      "description": "Governed OCPP EV-charging profile — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
+      "domain": "edge-computing",
+      "keywords": [
+        "ocpp",
+        "ev",
+        "charging",
+        "governed-action",
+        "act-core"
+      ],
+      "dependencies": {
+        "@totemsdk/act-core": "^0.5.0",
+        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createOcppDefinitions, createOcppProfile, negotiateOcppCapabilities, reconcileChargingSession, deriveChargingEffects, chargingInterlocks, ocppErrorTaxonomy",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/act-mavlink",
+      "version": "0.1.0",
+      "description": "Governed MAVLink autonomous-flight profile — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
+      "domain": "edge-computing",
+      "keywords": [
+        "mavlink",
+        "drone",
+        "flight",
+        "mission",
+        "geofence",
+        "governed-action",
+        "act-core"
+      ],
+      "dependencies": {
+        "@totemsdk/act-core": "^0.5.0",
+        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createMavlinkDefinitions, createMavlinkProfile, envelopeDigest, validateMissionEnvelope, runMavlinkConformance, deriveFlightEffects, vehicleInterlocks, mavlinkErrorTaxonomy",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"

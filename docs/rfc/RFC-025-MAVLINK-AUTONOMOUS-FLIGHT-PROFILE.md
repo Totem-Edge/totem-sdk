@@ -1,11 +1,11 @@
-# RFC-025: MAVLink / Autonomous Flight Profile — `@totemsdk/industrial-mavlink`
+# RFC-025: MAVLink / Autonomous Flight Profile — `@totemsdk/act-mavlink`
 
-**Status:** Draft — design specification
+**Status:** Implemented (RC) — `@totemsdk/act-mavlink`; autopilot/SITL vendor bindings remain open
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-024 (OCPP profile — pattern precedent), RFC-021, RFC-022, RFC-023, RFC-011
-**Touches:** new package `@totemsdk/industrial-mavlink`; `@totemsdk/industrial-action`; `@totemsdk/edge`
+**Touches:** new package `@totemsdk/act-mavlink`; `@totemsdk/act-core`; `@totemsdk/edge`
 
 ---
 
@@ -14,7 +14,7 @@
 Aerial vehicles are the second demonstrator: they combine a well-specified
 command/telemetry protocol (MAVLink), an autopilot that owns real-time
 stabilization, and long-running, safety-critical operations where *acceptance is
-not completion*. This RFC specifies `@totemsdk/industrial-mavlink`: an RFC-011
+not completion*. This RFC specifies `@totemsdk/act-mavlink`: an RFC-011
 profile plus a bounded MAVLink adapter that authorizes a **mission envelope** and
 lets the onboard controller maintain the control loop, with the RFC-022 async
 lifecycle (accepted → running → observed arrival) and RFC-023 physical limits
@@ -43,7 +43,7 @@ stabilization, failsafes and the real-time loop.
 ### 2.2 What exists
 
 - No flight adapter exists today.
-- `@totemsdk/industrial-action` provides definitions, resources, interlocks,
+- `@totemsdk/act-core` provides definitions, resources, interlocks,
   error taxonomy and the RFC-022 async contract this RFC consumes.
 
 ## 3. Goals
@@ -83,7 +83,7 @@ practical integration path if the SDK lacks a first-class Node binding (§9).
 ### 5.2 Package shape
 
 ```
-@totemsdk/industrial-mavlink
+@totemsdk/act-mavlink
   src/transport.ts      MavlinkTransportPort (injected: client SDK / bridge)
   src/adapter.ts        operations → PreparedDeviceOp + actuate/reconcile/cancel
   src/profile.ts        IndustrialProfile: vehicle resources, interlocks, taxonomy
@@ -240,7 +240,7 @@ classification commands safe-state and never retries.
 ## 10. Open questions
 
 - **Q1** Which autopilot is the primary target, and which is second?
-- **Q2** Does the envelope live in `industrial-action` core (shared with Autoware
+- **Q2** Does the envelope live in `act-core` core (shared with Autoware
   routes, RFC-027) or per-profile?
 - **Q3** What position tolerance defines "observed arrival" per vehicle class?
 - **Q4** How is a mid-mission replan authorized — a new mission (+envelope) or an

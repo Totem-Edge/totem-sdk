@@ -86,7 +86,7 @@ Most consequential results:
 
 | ID | File | Problem |
 |----|------|---------|
-| KISSVM-TEMPLATE-IA-001 | `industrial-action.ts:94-100` | Notice block read from mutable `STATE` → backdated activation. |
+| KISSVM-TEMPLATE-IA-001 | `act-core.ts:94-100` | Notice block read from mutable `STATE` → backdated activation. |
 | KISSVM-TEMPLATE-MANIFEST-001 | `manifest.ts:68` | Expiry script has no signature; interval bypass via port 2 = 0. |
 | KISSVM-TEMPLATE-AGENT-001 | `agent-policy.ts:53-71` | Permissionless proposal; mutable confidence; empty transitions emit invalid script. |
 | KISSVM-TEMPLATE-GOV-001 | `governance.ts:289-344` | Mandate/treasury "proof" checks only `NEQ 0x00`; timeouts from mutable STATE. |

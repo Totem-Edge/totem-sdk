@@ -103,3 +103,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-ros2/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+ROS 2 simulator integration: `npm run test:integration` exercises topics, publishers, subscriptions, service calls/timeouts, proofs and teardown against an injected transport. A real DDS/ROS 2 container is not claimed.

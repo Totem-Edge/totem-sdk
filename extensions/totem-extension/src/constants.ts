@@ -210,3 +210,23 @@ export const TOTEM_CHAIN_ID = 'minima-mainnet';
 export const WOTS_TREE_DEPTH = 3; // L1, L2, L3
 export const WOTS_ADDRESSES_PER_LEVEL = 64;
 export const WOTS_TOTAL_ADDRESSES = WOTS_ADDRESSES_PER_LEVEL; // 64 addresses per root key
+
+/**
+ * Format a token amount that may arrive as base units. When an integer has
+ * more digits than the token's decimals, scale it down before display.
+ */
+export function formatTokenAmount(value: string, decimals: number = 4): string {
+  if (!value) return '0';
+  const normalized = value.trim();
+  if (normalized.includes('.')) return formatAmount(normalized, Math.min(decimals, 8));
+  if (decimals > 0 && /^\d+$/.test(normalized) && normalized.length > decimals) {
+    try {
+      const scale = 10n ** BigInt(decimals);
+      const base = BigInt(normalized);
+      const whole = base / scale;
+      const fraction = (base % scale).toString().padStart(decimals, '0').slice(0, Math.min(decimals, 8)).replace(/0+$/, '');
+      return fraction ? `${whole}.${fraction}` : whole.toString();
+    } catch { /* fall through */ }
+  }
+  return formatAmount(normalized, Math.min(decimals, 8));
+}

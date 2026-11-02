@@ -106,7 +106,7 @@ adjudicator. Removing `BOTHSIGNED` from the generic channel script is not an
 implementation.
 
 **Boundary.** Reuses `ChannelProgram`, KISSVM and MAST/policy trees. A financial
-transition does not authorise a physical operation; industrial-action and
+transition does not authorise a physical operation; act-core and
 authority policies still govern devices.
 
 **Prerequisites.** Bounded application/version registry, on-chain move verifier,
@@ -214,7 +214,7 @@ currently available WOTS operation, and a confidential vault is not automaticall
 self-custodial.
 
 **Boundary.** Reuses `proof`, `proofgraph`, `manifest`, `identity`,
-`intelligence`, `qvac`, purchasing agreements, `industrial-action`,
+`intelligence`, `qvac`, purchasing agreements, `act-core`,
 `agent-policy` and Omnia conditional payments.
 
 **Prerequisites.** Request/result/payment ID binding through every stage, explicit

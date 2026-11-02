@@ -422,3 +422,271 @@ The issuer/command verifier remains application-owned. Hostile reconnect, real
 wallet/HSM issuer verification, serial hardware, multi-device lease quorum,
 native Linux/Windows binaries, execution-status journaling and other edge-family
 profiles remain open.
+
+### Fourth increment: CoAP RFC 7252 codec and correlation conformance
+
+- CoAP framing now rejects unsupported versions, oversized or truncated tokens,
+  reserved option nibbles, truncated option values, option-number overflow and
+  payload markers without payload. Multi-segment Uri-Path options use zero
+  deltas and extended length nibbles; empty requests no longer emit a trailing
+  payload marker. Unknown options are skipped rather than parsed as path
+  segments.
+- Gateway requests carry unpredictably generated four-byte tokens (WebCrypto
+  when the host provides it) and only accept a response from the addressed
+  host/port. RST and non-2.xx responses fail explicitly. An empty ACK stops
+  retransmission but keeps the request pending for a separate response, which
+  is acknowledged before delivery. CON requests retransmit with exponential
+  backoff bounded by the request deadline.
+- The Go sidecar is now a thin UDP bridge: it validates host/port/message length,
+  sends the datagram and answers the request immediately, while every inbound
+  datagram is pushed to clients for gateway-side token correlation. The previous
+  implementation consumed responses inside the sidecar and never delivered them,
+  so `NativeCoapTransport` could not actually drive the gateway. The bridge also
+  exposes `--version` (protocol 1), handles SIGINT/SIGTERM, and ships
+  `sidecar.json` with the source-build contract.
+- `NativeCoapTransport` surfaces `error` pushes, rejects sends while
+  disconnected, rejects pending sends on an unexpected close and suppresses the
+  spurious close error on intentional shutdown. Gateway transport errors settle
+  pending requests as uncertain failures instead of hanging until the deadline,
+  and a later valid response returns the gateway to `running`.
+- Evidence: `tests/qualification/edge-coap/coap-conformance.test.mjs` covers
+  fixed RFC 7252 §3 byte vectors, malformed frames, extended URI options,
+  token/endpoint correlation, out-of-order concurrent responses,
+  retransmission, separate responses, RST/4xx failures, deadlines, invalid
+  paths and stop-time rejection over a real loopback UDP peer.
+  `integration.test.mjs` drives the real Go sidecar and an independent UDP peer
+  through GET/POST, error and separate-response paths plus bridge validation.
+  `recovery.test.mjs` covers peer outage/restart, sidecar SIGKILL/restart,
+  uncertain pending failure and stop-time settlement. `packed-consumer.test.mjs`
+  installs real tarballs, runs ESM and CJS gateways and typechecks strict
+  `.mts`/`.cts` consumers. 56 unit tests, 22 conformance cases, 1 integration,
+  1 recovery and 1 packed-consumer test pass; Go protocol tests pass under
+  `-race`.
+- At this increment `edge-coap` was still **RC** and the qualified profile was
+  a plaintext unicast request/response client. The profile was later completed
+  and promoted in the tenth increment.
+- CBOR payloads and RFC 7641 observation notifications are implemented in the
+  sixth increment below. OSCORE (RFC 8613) end-to-end protection remains the
+  next security profile; it must be supplied by a reviewed implementation or a
+  security port — AEAD/HKDF/replay-window code will not be hand-rolled in the
+  connector.
+
+### Fifth increment: classic-CAN sidecar hardening and vcan recovery
+
+- The Go sidecar no longer trusts driver input. Classic frames are parsed from a
+  CAN-FD-sized buffer; DLC values above 8 and 72-byte CAN FD frames are rejected
+  with an error push instead of slicing past a 16-byte frame. RTR is read from
+  the `can_id` flag rather than padding. Sends validate ID width and payload
+  length before writing, and report "interface not open" instead of masking
+  invalid input.
+- Interface lifecycle is generation-tracked. Reads are non-blocking so a close,
+  reopen or bus-off recovery cannot leave a reader spinning on a closed fd.
+  Error frames are surfaced, bus-off triggers a delayed reopen, transient read
+  errors back off, and SIGINT/SIGTERM shut the listener and interface down.
+- `edge-can --version` and `sidecar.json` declare protocol 1 and the source-build
+  distribution contract.
+- Gateway additions: optional acceptance filters (`id`/`mask`/`isExtended`),
+  fail-fast validation of signal definitions and filters, explicit RTR
+  rejection, recovery to `running` on the first valid frame after an error, and
+  a corrected Motorola decoder that treats `startBit` as the DBC MSB position
+  (including byte-crossing signals).
+- Evidence: 27 package unit tests; Go frame/validation tests run under
+  `-race` in CI; Linux vcan conformance plus new integration (filtering,
+  extended IDs, sidecar request validation) and recovery (link down/up, sidecar
+  SIGKILL, restart, idempotent teardown) suites. `edge-can` remains **RC** with
+  support tier `outside`; the `rc` integration requirement is now actually
+  satisfied. CAN FD, physical controllers, prebuilt binaries, hot upgrade and
+  multi-client interface ownership remain unqualified.
+
+### Sixth increment: CoAP CBOR payloads and RFC 7641 observations
+
+- The codec carries Observe (6), OSCORE (9, opaque pass-through), Uri-Path (11),
+  Content-Format (12) and Accept (17) options in numeric order. Non-confirmable
+  responses are encodable, and duplicate singleton options are rejected.
+- `decodeCbor` implements the RFC 8949 core decoder: unsigned/negative
+  integers (including `bigint` beyond 53 bits), definite and indefinite
+  byte/text strings, arrays and maps, tags (unwrapped), booleans/null/undefined
+  and half/single/double floats. It rejects truncated or reserved input,
+  trailing bytes, duplicate map keys, reserved `__proto__` keys, invalid UTF-8
+  and nesting beyond the configured depth (default 32). Evidence uses the
+  RFC 8949 Appendix A vectors.
+- The sensor bridge decodes `application/cbor` (content-format 60) responses
+  and notifications into structured `cbor` claims alongside `contentFormat`.
+  A payload that claims CBOR but does not decode is not signed.
+- Observations keep the registration token live after the initial 2.05.
+  Notifications are matched by token/endpoint, duplicate or rollback sequence
+  numbers are dropped using the RFC 7641 freshness window, confirmable
+  notifications are acknowledged, and `cancel()` deregisters with Observe=1.
+  If registration is refused (no Observe in the response), the bridge falls
+  back to interval polling.
+- Evidence: 56 package unit tests (gateway, CBOR and sensor bridge), 22
+  conformance cases, real-sidecar integration including a CBOR observation
+  round trip, recovery and packed-consumer suites. At this increment `edge-coap`
+  was still **RC**; it was promoted in the tenth increment.
+
+### Seventh increment: CoAP security boundary
+
+- `createCoapGateway` accepts an optional `CoapSecurityPort`. The connector
+  keeps framing, token correlation and observation semantics; the port owns
+  AEAD/HKDF/replay handling and OSCORE option encoding. `protects(host, port)`
+  selects protected endpoints, `protect` wraps outbound messages and
+  `unprotect` authenticates inbound ones.
+- The boundary fails closed: plaintext replies from a protected endpoint are
+  dropped, OSCORE messages from unconfigured endpoints are dropped rather than
+  interpreted as plaintext, and protection failures settle the request before
+  sending. Empty ACK/RST messages remain valid because OSCORE does not protect
+  them.
+- Evidence: conformance cases cover protected request/response round trips,
+  dropping unprotected replies, protected observation notifications and
+  pre-send protection failure. No cryptographic implementation is bundled:
+  qualification of a real OSCORE context still requires RFC 8613 Appendix C
+  vectors against the supplied port, which remains the next security step.
+
+### Eighth increment: OSCORE client context
+
+- `createOscoreContext` implements the OSCORE client role behind
+  `CoapSecurityPort` using Node's AES-CCM-16-64-128 and HKDF-SHA-256. It derives
+  sender/recipient keys and the common IV, builds the compressed OSCORE option,
+  protects requests (outer POST, or FETCH for Observe), tracks request Partial
+  IVs to bind responses, applies a configurable replay window and uses the
+  request nonce when a response omits a Partial IV.
+- Evidence: RFC 8613 Appendix C vectors 4, 5 and 6 reproduce the request OSCORE
+  option and ciphertext exactly; vectors 7 and 8 decrypt the server responses;
+  altered tags fail authentication and a repeated Partial IV is rejected.
+  Coverage also includes ID context (`kid context`), empty kid/kid-context
+  flags, endpoint scoping and Observe/FETCH outer codes.
+- Scope: client and server roles with Uri-Host/Uri-Port/Uri-Query handling are
+  covered; Class I options (none currently defined), blockwise observations and
+  multicast remain unqualified. `edge-coap` is promoted to v1 in the tenth
+  increment.
+
+### Ninth increment: CoAP blockwise transfer
+
+- RFC 7959 Block1 (27), Block2 (23), Size1 (60) and Size2 (28) are part of the
+  codec. `get`/`post` transparently upload large bodies as Block1 sequences and
+  assemble Block2 responses; `blockSize` (16-1024, default 1024) and
+  `maxBodySize` (default 1 MiB) are configurable.
+- Requests validate the echoed Block1 number and size and fail explicitly if a
+  server reduces the block size mid-transfer. Block2 continuations validate
+  block numbers and size, cap the assembled body and reject a size change.
+- Evidence: codec option vectors, unit cases for Block2 assembly, Block1 upload,
+  missing acknowledgements and `maxBodySize` overflow, conformance cases over a
+  UDP peer for both directions, and a real Go-sidecar integration case that
+  carries Block2 options and payloads end to end.
+- Block1 size renegotiation is implemented (the client restarts with the
+  server-selected smaller block size). Blockwise observation notifications and
+  multicast remain unqualified; `edge-coap` is promoted to v1 in the tenth
+  increment.
+
+### Tenth increment: edge-coap profile completion and v1 promotion
+
+- The constrained-device unicast profile is complete: RFC 7252
+  framing/retransmission/separate responses, RFC 7641 observations, RFC 7959
+  Block1/Block2 transfer (including Block1 size renegotiation), CBOR content
+  formats, and OSCORE client and server roles with Uri-* handling.
+  Conformance, integration, recovery and packed-consumer evidence all run in
+  CI; the dedicated job additionally executes the Go bridge tests and RFC 8613
+  Appendix C vectors.
+- The shared packed-consumer probe now packs and installs the transitive local
+  workspace closure instead of resolving siblings from the registry. This
+  closes the Phase 0 dependency-closure gap that previously blocked promotion
+  while `@totemsdk/edge@^1.5.1` was unpublished.
+- `edge-coap` is promoted to **v1** for the declared profile. The support tier
+  remains `outside`: DTLS, blockwise observations, multicast, and OSCORE
+  Class I options (none are currently defined) are excluded from the qualified
+  profile.
+
+### Eleventh increment: edge-can v1 promotion
+
+- `edge-can` is promoted to **v1** for the classic-CAN profile: SocketCAN/vcan
+  conformance, 11/29-bit and RTR handling, DLC/payload validation, acceptance
+  filtering, sidecar request validation, interface outage and sidecar
+  crash/restart recovery, and packed ESM/CJS consumer/type evidence.
+- The v1 job now installs `can-utils` and enables vcan so the conformance,
+  integration and recovery gates run instead of failing closed.
+- The support tier remains `outside`: CAN FD, physical controller matrices,
+  prebuilt binaries, hot upgrade and multi-client interface ownership are
+  excluded from the qualified profile.
+
+### Twelfth increment: gRPC raw-byte TLS qualification
+
+- The Go proxy now uses a raw-byte codec (no generated stubs), per-client gRPC
+  connections and stream namespaces, TLS (custom CA, client certificate, server
+  name), metadata authentication, payload/path/deadline validation, and
+  cancellation. Stream pushes go only to the owning connection.
+- TypeScript fixes: the gateway dials the configured address on start and
+  closes on stop; invalid method paths fail without a call. Client-stream
+  responses are delivered as stream data; server streams cancel on `close()`
+  while client/bidi streams half-close the send side. Pushes that race the
+  stream-created response are buffered and replayed, and connection loss fails
+  pending calls and streams closed.
+- Evidence: Go codec/path/payload/TLS-material tests; protocol conformance for
+  malformed and out-of-sequence JSON; a real TLS gRPC server exercising unary,
+  server/client/bidi streams, deadlines, cancellation, metadata auth and TLS
+  name failure; proxy crash/restart recovery; packed ESM/CJS consumer with
+  strict types. `edge-grpc` remains **RC** pending a v1 profile decision;
+  reflection, health checking, retries, load balancing, pooling and prebuilt
+  sidecars are excluded.
+
+### Thirteenth increment: edge-* RC integration sweep
+
+- Every remaining `edge-*` connector now has a runnable `test:integration`
+  gate, closing the RC requirement that previously existed only as a label:
+  `edge-bacnet`, `edge-ble`, `edge-email`, `edge-matter`, `edge-nfc`,
+  `edge-opcua`, `edge-ros2` and `edge-adapters`.
+- The connector gates exercise gateway lifecycle, read/write/call paths,
+  subscriptions/Cov/notifications, proof generation through the sensor bridge,
+  error-state propagation, teardown and (for edge-adapters) the two-runtime
+  commerce E2E plus durable-store conformance. Transports are deterministic
+  simulator ports; no vendor/hardware stack is claimed.
+- `edge-nfc` is promoted from **alpha** to **RC** with reader, NDEF,
+  APDU, P2P and HCE integration coverage.
+- Fixes found by the sweep: ROS 2 service calls now clear their timeout timer
+  and destroy timed-out clients; unused type imports/declarations were removed.
+- CI runs the new gates in `edge-rc-integration` after building the workspace.
+
+### Fourteenth increment: GNSS connector
+
+- Added `@totemsdk/edge-gnss`: a port-injected GNSS fix pipeline with a
+  strict NMEA 0183 parser (GGA/RMC/GSA, mandatory checksums), fix validation
+  and `gnss:<source>` / `sensor:<id>` proofs.
+- Evidence: NMEA vectors (position, altitude, speed, DOP, satellites, date
+  pivot, southern/western hemispheres, invalid checksum/quality/void RMC) plus
+  a simulator integration suite covering start/stop, fix streaming,
+  invalid-fix rejection, receiver error recovery, bridge polling and teardown.
+  `edge-gnss` is **RC**; physical receivers, serial transports, phone location
+  APIs, RTK corrections and geofencing remain unqualified.
+
+### Fifteenth increment: OCPP wire connector and act-* taxonomy
+
+- Added `@totemsdk/edge-ocpp`, the OCPP-J wire connector: CALL/CALLRESULT/
+  CALLERROR framing, boot notification (Accepted required), heartbeat, call
+  correlation/timeouts, inbound CALL dispatch with OCPP error codes, and a
+  meter-value sensor bridge. It carries no authority and cannot start, stop,
+  limit or reserve charging by itself.
+- Renamed `@totemsdk/industrial-action` to `@totemsdk/act-core` (prerelease,
+  no compatibility alias) and adopted the loop-aligned naming: `edge-*` is
+  Sense/wire, `act-*` is Act/governed profile. The governed OCPP and MAVLink
+  packages are therefore `act-ocpp` and `act-mavlink` (not `industrial-*`).
+- Evidence: OCPP-J framing vectors and malformed frames; gateway boot, calls,
+  CALLERROR mapping, inbound dispatch/NotSupported, timeouts, boot rejection;
+  simulator integration covering authorize, remote command dispatch, meter
+  values/proofs, connection loss and teardown. `edge-ocpp` is **RC**; a real
+  WebSocket/TLS transport, vendor matrix, OCPP 2.0.1 transaction events and the
+  governed `act-ocpp` profile remain unqualified.
+
+### Sixteenth increment: MAVLink wire connector
+
+- Added `@totemsdk/edge-mavlink`: MAVLink 1/2 framing with X25 CRC and
+  CRC_EXTRA verification, fragmented-stream buffering, heartbeat generation,
+  COMMAND_LONG/COMMAND_ACK correlation with timeouts, and decoded telemetry
+  (HEARTBEAT, SYS_STATUS, GPS_RAW_INT, ATTITUDE, GLOBAL_POSITION_INT,
+  COMMAND_ACK, STATUSTEXT).
+- Sensor bindings map decoded telemetry to `sensor:<id>` proofs. The package is
+  wire-only: missions, geofences and speed/altitude limits require the governed
+  `@totemsdk/act-mavlink` profile (RFC-025).
+- Evidence: CRC/frame vectors, corrupt/truncated frame handling, concatenated
+  and fragmented frames, heartbeat/telemetry/command tests, simulator
+  integration and teardown. `edge-mavlink` is **RC**; real serial/UDP
+  transports, signing verification, mission/offboard protocols and the governed
+  flight profile remain unqualified.

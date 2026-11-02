@@ -614,7 +614,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
             Available
           </Typography>
           <Typography variant="body" color="accent" mono style={{ fontWeight: 700 }}>
-            {formatAmount(balance, Math.min(walletTokens.find(t => t.tokenId === selectedTokenId)?.decimals ?? 4, 8))} {selectedAsset}
+            {formatTokenAmount(balance, walletTokens.find(t => t.tokenId === selectedTokenId)?.decimals ?? 4)} {selectedAsset}
           </Typography>
         </div>
         {(() => {
@@ -627,7 +627,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
                 Pending
               </Typography>
               <Typography variant="caption" color="muted" mono style={{ fontSize: '10px' }}>
-                +{formatAmount(selToken!.unconfirmed!, Math.min(selToken!.decimals ?? 4, 8))} {selectedAsset} (confirming…)
+                +{formatTokenAmount(selToken!.unconfirmed!, selToken!.decimals ?? 4)} {selectedAsset} (confirming…)
               </Typography>
             </div>
           );
@@ -990,7 +990,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {formatAmount(token.sendable || token.balance, Math.min(token.decimals ?? 4, 8))}
+                        {formatTokenAmount(token.sendable || token.balance, token.decimals ?? 4)}
                       </div>
                     </div>
                   </button>

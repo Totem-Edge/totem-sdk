@@ -108,3 +108,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-bacnet/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+BACnet simulator integration: `npm run test:integration` exercises discovery, property read/write, COV notifications, proof generation and teardown against an injected transport. A real BACnet/IP or MS/TP stack is not claimed.

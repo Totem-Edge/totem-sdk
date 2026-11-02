@@ -5,7 +5,7 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-022 (Prepared-Command Binding & Async Lifecycle), RFC-011 (Industrial Action Domain Model), RFC-010 (Industrial Action RC)
-**Touches:** `@totemsdk/agent-policy`, `@totemsdk/industrial-action`, `@totemsdk/edge`, `@totemsdk/authority`
+**Touches:** `@totemsdk/agent-policy`, `@totemsdk/act-core`, `@totemsdk/edge`, `@totemsdk/authority`
 
 ---
 
@@ -21,7 +21,7 @@ Industrial actions have physical effects that matter just as much for safety and
 authority — instantaneous power, total energy, speed, duration, and a mission
 envelope — but there is no typed place for them in `StepEffects` and no ceiling
 in `RunLimits`. Adapters can already derive such facts (RFC-011 `deriveEffects`,
-`packages/industrial-action/src/edge-adapter.ts:325`), but the policy layer
+`packages/act-core/src/edge-adapter.ts:325`), but the policy layer
 neither sees nor enforces them; at best they are recorded as opaque
 `stateChanges`.
 
@@ -44,7 +44,7 @@ observed after the fact.
 
 ### 2.2 The pieces exist, unenforced
 
-- Adapters derive effects from the prepared op (`industrial-action`), so the
+- Adapters derive effects from the prepared op (`act-core`), so the
   values are trustworthy and commitment-bound.
 - `RunLimits` already implements the enforcement *pattern* for money
   (`checkRunLimits`), including boundary escalation (`escalateGrossSpend`).
@@ -270,7 +270,7 @@ flowchart LR
   (`energyByResource`, `durationByResource`) threaded through the run state store.
 - **P2 — Escalation.** `escalatePhysical` mirroring `escalateGrossSpend`.
 - **P3 — Mandate fields.** Expose physical facts to `MandateConstraint` matching.
-- **P4 — Industrial derivation.** Helper in `industrial-action` to build
+- **P4 — Industrial derivation.** Helper in `act-core` to build
   `PhysicalEffects` from `PreparedDeviceOp` + declared limits.
 - **P5 — Tests.** power/energy/speed/duration/envelope within and over limits;
   escalation shape; hint-forgery ignored; unit canonicalisation.
@@ -294,4 +294,4 @@ flowchart LR
 - `docs/rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md` — effects from the prepared command
 - `packages/agent-policy/src/{run,autonomy,grant-bound-autonomy,run-state-store}.ts`
 - `packages/authority/src/types.ts` — `MandateConstraint`
-- `packages/industrial-action/src/edge-adapter.ts` — `deriveEffects`
+- `packages/act-core/src/edge-adapter.ts` — `deriveEffects`

@@ -75,7 +75,7 @@ port:          EdgeRuntimePorts.decision
 @totemsdk/decision      → bounded semantic choice ("what should be proposed?")
 @totemsdk/agent-policy  → policy / governance
 @totemsdk/authority     → permission
-@totemsdk/industrial-action / edge-* → execution
+@totemsdk/act-core / edge-* → execution
 ```
 
 The distinction is enforced structurally: Decision *may consume* Intelligence
@@ -153,7 +153,7 @@ engine, an authority/policy engine, a motion planner, a SAPIENT package, a brows
 automation system, a training/RL framework, a vector DB, or an executor. It must
 not duplicate `@totemsdk/intelligence`, `@totemsdk/agent-policy`,
 `@totemsdk/authority`, `@totemsdk/storage`, `@totemsdk/proof`, or
-`@totemsdk/industrial-action`.
+`@totemsdk/act-core`.
 
 ## 8. Existing SDK constraints (audit)
 

@@ -7,11 +7,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"strconv"
+	"os/signal"
 	"sync"
 	"syscall"
 	"time"
@@ -23,41 +24,28 @@ type Config struct {
 	InterfaceName string `json:"interfaceName"`
 }
 
-type Request struct {
-	ID         string `json:"id"`
-	Type       string `json:"type"` // "open", "close", "send"
-	Interface  string `json:"interface,omitempty"`
-	CanID      uint32 `json:"canId,omitempty"`
-	IsExtended bool   `json:"isExtended,omitempty"`
-	Data       string `json:"data,omitempty"` // hex-encoded
-}
-
-type Response struct {
-	ID    string `json:"id"`
-	OK    bool   `json:"ok"`
-	Error string `json:"error,omitempty"`
-}
-
-type PushFrame struct {
-	Type       string `json:"type"` // "frame"
-	ID         uint32 `json:"id"`
-	IsExtended bool   `json:"isExtended"`
-	IsRtr      bool   `json:"isRtr"`
-	DLC        uint8  `json:"dlc"`
-	Data       string `json:"data"` // hex-encoded
-	Timestamp  int64  `json:"timestamp"`
-}
+const protocolVersion = 1
 
 type Server struct {
-	config   Config
-	sockFD   int
-	mu       sync.RWMutex
-	clients  map[net.Conn]struct{}
-	listener net.Listener
-	stopCh   chan struct{}
+	config Config
+
+	mu         sync.Mutex
+	sockFD     int
+	ifname     string
+	generation uint64
+	recovering bool
+	clients    map[net.Conn]struct{}
+	listener   net.Listener
+	stopCh     chan struct{}
+	closeOnce  sync.Once
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Printf("edge-can protocol=%d\n", protocolVersion)
+		return
+	}
+
 	config := Config{
 		ListenAddr:    getEnv("CAN_LISTEN_ADDR", "127.0.0.1:15004"),
 		InterfaceName: getEnv("CAN_INTERFACE", "can0"),
@@ -77,7 +65,10 @@ func main() {
 		log.Fatalf("[edge-can] Failed to start: %v", err)
 	}
 
-	select {}
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	<-signals
+	srv.Shutdown()
 }
 
 func (s *Server) Listen() error {
@@ -110,9 +101,29 @@ func (s *Server) Listen() error {
 	return nil
 }
 
+func (s *Server) Shutdown() {
+	s.closeOnce.Do(func() {
+		close(s.stopCh)
+		if s.listener != nil {
+			_ = s.listener.Close()
+		}
+		s.mu.Lock()
+		s.closeInterfaceLocked()
+		clients := make([]net.Conn, 0, len(s.clients))
+		for conn := range s.clients {
+			clients = append(clients, conn)
+		}
+		s.clients = make(map[net.Conn]struct{})
+		s.mu.Unlock()
+		for _, conn := range clients {
+			_ = conn.Close()
+		}
+	})
+}
+
 func (s *Server) openCAN(ifname string) error {
-	if s.sockFD > 0 {
-		syscall.Close(s.sockFD)
+	if ifname == "" {
+		return errors.New("interface name required")
 	}
 
 	fd, err := syscall.Socket(syscall.AF_CAN, syscall.SOCK_RAW, 1) // CAN_RAW
@@ -126,80 +137,175 @@ func (s *Server) openCAN(ifname string) error {
 		return fmt.Errorf("get ifindex for %s: %w", ifname, err)
 	}
 
-	addr := &syscall.SockaddrLinklayer{
-		Protocol: syscall.ETH_P_CAN,
-		Ifindex:  ifIndex,
-	}
-	if err := syscall.Bind(fd, addr); err != nil {
+	if err := bindCAN(fd, ifIndex); err != nil {
 		syscall.Close(fd)
 		return fmt.Errorf("bind: %w", err)
 	}
 
-	s.sockFD = fd
-	log.Printf("[edge-can] Opened interface %s (fd=%d)", ifname, fd)
+	// Non-blocking reads let a close/reopen interrupt the reader without relying
+	// on close() waking a blocked recvfrom on another thread.
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		syscall.Close(fd)
+		return fmt.Errorf("set nonblock: %w", err)
+	}
 
-	go s.readCAN()
+	s.mu.Lock()
+	s.closeInterfaceLocked()
+	s.sockFD = fd
+	s.ifname = ifname
+	s.generation++
+	generation := s.generation
+	s.mu.Unlock()
+
+	log.Printf("[edge-can] Opened interface %s (fd=%d, generation=%d)", ifname, fd, generation)
+	go s.readCAN(generation, fd, ifname)
 	return nil
 }
 
-func (s *Server) readCAN() {
-	buf := make([]byte, 16) // CAN frame = 16 bytes on Linux
+func (s *Server) closeInterface() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closeInterfaceLocked()
+}
+
+// closeInterfaceLocked must be called with s.mu held.
+func (s *Server) closeInterfaceLocked() {
+	if s.sockFD > 0 {
+		s.generation++
+		_ = syscall.Close(s.sockFD)
+		s.sockFD = 0
+		s.ifname = ""
+	}
+}
+
+func (s *Server) isCurrent(generation uint64, fd int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.generation == generation && s.sockFD == fd
+}
+
+func (s *Server) readCAN(generation uint64, fd int, ifname string) {
+	// A CAN FD frame is a 72-byte canfd_frame; reading it into a 16-byte buffer
+	// would truncate the header and could slice past the buffer. Size for FD so
+	// unsupported frames are reported instead of panicking.
+	buf := make([]byte, canFDFrameSize)
 	for {
-		n, _, err := syscall.Recvfrom(s.sockFD, buf, 0)
-		if err != nil {
-			select {
-			case <-s.stopCh:
-				return
-			default:
-				log.Printf("[edge-can] Read error: %v", err)
-				continue
-			}
+		if !s.isCurrent(generation, fd) {
+			return
 		}
 
-		if n < 16 {
+		n, _, err := syscall.Recvfrom(fd, buf, 0)
+		if err != nil {
+			if errors.Is(err, syscall.EINTR) {
+				continue
+			}
+			if errors.Is(err, syscall.EAGAIN) || errors.Is(err, syscall.EWOULDBLOCK) {
+				time.Sleep(20 * time.Millisecond)
+				continue
+			}
+			if !s.isCurrent(generation, fd) {
+				return
+			}
+			// A transient link error (for example the interface was set down)
+			// must not turn into a busy loop.
+			s.broadcastError("read", err.Error())
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		if n == 0 {
 			continue
 		}
 
-		canID := binary.LittleEndian.Uint32(buf[0:4])
-		dlc := buf[4]
-		flags := buf[5]
-		isExtended := (canID & 0x80000000) != 0
-		isRtr := (flags & 0x40) != 0
-
-		// Mask off EFF/RTR/ERR flags
-		id := canID & 0x1FFFFFFF
-
-		frame := PushFrame{
-			Type:       "frame",
-			ID:         id,
-			IsExtended: isExtended,
-			IsRtr:      isRtr,
-			DLC:        dlc & 0x0F,
-			Data:       hex.EncodeToString(buf[8 : 8+int(dlc&0x0F)]),
-			Timestamp:  time.Now().UnixMilli(),
+		if n >= canFDFrameSize {
+			s.broadcastError("frame", "CAN FD frames are not supported by this profile")
+			continue
 		}
 
+		frame, err := decodeClassicFrame(buf[:n], time.Now().UnixMilli())
+		if err != nil {
+			s.broadcastError("frame", err.Error())
+			continue
+		}
+		if frame.IsError {
+			s.handleErrorFrame(generation, ifname, frame)
+			continue
+		}
 		s.broadcastPush(frame)
 	}
 }
 
+func (s *Server) handleErrorFrame(generation uint64, ifname string, frame PushFrame) {
+	code := "bus-error"
+	if frame.ErrorClass&canErrBusoff != 0 {
+		code = "bus-off"
+	}
+	s.broadcastError(code, fmt.Sprintf("CAN error frame class=0x%08x", frame.ErrorClass))
+	if code == "bus-off" {
+		go s.recoverBus(generation, ifname)
+	}
+}
+
+func (s *Server) recoverBus(generation uint64, ifname string) {
+	s.mu.Lock()
+	if s.recovering || s.generation != generation {
+		s.mu.Unlock()
+		return
+	}
+	s.recovering = true
+	s.mu.Unlock()
+
+	defer func() {
+		s.mu.Lock()
+		s.recovering = false
+		s.mu.Unlock()
+	}()
+
+	// Give the controller time to leave bus-off before reopening.
+	time.Sleep(time.Second)
+
+	s.mu.Lock()
+	stillCurrent := s.generation == generation
+	s.mu.Unlock()
+	if !stillCurrent {
+		return
+	}
+
+	if err := s.openCAN(ifname); err != nil {
+		s.broadcastError("bus-off", fmt.Sprintf("reopen %s failed: %v", ifname, err))
+		return
+	}
+	log.Printf("[edge-can] Reopened %s after bus-off", ifname)
+}
+
 func (s *Server) sendCAN(id uint32, data []byte, isExtended bool) error {
-	if s.sockFD <= 0 {
-		return fmt.Errorf("CAN interface not open")
+	if err := validateSend(id, isExtended, data); err != nil {
+		return err
 	}
 
-	canID := id & 0x1FFFFFFF
+	s.mu.Lock()
+	fd := s.sockFD
+	s.mu.Unlock()
+	if fd <= 0 {
+		return errors.New("CAN interface not open")
+	}
+
+	canID := id
 	if isExtended {
-		canID |= 0x80000000
+		canID |= canEffFlag
 	}
 
-	frame := make([]byte, 16)
+	frame := make([]byte, classicFrameSize)
 	binary.LittleEndian.PutUint32(frame[0:4], canID)
 	frame[4] = uint8(len(data))
 	copy(frame[8:], data)
 
-	_, err := syscall.Write(s.sockFD, frame)
-	return err
+	if _, err := syscall.Write(fd, frame); err != nil {
+		if errors.Is(err, syscall.EAGAIN) {
+			return errors.New("CAN send buffer full")
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Server) handleConn(conn net.Conn) {
@@ -239,10 +345,7 @@ func (s *Server) handleConn(conn net.Conn) {
 			}
 
 		case "close":
-			if s.sockFD > 0 {
-				syscall.Close(s.sockFD)
-				s.sockFD = 0
-			}
+			s.closeInterface()
 			s.writeResponse(conn, Response{ID: req.ID, OK: true})
 
 		case "send":
@@ -264,20 +367,61 @@ func (s *Server) handleConn(conn net.Conn) {
 }
 
 func (s *Server) broadcastPush(frame PushFrame) {
-	data, _ := json.Marshal(frame)
+	s.broadcastJSON(frame)
+}
+
+func (s *Server) broadcastError(code, message string) {
+	s.broadcastJSON(PushError{Type: "error", Code: code, Error: message, Timestamp: time.Now().UnixMilli()})
+}
+
+func (s *Server) broadcastJSON(value any) {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return
+	}
 	data = append(data, '\n')
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	for conn := range s.clients {
-		conn.Write(data)
+		_, _ = conn.Write(data)
 	}
 }
 
 func (s *Server) writeResponse(conn net.Conn, resp Response) {
-	data, _ := json.Marshal(resp)
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return
+	}
 	data = append(data, '\n')
-	conn.Write(data)
+	_, _ = conn.Write(data)
+}
+
+// sockaddrCAN is Linux's struct sockaddr_can. Go's SockaddrLinklayer cannot be
+// used for AF_CAN: syscall.Bind fills sa_family from the Go type, and
+// SockaddrLinklayer sets AF_PACKET, so the kernel rejects the bind with EINVAL.
+type sockaddrCAN struct {
+	Family   uint16
+	_        uint16
+	Ifindex  int32
+	RxID     uint32
+	TxID     uint32
+	RxIDMask uint32
+	TxIDMask uint32
+}
+
+func bindCAN(fd int, ifIndex int) error {
+	addr := sockaddrCAN{Family: syscall.AF_CAN, Ifindex: int32(ifIndex)}
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_BIND,
+		uintptr(fd),
+		uintptr(unsafe.Pointer(&addr)),
+		unsafe.Sizeof(addr),
+	)
+	if errno != 0 {
+		return errno
+	}
+	return nil
 }
 
 func getIfIndex(fd int, ifname string) (int, error) {
@@ -295,17 +439,4 @@ func getEnv(key, defaultVal string) string {
 		return v
 	}
 	return defaultVal
-}
-
-func getEnvInt(key string, defaultVal int) int {
-	if v := os.Getenv(key); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
-		}
-	}
-	return defaultVal
-}
-
-func init() {
-	_ = time.Now
 }

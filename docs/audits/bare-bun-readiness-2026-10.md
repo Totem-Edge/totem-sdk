@@ -51,7 +51,7 @@ Bare · **SERVER** = Node-only service, excluded from the Bare target (still run
 
 **Bare-native (46):** `authority`, `chain-provider`, `connect`, `core-wasm`, `decision`,
 `edge-adapters`, `edge-bacnet/ble/can/coap/email/grpc/lorawan/matter/modbus/nfc/opcua/ros2`,
-`governance`, `identity`, `industrial-action`, `intelligence`, `liquidity-bond`, `location-proof`,
+`governance`, `identity`, `act-core`, `intelligence`, `liquidity-bond`, `location-proof`,
 `lookup-client`, `lookup-protocol`, `manifest`, `omnia-factory/pool/router/splice/vtxo`, `pear`,
 `proof`, `proofgraph`, `provider-bond`, `qvac`, `raster-proof`, `realtime`, `recursive-mast`,
 `root-identity`, `spatial-proof`, `statechain`, `stream-transport`, `wallet-adapter`, `sdk-tests`.

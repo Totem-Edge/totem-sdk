@@ -78,8 +78,9 @@ export function createOmniaPoolLivePorts(deps: OmniaPoolLivePortsDeps): OmniaPoo
       return (await addHTLC(channel, params, leaseProvider, signer)).channel;
     },
     async fulfillHTLC(channel, htlcId, preimage) {
+      if (!chainProvider) throw new Error('fulfillHTLC requires a chain provider');
       const hex = '0x' + Buffer.from(preimage).toString('hex');
-      return (await fulfillHTLC(channel, htlcId, hex, leaseProvider, signer)).channel;
+      return (await fulfillHTLC(channel, htlcId, hex, leaseProvider, chainProvider, signer)).channel;
     },
     async proposeSettlement(channel) {
       return (await proposeSettlement(channel, leaseProvider, settleOpts())).settlementPayload;

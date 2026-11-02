@@ -5,13 +5,13 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-010 (Industrial Action to RC — the correctness/promotion companion), RFC-004
-**Touches:** `@totemsdk/industrial-action`, `@totemsdk/edge`, `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/storage`
+**Touches:** `@totemsdk/act-core`, `@totemsdk/edge`, `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/storage`
 
 ---
 
 ## 1. Summary
 
-RFC-010 makes `@totemsdk/industrial-action` a correct, safe, honestly-RC
+RFC-010 makes `@totemsdk/act-core` a correct, safe, honestly-RC
 **industrial profile on the governed edge runtime**. That is necessary but not
 sufficient for the package to be *world-class and generalisable across
 verticals*: its model today is a generic lifecycle engine (`kind` + parameters +
@@ -43,7 +43,7 @@ ramp-rate interlock). The resolution is **stable core + vertical profiles**:
 
 ### 2.2 What is missing today
 
-`@totemsdk/industrial-action/src/*` contains **zero** mentions of units,
+`@totemsdk/act-core/src/*` contains **zero** mentions of units,
 interlocks, resources, workflows, scheduling, events, or versioning (verified by
 grep). Parameters are bare `number`/`string`/`object` (`src/types.ts:21-30`),
 condition types are a closed union (`src/types.ts:105-111`), and the only
@@ -442,4 +442,4 @@ Each profile supplies the §5 bundle; the core (§4) is unchanged.
 - `packages/edge/src/{action-registry,agent-runtime,capabilities,receipts}.ts`
 - `packages/agent-policy` — `StepEffects`, `GrantBoundAutonomyPolicy`
 - `packages/authority/src/types.ts` — `MandateConstraint`, scope matching
-- `packages/industrial-action/src/types.ts` — current schema/condition unions
+- `packages/act-core/src/types.ts` — current schema/condition unions

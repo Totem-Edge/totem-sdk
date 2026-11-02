@@ -152,6 +152,9 @@ importers:
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../../packages/storage
+      '@totemsdk/tx-builder':
+        specifier: workspace:^
+        version: link:../../packages/tx-builder
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../../packages/txpow
@@ -370,6 +373,126 @@ importers:
       workbox-window:
         specifier: ^7.3.0
         version: 7.4.1
+
+  packages/act-core:
+    dependencies:
+      '@totemsdk/agent-policy':
+        specifier: workspace:^
+        version: link:../agent-policy
+      '@totemsdk/authority':
+        specifier: workspace:^
+        version: link:../authority
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+      '@totemsdk/proof':
+        specifier: workspace:^
+        version: link:../proof
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
+    devDependencies:
+      '@swc/core':
+        specifier: ^1.15.46
+        version: 1.15.46
+      '@swc/jest':
+        specifier: ^0.2.39
+        version: 0.2.39(@swc/core@1.15.46)
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      jest-environment-node:
+        specifier: ^30.0.0
+        version: 30.4.1
+      jest-runtime:
+        specifier: ^30.5.2
+        version: 30.5.2
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/act-mavlink:
+    dependencies:
+      '@totemsdk/act-core':
+        specifier: workspace:^
+        version: link:../act-core
+      '@totemsdk/agent-policy':
+        specifier: workspace:^
+        version: link:../agent-policy
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      jest-environment-node:
+        specifier: ^30.0.0
+        version: 30.4.1
+      jest-runtime:
+        specifier: ^30.5.2
+        version: 30.5.2
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/act-ocpp:
+    dependencies:
+      '@totemsdk/act-core':
+        specifier: workspace:^
+        version: link:../act-core
+      '@totemsdk/agent-policy':
+        specifier: workspace:^
+        version: link:../agent-policy
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      jest-environment-node:
+        specifier: ^30.0.0
+        version: 30.4.1
+      jest-runtime:
+        specifier: ^30.5.2
+        version: 30.5.2
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/agent-policy:
     dependencies:
@@ -720,6 +843,19 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/edge-gnss:
+    dependencies:
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/edge-grpc:
     dependencies:
       '@totemsdk/edge':
@@ -753,6 +889,19 @@ importers:
         version: 5.9.3
 
   packages/edge-matter:
+    dependencies:
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/edge-mavlink:
     dependencies:
       '@totemsdk/edge':
         specifier: workspace:^
@@ -822,6 +971,19 @@ importers:
         version: 5.9.3
 
   packages/edge-nfc:
+    dependencies:
+      '@totemsdk/edge':
+        specifier: workspace:^
+        version: link:../edge
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/edge-ocpp:
     dependencies:
       '@totemsdk/edge':
         specifier: workspace:^
@@ -959,58 +1121,6 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-
-  packages/industrial-action:
-    dependencies:
-      '@totemsdk/agent-policy':
-        specifier: workspace:^
-        version: link:../agent-policy
-      '@totemsdk/authority':
-        specifier: workspace:^
-        version: link:../authority
-      '@totemsdk/core':
-        specifier: workspace:^
-        version: link:../core
-      '@totemsdk/edge':
-        specifier: workspace:^
-        version: link:../edge
-      '@totemsdk/proof':
-        specifier: workspace:^
-        version: link:../proof
-      '@totemsdk/replication':
-        specifier: workspace:^
-        version: link:../replication
-      '@totemsdk/storage':
-        specifier: workspace:^
-        version: link:../storage
-    devDependencies:
-      '@swc/core':
-        specifier: ^1.15.46
-        version: 1.15.46
-      '@swc/jest':
-        specifier: ^0.2.39
-        version: 0.2.39(@swc/core@1.15.46)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      jest-environment-node:
-        specifier: ^30.0.0
-        version: 30.4.1
-      jest-runtime:
-        specifier: ^30.5.2
-        version: 30.5.2
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2186,6 +2296,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
     devDependencies:
       '@totemsdk/storage':
         specifier: workspace:^

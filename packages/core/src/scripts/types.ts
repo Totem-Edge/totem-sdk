@@ -163,8 +163,29 @@ export function createTimelockDescriptor(address: string, publicKey: string, unl
   };
 }
 
+/**
+ * Build the HTLC locking script. Single source of truth for the descriptor
+ * builder and `HTLCHelper.createHTLC`.
+ *
+ * Branch exclusivity is **time-bounded** (RFC-069 §6 invariant 5): after
+ * `timeoutBlock` only the owner refund path is valid; at or before
+ * `timeoutBlock` only the recipient preimage path is valid. The claim branch
+ * MUST NOT remain spendable once the refund branch becomes valid, otherwise
+ * the two paths race.
+ */
+export function buildHTLCScript(
+  ownerPublicKey: string,
+  recipientPublicKey: string,
+  hashLock: string,
+  timeoutBlock: bigint,
+  algorithm: 'sha3' | 'sha2' = 'sha3'
+): string {
+  const hashFunc = algorithm === 'sha2' ? 'SHA2' : 'SHA3';
+  return `IF @BLOCK GT ${timeoutBlock} THEN RETURN SIGNEDBY(${kissHex(ownerPublicKey)}) ENDIF RETURN (SIGNEDBY(${kissHex(recipientPublicKey)}) AND ${hashFunc}(STATE(1)) EQ ${kissHex(hashLock)})`;
+}
+
 export function createHTLCDescriptor(address: string, ownerPublicKey: string, recipientPublicKey: string, hashLock: string, timeoutBlock: bigint, isOwner: boolean, preimage?: string): ScriptDescriptor {
-  const script = `IF @BLOCK GT ${timeoutBlock} AND SIGNEDBY(${kissHex(ownerPublicKey)}) THEN RETURN TRUE ENDIF RETURN (SIGNEDBY(${kissHex(recipientPublicKey)}) AND SHA3(STATE(1)) EQ ${kissHex(hashLock)})`;
+  const script = buildHTLCScript(ownerPublicKey, recipientPublicKey, hashLock, timeoutBlock);
   const descriptor: ScriptDescriptor = {
     address,
     scriptType: 'htlc',
@@ -177,7 +198,9 @@ export function createHTLCDescriptor(address: string, ownerPublicKey: string, re
   };
   if (preimage) {
     descriptor.htlcPreimage = preimage;
-    descriptor.stateVariables = [{ port: 1, value: preimage, type: 'string' }];
+    // The preimage is hashed as raw bytes; a 'string' state value would
+    // commit its ASCII form and never match SHA3(preimageBytes).
+    descriptor.stateVariables = [{ port: 1, value: preimage, type: 'hex' }];
   }
   return descriptor;
 }

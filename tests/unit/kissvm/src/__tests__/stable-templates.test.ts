@@ -78,7 +78,7 @@ import {
   buildActionStateMachineScript,
   buildEscrowEnforcementScript,
   IA_STATUS,
-} from '../templates/industrial-action';
+} from '../templates/act-core';
 import {
   buildLiquidityLockScript,
   buildFeeAccrualScript,
@@ -1007,7 +1007,7 @@ describe('stable template: proof', () => {
   });
 });
 
-describe('stable template: industrial-action', () => {
+describe('stable template: act-core', () => {
   it('commit script enforces the commitment hash and nonce', () => {
     const script = buildCommitScript({ committedHash: 'ab'.repeat(32), commitmentPort: 1, noncePort: 2 });
     const ok = run(script, ctx({ state: s({ 1: '0x' + 'ab'.repeat(32), 2: 5 }), prevState: s({ 2: 4 }) }));

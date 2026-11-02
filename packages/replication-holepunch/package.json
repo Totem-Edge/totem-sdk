@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/replication-holepunch",
   "version": "0.2.0",
-  "description": "Holepunch adapters for @totemsdk/replication — Hypercore logs, Hyperbee indexes and Corestore lifecycle",
+  "description": "Holepunch adapters for @totemsdk/replication \u2014 Hypercore logs, Hyperbee indexes and Corestore lifecycle",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -48,7 +48,7 @@
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/replication-holepunch.cjs"
   },
   "files": [
     "dist",

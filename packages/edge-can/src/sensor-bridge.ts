@@ -4,7 +4,7 @@
 
 import type { EdgeRuntime } from '@totemsdk/edge';
 import type { CanTransportPort } from './transport.js';
-import type { CanGateway, CanSignalDef } from './gateway.js';
+import type { CanGateway } from './gateway.js';
 
 export interface CanSensorBinding {
   sensorId: string;

@@ -6,6 +6,7 @@ import type {
   SignedChannelState,
   SignedClosePackage,
 } from './types.js';
+import { resolveSettlementAddresses } from './addresses.js';
 import {
   buildSettlementTx,
   buildUpdateTx,
@@ -27,7 +28,7 @@ function stateCommitmentV2Hex(state: SignedChannelState | Partial<SignedChannelS
 }
 
 function defaultSettlementAddresses(channel: OmniaChannel): Record<string, string> {
-  return Object.fromEntries(channel.parties.map(p => [p.partyId, p.publicKeyDigest]));
+  return resolveSettlementAddresses(channel.parties);
 }
 
 export function buildUnsignedClosePackage(

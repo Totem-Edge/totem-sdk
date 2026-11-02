@@ -10,12 +10,11 @@ import type {
   VerifyStateOptions,
 } from './types.js';
 import {
-  DoubleSignError,
   BalanceConservationError,
   SequenceError,
-  SigningIndexMonotonicityError,
 } from './errors.js';
-import { serializeTxDraft, computeOmniaTxDigest, stateCommitmentV2Matches } from './transactions.js';
+import { serializeTxDraft, computeOmniaTxDigest, stateVariablesEqual, stateCommitmentV2Matches } from './transactions.js';
+import { enforceUpdateGuards, sealUpdateGuard } from './guards.js';
 import { flatSigningIndex } from './capacity.js';
 import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage, verifyPartialClosePackage } from './close-package.js';
 import { validateChannelStateWithKissvm } from './kissvm.js';
@@ -228,8 +227,7 @@ export function finalizeStateUpdateWithIndices(
     signingIndices: { [unsigned.signerPartyId]: updateIndices },
     closePackage,
     programTransition: unsigned.programTransition,
-  };
-}
+  };}
 
 /** Assemble a `SignedChannelState` from a prepared update and its signatures. */
 export function finalizeStateUpdate(
@@ -283,13 +281,34 @@ export async function signState(
     return signerPort.sign(request);
   };
 
-  const prepared = await prepareStateUpdate(channel, update, leaseProvider, signer);
+  const prepared = await (async () => {
+    // The co-sign path enters here directly, so the guard must be enforced for
+    // every caller, not only for `updateState`'s pre-check.
+    const payloadHash = computeProgramUpdateDigestHex(
+      channel,
+      update.newSequence,
+      update.newBalances,
+      channel.pendingHTLCs,
+      canonicalizeProgramTransition(update.programTransition),
+    );
+    const guardError = enforceUpdateGuards(
+      channel.channelId,
+      update.newSequence,
+      payloadHash,
+      channel.pendingProposal,
+    );
+    if (guardError) throw new Error(guardError);
+    return prepareStateUpdate(channel, update, leaseProvider, signer);
+  })();
   try {
     const updateSignature = await signDigest(
       prepared.updateDigest,
       prepared.updateReservation.indices,
       `channel-update-seq-${prepared.newSequence}`,
     );
+    // From the first signature onward a different payload at this sequence must
+    // never be signed, even if the rest of the flow fails.
+    sealUpdateGuard(channel.channelId, prepared.newSequence);
     const settlementSignature = await signDigest(
       prepared.settlementDigest,
       prepared.settlementReservation.indices,
@@ -337,6 +356,12 @@ export function verifyStateSignature(
   try {
     const draft = buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
     const digest = computeOmniaTxDigest(draft);
+    // The signed payload is the update transaction, whose state variables and
+    // bytes are derived from the state fields. The carried copies must match:
+    // otherwise a validly signed state can be re-labelled with arbitrary
+    // stateVariables/transactionHex and the signature would still verify.
+    if (!stateVariablesEqual(state.stateVariables, draft.stateVariables)) return false;
+    if (state.transactionHex !== serializeTxDraft(draft)) return false;
     return verifyChannelSignature(sig, digest, publicKeyDigest);
   } catch {
     return false;
@@ -368,6 +393,21 @@ export function validateStateTransition(
   }
 }
 
+function validateBalanceShape(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+  errors: string[],
+): void {
+  const partyIds = new Set(channel.parties.map(p => p.partyId));
+  const keys = Object.keys(state.balances);
+  if (keys.length !== partyIds.size || keys.some(k => !partyIds.has(k))) {
+    errors.push('balance map does not match the channel participant set');
+  }
+  for (const [partyId, balance] of Object.entries(state.balances)) {
+    if (balance < 0n) errors.push(`negative balance for party ${partyId}`);
+  }
+}
+
 export async function verifyState(
   channel: OmniaChannel,
   state: SignedChannelState,
@@ -386,6 +426,8 @@ export async function verifyState(
   if (balanceSum + htlcSum !== channel.totalValue) {
     errors.push(`balance conservation: ${balanceSum + htlcSum} !== ${channel.totalValue}`);
   }
+
+  validateBalanceShape(channel, state, errors);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');
@@ -453,14 +495,30 @@ export async function verifyState(
  * path. It intentionally does not require every channel party to have signed.
  * After co-signing and merging, use `verifyState()` on the completed state.
  */
-export async function verifyStateForCoSign(
+export interface ValidateStateForCoSignOptions {
+  /**
+   * Require `state.sequence > channel.currentSequence` (the co-signer's view).
+   * The initiator attaching a counterparty signature already advanced its own
+   * channel to this sequence, so it passes `false` and only stale states are
+   * rejected.
+   */
+  requireSequenceAdvance?: boolean;
+}
+
+export function validateStateForCoSign(
   channel: OmniaChannel,
   state: SignedChannelState,
-): Promise<{ valid: boolean; errors: string[] }> {
+  opts?: ValidateStateForCoSignOptions,
+): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+  const requireAdvance = opts?.requireSequenceAdvance ?? true;
 
-  if (state.sequence <= channel.currentSequence) {
-    errors.push(`sequence ${state.sequence} not > current ${channel.currentSequence}`);
+  if (requireAdvance) {
+    if (state.sequence <= channel.currentSequence) {
+      errors.push(`sequence ${state.sequence} not > current ${channel.currentSequence}`);
+    }
+  } else if (state.sequence < channel.currentSequence) {
+    errors.push(`stale sequence ${state.sequence} is behind current ${channel.currentSequence}`);
   }
 
   const balanceSum = Object.values(state.balances).reduce((a, b) => a + b, 0n);
@@ -470,6 +528,8 @@ export async function verifyStateForCoSign(
   if (balanceSum + htlcSum !== channel.totalValue) {
     errors.push(`balance conservation: ${balanceSum + htlcSum} !== ${channel.totalValue}`);
   }
+
+  validateBalanceShape(channel, state, errors);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');
@@ -513,4 +573,12 @@ export async function verifyStateForCoSign(
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+/** Async wrapper kept for API compatibility. */
+export async function verifyStateForCoSign(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+): Promise<{ valid: boolean; errors: string[] }> {
+  return validateStateForCoSign(channel, state);
 }

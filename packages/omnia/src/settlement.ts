@@ -4,6 +4,7 @@ import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
+  OmniaTxDraft,
   SignedChannelState,
   SettlementPayload,
   DisputePayload,
@@ -16,7 +17,9 @@ import { ChannelStatusError } from './errors.js';
 import { buildSettlementTx, deserializeTxDraft, serializeTxDraft, omniaDraftToCanonicalMinimaBytes, computeOmniaTxDigest } from './transactions.js';
 import { signTxDraft } from './sign.js';
 import { verifyClosePackage } from './close-package.js';
-import { ELTOO_CONTEST_DELAY_BLOCKS } from './script.js';
+import { verifyChannelSignature } from './wots.js';
+import { resolveSettlementAddresses } from './addresses.js';
+import { channelContestDelay, coinCreatedBlock, confirmationsAt } from './chain-truth.js';
 import {
   assertBroadcastProofs,
   closePackageSignatureBytes,
@@ -98,18 +101,60 @@ function resolveSettlementPartyAddresses(
   channel: OmniaChannel,
   partyAddresses?: Record<string, string>,
 ): Record<string, string> {
-  const resolved: Record<string, string> = {};
-  for (const party of channel.parties) {
-    const addr = partyAddresses?.[party.partyId] ?? party.settlementAddress;
-    if (!addr) {
-      throw new Error(
-        `No settlement address for party ${party.partyId}. ` +
-        `Set party.settlementAddress or pass opts.partyAddresses.`
-      );
-    }
-    resolved[party.partyId] = addr;
+  return resolveSettlementAddresses(channel.parties, partyAddresses);
+}
+
+interface VerifiedSettlementDraft {
+  state: SignedChannelState;
+  draft: OmniaTxDraft;
+  digest: Uint8Array;
+  digestHex: string;
+  txHex: string;
+  partyAddresses: Record<string, string>;
+}
+
+/**
+ * Build the settlement draft locally and verify any counterparty-supplied
+ * claims against it.
+ *
+ * Settlement signing must never sign bytes that came off the wire. The draft is
+ * always rebuilt from the channel's own state and agreed addresses, then any
+ * supplied `settlementTxHex` / `digestHex` / `sequence` must match byte-for-byte
+ * or the request is rejected. This is what stops a peer from obtaining a
+ * co-signature over a settlement that pays the channel to itself.
+ */
+function buildVerifiedSettlementDraft(
+  channel: OmniaChannel,
+  claimed?: {
+    sequence?: number;
+    settlementTxHex?: string;
+    digestHex?: string;
+    partyAddresses?: Record<string, string>;
+  },
+): VerifiedSettlementDraft {
+  const state = resolveSettlementState(channel);
+  if (claimed?.sequence !== undefined && claimed.sequence !== state.sequence) {
+    throw new Error(
+      `Settlement sequence ${claimed.sequence} does not match the channel sequence ${state.sequence}`,
+    );
   }
-  return resolved;
+  const partyAddresses = resolveSettlementPartyAddresses(channel, claimed?.partyAddresses);
+  const draft = buildSettlementTx(channel, state, partyAddresses);
+  const txHex = serializeTxDraft(draft);
+  const digest = computeOmniaTxDigest(draft);
+  const digestHex = Buffer.from(digest).toString('hex');
+
+  if (claimed?.settlementTxHex !== undefined && claimed.settlementTxHex !== txHex) {
+    throw new Error('Settlement transaction does not match the channel state');
+  }
+  if (
+    claimed?.digestHex !== undefined &&
+    claimed.digestHex.replace(/^0x/i, '').toLowerCase() !== digestHex
+  ) {
+    throw new Error('Settlement digest does not match the channel state');
+  }
+
+  return { state, draft, digest, digestHex, txHex, partyAddresses };
 }
 
 /**
@@ -121,14 +166,14 @@ export function buildSettlementSigningRequest(
   channel: OmniaChannel,
   opts?: Pick<ProposeSettlementOptions, 'partyAddresses'>,
 ): SettlementSigningRequest {
-  const state = resolveSettlementState(channel);
-  const partyAddresses = resolveSettlementPartyAddresses(channel, opts?.partyAddresses);
-  const draft = buildSettlementTx(channel, state, partyAddresses);
+  const { state, txHex, digestHex, partyAddresses } = buildVerifiedSettlementDraft(channel, {
+    partyAddresses: opts?.partyAddresses,
+  });
   return {
     channelId: channel.channelId,
     sequence: state.sequence,
-    settlementTxHex: serializeTxDraft(draft),
-    digestHex: '0x' + Buffer.from(computeOmniaTxDigest(draft)).toString('hex'),
+    settlementTxHex: txHex,
+    digestHex: '0x' + digestHex,
     partyAddresses,
   };
 }
@@ -136,6 +181,10 @@ export function buildSettlementSigningRequest(
 /**
  * Co-sign a settlement signing request. Used by the counterparty to provide its
  * half of the eltoo `MULTISIG(2 …)` settlement witness.
+ *
+ * The request is verified against the channel before signing: same channel, same
+ * sequence, agreed party addresses, and a draft that matches the locally built
+ * settlement byte-for-byte. Only the local draft is ever signed.
  */
 export async function signSettlementRequest(
   channel: OmniaChannel,
@@ -147,12 +196,21 @@ export async function signSettlementRequest(
   if (!effectiveSigner) throw new Error('No signer provided and channel.localSigner is not set');
   const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
   if (!signerParty) throw new Error('Signer is not a channel participant');
+  if (request.channelId !== channel.channelId) {
+    throw new Error('Settlement request channelId does not match the channel');
+  }
 
-  const draft = deserializeTxDraft(request.settlementTxHex);
+  const { state, draft } = buildVerifiedSettlementDraft(channel, {
+    sequence: request.sequence,
+    settlementTxHex: request.settlementTxHex,
+    digestHex: request.digestHex,
+    partyAddresses: request.partyAddresses,
+  });
+
   const { signature, indices } = await signTxDraft(
     channel,
     draft,
-    `settlement-sign-seq-${request.sequence}`,
+    `settlement-sign-seq-${state.sequence}`,
     leaseProvider,
     effectiveSigner,
   );
@@ -209,20 +267,37 @@ export async function proposeSettlement(
     throw new Error('No signer provided and channel.localSigner is not set');
   }
 
-  const partyAddresses = resolveSettlementPartyAddresses(channel, opts?.partyAddresses);
-  const state = resolveSettlementState(channel);
+  const {
+    state,
+    draft: settlementDraft,
+    txHex: settlementHex,
+    digest,
+  } = buildVerifiedSettlementDraft(channel, {
+    settlementTxHex: opts?.settlementTxHex,
+    partyAddresses: opts?.partyAddresses,
+  });
 
-  // Prefer the exact draft the counterparty co-signed so both signatures cover
-  // identical bytes; otherwise build it deterministically from channel state.
-  const settlementDraft = opts?.settlementTxHex
-    ? deserializeTxDraft(opts.settlementTxHex)
-    : buildSettlementTx(channel, state, partyAddresses);
-  const settlementHex = opts?.settlementTxHex ?? serializeTxDraft(settlementDraft);
+  // A signature we did not produce ourselves is untrusted input. Verify it
+  // against the locally built settlement digest before it enters the witness.
+  for (const counter of opts?.counterpartySignatures ?? []) {
+    const party = channel.parties.find(p => p.partyId === counter.partyId);
+    if (!party) {
+      throw new Error(
+        `Counterparty settlement signature party '${counter.partyId}' is not a channel participant`,
+      );
+    }
+    if (!verifyChannelSignature(counter.signature, digest, party.publicKeyDigest)) {
+      throw new Error(`Invalid counterparty settlement signature for party ${counter.partyId}`);
+    }
+  }
 
   // signTxDraft signs the settlement TX (STATE(100)=TRUE), not the update TX.
   let signature: ChannelSignature;
   let indices: SigningIndices | undefined;
   if (opts?.localSignature) {
+    if (!verifyChannelSignature(opts.localSignature, digest, signerParty.publicKeyDigest)) {
+      throw new Error(`Provided settlement signature is not valid for party ${signerParty.partyId}`);
+    }
     signature = opts.localSignature;
     indices = opts.localIndices;
   } else {
@@ -263,10 +338,14 @@ export async function proposeSettlement(
     const draftBytes = omniaDraftToCanonicalMinimaBytes(settlementDraft);
     // Include the counterparty signature(s) too: the eltoo settlement branch
     // requires MULTISIG(2 A B), so a cooperative close needs both keys present.
-    const signatures = [
-      signature,
-      ...(opts.counterpartySignatures ?? []).map((s) => s.signature),
-    ];
+    // MULTISIG verifies in key order: order the witness by the channel parties.
+    const signatureByParty: Record<string, Uint8Array> = { [signerParty.partyId]: signature };
+    for (const counter of opts.counterpartySignatures ?? []) {
+      signatureByParty[counter.partyId] = counter.signature;
+    }
+    const signatures = channel.parties
+      .map((party) => signatureByParty[party.partyId])
+      .filter((sig): sig is Uint8Array => sig instanceof Uint8Array);
     const witnessBytes = serializeOmniaWitness({
       // `signature` is already a serialized Minima/Tree Signature; the lease
       // indices are channel metadata and must NOT be prepended to the witness
@@ -353,17 +432,19 @@ export async function startUnilateralClose(
   const closePackage = latest.closePackage!;
   assertBroadcastProofs(broadcastProofs);
 
+  const delay = channelContestDelay(channel);
+
   const tip = await chainProvider.getTip();
   const updateTxpowId = await mineAndBroadcastDraft(
     closePackage.update.txHex,
     chainProvider,
     serializeOmniaWitness({
-      signatures: closePackageSignatureBytes(latest, 'update'),
+      signatures: closePackageSignatureBytes(latest, 'update', channel.parties.map(p => p.partyId)),
       coinProofs: broadcastProofs.coinProofs,
       scriptProofs: broadcastProofs.scriptProofs,
     }),
   );
-  const contestDeadlineBlock = tip.block + ELTOO_CONTEST_DELAY_BLOCKS;
+  const contestDeadlineBlock = tip.block + delay;
   const disputePayload = buildDisputePayload(channel, JSON.stringify({
     stateCommitmentV2: closePackage.stateCommitmentV2,
     updateTxDigest: closePackage.update.txDigest,
@@ -395,6 +476,62 @@ export async function startUnilateralClose(
   };
 }
 
+/**
+ * Record the on-chain output of the broadcast unilateral update.
+ *
+ * The update transaction is built with the eltoo placeholder coin id, so its
+ * output coin id cannot be derived locally — only the chain knows it. Until this
+ * is recorded, `finalizeUnilateralClose` refuses to run: finalising on an
+ * unfunded assumption is exactly how a premature settlement would happen.
+ *
+ * Recording also restarts the contest clock from the coin's actual inclusion
+ * height, rather than from the pre-broadcast tip.
+ */
+export async function recordUnilateralUpdateCoin(
+  channel: OmniaChannel,
+  coinId: string,
+  chainProvider?: ChainStateProvider,
+  minConfirmations: number = 1,
+): Promise<OmniaChannel> {
+  const closeState = channel.unilateralClose;
+  if (!closeState) throw new Error('Cannot record the update coin: no unilateral close in progress');
+  if (!channel.fundingAddress) throw new Error('Channel fundingAddress is required to record the update coin');
+
+  if (!chainProvider) {
+    throw new Error('A chain provider is required to record the update coin');
+  }
+  const coin = await chainProvider.getCoin(coinId);
+  if (!coin) throw new Error(`Update output coin ${coinId} not found on chain`);
+  if (coin.spent) throw new Error(`Update output coin ${coinId} is already spent`);
+  if (coin.address !== channel.fundingAddress) {
+    throw new Error(`Update output address ${coin.address} is not the channel script address ${channel.fundingAddress}`);
+  }
+  if (minConfirmations > 0) {
+    const tip = await chainProvider.getTip();
+    const confirmations = confirmationsAt(coin, tip.block);
+    if (confirmations === null || confirmations < minConfirmations) {
+      throw new Error(
+        `Update output coin ${coinId} has ${confirmations ?? 'unknown'} confirmations; ${minConfirmations} required`,
+      );
+    }
+  }
+  const includedAt = coinCreatedBlock(coin);
+  if (includedAt === null) {
+    throw new Error(`Cannot determine the inclusion height of update output coin ${coinId}`);
+  }
+
+  return {
+    ...channel,
+    unilateralClose: {
+      ...closeState,
+      updateCoinId: coinId,
+      contestStartBlock: includedAt,
+      contestDeadlineBlock: includedAt + channelContestDelay(channel),
+    },
+    updatedAt: Date.now(),
+  };
+}
+
 export async function finalizeUnilateralClose(
   channel: OmniaChannel,
   chainProvider: ChainStateProvider,
@@ -405,20 +542,57 @@ export async function finalizeUnilateralClose(
   }
   const closeState = channel.unilateralClose;
   if (!closeState) throw new Error('Cannot finalize unilateral close: no unilateral close in progress');
+
+  // The settlement bytes must come from the verified close package of the state
+  // being closed — never from the stored copy, which can be stale or mixed with
+  // signatures from a different state.
+  const latest = channel.latestState;
+  if (!latest) throw new Error('Cannot finalize unilateral close: no signed state available');
+  if (latest.sequence !== closeState.sequence) {
+    throw new Error(
+      `Unilateral close state is stale: latest signed state is ${latest.sequence}, close package is ${closeState.sequence}. Replace it before finalizing.`,
+    );
+  }
+  const closePackageCheck = verifyClosePackage(channel, latest);
+  if (!closePackageCheck.valid) {
+    throw new Error(`Cannot finalize unilateral close: ${closePackageCheck.errors.join('; ')}`);
+  }
+  const closePackage = latest.closePackage!;
+
+  const delay = channelContestDelay(channel);
   const tip = await chainProvider.getTip();
   if (tip.block < closeState.contestDeadlineBlock) {
     throw new Error(`Contest delay not elapsed: current block ${tip.block}, deadline ${closeState.contestDeadlineBlock}`);
   }
+  if (!closeState.updateCoinId) {
+    throw new Error(
+      'Contest delay not elapsed: the unilateral update output coin has not been recorded. ' +
+      'Call recordUnilateralUpdateCoin() after the update is mined.',
+    );
+  }
+  {
+    const updateCoin = await chainProvider.getCoin(closeState.updateCoinId);
+    if (!updateCoin) {
+      throw new Error('Contest delay not elapsed: the unilateral update output is not on chain');
+    }
+    const includedAt = coinCreatedBlock(updateCoin);
+    if (includedAt === null) {
+      throw new Error('Contest delay not elapsed: cannot determine the update inclusion height');
+    }
+    if (tip.block - includedAt < delay) {
+      throw new Error(
+        `Contest delay not elapsed: update included at ${includedAt}, current block ${tip.block}, delay ${delay}`,
+      );
+    }
+  }
 
   assertBroadcastProofs(broadcastProofs);
 
-  const latest = channel.latestState;
-  if (!latest) throw new Error('Cannot finalize unilateral close: no signed state available');
   const settlementTxpowId = await mineAndBroadcastDraft(
-    closeState.settlementTxHex,
+    closePackage.settlement.txHex,
     chainProvider,
     serializeOmniaWitness({
-      signatures: closePackageSignatureBytes(latest, 'settlement'),
+      signatures: closePackageSignatureBytes(latest, 'settlement', channel.parties.map(p => p.partyId)),
       coinProofs: broadcastProofs.coinProofs,
       scriptProofs: broadcastProofs.scriptProofs,
     }),
@@ -428,8 +602,8 @@ export async function finalizeUnilateralClose(
     .map(h => ({ htlcId: h.htlcId, amount: h.amount, htlcTxHex: '' }));
   const settlementPayload: SettlementPayload = {
     channelId: channel.channelId,
-    sequence: closeState.sequence,
-    settlementTxHex: closeState.settlementTxHex,
+    sequence: latest.sequence,
+    settlementTxHex: closePackage.settlement.txHex,
     balances: { ...latest.balances },
     htlcOutputs,
     txpowId: settlementTxpowId,
@@ -448,10 +622,20 @@ export async function finalizeUnilateralClose(
   return { channel: updatedChannel, settlementPayload };
 }
 
-export function replaceUnilateralCloseState(
+/**
+ * Replace the in-flight unilateral close with a newer signed state and rebroadcast
+ * its update transaction.
+ *
+ * Eltoo lets either party outrun a stale close with a newer co-signed update. The
+ * replacement must be broadcast (and its contest window restarted); only updating
+ * local metadata would leave the old update on chain and the old deadline in place.
+ */
+export async function replaceUnilateralCloseState(
   channel: OmniaChannel,
   newerState: SignedChannelState,
-): OmniaChannel {
+  chainProvider: ChainStateProvider,
+  broadcastProofs?: OmniaWitnessProofs,
+): Promise<OmniaChannel> {
   if (!channel.unilateralClose) {
     throw new Error('Cannot replace unilateral close state: no unilateral close in progress');
   }
@@ -462,17 +646,35 @@ export function replaceUnilateralCloseState(
   if (!closePackageCheck.valid) {
     throw new Error(`Cannot replace unilateral close state: ${closePackageCheck.errors.join('; ')}`);
   }
+  assertBroadcastProofs(broadcastProofs);
+
+  const closePackage = newerState.closePackage!;
+  const tip = await chainProvider.getTip();
+  const updateTxpowId = await mineAndBroadcastDraft(
+    closePackage.update.txHex,
+    chainProvider,
+    serializeOmniaWitness({
+      signatures: closePackageSignatureBytes(newerState, 'update', channel.parties.map(p => p.partyId)),
+      coinProofs: broadcastProofs.coinProofs,
+      scriptProofs: broadcastProofs.scriptProofs,
+    }),
+  );
+  const contestDeadlineBlock = tip.block + channelContestDelay(channel);
+
   return {
     ...channel,
     latestState: newerState,
     currentSequence: newerState.sequence,
     balances: newerState.balances,
     unilateralClose: {
-      ...channel.unilateralClose,
+      channelId: channel.unilateralClose.channelId,
       sequence: newerState.sequence,
-      updateTxHex: newerState.closePackage!.update.txHex,
-      settlementTxHex: newerState.closePackage!.settlement.txHex,
+      updateTxHex: closePackage.update.txHex,
+      settlementTxHex: closePackage.settlement.txHex,
+      contestStartBlock: tip.block,
+      contestDeadlineBlock,
       status: 'update_broadcast',
+      updateTxpowId,
     },
     status: 'disputing',
     updatedAt: Date.now(),

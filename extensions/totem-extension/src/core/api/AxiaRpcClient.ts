@@ -9,6 +9,7 @@
 
 import { quotaTracker } from './QuotaTracker';
 import { validateUrl, logSecurityViolation } from '../security/SecurityValidator';
+import { getServiceVersionInfo } from '../../shared/apiVersion';
 
 // Custom Error Classes
 export class AxiaError extends Error {
@@ -131,11 +132,11 @@ export class AxiaRpcClient {
     if (this.apiVersionLogged) return;
     this.apiVersionLogged = true;
     try {
-      const base = (this.config?.AXIA_BASE || 'https://api.axia.to').replace(/\/$/, '');
-      const res = await fetch(`${base}/info`, { headers: { accept: 'application/json' } });
-      const info = res.ok ? await res.json() : null;
+      const info = await getServiceVersionInfo();
       const extensionVersion = (globalThis as any).chrome?.runtime?.getManifest?.().version || 'unknown';
-      console.info(`[Axia API] ${info?.name || 'Axia API'} version=${info?.version || 'unknown'} base=${base} extension=${extensionVersion}`);
+      console.info(
+        `[Axia API] API ${info.api} · config schema ${info.schema} base=${info.base} extension=${extensionVersion}`,
+      );
     } catch (error) {
       console.info(`[Axia API] version=unknown base=${this.config?.AXIA_BASE || 'https://api.axia.to'}`);
     }

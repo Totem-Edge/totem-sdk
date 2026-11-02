@@ -267,6 +267,8 @@ const backgroundConfig = {
       'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
       'process.env.WOTS_PARAMSET': JSON.stringify(process.env.WOTS_PARAMSET || 'v2-spec'),
       'process.env.WOTS_ALLOW_V1_DEV': JSON.stringify(process.env.WOTS_ALLOW_V1_DEV || ''),
+      '__TOTEM_TEST_SEED__': JSON.stringify(process.env.TOTEM_TEST_BUILD === '1' ? (process.env.TOTEM_TEST_SEED_PHRASE || '') : ''),
+      '__TOTEM_TEST_PASSWORD__': JSON.stringify(process.env.TOTEM_TEST_BUILD === '1' ? (process.env.TOTEM_TEST_PASSWORD || 'totem-test-only') : ''),
       
       // DESIGNER_MODE: Compile-time constant for Designer/MockRPC features
       // Production builds = false (always connects to api.axia.to)
@@ -357,6 +359,8 @@ const uiConfig = {
       'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
       'process.env.WOTS_PARAMSET': JSON.stringify(process.env.WOTS_PARAMSET || 'v2-spec'),
       'process.env.WOTS_ALLOW_V1_DEV': JSON.stringify(process.env.WOTS_ALLOW_V1_DEV || ''),
+      '__TOTEM_TEST_SEED__': JSON.stringify(process.env.TOTEM_TEST_BUILD === '1' ? (process.env.TOTEM_TEST_SEED_PHRASE || '') : ''),
+      '__TOTEM_TEST_PASSWORD__': JSON.stringify(process.env.TOTEM_TEST_BUILD === '1' ? (process.env.TOTEM_TEST_PASSWORD || 'totem-test-only') : ''),
       
       // DESIGNER_MODE: Compile-time constant for Designer/MockRPC features
       // Production builds = false (always connects to api.axia.to)

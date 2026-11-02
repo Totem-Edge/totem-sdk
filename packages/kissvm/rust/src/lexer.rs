@@ -220,24 +220,12 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
                     i += 1;
                 }
                 let upper = word.to_uppercase();
-                // Node-canonical strictness: keyword/function forms are all-uppercase;
-                // user variables are all-lowercase letters (^[a-z]+$). Reject mixed
-                // case, digits and underscores (e.g. `prevClaimed`, `SHARE0`, `share0`)
-                // and the non-node `ADD`/`SUB` word operators (canonical is `+`/`-`).
-                let all_lower = word.chars().all(|c| c.is_ascii_lowercase());
-                let all_upper = word.chars().all(|c| c.is_ascii_uppercase());
-                if upper == "ADD" || upper == "SUB" {
-                    return Err(format!(
-                        "`{}` at pos {} is not node-canonical (use `+`/`-`)",
-                        word, start
-                    ));
-                }
-                if !all_lower && !all_upper {
-                    return Err(format!(
-                        "identifier `{}` at pos {} is not node-canonical (variables must match ^[a-z]+$)",
-                        word, start
-                    ));
-                }
+                // Node-canonical strictness: known keywords/functions are
+                // uppercase forms and may contain digits (`SHA3`, `SHA2`); user
+                // variables must match ^[a-z]+$ (lowercase letters only). Reject
+                // mixed case, digits and underscores in variables (e.g.
+                // `prevClaimed`, `SHARE0`, `share0`) and the non-node `ADD`/`SUB`
+                // word operators (canonical is `+`/`-`).
                 let kind = match upper.as_str() {
                     "TRUE" => TokenKind::True,
                     "FALSE" => TokenKind::False,
@@ -301,6 +289,20 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
                     "SIGDIG" => TokenKind::SigDig,
                     _ => TokenKind::Ident,
                 };
+                if upper == "ADD" || upper == "SUB" {
+                    return Err(format!(
+                        "`{}` at pos {} is not node-canonical (use `+`/`-`)",
+                        word, start
+                    ));
+                }
+                if matches!(kind, TokenKind::Ident)
+                    && !word.chars().all(|c| c.is_ascii_lowercase())
+                {
+                    return Err(format!(
+                        "identifier `{}` at pos {} is not node-canonical (variables must match ^[a-z]+$)",
+                        word, start
+                    ));
+                }
                 tokens.push(Token { kind, value: word, pos: start });
             }
             _ => {
@@ -311,4 +313,32 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
 
     tokens.push(Token { kind: TokenKind::Eof, value: String::new(), pos: i });
     Ok(tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_digit_bearing_function_names() {
+        // SHA3/SHA2 are functions, not user variables. The node accepts them;
+        // the canonicality check must classify them before applying ^[a-z]+$.
+        let tokens = tokenize("RETURN SHA3(STATE(1)) EQ 0xAB").expect("SHA3 must tokenize");
+        assert!(tokens.iter().any(|t| t.kind == TokenKind::Sha3));
+        assert!(tokenize("RETURN SHA2(0xAB)").is_ok());
+    }
+
+    #[test]
+    fn rejects_non_canonical_variables() {
+        assert!(tokenize("LET SHARE0 = 1").is_err());
+        assert!(tokenize("LET share0 = 1").is_err());
+        assert!(tokenize("LET prevClaimed = 1").is_err());
+        assert!(tokenize("LET share = 1").is_ok());
+    }
+
+    #[test]
+    fn rejects_word_arithmetic() {
+        assert!(tokenize("RETURN ADD 1 2").is_err());
+        assert!(tokenize("RETURN SUB 1 2").is_err());
+    }
 }

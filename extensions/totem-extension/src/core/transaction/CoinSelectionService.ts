@@ -248,7 +248,10 @@ class CoinSelectionService {
           const coins = await active.provider.getCoins({
             address,
             ...(queryTokenId ? { tokenId: queryTokenId } : {}),
-            sendable: options?.sendable ?? true,
+            // `sendable` is an Axia concept meaning "unspent". On a local node,
+            // `coins sendable:true` means "spendable by the node's own wallet",
+            // which is false for every dApp/extension address. Never forward it
+            // to the node provider; callers filter spent coins themselves.
             ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
             ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),
           });

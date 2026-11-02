@@ -11,6 +11,21 @@ on:
         options:
           - dry-run
           - apply
+      package:
+        description: "Optional: promote one package instead of syncing channel tags"
+        required: false
+        default: ""
+        type: string
+      version:
+        description: "Version to promote (required with package)"
+        required: false
+        default: ""
+        type: string
+      tag:
+        description: "Dist-tag to apply (required with package)"
+        required: false
+        default: "latest"
+        type: string
 
 permissions:
   contents: read
@@ -33,13 +48,22 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Plan or apply dist-tags
         run: |
+          TARGET_ARGS=""
+          if [ -n "${{ inputs.package }}" ]; then
+            TARGET_ARGS="--package ${{ inputs.package }} --version ${{ inputs.version }} --tag ${{ inputs.tag }}"
+          fi
           if [ "${{ inputs.mode }}" = "apply" ]; then
-            node scripts/apply-dist-tags.mjs --execute
+            node scripts/apply-dist-tags.mjs $TARGET_ARGS --execute
           else
-            node scripts/apply-dist-tags.mjs
+            node scripts/apply-dist-tags.mjs $TARGET_ARGS
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Verify final tags
         if: inputs.mode == 'apply'
-        run: node scripts/report-dist-tags.mjs --check
+        run: |
+          if [ -n "${{ inputs.package }}" ]; then
+            node scripts/report-dist-tags.mjs --check --package "${{ inputs.package }}"
+          else
+            node scripts/report-dist-tags.mjs --check
+          fi

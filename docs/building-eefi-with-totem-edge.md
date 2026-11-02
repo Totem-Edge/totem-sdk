@@ -609,7 +609,7 @@ The graph is content-deterministic: the same logical content always produces the
 
 ### Industrial action: When finance meets physics
 
-`@totemsdk/industrial-action` bridges the gap between "a financial event occurred" and "a physical action must happen." A payment clears → a vending machine dispenses. A channel settles → a smart lock opens. A governance vote passes → a circuit breaker trips.
+`@totemsdk/act-core` bridges the gap between "a financial event occurred" and "a physical action must happen." A payment clears → a vending machine dispenses. A channel settles → a smart lock opens. A governance vote passes → a circuit breaker trips.
 
 Industrial actions carry guardrails: parameter ranges, context matches, time windows. The action executor verifies that the financial event is valid, the guardrails are satisfied, and the physical action is authorized — then executes. Every execution produces a verifiable receipt.
 
@@ -894,7 +894,7 @@ Eefi is not a finished product. It's a direction. The Totem SDK provides the pri
 | `@totemsdk/proof` | [`packages/proof`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/proof) | WOTS-signed proof envelopes for every action |
 | `@totemsdk/proof-integritas` | [`packages/proof-integritas`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/proof-integritas) | On-chain proof anchoring via Integritas v2 |
 | `@totemsdk/proofgraph` | [`packages/proofgraph`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/proofgraph) | Content-addressed DAG of proofs, identities, and relationships |
-| `@totemsdk/industrial-action` | [`packages/industrial-action`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/industrial-action) | Bridge between financial events and physical actuation |
+| `@totemsdk/act-core` | [`packages/act-core`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/act-core) | Bridge between financial events and physical actuation |
 | `@totemsdk/connect` | [`packages/connect`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/connect) | dApp gateway — human interface to the Totem wallet extension |
 | `@totemsdk/lookup-node` | [`packages/lookup-node`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/lookup-node) | Personal P2P chain indexer and service discovery |
 | `@totemsdk/lookup-client` | [`packages/lookup-client`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/lookup-client) | Client for querying lookup nodes |

@@ -117,7 +117,7 @@ whether a named package exists.
 | OMP-15 | Idempotent multi-step prepare/lock/fulfill/expire saga with durable recovery | edge outbox/replay, omnia coordination, storage | P | Omnia orchestration | G1/G2 |
 | OMP-16 | Reliable finality evidence, recipient payout and economic reconciliation | chain-provider, server RFC-036, proofgraph, omnia-pool | P | Shared settlement port + Omnia | G0/G4 |
 | OMP-17 | Signed observation with provenance and reference evidence | proof, proofgraph, manifest, identity | E (generic) | Totem evidence | G3 |
-| OMP-18 | Oracle feed identity, schema, units, freshness, quorum, aggregation, challenge policy | proof, proofgraph, lookup-*, industrial-action units | N | Cross-domain Totem observation protocol | G3 |
+| OMP-18 | Oracle feed identity, schema, units, freshness, quorum, aggregation, challenge policy | proof, proofgraph, lookup-*, act-core units | N | Cross-domain Totem observation protocol | G3 |
 | OMP-19 | Financial condition witness verifiable by specified execution venue | kissvm CHECKSIG example, recursive-mast, proof; **`buildOracleConditionScript`** (§3.1) | P → witness template | Totem KISSVM adapter + Omnia program | G3 |
 | OMP-20 | Verifiable LP principal, ownership, allocation and fee claims | liquidity-bond, omnia-pool, proofgraph | P | Omnia pool | G4 |
 | OMP-21 | Enforceable collateral bond, slashing/dispute/reclaim | provider-bond records, kissvm, recursive-mast, statechain | N (execution) | Shared Totem bond contract | G4/G6 |
@@ -126,7 +126,7 @@ whether a named package exists.
 | OMP-24 | Deterministic bounded agent spend and delegated mandates | agent-policy, authority, decision, edge | E/P | Totem policy + Omnia binding | G2/G4 |
 | OMP-25 | Durable recovery, operation outbox, WOTS watermark and audited restart | storage, wots-lease, edge, omnia-host | P | Totem infra + Omnia host | G0–G5 |
 | OMP-26 | Auditable receipt/provenance linkage, artifact bytes and optional anchor | proof, proofgraph, proof-integritas, storage | E/P | Totem evidence | G0–G5 |
-| OMP-27 | Typed asset metadata and economic unit validation (no binary float for settlement arithmetic) | chain-provider, core, industrial-action unit registry | P | Shared asset/type layer | G2/G3 |
+| OMP-27 | Typed asset metadata and economic unit validation (no binary float for settlement arithmetic) | chain-provider, core, act-core unit registry | P | Shared asset/type layer | G2/G3 |
 | OMP-28 | Financial market risk, credit, interest, liquidations, auctions and netting | liquidity-bond risk scores only | X | Eefi | G6 |
 
 **Interpretation:** the baseline blocker is overwhelmingly **conformance and composition**, not
@@ -147,7 +147,7 @@ verified condition witness → Omnia state transition / KISSVM commitment.
 - `proofgraph` already owns `addProof`, `getProofLineage`, `findConflicts`, `resolveCurrentProofSet`, revocations, anchors and content-addressed evidence restoration. Do not build a parallel provenance graph.
 - `manifest` + `identity` bind authorized publisher identity and advertised feed capabilities; `lookup-*` distributes feed announcements or finds publishers. The current lookup wire schema will need an explicitly versioned extension or application-level signed manifest; do not silently overload unrelated lookup message types.
 - `wots-lease` enforces one-time-signing safety for attestations; `storage` preserves the issuance watermark and feed-replay journal.
-- `industrial-action` provides a unit-registry pattern for sensors; financial values MUST use exact decimal/base-unit integer representations, **not** its floating `Quantity.value` for monetary arithmetic.
+- `act-core` provides a unit-registry pattern for sensors; financial values MUST use exact decimal/base-unit integer representations, **not** its floating `Quantity.value` for monetary arithmetic.
 - `location-proof`, `spatial-proof`, `raster-proof` can enrich claims about the physical world; none turns measured data into ground truth by itself.
 - `proof-integritas` MAY anchor feed history for third-party audit. Per-observation anchoring is NOT required in the fast execution path.
 
@@ -211,7 +211,7 @@ address representation are the gap. Tracked as follow-ups in the audit.
 
 **Packaging:** first implement a small versioned observation protocol/profile built around `proof`
 and `proofgraph`; create a dedicated `@totemsdk/oracle` only if independent consumers (e.g. Omnia
-and industrial-action) require reusable quorum/aggregation runtime and the interface stabilizes.
+and act-core) require reusable quorum/aggregation runtime and the interface stabilizes.
 Oracles are infrastructure, not `omnia-oracle`.
 
 **Implemented witness.** A first on-chain condition witness exists:
@@ -514,7 +514,7 @@ ownership.
 | Provenance / evidence (6) | proof, proofgraph, proof-integritas, location-proof, spatial-proof, raster-proof | Direct first two; Conditional anchoring and physical evidence families |
 | Network and discovery (6) | lookup-client, lookup-node, lookup-protocol, pear, pubsub-transport, stream-transport | Direct: authenticated discovery, peer transport, evidence and capability announcements |
 | General edge and adapters (15) | edge, edge-adapters, edge-bacnet, edge-ble, edge-can, edge-coap, edge-email, edge-grpc, edge-lorawan, edge-matter, edge-modbus, edge-mqtt, edge-nfc, edge-opcua, edge-ros2 | Direct edge negotiation and runtime; Conditional adapters for physical metering, service delivery and offline connectivity |
-| Intelligence and machine control (4) | decision, intelligence, qvac, industrial-action | Conditional: provider choice, dynamic risk proposals, meters and safe unit conversion; never final spending authority |
+| Intelligence and machine control (4) | decision, intelligence, qvac, act-core | Conditional: provider choice, dynamic risk proposals, meters and safe unit conversion; never final spending authority |
 | Finance-adjacent (4) | liquidity-bond, provider-bond, statechain, se-server | Direct accounting / collateral-record reuse, Conditional statechain/SE operator topology |
 | Common persistence (1) | storage | Direct: CAS, journals, durable artifacts and recovery |
 | Test and developer surface (2) | sdk-tests, mcp-server | Supporting: proof-ladder scenarios, developer inspection / demos |
@@ -522,7 +522,7 @@ ownership.
 Count at the reference revision: 8 + 3 + 2 + 6 + 8 + 6 + 6 + 15 + 4 + 4 + 1 + 2 = **65** (the 64 publishable packages plus
 the private `sdk-tests` directory).
 
-**Reuse guidance:** `industrial-action` owns typed physical units but not precise financial token
+**Reuse guidance:** `act-core` owns typed physical units but not precise financial token
 arithmetic; `decision` proposes choices but cannot authorize financial spend; `proofgraph`
 authenticates evidence lineage but not factual truth of upstream measurements; `provider-bond`
 records bond assertions but does not escrow capital; `statechain` has a relevant independent

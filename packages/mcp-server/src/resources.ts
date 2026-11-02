@@ -42,7 +42,7 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
   {
     uri: 'totemsdk://papers/grey',
     name: 'Edge Grey Paper',
-    description: 'Port-injected transport-agnostic edge runtime, 11 protocol adapters, MachinePay credit gating, offline operation, industrial action, sensor-to-settlement bridge',
+    description: 'Port-injected transport-agnostic edge runtime, 11 protocol adapters, MachinePay credit gating, offline operation, act-core governed actions, sensor-to-settlement bridge',
     file: 'TOTEM_EDGE_GREY_PAPER.md',
   },
   {

@@ -375,7 +375,7 @@ identity/authorization, or is an inter-package message the two sides must agree 
 | LP capital → Eefi treasury | `liquidity-bond`, `storage` | `LiquidityPosition ↔ EefiCapitalAgreement ↔` treasury vaults | **one** LP ledger | entitlement is the source of truth; avoid two ledgers |
 | Operator / oracle accountability | `provider-bond`, `kissvm` | bond covenant (OMP-21) — `buildCollateralBondScript` (§3) | slashing/liquidation by **objective covenant**, never discretion | interacts with capital authorization |
 | Machine Prepaid Accounts | `statechain`, `se-server` | prepaid-pass lifecycle ↔ product | non-custodial owner reclaim | protocol-level; Eefi doc §4 |
-| Physical → revenue finance | `location-proof`, `spatial-proof`, `raster-proof`, `industrial-action` | attestation → settlement condition (OMP-18/19) | exact-integer units; attestation is **provenance, not truth** | Gen-2 has no proof path otherwise |
+| Physical → revenue finance | `location-proof`, `spatial-proof`, `raster-proof`, `act-core` | attestation → settlement condition (OMP-18/19) | exact-integer units; attestation is **provenance, not truth** | Gen-2 has no proof path otherwise |
 | Transport / message envelope | `edge` purchasing, `pubsub-transport`, `stream-transport`, `realtime`, `pear` | **one** signed financial message envelope | no second negotiation protocol (RFC-048 §3.2) | fragmentation risk |
 | Finality | `chain-provider`, `minima-rpc`, `server`, `realtime` | `SettlementEvidencePort` (RFC-048 §7) | prepared ≠ broadcast ≠ confirmed ≠ offchain-final | every product needs it |
 | Covenant construction | `tx-builder`, `kissvm` | covenant drafts (exercise / liquidation / settlement) | P-EXIT **reused**, not hand-rolled | enables P-EXIT across products |

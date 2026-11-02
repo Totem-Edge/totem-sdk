@@ -326,7 +326,7 @@ semantics:
 - `proof`, `proofgraph`, `proof-integritas`, `location-proof`, `spatial-proof`,
   `raster-proof`
 - `storage` and its adapters
-- `edge`, `edge-*` connectors, `industrial-action`
+- `edge`, `edge-*` connectors, `act-core`
 - `lookup-*`, `chain-provider`, `realtime`
 - `identity`, `manifest`, `authority`, `agent-policy`, `decision`, `intelligence`
 - `connect`, `wallet-adapter`, `stream-transport`, `pear`, `pubsub-transport`,

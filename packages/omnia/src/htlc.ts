@@ -9,10 +9,11 @@ import type {
   ChannelSigner,
 } from './types.js';
 import { ChannelStatusError, BalanceConservationError, SigningIndexMonotonicityError } from './errors.js';
-import { signState } from './sign.js';
+import { signState, verifyStateSignature } from './sign.js';
 import { enforceUpdateGuards, releaseUpdateGuard } from './channel.js';
 import { flatSigningIndex } from './capacity.js';
 import { computeProgramUpdateDigestHex } from './program.js';
+import { STATE_COMMITMENT_V2_PORT } from './transactions.js';
 
 
 async function signStateGuarded(
@@ -46,24 +47,42 @@ export interface HtlcFulfillmentReceipt {
   tokenId: string;
   fulfilledAt: number;
   sequence: number;
+  /** Port-102 commitment of the signed state that fulfils the HTLC. */
+  stateCommitmentV2: string;
   receiptHash: string;
 }
 
+/**
+ * Build a fee-provenance receipt bound to a **signed** state.
+ *
+ * A receipt is only meaningful if it can be traced to a state the recipient
+ * actually signed. The commitment is included in the hash and
+ * `verifyHtlcFulfillmentReceipt` re-derives everything from that state and
+ * verifies the recipient's signature — a bare self-hash is not evidence.
+ */
 export function buildHtlcFulfillmentReceipt(
   channel: OmniaChannel,
-  htlc: HTLCRecord,
-  sequence: number,
+  state: SignedChannelState,
+  htlcId: string,
   fulfilledAt?: number,
 ): HtlcFulfillmentReceipt {
-  const ts = fulfilledAt ?? Date.now();
+  const htlc = channel.pendingHTLCs.find(h => h.htlcId === htlcId && h.status === 'fulfilled');
+  if (!htlc) throw new Error(`HTLC ${htlcId} is not fulfilled on the channel`);
+  if (state.pendingHTLCs.some(h => h.htlcId === htlcId)) {
+    throw new Error(`Signed state still carries HTLC ${htlcId} as pending`);
+  }
+  const commitment = state.stateVariables.find(v => v.port === STATE_COMMITMENT_V2_PORT);
+  if (!commitment) throw new Error('Signed state is missing the port-102 commitment');
+
   const receipt: HtlcFulfillmentReceipt = {
     channelId: channel.channelId,
-    htlcId: htlc.htlcId,
+    htlcId,
     recipientPublicKeyDigest: htlc.recipientPublicKeyDigest,
     amount: htlc.amount,
     tokenId: channel.tokenId,
-    fulfilledAt: ts,
-    sequence,
+    fulfilledAt: fulfilledAt ?? Date.now(),
+    sequence: state.sequence,
+    stateCommitmentV2: String(commitment.value).replace(/^0x/i, '').toLowerCase(),
     receiptHash: '',
   };
   receipt.receiptHash = computeHtlcFulfillmentReceiptHash(receipt);
@@ -71,9 +90,37 @@ export function buildHtlcFulfillmentReceipt(
 }
 
 export function computeHtlcFulfillmentReceiptHash(receipt: HtlcFulfillmentReceipt): string {
-  const { receiptHash, ...rest } = receipt;
-  const input = `${HTLC_FEE_PROOF_DOMAIN}|${JSON.stringify(rest)}`;
+  const { receiptHash: _receiptHash, ...rest } = receipt;
+  const input = `${HTLC_FEE_PROOF_DOMAIN}|${JSON.stringify(rest, (_key, value) =>
+    typeof value === 'bigint' ? value.toString() : value)}`;
   return bytesToHex(sha3_256(new TextEncoder().encode(input)));
+}
+
+/**
+ * Verify a receipt against the signed state it claims to describe. Returns false
+ * on any mismatch, missing recipient signature or invalid signature.
+ */
+export function verifyHtlcFulfillmentReceipt(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+  receipt: HtlcFulfillmentReceipt,
+): boolean {
+  try {
+    if (receipt.channelId !== channel.channelId) return false;
+    if (receipt.sequence !== state.sequence) return false;
+    const rebuilt = buildHtlcFulfillmentReceipt(channel, state, receipt.htlcId, receipt.fulfilledAt);
+    if (rebuilt.receiptHash !== receipt.receiptHash) return false;
+    if (rebuilt.receiptHash !== computeHtlcFulfillmentReceiptHash(receipt)) return false;
+    if (rebuilt.amount !== receipt.amount) return false;
+    if (rebuilt.recipientPublicKeyDigest !== receipt.recipientPublicKeyDigest) return false;
+    if (rebuilt.tokenId !== receipt.tokenId) return false;
+
+    const party = channel.parties.find(p => p.publicKeyDigest === receipt.recipientPublicKeyDigest);
+    if (!party || !state.signatures[party.partyId]) return false;
+    return verifyStateSignature(channel, state, party.partyId, party.publicKeyDigest);
+  } catch {
+    return false;
+  }
 }
 
 function generateHtlcId(): string {
@@ -106,34 +153,61 @@ export async function addHTLC(
   )?.partyId;
   if (!offererPartyId) throw new Error('Signer is not a channel participant');
 
-  const offererBalance = channel.balances[offererPartyId] ?? 0n;
+  if (params.direction !== 'offered' && params.direction !== 'received') {
+    throw new Error(`HTLC direction must be 'offered' or 'received', got ${String(params.direction)}`);
+  }
+  const normalizeHexLiteral = (value: string): string => {
+    if (typeof value !== 'string' || !/^(0x)?[0-9a-fA-F]{64}$/.test(value)) {
+      throw new Error(`HTLC hashlock must be a 32-byte hex string, got ${JSON.stringify(value)}`);
+    }
+    return '0x' + value.replace(/^0x/i, '').toLowerCase();
+  };
+  const hashlock = normalizeHexLiteral(params.hashlock);
+  if (typeof params.timeoutBlock !== 'bigint' || params.timeoutBlock <= 0n) {
+    throw new Error(`HTLC timeoutBlock must be a positive bigint, got ${String(params.timeoutBlock)}`);
+  }
+
+  // The HTLC must pay the channel counterparty. An arbitrary recipient key would
+  // create an HTLC the counterparty never agreed to and can never claim.
+  const counterParty = channel.parties.find(p => p.publicKeyDigest !== effectiveSigner.publicKeyDigest);
+  if (!counterParty) throw new Error('Counter party not found');
+  if (
+    typeof params.counterpartPublicKeyDigest !== 'string' ||
+    params.counterpartPublicKeyDigest.toLowerCase() !== counterParty.publicKeyDigest.toLowerCase()
+  ) {
+    throw new Error(
+      `HTLC counterparty ${JSON.stringify(params.counterpartPublicKeyDigest)} is not the channel counterparty`,
+    );
+  }
   if (params.amount <= 0n) {
     throw new Error(`HTLC amount must be positive: ${params.amount}`);
   }
+  const scale = channel.tokenScale ?? 0;
+  if (scale > 0 && params.amount % (10n ** BigInt(scale)) !== 0n) {
+    throw new Error(`HTLC amount ${params.amount} is not a whole number of raw units at tokenScale ${scale}`);
+  }
+  const offererBalance = channel.balances[offererPartyId] ?? 0n;
   if (params.amount > offererBalance) {
     throw new Error(`Insufficient balance: ${offererBalance} < ${params.amount}`);
   }
 
-  const counterParty = channel.parties.find(p => p.publicKeyDigest !== effectiveSigner.publicKeyDigest);
-  if (!counterParty) throw new Error('Counter party not found');
-
-  const { script: htlcScript, address: htlcAddress } = HTLCHelper.createHTLC(
+  const { script: _htlcScript, address: htlcAddress } = HTLCHelper.createHTLC(
     effectiveSigner.publicKeyDigest,
     params.counterpartPublicKeyDigest,
-    params.hashlock,
+    hashlock,
     params.timeoutBlock,
   );
 
   const htlcRecord: HTLCRecord = {
     htlcId: generateHtlcId(),
     amount: params.amount,
-    hashlock: params.hashlock,
+    hashlock,
     timeoutBlock: params.timeoutBlock,
     direction: params.direction,
     status: 'pending',
     htlcAddress,
     senderPublicKeyDigest: effectiveSigner.publicKeyDigest,
-    recipientPublicKeyDigest: params.counterpartPublicKeyDigest,
+    recipientPublicKeyDigest: counterParty.publicKeyDigest,
   };
 
   const newBalances: Record<string, bigint> = { ...channel.balances };
@@ -218,6 +292,7 @@ export async function fulfillHTLC(
   htlcId: string,
   preimage: string,
   leaseProvider: WotsLeaseProvider,
+  chainProvider: ChainStateProvider,
   signer?: ChannelSigner,
 ): Promise<{ channel: OmniaChannel; partialState: Partial<SignedChannelState>; error?: string }> {
   if (channel.status !== 'active') {
@@ -230,7 +305,21 @@ export async function fulfillHTLC(
   const htlc = channel.pendingHTLCs.find(h => h.htlcId === htlcId && h.status === 'pending');
   if (!htlc) throw new Error(`HTLC ${htlcId} not found or not pending`);
 
-  const valid = HTLCHelper.verifyPreimage(preimage, htlc.hashlock, 'sha3');
+  if (typeof preimage !== 'string' || !/^(0x)?[0-9a-fA-F]{64}$/.test(preimage)) {
+    throw new Error('HTLC preimage must be a 32-byte hex string');
+  }
+  const normalizedPreimage = '0x' + preimage.replace(/^0x/i, '').toLowerCase();
+
+  // The on-chain claim branch is valid at or before the timeout; after it, only
+  // the refund path exists. Refuse to co-sign a fulfil that the chain would reject.
+  const tip = await chainProvider.getTip();
+  if (BigInt(tip.block) > htlc.timeoutBlock) {
+    throw new Error(
+      `HTLC ${htlcId} expired at block ${htlc.timeoutBlock} (current ${tip.block}); fulfil is no longer valid`,
+    );
+  }
+
+  const valid = HTLCHelper.verifyPreimage(normalizedPreimage, htlc.hashlock, 'sha3');
   if (!valid) throw new Error(`Preimage does not match hashlock for HTLC ${htlcId}`);
 
   const recipientPartyId = channel.parties.find(

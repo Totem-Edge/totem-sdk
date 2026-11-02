@@ -19,6 +19,24 @@ const config = JSON.parse(readFileSync(join(ROOT, 'scripts', 'workspace-gates.co
 const EXECUTE = process.argv.includes('--execute');
 
 const EXPECTED_TAG = { v1: 'latest', rc: 'next', beta: 'beta', alpha: 'alpha' };
+const VALID_TAGS = new Set(['latest', 'next', 'beta', 'alpha']);
+
+function cliValue(flag) {
+  const index = process.argv.indexOf(flag);
+  return index === -1 ? null : process.argv[index + 1] ?? null;
+}
+
+const onlyPackage = cliValue('--package');
+const onlyVersion = cliValue('--version');
+const onlyTag = cliValue('--tag');
+const targeted = Boolean(onlyPackage || onlyVersion || onlyTag);
+
+if (targeted && !(onlyPackage && onlyVersion && onlyTag)) {
+  console.error(
+    'Usage: node scripts/apply-dist-tags.mjs --package <name> --version <semver> --tag <latest|next|beta|alpha> [--execute]',
+  );
+  process.exit(1);
+}
 
 function readTags(name) {
   try {
@@ -66,6 +84,41 @@ function run(args) {
 
 let changes = 0;
 let failures = 0;
+
+// Targeted mode: promote one already-published version to one dist-tag. Used to
+// bless a release as `latest` (for example after an rc package passes its
+// release gates) without re-running the whole workspace sync.
+if (targeted) {
+  const pkg = manifest.packages.find((entry) => entry.name === onlyPackage);
+  if (!pkg) {
+    console.error(`FAIL ${onlyPackage}: not listed in SDK_MANIFEST.json`);
+    process.exit(1);
+  }
+  if (!VALID_TAGS.has(onlyTag)) {
+    console.error(`FAIL ${onlyTag}: expected one of ${[...VALID_TAGS].join(', ')}`);
+    process.exit(1);
+  }
+  if (!isPublished(onlyPackage, onlyVersion)) {
+    console.error(`FAIL ${onlyPackage}@${onlyVersion}: version is not published`);
+    process.exit(1);
+  }
+
+  const tags = readTags(onlyPackage);
+  if (!tags) {
+    console.error(`FAIL ${onlyPackage}: registry read failed`);
+    process.exit(1);
+  }
+  if (tags[onlyTag] === onlyVersion) {
+    console.log(`OK   ${onlyPackage}: ${onlyTag} already ${onlyVersion}`);
+    process.exit(0);
+  }
+
+  console.log(`PLAN ${onlyPackage}: ${onlyTag} ${tags[onlyTag] ?? '-'} → ${onlyVersion}`);
+  const ok = run(['dist-tag', 'add', `${onlyPackage}@${onlyVersion}`, onlyTag]);
+  console.log(`\n${ok ? 'Promoted' : 'FAILED'} ${onlyPackage}@${onlyVersion} → ${onlyTag}${EXECUTE ? '' : ' (dry-run)'}.`);
+  process.exit(ok ? 0 : 1);
+}
+
 for (const pkg of manifest.packages) {
   const short = pkg.name.replace(/^@totemsdk\//, '');
   const meta = config.packages[`packages/${short}`] ?? {};

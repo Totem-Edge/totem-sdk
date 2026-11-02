@@ -34,12 +34,22 @@ export function assertBroadcastProofs(proofs?: Partial<OmniaWitnessProofs>): ass
   }
 }
 
+/**
+ * Close-package signatures in `MULTISIG` key order.
+ *
+ * Minima verifies `MULTISIG(n pkA pkB …)` against the witness in key order, so
+ * the witness must follow the channel's party order, never object insertion order.
+ */
 export function closePackageSignatureBytes(
   state: SignedChannelState,
   tx: 'update' | 'settlement',
+  partyOrder?: string[],
 ): Uint8Array[] {
   const closePackage = state.closePackage;
   if (!closePackage) throw new Error('Missing close package for witness assembly');
   const artifact = closePackage[tx];
-  return Object.values(artifact.signatures);
+  if (!partyOrder) return Object.values(artifact.signatures);
+  return partyOrder
+    .map(partyId => artifact.signatures[partyId])
+    .filter((sig): sig is Uint8Array => sig instanceof Uint8Array);
 }

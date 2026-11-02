@@ -59,9 +59,10 @@ The package-owned script contracts are:
 The consumer gate additionally runs shared `verify-consumer-pack.mjs`: real
 tarball installation, root ESM/CJS loading and strict NodeNext `.mts`/`.cts`
 type imports when declarations are advertised. Declaration checking is enabled;
-broken declarations cannot be hidden by `skipLibCheck`. This shared probe does
-not substitute for package-specific API calls, explicit/wildcard subpath
-coverage, or a full locally packed sibling dependency closure.
+broken declarations cannot be hidden by `skipLibCheck`. The probe packs every local workspace
+dependency in the package's transitive closure and installs those tarballs,
+so it does not depend on sibling publication state. It does not substitute for
+package-specific API calls or explicit/wildcard subpath coverage.
 
 Missing scripts fail; do not rename unrelated unit tests or add no-op scripts to
 claim qualification. The verifier dispatches repository-owned scripts: reviewers
@@ -117,12 +118,30 @@ Current v1 scope is limited to packages with runnable evidence:
 - `@totemsdk/edge-lorawan` — OTAA/ABP simulator, frame-counter/rejoin conformance,
   gateway+bridge integration, durable CAS replay recovery and packed consumer.
   Its support tier remains outside the first-line production surface.
+- `@totemsdk/edge-coap` — RFC 7252 codec/retransmission/separate responses,
+  RFC 7641 observations, RFC 7959 blockwise transfer, CBOR, OSCORE client and
+  server-role vectors, real-sidecar integration/recovery and packed consumer.
+  Its support tier remains outside the first-line production surface.
+- `@totemsdk/edge-can` — classic CAN over Linux vcan: frame/ID/DLC validation,
+  filtering, sidecar request validation, crash/restart recovery and packed
+  consumer. Its support tier remains outside the first-line production surface.
 - `core`/`core-wasm` declare a reviewed recovery N/A: stateless crypto libraries
   whose host owns process recovery.
 
-The other 14 previously-labelled v1 packages remain **RC** until they have
+The other 12 previously-labelled v1 packages remain **RC** until they have
 dedicated conformance/recovery/integration evidence. Their support tiers and
 semver versions are unchanged; this is a fail-closed maturity correction, not a
 support-tier demotion. See
 [RFC-074](rfc/RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md) for
 remaining profile, recovery and promotion criteria.
+
+RC connectors may still own conformance evidence without being promoted. CI runs
+it in dedicated jobs because the `rc` maturity selection does not require the
+gate. `edge-can` and `edge-coap` are v1; their dedicated jobs run the Linux vcan
+or RFC 7252/CBOR/OSCORE suites, Go bridge tests and packed consumers.
+`edge-grpc` is RC with a dedicated job for Go codec tests, TLS gRPC integration,
+crash/restart recovery and its packed consumer. The other RC edge connectors
+(`edge-bacnet`, `edge-ble`, `edge-email`, `edge-gnss`, `edge-matter`, `edge-mavlink`, `edge-nfc`, `edge-ocpp`,
+`edge-opcua`, `edge-ros2`, `edge-adapters`) run simulator-profile integration
+gates in the `edge-rc-integration` job; vendor stacks and hardware bindings
+remain unqualified.

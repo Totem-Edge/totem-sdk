@@ -1,5 +1,1056 @@
 {
   "packages": {
+    "@totemsdk/act-core": {
+      "symbols": {
+        "ParameterType": {
+          "kind": "type",
+          "signature": "export type ParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'quantity'"
+        },
+        "ParameterSchema": {
+          "kind": "interface",
+          "signature": "export interface ParameterSchema"
+        },
+        "ContextField": {
+          "kind": "interface",
+          "signature": "export interface ContextField"
+        },
+        "ContextValue": {
+          "kind": "interface",
+          "signature": "export interface ContextValue<T = unknown>",
+          "doc": "Context value with observation metadata. Required when a schema field\ndeclares `maxAgeMs`, so freshness is enforced deterministically."
+        },
+        "ContextSchema": {
+          "kind": "interface",
+          "signature": "export interface ContextSchema"
+        },
+        "ActionSchema": {
+          "kind": "interface",
+          "signature": "export interface ActionSchema"
+        },
+        "ActionError": {
+          "kind": "interface",
+          "signature": "export interface ActionError"
+        },
+        "ActionProposal": {
+          "kind": "interface",
+          "signature": "export interface ActionProposal"
+        },
+        "Condition": {
+          "kind": "interface",
+          "signature": "export interface Condition"
+        },
+        "ConditionResult": {
+          "kind": "interface",
+          "signature": "export interface ConditionResult"
+        },
+        "CreateProposalParams": {
+          "kind": "interface",
+          "signature": "export interface CreateProposalParams"
+        },
+        "toHex": {
+          "kind": "function",
+          "signature": "toHex(bytes: Uint8Array): string",
+          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
+        },
+        "canonicalJson": {
+          "kind": "function",
+          "signature": "canonicalJson(value: unknown): string"
+        },
+        "hashCanonical": {
+          "kind": "function",
+          "signature": "hashCanonical(domain: string, value: unknown): string"
+        },
+        "computeActionProposalId": {
+          "kind": "function",
+          "signature": "computeActionProposalId(params: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; proposedAt: number; }): string"
+        },
+        "computeActionExecutionId": {
+          "kind": "function",
+          "signature": "computeActionExecutionId(proposalId: string): string"
+        },
+        "computeCommitmentHash": {
+          "kind": "function",
+          "signature": "computeCommitmentHash(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; preparedCommandHash?: string; }): string"
+        },
+        "computeReceiptId": {
+          "kind": "function",
+          "signature": "computeReceiptId(executionId: string, proposalId: string): string"
+        },
+        "computeOperationId": {
+          "kind": "function",
+          "signature": "computeOperationId(commitmentHash: string, resourceId?: string): string",
+          "doc": "Deterministic device-operation id (RFC-010 §6.6).\n\nDerived from the proposal commitment and the target resource, so a\nre-submitted or retried action resolves to the same operation and can be\ndeduplicated by a durable claim."
+        },
+        "computeAuthorityBindingHash": {
+          "kind": "function",
+          "signature": "computeAuthorityBindingHash(commitmentHash: string, mandateProofId?: string, decisionId?: string): string",
+          "doc": "RFC-010 §6.4 — authority binding digest.\n\nTies a proposal commitment to the exact mandate proof and authorization\ndecision that authorized it. The decision id is generally only known *after*\nauthorization (the edge runtime prepares before it authorizes), so this is\ncomputed at the receipt/record layer rather than at `prepare` time."
+        },
+        "computePreparedCommandHash": {
+          "kind": "function",
+          "signature": "computePreparedCommandHash(binding: PreparedCommandBinding): string"
+        },
+        "PreparedCommandBinding": {
+          "kind": "interface",
+          "signature": "export interface PreparedCommandBinding"
+        },
+        "IndustrialActionError": {
+          "kind": "class",
+          "signature": "export class IndustrialActionError extends Error"
+        },
+        "ActionDefinitionError": {
+          "kind": "class",
+          "signature": "export class ActionDefinitionError extends IndustrialActionError"
+        },
+        "ActionValidationError": {
+          "kind": "class",
+          "signature": "export class ActionValidationError extends IndustrialActionError"
+        },
+        "ActionExecutionError": {
+          "kind": "class",
+          "signature": "export class ActionExecutionError extends IndustrialActionError"
+        },
+        "ActionConditionError": {
+          "kind": "class",
+          "signature": "export class ActionConditionError extends IndustrialActionError"
+        },
+        "ActionGovernanceError": {
+          "kind": "class",
+          "signature": "export class ActionGovernanceError extends IndustrialActionError"
+        },
+        "ActionCommitmentError": {
+          "kind": "class",
+          "signature": "export class ActionCommitmentError extends IndustrialActionError"
+        },
+        "ActionInterlockError": {
+          "kind": "class",
+          "signature": "export class ActionInterlockError extends IndustrialActionError"
+        },
+        "ActionScheduleError": {
+          "kind": "class",
+          "signature": "export class ActionScheduleError extends IndustrialActionError"
+        },
+        "ActionApprovalError": {
+          "kind": "class",
+          "signature": "export class ActionApprovalError extends IndustrialActionError"
+        },
+        "validateParameters": {
+          "kind": "function",
+          "signature": "validateParameters(schema: ActionSchema, parameters: Record<string, unknown>, units?: UnitRegistry): string[]"
+        },
+        "validateContext": {
+          "kind": "function",
+          "signature": "validateContext(schema: ActionSchema, context: Record<string, unknown>, now: number): string[]"
+        },
+        "assertValidParameters": {
+          "kind": "function",
+          "signature": "assertValidParameters(schema: ActionSchema, parameters: Record<string, unknown>, units?: UnitRegistry): void"
+        },
+        "assertValidContext": {
+          "kind": "function",
+          "signature": "assertValidContext(schema: ActionSchema, context: Record<string, unknown>, now: number): void"
+        },
+        "createProposal": {
+          "kind": "function",
+          "signature": "createProposal(params: CreateProposalParams): ActionProposal"
+        },
+        "verifyCommitment": {
+          "kind": "function",
+          "signature": "verifyCommitment(proposal: ActionProposal): boolean"
+        },
+        "assertValidProposal": {
+          "kind": "function",
+          "signature": "assertValidProposal(proposal: ActionProposal): void"
+        },
+        "isProposalExpired": {
+          "kind": "function",
+          "signature": "isProposalExpired(proposal: ActionProposal, now: number): boolean"
+        },
+        "isProposalExecutable": {
+          "kind": "function",
+          "signature": "isProposalExecutable(proposal: ActionProposal, now: number): boolean"
+        },
+        "createCommitment": {
+          "kind": "function",
+          "signature": "createCommitment(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; }): string"
+        },
+        "verifyCommitmentBinding": {
+          "kind": "function",
+          "signature": "verifyCommitmentBinding(proposal: ActionProposal): boolean"
+        },
+        "serializeCommitmentPayload": {
+          "kind": "function",
+          "signature": "serializeCommitmentPayload(proposal: ActionProposal): string"
+        },
+        "evaluateConditions": {
+          "kind": "function",
+          "signature": "evaluateConditions(conditions: Condition[], params: Record<string, unknown>, context: Record<string, unknown>): ConditionResult"
+        },
+        "createCondition": {
+          "kind": "function",
+          "signature": "createCondition(params: Pick<Condition, \"type\" | \"field\" | \"operator\" | \"value\"> & { evaluate?: Condition[\"evaluate\"]; }): Condition"
+        },
+        "toEdgeActionDefinition": {
+          "kind": "function",
+          "signature": "toEdgeActionDefinition<TResult = unknown>(def: IndustrialActionDefinition<TResult>, options?: ToEdgeActionOptions): EdgeActionDefinition",
+          "doc": "Compile an industrial definition into an edge action definition."
+        },
+        "runWithPolicy": {
+          "kind": "function",
+          "signature": "runWithPolicy<TResult = unknown>(def: IndustrialActionDefinition<TResult>, op: PreparedDeviceOp): Promise<IndustrialExecutionResult<TResult>>",
+          "doc": "Run an industrial definition's actuation under its execution policy.\nExported for direct use in tests and by adapters that own their own runtime."
+        },
+        "DeviceOpBase": {
+          "kind": "interface",
+          "signature": "export interface DeviceOpBase",
+          "doc": "Adapter-prepared device command (before commitment/identity are attached)."
+        },
+        "PreparedDeviceOp": {
+          "kind": "interface",
+          "signature": "export interface PreparedDeviceOp extends DeviceOpBase",
+          "doc": "A fully prepared, commitment-bound device operation."
+        },
+        "ExecutionPolicy": {
+          "kind": "interface",
+          "signature": "export interface ExecutionPolicy",
+          "doc": "Industrial execution policy (RFC-010 §6.5).\n\nRetries are opt-in and must only be enabled for idempotent device operations;\na timeout is never treated as success."
+        },
+        "IndustrialActionDefinition": {
+          "kind": "interface",
+          "signature": "export interface IndustrialActionDefinition<TResult = unknown>",
+          "doc": "An industrial action definition that compiles to an edge\n`EdgeActionDefinition` via {@link toEdgeActionDefinition}."
+        },
+        "FailureMode": {
+          "kind": "type",
+          "signature": "export type FailureMode = | 'fail-safe' | 'fail-silent' | 'fail-closed' | 'fail-operational' | 'abort'",
+          "doc": "How an action behaves when an attempt does not confirm (RFC-011 §4.11).\nMandatory for `write`-effect actions; `read` defaults to `fail-silent`."
+        },
+        "ActionOutcome": {
+          "kind": "type",
+          "signature": "export type ActionOutcome = | 'confirmed' | 'failed' | 'unknown' | 'aborted' | 'safe-stated' | 'suppressed' | 'requires-reset' /** Non-terminal: controller accepted the command. RFC-022 §5.5. */ | 'ac",
+          "doc": "Terminal outcome of a governed actuation (never a bare boolean)."
+        },
+        "IndustrialExecutionResult": {
+          "kind": "interface",
+          "signature": "export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperationResult<TResult>",
+          "doc": "Industrial execution result — `EdgeOperationResult` plus the outcome model."
+        },
+        "ToEdgeActionOptions": {
+          "kind": "interface",
+          "signature": "export interface ToEdgeActionOptions"
+        },
+        "createDurableDeviceOperationStore": {
+          "kind": "function",
+          "signature": "createDurableDeviceOperationStore(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableDeviceOperationStoreOptions): DeviceOperationStore"
+        },
+        "isTerminalOperationStatus": {
+          "kind": "function",
+          "signature": "isTerminalOperationStatus(status: OperationStatus): boolean"
+        },
+        "DeviceOperationStore": {
+          "kind": "interface",
+          "signature": "export interface DeviceOperationStore"
+        },
+        "DeviceOperationRecord": {
+          "kind": "interface",
+          "signature": "export interface DeviceOperationRecord"
+        },
+        "OperationStatus": {
+          "kind": "type",
+          "signature": "export type OperationStatus = 'in-flight' | ActionOutcome",
+          "doc": "`in-flight`, non-terminal accepted/running/reconciling, or a terminal outcome."
+        },
+        "OperationClaim": {
+          "kind": "interface",
+          "signature": "export interface OperationClaim"
+        },
+        "DurableDeviceOperationStoreOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableDeviceOperationStoreOptions"
+        },
+        "createIndustrialOperationLifecycle": {
+          "kind": "function",
+          "signature": "createIndustrialOperationLifecycle<TResult = unknown>(options: IndustrialOperationLifecycleOptions<TResult>): OperationLifecycle"
+        },
+        "OperationLifecycle": {
+          "kind": "interface",
+          "signature": "export interface OperationLifecycle"
+        },
+        "IndustrialOperationLifecycleOptions": {
+          "kind": "interface",
+          "signature": "export interface IndustrialOperationLifecycleOptions<TResult = unknown>"
+        },
+        "createIndustrialReceipt": {
+          "kind": "function",
+          "signature": "createIndustrialReceipt(op: PreparedDeviceOp, result: IndustrialExecutionResult, extras?: IndustrialReceiptExtras): EdgeReceipt",
+          "doc": "Build an authority-bound `EdgeReceipt` for a governed actuation."
+        },
+        "verifyIndustrialReceipt": {
+          "kind": "function",
+          "signature": "verifyIndustrialReceipt(receipt: unknown): EdgeOperationResult<{ receipt: EdgeReceipt; }>",
+          "doc": "Verify an industrial receipt: structural (`verifyEdgeReceipt`) + payload\nintegrity + authority-binding consistency. Never returns a bare boolean."
+        },
+        "IndustrialReceiptFields": {
+          "kind": "interface",
+          "signature": "export interface IndustrialReceiptFields"
+        },
+        "IndustrialReceiptPayload": {
+          "kind": "interface",
+          "signature": "export interface IndustrialReceiptPayload extends IndustrialReceiptFields"
+        },
+        "IndustrialReceiptExtras": {
+          "kind": "interface",
+          "signature": "export interface IndustrialReceiptExtras"
+        },
+        "createUnitRegistry": {
+          "kind": "function",
+          "signature": "createUnitRegistry(): UnitRegistry"
+        },
+        "createDefaultUnitRegistry": {
+          "kind": "function",
+          "signature": "createDefaultUnitRegistry(): UnitRegistry",
+          "doc": "Registry seeded with common industrial units."
+        },
+        "defaultUnitRegistry": {
+          "kind": "function",
+          "signature": "defaultUnitRegistry(): UnitRegistry",
+          "doc": "Process-wide default registry (profiles may construct their own)."
+        },
+        "isQuantity": {
+          "kind": "function",
+          "signature": "isQuantity(value: unknown): value is Quantity"
+        },
+        "checkQuantity": {
+          "kind": "function",
+          "signature": "checkQuantity(value: unknown, constraint: QuantityConstraint, units?: UnitRegistry): string | null",
+          "doc": "Dimensional + range validation. Returns an error string, or null when valid."
+        },
+        "Dimension": {
+          "kind": "type",
+          "signature": "export type Dimension = | 'temperature' | 'pressure' | 'volumetricFlow' | 'mass' | 'length' | 'ratio' | 'time' | 'speed' | 'power' | 'energy' | 'linearSpeed' | 'dimensionless'",
+          "doc": "RFC-011 §4.1 — quantities and units.\n\nIndustrial parameters are typed quantities, not bare numbers, so unit errors\n(a pressure satisfying a temperature guardrail) are impossible. A definition\ndeclares a canonical `unit`; adapter profiles declare their wire units and the\ncore converts, recording both."
+        },
+        "Unit": {
+          "kind": "type",
+          "signature": "export type Unit = string",
+          "doc": "Unit symbol (a registry string, not a closed union — profiles add units)."
+        },
+        "Quantity": {
+          "kind": "interface",
+          "signature": "export interface Quantity"
+        },
+        "QuantityConstraint": {
+          "kind": "interface",
+          "signature": "export interface QuantityConstraint",
+          "doc": "Constraints for a quantity parameter (RFC-011 §4.1)."
+        },
+        "UnitRegistry": {
+          "kind": "interface",
+          "signature": "export interface UnitRegistry"
+        },
+        "createResourceRegistry": {
+          "kind": "function",
+          "signature": "createResourceRegistry(): ResourceRegistry"
+        },
+        "resourceIdKey": {
+          "kind": "function",
+          "signature": "resourceIdKey(id: ResourceId): string",
+          "doc": "Stable string key for a `ResourceId` (used for operation ids and logs)."
+        },
+        "toWireQuantity": {
+          "kind": "function",
+          "signature": "toWireQuantity(quantity: Quantity, address: ResourceAddress, units?: UnitRegistry): Quantity",
+          "doc": "Convert a definition's canonical quantity to a resource address's wire unit\n(RFC-011 §4.1/§4.2). Returns the quantity unchanged when the address declares\nno unit."
+        },
+        "safeStateFor": {
+          "kind": "function",
+          "signature": "safeStateFor(resource: Resource | undefined): SafeState | undefined",
+          "doc": "Resolve a resource's declared safe state, if any."
+        },
+        "ResourceId": {
+          "kind": "interface",
+          "signature": "export interface ResourceId"
+        },
+        "ResourceKind": {
+          "kind": "type",
+          "signature": "export type ResourceKind = 'sensor' | 'actuator' | 'controller' | 'gateway' | 'system'"
+        },
+        "ResourceProtocol": {
+          "kind": "type",
+          "signature": "export type ResourceProtocol = 'modbus' | 'opcua' | 'bacnet' | 'mqtt-sparkplug' | string",
+          "doc": "Protocol binding identifier (open string; profiles add protocols)."
+        },
+        "ResourceAddress": {
+          "kind": "interface",
+          "signature": "export interface ResourceAddress"
+        },
+        "Resource": {
+          "kind": "interface",
+          "signature": "export interface Resource"
+        },
+        "ResourceRegistry": {
+          "kind": "interface",
+          "signature": "export interface ResourceRegistry"
+        },
+        "SafeState": {
+          "kind": "interface",
+          "signature": "export interface SafeState",
+          "doc": "Fail-safe state to command when an interlock trips or a fail-safe action fails."
+        },
+        "createInterlockRegistry": {
+          "kind": "function",
+          "signature": "createInterlockRegistry(): InterlockRegistry"
+        },
+        "Interlock": {
+          "kind": "interface",
+          "signature": "export interface Interlock"
+        },
+        "InterlockKind": {
+          "kind": "type",
+          "signature": "export type InterlockKind = 'precondition' | 'mutual-exclusion' | 'permit' | 'emergency-stop'"
+        },
+        "InterlockContext": {
+          "kind": "interface",
+          "signature": "export interface InterlockContext"
+        },
+        "InterlockResult": {
+          "kind": "interface",
+          "signature": "export interface InterlockResult"
+        },
+        "InterlockFailure": {
+          "kind": "interface",
+          "signature": "export interface InterlockFailure"
+        },
+        "InterlockRegistry": {
+          "kind": "interface",
+          "signature": "export interface InterlockRegistry"
+        },
+        "createDurableResourceLockManager": {
+          "kind": "function",
+          "signature": "createDurableResourceLockManager(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableResourceLockManagerOptions): ResourceLockManager"
+        },
+        "ResourceLock": {
+          "kind": "interface",
+          "signature": "export interface ResourceLock"
+        },
+        "ResourceLockManager": {
+          "kind": "interface",
+          "signature": "export interface ResourceLockManager"
+        },
+        "AcquireResult": {
+          "kind": "interface",
+          "signature": "export interface AcquireResult"
+        },
+        "DurableResourceLockManagerOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableResourceLockManagerOptions"
+        },
+        "createDeviceErrorTaxonomy": {
+          "kind": "function",
+          "signature": "createDeviceErrorTaxonomy(): DeviceErrorTaxonomy"
+        },
+        "defaultDeviceErrorTaxonomy": {
+          "kind": "function",
+          "signature": "defaultDeviceErrorTaxonomy(): DeviceErrorTaxonomy",
+          "doc": "Process-wide default taxonomy (profiles may construct their own)."
+        },
+        "DeviceErrorClass": {
+          "kind": "type",
+          "signature": "export type DeviceErrorClass = 'transient' | 'permanent' | 'safety' | 'auth' | 'unknown'"
+        },
+        "DeviceErrorClassification": {
+          "kind": "interface",
+          "signature": "export interface DeviceErrorClassification"
+        },
+        "DeviceErrorTaxonomy": {
+          "kind": "interface",
+          "signature": "export interface DeviceErrorTaxonomy"
+        },
+        "executeRecipe": {
+          "kind": "function",
+          "signature": "executeRecipe(recipe: ActionRecipe, options: RecipeRunOptions): Promise<RecipeResult>"
+        },
+        "createRecipe": {
+          "kind": "function",
+          "signature": "createRecipe(recipe: ActionRecipe): ActionRecipe"
+        },
+        "validateRecipe": {
+          "kind": "function",
+          "signature": "validateRecipe(recipe: ActionRecipe): void",
+          "doc": "Validate a recipe's structure (unique ids, known deps, acyclic). Throws on failure."
+        },
+        "ActionStep": {
+          "kind": "interface",
+          "signature": "export interface ActionStep"
+        },
+        "ActionRecipe": {
+          "kind": "interface",
+          "signature": "export interface ActionRecipe"
+        },
+        "RecipeStepStatus": {
+          "kind": "type",
+          "signature": "export type RecipeStepStatus = ActionOutcome | 'skipped' | 'compensated'"
+        },
+        "RecipeStepResult": {
+          "kind": "interface",
+          "signature": "export interface RecipeStepResult"
+        },
+        "RecipeResult": {
+          "kind": "interface",
+          "signature": "export interface RecipeResult"
+        },
+        "RecipeRunOptions": {
+          "kind": "interface",
+          "signature": "export interface RecipeRunOptions"
+        },
+        "CompensationResult": {
+          "kind": "interface",
+          "signature": "export interface CompensationResult"
+        },
+        "createMemoryActionEventSink": {
+          "kind": "function",
+          "signature": "createMemoryActionEventSink(): ActionEventStream & { events: IndustrialActionEvent[]; }",
+          "doc": "In-memory event sink (tests / ephemeral runtimes)."
+        },
+        "createDurableActionEventSink": {
+          "kind": "function",
+          "signature": "createDurableActionEventSink(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableActionEventSinkOptions): ActionEventStream"
+        },
+        "IndustrialActionEventType": {
+          "kind": "type",
+          "signature": "export type IndustrialActionEventType = | 'proposed' | 'validated' | 'guardrails_passed' | 'interlocks_passed' | 'authorized' | 'reserved' | 'actuation_started' | 'actuation_succeeded' | 'actuation_fa"
+        },
+        "IndustrialActionEvent": {
+          "kind": "interface",
+          "signature": "export interface IndustrialActionEvent"
+        },
+        "ActionEventSink": {
+          "kind": "interface",
+          "signature": "export interface ActionEventSink"
+        },
+        "ActionEventStream": {
+          "kind": "interface",
+          "signature": "export interface ActionEventStream extends ActionEventSink"
+        },
+        "DurableActionEventSinkOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableActionEventSinkOptions"
+        },
+        "definitionVersion": {
+          "kind": "function",
+          "signature": "definitionVersion(def: { version?: number; }): number",
+          "doc": "Effective definition version (defaults to 1)."
+        },
+        "computeSchemaHash": {
+          "kind": "function",
+          "signature": "computeSchemaHash(schema: ActionSchema): string",
+          "doc": "Canonical hash of a schema's structural fields (names, types, required flags,\nquantity constraints). `validation` callbacks and `defaultValue`s are not\npart of the schema contract and are excluded."
+        },
+        "createVersionedActionRegistry": {
+          "kind": "function",
+          "signature": "createVersionedActionRegistry(): VersionedActionRegistry"
+        },
+        "VersionedActionRegistry": {
+          "kind": "interface",
+          "signature": "export interface VersionedActionRegistry"
+        },
+        "isWithinWindows": {
+          "kind": "function",
+          "signature": "isWithinWindows(windows: TimeWindow[], now: number): WindowCheck"
+        },
+        "createDurableRateLimiter": {
+          "kind": "function",
+          "signature": "createDurableRateLimiter(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableRateLimiterOptions): RateLimiter"
+        },
+        "TimeWindow": {
+          "kind": "interface",
+          "signature": "export interface TimeWindow",
+          "doc": "Absolute half-open interval `[start, end)` in epoch milliseconds."
+        },
+        "RateLimit": {
+          "kind": "interface",
+          "signature": "export interface RateLimit"
+        },
+        "ActionSchedule": {
+          "kind": "interface",
+          "signature": "export interface ActionSchedule"
+        },
+        "WindowCheck": {
+          "kind": "interface",
+          "signature": "export interface WindowCheck"
+        },
+        "RateLimitResult": {
+          "kind": "interface",
+          "signature": "export interface RateLimitResult"
+        },
+        "RateLimiter": {
+          "kind": "interface",
+          "signature": "export interface RateLimiter"
+        },
+        "DurableRateLimiterOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableRateLimiterOptions"
+        },
+        "createDurableApprovalRegistry": {
+          "kind": "function",
+          "signature": "createDurableApprovalRegistry(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableApprovalRegistryOptions): ApprovalRegistry"
+        },
+        "ApprovalStatus": {
+          "kind": "type",
+          "signature": "export type ApprovalStatus = 'pending' | 'approved' | 'rejected'"
+        },
+        "ApprovalRequest": {
+          "kind": "interface",
+          "signature": "export interface ApprovalRequest"
+        },
+        "ApprovalValidation": {
+          "kind": "interface",
+          "signature": "export interface ApprovalValidation"
+        },
+        "ApprovalRequestParams": {
+          "kind": "interface",
+          "signature": "export interface ApprovalRequestParams"
+        },
+        "ApprovalRegistry": {
+          "kind": "interface",
+          "signature": "export interface ApprovalRegistry"
+        },
+        "DurableApprovalRegistryOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableApprovalRegistryOptions"
+        },
+        "toIsa95Path": {
+          "kind": "function",
+          "signature": "toIsa95Path(id: ResourceId): string"
+        },
+        "parseIsa95Path": {
+          "kind": "function",
+          "signature": "parseIsa95Path(path: string): ResourceId",
+          "doc": "ISA-95 hierarchy path `site[/area]/asset[/point]`:\n  2 parts → site/asset; 3 parts → site/area/asset; 4 parts → +point."
+        },
+        "formatModbusEndpoint": {
+          "kind": "function",
+          "signature": "formatModbusEndpoint(register: ModbusRegister): string"
+        },
+        "parseModbusEndpoint": {
+          "kind": "function",
+          "signature": "parseModbusEndpoint(endpoint: string): ModbusRegister"
+        },
+        "formatOpcuaNodeId": {
+          "kind": "function",
+          "signature": "formatOpcuaNodeId(node: OpcuaNodeId): string"
+        },
+        "parseOpcuaNodeId": {
+          "kind": "function",
+          "signature": "parseOpcuaNodeId(nodeId: string): OpcuaNodeId"
+        },
+        "formatSparkplugTopic": {
+          "kind": "function",
+          "signature": "formatSparkplugTopic(topic: SparkplugTopic): string"
+        },
+        "parseSparkplugTopic": {
+          "kind": "function",
+          "signature": "parseSparkplugTopic(topic: string): SparkplugTopic"
+        },
+        "formatBacnetAddress": {
+          "kind": "function",
+          "signature": "formatBacnetAddress(address: BacnetAddress): string"
+        },
+        "parseBacnetAddress": {
+          "kind": "function",
+          "signature": "parseBacnetAddress(address: string): BacnetAddress"
+        },
+        "resourceAddressFor": {
+          "kind": "function",
+          "signature": "resourceAddressFor(protocol: ResourceAddress[\"protocol\"], endpoint: string, unit?: string): ResourceAddress",
+          "doc": "Build a protocol-bound resource address from an ISA-95 id + standard codec."
+        },
+        "ModbusRegisterType": {
+          "kind": "type",
+          "signature": "export type ModbusRegisterType = 'coil' | 'discrete' | 'input' | 'holding'"
+        },
+        "ModbusRegister": {
+          "kind": "interface",
+          "signature": "export interface ModbusRegister"
+        },
+        "OpcuaIdentifierType": {
+          "kind": "type",
+          "signature": "export type OpcuaIdentifierType = 'i' | 's' | 'g' | 'b'"
+        },
+        "OpcuaNodeId": {
+          "kind": "interface",
+          "signature": "export interface OpcuaNodeId"
+        },
+        "SparkplugMessageType": {
+          "kind": "type",
+          "signature": "export type SparkplugMessageType = 'NBIRTH' | 'NDEATH' | 'NDATA' | 'NCMD' | 'DBIRTH' | 'DDEATH' | 'DDATA' | 'DCMD'"
+        },
+        "SparkplugTopic": {
+          "kind": "interface",
+          "signature": "export interface SparkplugTopic"
+        },
+        "BacnetAddress": {
+          "kind": "interface",
+          "signature": "export interface BacnetAddress"
+        },
+        "runProfileConformance": {
+          "kind": "function",
+          "signature": "runProfileConformance(profile: IndustrialProfile): ProfileConformanceReport",
+          "doc": "Validate a profile's structure and internal consistency."
+        },
+        "assertProfileConformance": {
+          "kind": "function",
+          "signature": "assertProfileConformance(profile: IndustrialProfile): void"
+        },
+        "createProfileRegistries": {
+          "kind": "function",
+          "signature": "createProfileRegistries(profile: IndustrialProfile): { units: UnitRegistry; resources: ResourceRegistry; interlocks: InterlockRegistry; }",
+          "doc": "Materialize a profile's registries for a runtime."
+        },
+        "waterProfile": {
+          "kind": "function",
+          "signature": "waterProfile(): IndustrialProfile"
+        },
+        "hvacProfile": {
+          "kind": "function",
+          "signature": "hvacProfile(): IndustrialProfile"
+        },
+        "IndustrialProfile": {
+          "kind": "interface",
+          "signature": "export interface IndustrialProfile"
+        },
+        "ProfileConformanceIssue": {
+          "kind": "interface",
+          "signature": "export interface ProfileConformanceIssue"
+        },
+        "ProfileConformanceReport": {
+          "kind": "interface",
+          "signature": "export interface ProfileConformanceReport"
+        },
+        "createReplicatedActionEventSink": {
+          "kind": "function",
+          "signature": "createReplicatedActionEventSink(log: ReplicatedLog<IndustrialActionEvent>): ActionEventStream"
+        }
+      }
+    },
+    "@totemsdk/act-mavlink": {
+      "symbols": {
+        "MavlinkTransportError": {
+          "kind": "class",
+          "signature": "export class MavlinkTransportError extends Error"
+        },
+        "assertEnvelopeBinding": {
+          "kind": "function",
+          "signature": "assertEnvelopeBinding(envelope: MissionEnvelope, digest: string): void",
+          "doc": "A start must reference the exact plan that was authorized. A digest that does\nnot match the envelope fails closed before dispatch."
+        },
+        "MavlinkTransportPort": {
+          "kind": "interface",
+          "signature": "export interface MavlinkTransportPort"
+        },
+        "MissionStartRequest": {
+          "kind": "interface",
+          "signature": "export interface MissionStartRequest"
+        },
+        "MissionUploadRequest": {
+          "kind": "interface",
+          "signature": "export interface MissionUploadRequest"
+        },
+        "MissionUploadResult": {
+          "kind": "interface",
+          "signature": "export interface MissionUploadResult"
+        },
+        "TelemetrySnapshot": {
+          "kind": "interface",
+          "signature": "export interface TelemetrySnapshot"
+        },
+        "assertValidMissionEnvelope": {
+          "kind": "function",
+          "signature": "assertValidMissionEnvelope(envelope: MissionEnvelope): void"
+        },
+        "distanceMetres": {
+          "kind": "function",
+          "signature": "distanceMetres(a: Waypoint, b: Waypoint): number",
+          "doc": "Great-circle distance between two WGS-84 points, in metres."
+        },
+        "envelopeDigest": {
+          "kind": "function",
+          "signature": "envelopeDigest(envelope: MissionEnvelope): string",
+          "doc": "Canonical digest of the authorized plan."
+        },
+        "validateMissionEnvelope": {
+          "kind": "function",
+          "signature": "validateMissionEnvelope(envelope: MissionEnvelope): string[]",
+          "doc": "Structural and physical validation; returns human-readable issues."
+        },
+        "Geofence": {
+          "kind": "interface",
+          "signature": "export interface Geofence"
+        },
+        "MissionEnvelope": {
+          "kind": "interface",
+          "signature": "export interface MissionEnvelope"
+        },
+        "Waypoint": {
+          "kind": "interface",
+          "signature": "export interface Waypoint"
+        },
+        "deriveFlightEffects": {
+          "kind": "function",
+          "signature": "deriveFlightEffects(limits: FlightLimits): StepEffects"
+        },
+        "FlightLimits": {
+          "kind": "interface",
+          "signature": "export interface FlightLimits"
+        },
+        "MAVLINK_PROTOCOL": {
+          "kind": "const",
+          "signature": "MAVLINK_PROTOCOL = 'mavlink'"
+        },
+        "createMavlinkProfile": {
+          "kind": "function",
+          "signature": "createMavlinkProfile(options: MavlinkProfileOptions): IndustrialProfile",
+          "doc": "Data-only flight profile (definitions are supplied by the adapter)."
+        },
+        "mavlinkErrorTaxonomy": {
+          "kind": "function",
+          "signature": "mavlinkErrorTaxonomy(): DeviceErrorTaxonomy",
+          "doc": "MAVLink result codes → device error classification (RFC-011 §4.7)."
+        },
+        "vehicleInterlocks": {
+          "kind": "function",
+          "signature": "vehicleInterlocks(site: string, vehicle: FlightVehicle): Interlock[]",
+          "doc": "Interlocks enforcing the vehicle's declared envelope ceilings."
+        },
+        "vehicleResource": {
+          "kind": "function",
+          "signature": "vehicleResource(site: string, vehicle: FlightVehicle): Resource"
+        },
+        "vehicleResourceId": {
+          "kind": "function",
+          "signature": "vehicleResourceId(site: string, vehicleId: string): ResourceId"
+        },
+        "FlightVehicle": {
+          "kind": "interface",
+          "signature": "export interface FlightVehicle"
+        },
+        "MavlinkProfileOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkProfileOptions"
+        },
+        "createMavlinkDefinitions": {
+          "kind": "function",
+          "signature": "createMavlinkDefinitions(options: MavlinkAdapterOptions): IndustrialActionDefinition[]"
+        },
+        "MavlinkAdapterOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkAdapterOptions"
+        },
+        "runMavlinkConformance": {
+          "kind": "function",
+          "signature": "runMavlinkConformance(transport: MavlinkTransportPort, options: MavlinkConformanceOptions): Promise<MavlinkConformanceReport>"
+        },
+        "MavlinkConformanceCheck": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceCheck"
+        },
+        "MavlinkConformanceOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceOptions"
+        },
+        "MavlinkConformanceReport": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceReport"
+        }
+      }
+    },
+    "@totemsdk/act-ocpp": {
+      "symbols": {
+        "OCPP_ACCEPTED": {
+          "kind": "const",
+          "signature": "OCPP_ACCEPTED = 'Accepted'"
+        },
+        "OcppTransportError": {
+          "kind": "class",
+          "signature": "export class OcppTransportError extends Error",
+          "doc": "Transport/OCPP rejection carrying the protocol code."
+        },
+        "assertAccepted": {
+          "kind": "function",
+          "signature": "assertAccepted(response: OcppResponse, action: string): void",
+          "doc": "Throw unless the response status is `Accepted`."
+        },
+        "OcppChargingProfileRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppChargingProfileRequest"
+        },
+        "OcppClearProfileRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppClearProfileRequest"
+        },
+        "OcppMeterQuery": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterQuery"
+        },
+        "OcppMeterValue": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterValue"
+        },
+        "OcppReserveRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppReserveRequest"
+        },
+        "OcppResponse": {
+          "kind": "interface",
+          "signature": "export interface OcppResponse",
+          "doc": "RFC-024 §5.2 — OCPP transport port.\n\nThe caller injects a transport that talks to a CSMS or a local charger stack.\nThis package owns the governed operation semantics only: it never opens a\nsocket and never implements an OCPP stack. A deployment can back the port\nwith a CSMS client, a charger stack, or a simulator.\n\nEvery operation is idempotent at the port boundary: the prepared command and\nthe operation id are stable across retries (RFC-022 §5.1), so a transport may\nsafely deduplicate a replayed request."
+        },
+        "OcppStartRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppStartRequest"
+        },
+        "OcppStopRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppStopRequest"
+        },
+        "OcppTransactionEvent": {
+          "kind": "interface",
+          "signature": "export interface OcppTransactionEvent"
+        },
+        "OcppTransactionEventType": {
+          "kind": "type",
+          "signature": "export type OcppTransactionEventType = 'Started' | 'Updated' | 'Ended'"
+        },
+        "OcppTransactionState": {
+          "kind": "interface",
+          "signature": "export interface OcppTransactionState"
+        },
+        "OcppTransportPort": {
+          "kind": "interface",
+          "signature": "export interface OcppTransportPort",
+          "doc": "Injected OCPP port. Implementations map these calls onto their CSMS/charger\nstack (RemoteStartTransaction, SetChargingProfile, ReserveNow, …)."
+        },
+        "OCPP_CORE_PROFILES": {
+          "kind": "const",
+          "signature": "OCPP_CORE_PROFILES = [ 'charging:startSession', 'charging:stopSession', 'charging:setLimit', 'charging:reserveConnector', 'charging:clearProfile', 'charging:readMeter', ] as const",
+          "doc": "Definition kinds provided by this package."
+        },
+        "OCPP_VERSION_PREFERENCE": {
+          "kind": "const",
+          "signature": "OCPP_VERSION_PREFERENCE: readonly OcppVersion[] = ['2.1', '2.0.1', '1.6J']",
+          "doc": "Highest first; negotiation picks the newest mutually supported version."
+        },
+        "negotiateOcppCapabilities": {
+          "kind": "function",
+          "signature": "negotiateOcppCapabilities(options: NegotiateOptions): OcppCapabilitySet",
+          "doc": "Select the newest mutually supported version and assert the required profiles\nare available. Throws `ActionDefinitionError` (registration-time failure)\nrather than silently degrading."
+        },
+        "supportsOcppProfile": {
+          "kind": "function",
+          "signature": "supportsOcppProfile(capabilities: OcppCapabilitySet, profile: string): boolean"
+        },
+        "NegotiateOptions": {
+          "kind": "interface",
+          "signature": "export interface NegotiateOptions"
+        },
+        "OcppCapabilitySet": {
+          "kind": "interface",
+          "signature": "export interface OcppCapabilitySet"
+        },
+        "OcppProfileName": {
+          "kind": "type",
+          "signature": "export type OcppProfileName = (typeof OCPP_CORE_PROFILES)[number]"
+        },
+        "OcppVersion": {
+          "kind": "type",
+          "signature": "export type OcppVersion = '1.6J' | '2.0.1' | '2.1'"
+        },
+        "deriveChargingEffects": {
+          "kind": "function",
+          "signature": "deriveChargingEffects(limits: ChargingLimits): StepEffects"
+        },
+        "ChargingLimits": {
+          "kind": "interface",
+          "signature": "export interface ChargingLimits"
+        },
+        "meterEvidenceDigest": {
+          "kind": "function",
+          "signature": "meterEvidenceDigest(evidence: Omit<ChargingMeterEvidence, \"digest\">): string"
+        },
+        "reconcileChargingSession": {
+          "kind": "function",
+          "signature": "reconcileChargingSession(transport: OcppTransportPort, query: ChargingMeterQuery): Promise<ChargingReconcileResult>",
+          "doc": "Reconcile an accepted charging operation against the charger.\n\n- `confirmed` only when the charger reports the transaction ended (an energy\n  register alone is progress, not completion);\n- `running` while the transaction is active or meter values advance;\n- `unknown` when the charger cannot be read — the reservation must stay held."
+        },
+        "ChargingMeterEvidence": {
+          "kind": "interface",
+          "signature": "export interface ChargingMeterEvidence"
+        },
+        "ChargingMeterQuery": {
+          "kind": "interface",
+          "signature": "export interface ChargingMeterQuery"
+        },
+        "ChargingReconcileResult": {
+          "kind": "interface",
+          "signature": "export interface ChargingReconcileResult"
+        },
+        "ChargingReconcileStatus": {
+          "kind": "type",
+          "signature": "export type ChargingReconcileStatus = 'running' | 'confirmed' | 'unknown'"
+        },
+        "OCPP_PROTOCOL": {
+          "kind": "const",
+          "signature": "OCPP_PROTOCOL = 'ocpp'"
+        },
+        "chargingInterlocks": {
+          "kind": "function",
+          "signature": "chargingInterlocks(site: string, connector: ChargingConnector): Interlock[]",
+          "doc": "Interlocks that enforce a connector's declared ceiling before authorization."
+        },
+        "chargingResource": {
+          "kind": "function",
+          "signature": "chargingResource(site: string, connector: ChargingConnector): Resource"
+        },
+        "chargingResourceId": {
+          "kind": "function",
+          "signature": "chargingResourceId(site: string, connectorId: number, asset?: string): ResourceId"
+        },
+        "createOcppProfile": {
+          "kind": "function",
+          "signature": "createOcppProfile(options: OcppProfileOptions): IndustrialProfile",
+          "doc": "Data-only charger profile (definitions are supplied by the adapter)."
+        },
+        "ocppErrorTaxonomy": {
+          "kind": "function",
+          "signature": "ocppErrorTaxonomy(): DeviceErrorTaxonomy",
+          "doc": "OCPP status → device error classification (RFC-011 §4.7).\nSafety codes require a safe state and are never retried."
+        },
+        "ChargingConnector": {
+          "kind": "interface",
+          "signature": "export interface ChargingConnector"
+        },
+        "OcppProfileOptions": {
+          "kind": "interface",
+          "signature": "export interface OcppProfileOptions"
+        },
+        "createOcppDefinitions": {
+          "kind": "function",
+          "signature": "createOcppDefinitions(options: OcppAdapterOptions): IndustrialActionDefinition[]"
+        },
+        "errorCodeOf": {
+          "kind": "function",
+          "signature": "errorCodeOf(error: unknown): string | undefined"
+        },
+        "ChargingCommand": {
+          "kind": "interface",
+          "signature": "interface ChargingCommand"
+        },
+        "OcppAdapterOptions": {
+          "kind": "interface",
+          "signature": "export interface OcppAdapterOptions"
+        }
+      }
+    },
     "@totemsdk/agent-policy": {
       "symbols": {
         "PaymentIntent": {
@@ -2981,6 +4032,11 @@
           "kind": "function",
           "signature": "createTimelockDescriptor(address: string, publicKey: string, unlockBlock: bigint): ScriptDescriptor"
         },
+        "buildHTLCScript": {
+          "kind": "function",
+          "signature": "buildHTLCScript(ownerPublicKey: string, recipientPublicKey: string, hashLock: string, timeoutBlock: bigint, algorithm?: \"sha3\" | \"sha2\"): string",
+          "doc": "Build the HTLC locking script. Single source of truth for the descriptor\nbuilder and `HTLCHelper.createHTLC`.\n\nBranch exclusivity is **time-bounded** (RFC-069 §6 invariant 5): after\n`timeoutBlock` only the owner refund path is valid; at or before\n`timeoutBlock` only the recipient preimage path is valid. The claim branch\nMUST NOT remain spendable once the refund branch becomes valid, otherwise\nthe two paths race."
+        },
         "createHTLCDescriptor": {
           "kind": "function",
           "signature": "createHTLCDescriptor(address: string, ownerPublicKey: string, recipientPublicKey: string, hashLock: string, timeoutBlock: bigint, isOwner: boolean, preimage?: string): ScriptDescriptor"
@@ -4919,6 +5975,10 @@
           "kind": "interface",
           "signature": "export interface CanSignalDef"
         },
+        "CanFilter": {
+          "kind": "interface",
+          "signature": "export interface CanFilter"
+        },
         "createCanSensorBridge": {
           "kind": "function",
           "signature": "createCanSensorBridge(config: CanSensorBridgeConfig): CanSensorBridge"
@@ -4962,7 +6022,11 @@
         },
         "CoapMethod": {
           "kind": "type",
-          "signature": "export type CoapMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'"
+          "signature": "export type CoapMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'FETCH'"
+        },
+        "CoapBlockOption": {
+          "kind": "interface",
+          "signature": "export interface CoapBlockOption"
         },
         "createCoapGateway": {
           "kind": "function",
@@ -4976,9 +6040,63 @@
           "kind": "interface",
           "signature": "export interface CoapGateway"
         },
+        "CoapResponseData": {
+          "kind": "interface",
+          "signature": "export interface CoapResponseData"
+        },
+        "CoapObservationData": {
+          "kind": "interface",
+          "signature": "export interface CoapObservationData extends CoapResponseData"
+        },
+        "CoapObservation": {
+          "kind": "interface",
+          "signature": "export interface CoapObservation"
+        },
+        "CoapBlockwiseOptions": {
+          "kind": "interface",
+          "signature": "export interface CoapBlockwiseOptions"
+        },
+        "decodeCbor": {
+          "kind": "function",
+          "signature": "decodeCbor(input: Uint8Array, options?: CborDecodeOptions): CborValue"
+        },
+        "CborDecodeError": {
+          "kind": "class",
+          "signature": "export class CborDecodeError extends Error"
+        },
+        "CborValue": {
+          "kind": "type",
+          "signature": "export type CborValue = | null | undefined | boolean | number | bigint | string | Uint8Array | CborValue[] | { [key: string]: CborValue } | Map<CborValue, CborValue>",
+          "doc": "Minimal CBOR (RFC 8949) decoder for constrained-device payloads.\n\nSupports the deterministic core used by sensors: unsigned/negative\nintegers, byte/text strings, arrays, maps, tags (unwrapped), booleans, null,\nundefined, half/single/double floats and indefinite-length containers.\nMaps with all-text keys decode to plain objects; other maps decode to `Map`.\n\nThis is a decoder, not a general CBOR library: it does not expose tag\nsemantics and rejects malformed, truncated, duplicate-key or over-deep input."
+        },
+        "CborDecodeOptions": {
+          "kind": "interface",
+          "signature": "export interface CborDecodeOptions"
+        },
+        "isOscoreProtected": {
+          "kind": "function",
+          "signature": "isOscoreProtected(message: CoapMessage): boolean",
+          "doc": "True when a message carries an OSCORE option (it is not plaintext)."
+        },
+        "CoapSecurityPort": {
+          "kind": "interface",
+          "signature": "export interface CoapSecurityPort"
+        },
+        "createOscoreContext": {
+          "kind": "function",
+          "signature": "createOscoreContext(config: OscoreContextConfig): Promise<CoapSecurityPort>"
+        },
+        "OscoreContextConfig": {
+          "kind": "interface",
+          "signature": "export interface OscoreContextConfig"
+        },
         "createCoapSensorBridge": {
           "kind": "function",
           "signature": "createCoapSensorBridge(config: CoapSensorBridgeConfig): CoapSensorBridge"
+        },
+        "APPLICATION_CBOR": {
+          "kind": "const",
+          "signature": "APPLICATION_CBOR = 60"
         },
         "CoapSensorBinding": {
           "kind": "interface",
@@ -5050,6 +6168,88 @@
         }
       }
     },
+    "@totemsdk/edge-gnss": {
+      "symbols": {
+        "GnssFix": {
+          "kind": "interface",
+          "signature": "export interface GnssFix"
+        },
+        "GnssFixType": {
+          "kind": "type",
+          "signature": "export type GnssFixType = | 'none' | '2d' | '3d' | 'dgps' | 'rtk-float' | 'rtk-fixed' | 'estimated'",
+          "doc": "GNSS transport port — injected by the caller.\n\nThe connector owns fix validation, NMEA parsing and proof shaping. The\ncaller supplies the receiver binding: a serial NMEA reader, a modem AT\ninterface, a phone location API, or a simulator."
+        },
+        "GnssTransportPort": {
+          "kind": "interface",
+          "signature": "export interface GnssTransportPort"
+        },
+        "createGnssGateway": {
+          "kind": "function",
+          "signature": "createGnssGateway(config: GnssGatewayConfig): GnssGateway"
+        },
+        "isValidFix": {
+          "kind": "function",
+          "signature": "isValidFix(fix: GnssFix | null | undefined): fix is GnssFix"
+        },
+        "claimFor": {
+          "kind": "function",
+          "signature": "claimFor(fix: GnssFix): Record<string, unknown>"
+        },
+        "GnssGatewayConfig": {
+          "kind": "interface",
+          "signature": "export interface GnssGatewayConfig"
+        },
+        "GnssGateway": {
+          "kind": "interface",
+          "signature": "export interface GnssGateway"
+        },
+        "createGnssSensorBridge": {
+          "kind": "function",
+          "signature": "createGnssSensorBridge(config: GnssSensorBridgeConfig): GnssSensorBridge"
+        },
+        "GnssSensorBinding": {
+          "kind": "interface",
+          "signature": "export interface GnssSensorBinding"
+        },
+        "GnssSensorBridgeConfig": {
+          "kind": "interface",
+          "signature": "export interface GnssSensorBridgeConfig"
+        },
+        "GnssSensorBridge": {
+          "kind": "interface",
+          "signature": "export interface GnssSensorBridge"
+        },
+        "parseNmeaSentence": {
+          "kind": "function",
+          "signature": "parseNmeaSentence(line: string): NmeaSentence | null"
+        },
+        "parseNmeaFix": {
+          "kind": "function",
+          "signature": "parseNmeaFix(lines: string[], options?: NmeaFixOptions): GnssFix | null",
+          "doc": "Merge GGA/RMC/GSA sentences into one fix. Returns null when no position is\npresent or the receiver reports no fix."
+        },
+        "NmeaSentence": {
+          "kind": "type",
+          "signature": "export type NmeaSentence = NmeaGga | NmeaRmc | NmeaGsa"
+        },
+        "NmeaGga": {
+          "kind": "interface",
+          "signature": "export interface NmeaGga"
+        },
+        "NmeaRmc": {
+          "kind": "interface",
+          "signature": "export interface NmeaRmc"
+        },
+        "NmeaGsa": {
+          "kind": "interface",
+          "signature": "export interface NmeaGsa"
+        },
+        "NmeaFixOptions": {
+          "kind": "interface",
+          "signature": "export interface NmeaFixOptions"
+        }
+      }
+    },
     "@totemsdk/edge-grpc": {
       "symbols": {
         "GrpcTransportPort": {
@@ -5067,6 +6267,10 @@
         "GrpcClient": {
           "kind": "interface",
           "signature": "export interface GrpcClient"
+        },
+        "GrpcTlsConfig": {
+          "kind": "interface",
+          "signature": "export interface GrpcTlsConfig"
         },
         "createGrpcGateway": {
           "kind": "function",
@@ -5234,6 +6438,96 @@
         "MatterSensorBridge": {
           "kind": "interface",
           "signature": "export interface MatterSensorBridge"
+        }
+      }
+    },
+    "@totemsdk/edge-mavlink": {
+      "symbols": {
+        "MavlinkTransportPort": {
+          "kind": "interface",
+          "signature": "export interface MavlinkTransportPort",
+          "doc": "MAVLink transport port — injected by the caller.\n\nThe caller supplies the byte pipe (serial, UDP, TCP, WebSocket or a test\nsimulator). The connector owns MAVLink 1/2 framing, CRC, message decoding,\nheartbeat, command correlation and proof shaping."
+        },
+        "encodeFrame": {
+          "kind": "function",
+          "signature": "encodeFrame(version: MavlinkVersion, sequence: number, systemId: number, componentId: number, messageId: number, payload: Uint8Array): Uint8Array"
+        },
+        "decodeFrames": {
+          "kind": "function",
+          "signature": "decodeFrames(buffer: Uint8Array): { frames: MavlinkFrame[]; rest: Uint8Array; }"
+        },
+        "decodeMessage": {
+          "kind": "function",
+          "signature": "decodeMessage(frame: MavlinkFrame): MavlinkMessage"
+        },
+        "decodePayload": {
+          "kind": "function",
+          "signature": "decodePayload(messageId: number, payload: Uint8Array): Record<string, unknown>"
+        },
+        "encodeHeartbeat": {
+          "kind": "function",
+          "signature": "encodeHeartbeat(systemId: number, componentId: number, sequence: number): Uint8Array"
+        },
+        "encodeCommandLong": {
+          "kind": "function",
+          "signature": "encodeCommandLong(sequence: number, systemId: number, componentId: number, targetSystem: number, targetComponent: number, command: number, params: number[], confirmation?: number): Uint8Array"
+        },
+        "MESSAGE_IDS": {
+          "kind": "const",
+          "signature": "MESSAGE_IDS = { HEARTBEAT: 0, SYS_STATUS: 1, GPS_RAW_INT: 24, ATTITUDE: 30, GLOBAL_POSITION_INT: 33, COMMAND_LONG: 76, COMMAND_ACK: 77, STATUSTEXT: 253, } as const"
+        },
+        "MavlinkProtocolError": {
+          "kind": "class",
+          "signature": "export class MavlinkProtocolError extends Error"
+        },
+        "MavlinkFrame": {
+          "kind": "interface",
+          "signature": "export interface MavlinkFrame"
+        },
+        "MavlinkMessage": {
+          "kind": "interface",
+          "signature": "export interface MavlinkMessage extends MavlinkFrame"
+        },
+        "MavlinkVersion": {
+          "kind": "type",
+          "signature": "export type MavlinkVersion = 1 | 2",
+          "doc": "MAVLink 1/2 framing and common-message decoding.\n\nFrame checksums use the MAVLink X25 CRC plus the per-message CRC_EXTRA byte.\nMAVLink 2 signed frames are accepted; the 13-byte signature is carried but\nnot verified here (signing policy belongs to the caller)."
+        },
+        "createMavlinkGateway": {
+          "kind": "function",
+          "signature": "createMavlinkGateway(config: MavlinkGatewayConfig): MavlinkGateway"
+        },
+        "MavlinkGatewayConfig": {
+          "kind": "interface",
+          "signature": "export interface MavlinkGatewayConfig"
+        },
+        "MavlinkGateway": {
+          "kind": "interface",
+          "signature": "export interface MavlinkGateway"
+        },
+        "MavlinkCommandResult": {
+          "kind": "interface",
+          "signature": "export interface MavlinkCommandResult"
+        },
+        "MavlinkMessageHandler": {
+          "kind": "type",
+          "signature": "export type MavlinkMessageHandler = (message: MavlinkMessage) => void"
+        },
+        "createMavlinkSensorBridge": {
+          "kind": "function",
+          "signature": "createMavlinkSensorBridge(config: MavlinkSensorBridgeConfig): MavlinkSensorBridge"
+        },
+        "MavlinkSensorBinding": {
+          "kind": "interface",
+          "signature": "export interface MavlinkSensorBinding"
+        },
+        "MavlinkSensorBridgeConfig": {
+          "kind": "interface",
+          "signature": "export interface MavlinkSensorBridgeConfig"
+        },
+        "MavlinkSensorBridge": {
+          "kind": "interface",
+          "signature": "export interface MavlinkSensorBridge"
         }
       }
     },
@@ -5717,6 +7011,104 @@
         "createNfcGateway": {
           "kind": "function",
           "signature": "createNfcGateway(config: NfcGatewayConfig): NfcGateway"
+        }
+      }
+    },
+    "@totemsdk/edge-ocpp": {
+      "symbols": {
+        "OcppTransportPort": {
+          "kind": "interface",
+          "signature": "export interface OcppTransportPort",
+          "doc": "OCPP transport port — injected by the caller.\n\nThe caller supplies a WebSocket (or test) transport that carries OCPP-J text\nframes. The connector owns framing, correlation, CALL handling, heartbeats\nand proof shaping."
+        },
+        "encodeCall": {
+          "kind": "function",
+          "signature": "encodeCall(messageId: string, action: string, payload: Record<string, unknown>): string"
+        },
+        "encodeCallResult": {
+          "kind": "function",
+          "signature": "encodeCallResult(messageId: string, payload: Record<string, unknown>): string"
+        },
+        "encodeCallError": {
+          "kind": "function",
+          "signature": "encodeCallError(messageId: string, errorCode: OcppErrorCode, errorDescription: string, errorDetails?: Record<string, unknown>): string"
+        },
+        "parseOcppFrame": {
+          "kind": "function",
+          "signature": "parseOcppFrame(raw: string): OcppFrame"
+        },
+        "OcppError": {
+          "kind": "class",
+          "signature": "export class OcppError extends Error"
+        },
+        "OcppProtocolError": {
+          "kind": "class",
+          "signature": "export class OcppProtocolError extends Error"
+        },
+        "OCPP_ERROR_CODES": {
+          "kind": "const",
+          "signature": "OCPP_ERROR_CODES = [ 'NotSupported', 'InternalError', 'ProtocolError', 'SecurityError', 'FormationViolation', 'PropertyConstraintViolation', 'OccurrenceConstraintViolation', 'TypeConstraintViolation',",
+          "doc": "OCPP-J framing (OCPP 1.6J and 2.0.1).\n\n  CALL        [2, messageId, action, payload]\n  CALLRESULT  [3, messageId, payload]\n  CALLERROR   [4, messageId, errorCode, errorDescription, errorDetails]"
+        },
+        "OcppFrame": {
+          "kind": "type",
+          "signature": "export type OcppFrame = OcppCall | OcppCallResult | OcppCallError"
+        },
+        "OcppCall": {
+          "kind": "interface",
+          "signature": "export interface OcppCall"
+        },
+        "OcppCallResult": {
+          "kind": "interface",
+          "signature": "export interface OcppCallResult"
+        },
+        "OcppCallError": {
+          "kind": "interface",
+          "signature": "export interface OcppCallError"
+        },
+        "OcppErrorCode": {
+          "kind": "type",
+          "signature": "export type OcppErrorCode = (typeof OCPP_ERROR_CODES)[number]"
+        },
+        "createOcppGateway": {
+          "kind": "function",
+          "signature": "createOcppGateway(config: OcppGatewayConfig): OcppGateway"
+        },
+        "OcppGatewayConfig": {
+          "kind": "interface",
+          "signature": "export interface OcppGatewayConfig"
+        },
+        "OcppGateway": {
+          "kind": "interface",
+          "signature": "export interface OcppGateway"
+        },
+        "OcppVersion": {
+          "kind": "type",
+          "signature": "export type OcppVersion = '1.6J' | '2.0.1'"
+        },
+        "OcppCallHandler": {
+          "kind": "type",
+          "signature": "export type OcppCallHandler = (payload: Record<string, unknown>) => Promise<Record<string, unknown>> | Record<string, unknown>"
+        },
+        "createOcppSensorBridge": {
+          "kind": "function",
+          "signature": "createOcppSensorBridge(config: OcppSensorBridgeConfig): OcppSensorBridge"
+        },
+        "OcppMeterSample": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterSample"
+        },
+        "OcppMeterBinding": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterBinding"
+        },
+        "OcppSensorBridgeConfig": {
+          "kind": "interface",
+          "signature": "export interface OcppSensorBridgeConfig"
+        },
+        "OcppSensorBridge": {
+          "kind": "interface",
+          "signature": "export interface OcppSensorBridge"
         }
       }
     },
@@ -6515,739 +7907,6 @@
         "StoredIdentityClaim": {
           "kind": "interface",
           "signature": "export interface StoredIdentityClaim"
-        }
-      }
-    },
-    "@totemsdk/industrial-action": {
-      "symbols": {
-        "ParameterType": {
-          "kind": "type",
-          "signature": "export type ParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'quantity'"
-        },
-        "ParameterSchema": {
-          "kind": "interface",
-          "signature": "export interface ParameterSchema"
-        },
-        "ContextField": {
-          "kind": "interface",
-          "signature": "export interface ContextField"
-        },
-        "ContextValue": {
-          "kind": "interface",
-          "signature": "export interface ContextValue<T = unknown>",
-          "doc": "Context value with observation metadata. Required when a schema field\ndeclares `maxAgeMs`, so freshness is enforced deterministically."
-        },
-        "ContextSchema": {
-          "kind": "interface",
-          "signature": "export interface ContextSchema"
-        },
-        "ActionSchema": {
-          "kind": "interface",
-          "signature": "export interface ActionSchema"
-        },
-        "ActionError": {
-          "kind": "interface",
-          "signature": "export interface ActionError"
-        },
-        "ActionProposal": {
-          "kind": "interface",
-          "signature": "export interface ActionProposal"
-        },
-        "Condition": {
-          "kind": "interface",
-          "signature": "export interface Condition"
-        },
-        "ConditionResult": {
-          "kind": "interface",
-          "signature": "export interface ConditionResult"
-        },
-        "CreateProposalParams": {
-          "kind": "interface",
-          "signature": "export interface CreateProposalParams"
-        },
-        "toHex": {
-          "kind": "function",
-          "signature": "toHex(bytes: Uint8Array): string",
-          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
-        },
-        "canonicalJson": {
-          "kind": "function",
-          "signature": "canonicalJson(value: unknown): string"
-        },
-        "hashCanonical": {
-          "kind": "function",
-          "signature": "hashCanonical(domain: string, value: unknown): string"
-        },
-        "computeActionProposalId": {
-          "kind": "function",
-          "signature": "computeActionProposalId(params: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; proposedAt: number; }): string"
-        },
-        "computeActionExecutionId": {
-          "kind": "function",
-          "signature": "computeActionExecutionId(proposalId: string): string"
-        },
-        "computeCommitmentHash": {
-          "kind": "function",
-          "signature": "computeCommitmentHash(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; preparedCommandHash?: string; }): string"
-        },
-        "computeReceiptId": {
-          "kind": "function",
-          "signature": "computeReceiptId(executionId: string, proposalId: string): string"
-        },
-        "computeOperationId": {
-          "kind": "function",
-          "signature": "computeOperationId(commitmentHash: string, resourceId?: string): string",
-          "doc": "Deterministic device-operation id (RFC-010 §6.6).\n\nDerived from the proposal commitment and the target resource, so a\nre-submitted or retried action resolves to the same operation and can be\ndeduplicated by a durable claim."
-        },
-        "computeAuthorityBindingHash": {
-          "kind": "function",
-          "signature": "computeAuthorityBindingHash(commitmentHash: string, mandateProofId?: string, decisionId?: string): string",
-          "doc": "RFC-010 §6.4 — authority binding digest.\n\nTies a proposal commitment to the exact mandate proof and authorization\ndecision that authorized it. The decision id is generally only known *after*\nauthorization (the edge runtime prepares before it authorizes), so this is\ncomputed at the receipt/record layer rather than at `prepare` time."
-        },
-        "computePreparedCommandHash": {
-          "kind": "function",
-          "signature": "computePreparedCommandHash(binding: PreparedCommandBinding): string"
-        },
-        "PreparedCommandBinding": {
-          "kind": "interface",
-          "signature": "export interface PreparedCommandBinding"
-        },
-        "IndustrialActionError": {
-          "kind": "class",
-          "signature": "export class IndustrialActionError extends Error"
-        },
-        "ActionDefinitionError": {
-          "kind": "class",
-          "signature": "export class ActionDefinitionError extends IndustrialActionError"
-        },
-        "ActionValidationError": {
-          "kind": "class",
-          "signature": "export class ActionValidationError extends IndustrialActionError"
-        },
-        "ActionExecutionError": {
-          "kind": "class",
-          "signature": "export class ActionExecutionError extends IndustrialActionError"
-        },
-        "ActionConditionError": {
-          "kind": "class",
-          "signature": "export class ActionConditionError extends IndustrialActionError"
-        },
-        "ActionGovernanceError": {
-          "kind": "class",
-          "signature": "export class ActionGovernanceError extends IndustrialActionError"
-        },
-        "ActionCommitmentError": {
-          "kind": "class",
-          "signature": "export class ActionCommitmentError extends IndustrialActionError"
-        },
-        "ActionInterlockError": {
-          "kind": "class",
-          "signature": "export class ActionInterlockError extends IndustrialActionError"
-        },
-        "ActionScheduleError": {
-          "kind": "class",
-          "signature": "export class ActionScheduleError extends IndustrialActionError"
-        },
-        "ActionApprovalError": {
-          "kind": "class",
-          "signature": "export class ActionApprovalError extends IndustrialActionError"
-        },
-        "validateParameters": {
-          "kind": "function",
-          "signature": "validateParameters(schema: ActionSchema, parameters: Record<string, unknown>, units?: UnitRegistry): string[]"
-        },
-        "validateContext": {
-          "kind": "function",
-          "signature": "validateContext(schema: ActionSchema, context: Record<string, unknown>, now: number): string[]"
-        },
-        "assertValidParameters": {
-          "kind": "function",
-          "signature": "assertValidParameters(schema: ActionSchema, parameters: Record<string, unknown>, units?: UnitRegistry): void"
-        },
-        "assertValidContext": {
-          "kind": "function",
-          "signature": "assertValidContext(schema: ActionSchema, context: Record<string, unknown>, now: number): void"
-        },
-        "createProposal": {
-          "kind": "function",
-          "signature": "createProposal(params: CreateProposalParams): ActionProposal"
-        },
-        "verifyCommitment": {
-          "kind": "function",
-          "signature": "verifyCommitment(proposal: ActionProposal): boolean"
-        },
-        "assertValidProposal": {
-          "kind": "function",
-          "signature": "assertValidProposal(proposal: ActionProposal): void"
-        },
-        "isProposalExpired": {
-          "kind": "function",
-          "signature": "isProposalExpired(proposal: ActionProposal, now: number): boolean"
-        },
-        "isProposalExecutable": {
-          "kind": "function",
-          "signature": "isProposalExecutable(proposal: ActionProposal, now: number): boolean"
-        },
-        "createCommitment": {
-          "kind": "function",
-          "signature": "createCommitment(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; }): string"
-        },
-        "verifyCommitmentBinding": {
-          "kind": "function",
-          "signature": "verifyCommitmentBinding(proposal: ActionProposal): boolean"
-        },
-        "serializeCommitmentPayload": {
-          "kind": "function",
-          "signature": "serializeCommitmentPayload(proposal: ActionProposal): string"
-        },
-        "evaluateConditions": {
-          "kind": "function",
-          "signature": "evaluateConditions(conditions: Condition[], params: Record<string, unknown>, context: Record<string, unknown>): ConditionResult"
-        },
-        "createCondition": {
-          "kind": "function",
-          "signature": "createCondition(params: Pick<Condition, \"type\" | \"field\" | \"operator\" | \"value\"> & { evaluate?: Condition[\"evaluate\"]; }): Condition"
-        },
-        "toEdgeActionDefinition": {
-          "kind": "function",
-          "signature": "toEdgeActionDefinition<TResult = unknown>(def: IndustrialActionDefinition<TResult>, options?: ToEdgeActionOptions): EdgeActionDefinition",
-          "doc": "Compile an industrial definition into an edge action definition."
-        },
-        "runWithPolicy": {
-          "kind": "function",
-          "signature": "runWithPolicy<TResult = unknown>(def: IndustrialActionDefinition<TResult>, op: PreparedDeviceOp): Promise<IndustrialExecutionResult<TResult>>",
-          "doc": "Run an industrial definition's actuation under its execution policy.\nExported for direct use in tests and by adapters that own their own runtime."
-        },
-        "DeviceOpBase": {
-          "kind": "interface",
-          "signature": "export interface DeviceOpBase",
-          "doc": "Adapter-prepared device command (before commitment/identity are attached)."
-        },
-        "PreparedDeviceOp": {
-          "kind": "interface",
-          "signature": "export interface PreparedDeviceOp extends DeviceOpBase",
-          "doc": "A fully prepared, commitment-bound device operation."
-        },
-        "ExecutionPolicy": {
-          "kind": "interface",
-          "signature": "export interface ExecutionPolicy",
-          "doc": "Industrial execution policy (RFC-010 §6.5).\n\nRetries are opt-in and must only be enabled for idempotent device operations;\na timeout is never treated as success."
-        },
-        "IndustrialActionDefinition": {
-          "kind": "interface",
-          "signature": "export interface IndustrialActionDefinition<TResult = unknown>",
-          "doc": "An industrial action definition that compiles to an edge\n`EdgeActionDefinition` via {@link toEdgeActionDefinition}."
-        },
-        "FailureMode": {
-          "kind": "type",
-          "signature": "export type FailureMode = | 'fail-safe' | 'fail-silent' | 'fail-closed' | 'fail-operational' | 'abort'",
-          "doc": "How an action behaves when an attempt does not confirm (RFC-011 §4.11).\nMandatory for `write`-effect actions; `read` defaults to `fail-silent`."
-        },
-        "ActionOutcome": {
-          "kind": "type",
-          "signature": "export type ActionOutcome = | 'confirmed' | 'failed' | 'unknown' | 'aborted' | 'safe-stated' | 'suppressed' | 'requires-reset' /** Non-terminal: controller accepted the command. RFC-022 §5.5. */ | 'ac",
-          "doc": "Terminal outcome of a governed actuation (never a bare boolean)."
-        },
-        "IndustrialExecutionResult": {
-          "kind": "interface",
-          "signature": "export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperationResult<TResult>",
-          "doc": "Industrial execution result — `EdgeOperationResult` plus the outcome model."
-        },
-        "ToEdgeActionOptions": {
-          "kind": "interface",
-          "signature": "export interface ToEdgeActionOptions"
-        },
-        "createDurableDeviceOperationStore": {
-          "kind": "function",
-          "signature": "createDurableDeviceOperationStore(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableDeviceOperationStoreOptions): DeviceOperationStore"
-        },
-        "isTerminalOperationStatus": {
-          "kind": "function",
-          "signature": "isTerminalOperationStatus(status: OperationStatus): boolean"
-        },
-        "DeviceOperationStore": {
-          "kind": "interface",
-          "signature": "export interface DeviceOperationStore"
-        },
-        "DeviceOperationRecord": {
-          "kind": "interface",
-          "signature": "export interface DeviceOperationRecord"
-        },
-        "OperationStatus": {
-          "kind": "type",
-          "signature": "export type OperationStatus = 'in-flight' | ActionOutcome",
-          "doc": "`in-flight`, non-terminal accepted/running/reconciling, or a terminal outcome."
-        },
-        "OperationClaim": {
-          "kind": "interface",
-          "signature": "export interface OperationClaim"
-        },
-        "DurableDeviceOperationStoreOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableDeviceOperationStoreOptions"
-        },
-        "createIndustrialOperationLifecycle": {
-          "kind": "function",
-          "signature": "createIndustrialOperationLifecycle<TResult = unknown>(options: IndustrialOperationLifecycleOptions<TResult>): OperationLifecycle"
-        },
-        "OperationLifecycle": {
-          "kind": "interface",
-          "signature": "export interface OperationLifecycle"
-        },
-        "IndustrialOperationLifecycleOptions": {
-          "kind": "interface",
-          "signature": "export interface IndustrialOperationLifecycleOptions<TResult = unknown>"
-        },
-        "createIndustrialReceipt": {
-          "kind": "function",
-          "signature": "createIndustrialReceipt(op: PreparedDeviceOp, result: IndustrialExecutionResult, extras?: IndustrialReceiptExtras): EdgeReceipt",
-          "doc": "Build an authority-bound `EdgeReceipt` for a governed actuation."
-        },
-        "verifyIndustrialReceipt": {
-          "kind": "function",
-          "signature": "verifyIndustrialReceipt(receipt: unknown): EdgeOperationResult<{ receipt: EdgeReceipt; }>",
-          "doc": "Verify an industrial receipt: structural (`verifyEdgeReceipt`) + payload\nintegrity + authority-binding consistency. Never returns a bare boolean."
-        },
-        "IndustrialReceiptFields": {
-          "kind": "interface",
-          "signature": "export interface IndustrialReceiptFields"
-        },
-        "IndustrialReceiptPayload": {
-          "kind": "interface",
-          "signature": "export interface IndustrialReceiptPayload extends IndustrialReceiptFields"
-        },
-        "IndustrialReceiptExtras": {
-          "kind": "interface",
-          "signature": "export interface IndustrialReceiptExtras"
-        },
-        "createUnitRegistry": {
-          "kind": "function",
-          "signature": "createUnitRegistry(): UnitRegistry"
-        },
-        "createDefaultUnitRegistry": {
-          "kind": "function",
-          "signature": "createDefaultUnitRegistry(): UnitRegistry",
-          "doc": "Registry seeded with common industrial units."
-        },
-        "defaultUnitRegistry": {
-          "kind": "function",
-          "signature": "defaultUnitRegistry(): UnitRegistry",
-          "doc": "Process-wide default registry (profiles may construct their own)."
-        },
-        "isQuantity": {
-          "kind": "function",
-          "signature": "isQuantity(value: unknown): value is Quantity"
-        },
-        "checkQuantity": {
-          "kind": "function",
-          "signature": "checkQuantity(value: unknown, constraint: QuantityConstraint, units?: UnitRegistry): string | null",
-          "doc": "Dimensional + range validation. Returns an error string, or null when valid."
-        },
-        "Dimension": {
-          "kind": "type",
-          "signature": "export type Dimension = | 'temperature' | 'pressure' | 'volumetricFlow' | 'mass' | 'length' | 'ratio' | 'time' | 'speed' | 'dimensionless'",
-          "doc": "RFC-011 §4.1 — quantities and units.\n\nIndustrial parameters are typed quantities, not bare numbers, so unit errors\n(a pressure satisfying a temperature guardrail) are impossible. A definition\ndeclares a canonical `unit`; adapter profiles declare their wire units and the\ncore converts, recording both."
-        },
-        "Unit": {
-          "kind": "type",
-          "signature": "export type Unit = string",
-          "doc": "Unit symbol (a registry string, not a closed union — profiles add units)."
-        },
-        "Quantity": {
-          "kind": "interface",
-          "signature": "export interface Quantity"
-        },
-        "QuantityConstraint": {
-          "kind": "interface",
-          "signature": "export interface QuantityConstraint",
-          "doc": "Constraints for a quantity parameter (RFC-011 §4.1)."
-        },
-        "UnitRegistry": {
-          "kind": "interface",
-          "signature": "export interface UnitRegistry"
-        },
-        "createResourceRegistry": {
-          "kind": "function",
-          "signature": "createResourceRegistry(): ResourceRegistry"
-        },
-        "resourceIdKey": {
-          "kind": "function",
-          "signature": "resourceIdKey(id: ResourceId): string",
-          "doc": "Stable string key for a `ResourceId` (used for operation ids and logs)."
-        },
-        "toWireQuantity": {
-          "kind": "function",
-          "signature": "toWireQuantity(quantity: Quantity, address: ResourceAddress, units?: UnitRegistry): Quantity",
-          "doc": "Convert a definition's canonical quantity to a resource address's wire unit\n(RFC-011 §4.1/§4.2). Returns the quantity unchanged when the address declares\nno unit."
-        },
-        "safeStateFor": {
-          "kind": "function",
-          "signature": "safeStateFor(resource: Resource | undefined): SafeState | undefined",
-          "doc": "Resolve a resource's declared safe state, if any."
-        },
-        "ResourceId": {
-          "kind": "interface",
-          "signature": "export interface ResourceId"
-        },
-        "ResourceKind": {
-          "kind": "type",
-          "signature": "export type ResourceKind = 'sensor' | 'actuator' | 'controller' | 'gateway' | 'system'"
-        },
-        "ResourceProtocol": {
-          "kind": "type",
-          "signature": "export type ResourceProtocol = 'modbus' | 'opcua' | 'bacnet' | 'mqtt-sparkplug' | string",
-          "doc": "Protocol binding identifier (open string; profiles add protocols)."
-        },
-        "ResourceAddress": {
-          "kind": "interface",
-          "signature": "export interface ResourceAddress"
-        },
-        "Resource": {
-          "kind": "interface",
-          "signature": "export interface Resource"
-        },
-        "ResourceRegistry": {
-          "kind": "interface",
-          "signature": "export interface ResourceRegistry"
-        },
-        "SafeState": {
-          "kind": "interface",
-          "signature": "export interface SafeState",
-          "doc": "Fail-safe state to command when an interlock trips or a fail-safe action fails."
-        },
-        "createInterlockRegistry": {
-          "kind": "function",
-          "signature": "createInterlockRegistry(): InterlockRegistry"
-        },
-        "Interlock": {
-          "kind": "interface",
-          "signature": "export interface Interlock"
-        },
-        "InterlockKind": {
-          "kind": "type",
-          "signature": "export type InterlockKind = 'precondition' | 'mutual-exclusion' | 'permit' | 'emergency-stop'"
-        },
-        "InterlockContext": {
-          "kind": "interface",
-          "signature": "export interface InterlockContext"
-        },
-        "InterlockResult": {
-          "kind": "interface",
-          "signature": "export interface InterlockResult"
-        },
-        "InterlockFailure": {
-          "kind": "interface",
-          "signature": "export interface InterlockFailure"
-        },
-        "InterlockRegistry": {
-          "kind": "interface",
-          "signature": "export interface InterlockRegistry"
-        },
-        "createDurableResourceLockManager": {
-          "kind": "function",
-          "signature": "createDurableResourceLockManager(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableResourceLockManagerOptions): ResourceLockManager"
-        },
-        "ResourceLock": {
-          "kind": "interface",
-          "signature": "export interface ResourceLock"
-        },
-        "ResourceLockManager": {
-          "kind": "interface",
-          "signature": "export interface ResourceLockManager"
-        },
-        "AcquireResult": {
-          "kind": "interface",
-          "signature": "export interface AcquireResult"
-        },
-        "DurableResourceLockManagerOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableResourceLockManagerOptions"
-        },
-        "createDeviceErrorTaxonomy": {
-          "kind": "function",
-          "signature": "createDeviceErrorTaxonomy(): DeviceErrorTaxonomy"
-        },
-        "defaultDeviceErrorTaxonomy": {
-          "kind": "function",
-          "signature": "defaultDeviceErrorTaxonomy(): DeviceErrorTaxonomy",
-          "doc": "Process-wide default taxonomy (profiles may construct their own)."
-        },
-        "DeviceErrorClass": {
-          "kind": "type",
-          "signature": "export type DeviceErrorClass = 'transient' | 'permanent' | 'safety' | 'auth' | 'unknown'"
-        },
-        "DeviceErrorClassification": {
-          "kind": "interface",
-          "signature": "export interface DeviceErrorClassification"
-        },
-        "DeviceErrorTaxonomy": {
-          "kind": "interface",
-          "signature": "export interface DeviceErrorTaxonomy"
-        },
-        "executeRecipe": {
-          "kind": "function",
-          "signature": "executeRecipe(recipe: ActionRecipe, options: RecipeRunOptions): Promise<RecipeResult>"
-        },
-        "createRecipe": {
-          "kind": "function",
-          "signature": "createRecipe(recipe: ActionRecipe): ActionRecipe"
-        },
-        "validateRecipe": {
-          "kind": "function",
-          "signature": "validateRecipe(recipe: ActionRecipe): void",
-          "doc": "Validate a recipe's structure (unique ids, known deps, acyclic). Throws on failure."
-        },
-        "ActionStep": {
-          "kind": "interface",
-          "signature": "export interface ActionStep"
-        },
-        "ActionRecipe": {
-          "kind": "interface",
-          "signature": "export interface ActionRecipe"
-        },
-        "RecipeStepStatus": {
-          "kind": "type",
-          "signature": "export type RecipeStepStatus = ActionOutcome | 'skipped' | 'compensated'"
-        },
-        "RecipeStepResult": {
-          "kind": "interface",
-          "signature": "export interface RecipeStepResult"
-        },
-        "RecipeResult": {
-          "kind": "interface",
-          "signature": "export interface RecipeResult"
-        },
-        "RecipeRunOptions": {
-          "kind": "interface",
-          "signature": "export interface RecipeRunOptions"
-        },
-        "CompensationResult": {
-          "kind": "interface",
-          "signature": "export interface CompensationResult"
-        },
-        "createMemoryActionEventSink": {
-          "kind": "function",
-          "signature": "createMemoryActionEventSink(): ActionEventStream & { events: IndustrialActionEvent[]; }",
-          "doc": "In-memory event sink (tests / ephemeral runtimes)."
-        },
-        "createDurableActionEventSink": {
-          "kind": "function",
-          "signature": "createDurableActionEventSink(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableActionEventSinkOptions): ActionEventStream"
-        },
-        "IndustrialActionEventType": {
-          "kind": "type",
-          "signature": "export type IndustrialActionEventType = | 'proposed' | 'validated' | 'guardrails_passed' | 'interlocks_passed' | 'authorized' | 'reserved' | 'actuation_started' | 'actuation_succeeded' | 'actuation_fa"
-        },
-        "IndustrialActionEvent": {
-          "kind": "interface",
-          "signature": "export interface IndustrialActionEvent"
-        },
-        "ActionEventSink": {
-          "kind": "interface",
-          "signature": "export interface ActionEventSink"
-        },
-        "ActionEventStream": {
-          "kind": "interface",
-          "signature": "export interface ActionEventStream extends ActionEventSink"
-        },
-        "DurableActionEventSinkOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableActionEventSinkOptions"
-        },
-        "definitionVersion": {
-          "kind": "function",
-          "signature": "definitionVersion(def: { version?: number; }): number",
-          "doc": "Effective definition version (defaults to 1)."
-        },
-        "computeSchemaHash": {
-          "kind": "function",
-          "signature": "computeSchemaHash(schema: ActionSchema): string",
-          "doc": "Canonical hash of a schema's structural fields (names, types, required flags,\nquantity constraints). `validation` callbacks and `defaultValue`s are not\npart of the schema contract and are excluded."
-        },
-        "createVersionedActionRegistry": {
-          "kind": "function",
-          "signature": "createVersionedActionRegistry(): VersionedActionRegistry"
-        },
-        "VersionedActionRegistry": {
-          "kind": "interface",
-          "signature": "export interface VersionedActionRegistry"
-        },
-        "isWithinWindows": {
-          "kind": "function",
-          "signature": "isWithinWindows(windows: TimeWindow[], now: number): WindowCheck"
-        },
-        "createDurableRateLimiter": {
-          "kind": "function",
-          "signature": "createDurableRateLimiter(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableRateLimiterOptions): RateLimiter"
-        },
-        "TimeWindow": {
-          "kind": "interface",
-          "signature": "export interface TimeWindow",
-          "doc": "Absolute half-open interval `[start, end)` in epoch milliseconds."
-        },
-        "RateLimit": {
-          "kind": "interface",
-          "signature": "export interface RateLimit"
-        },
-        "ActionSchedule": {
-          "kind": "interface",
-          "signature": "export interface ActionSchedule"
-        },
-        "WindowCheck": {
-          "kind": "interface",
-          "signature": "export interface WindowCheck"
-        },
-        "RateLimitResult": {
-          "kind": "interface",
-          "signature": "export interface RateLimitResult"
-        },
-        "RateLimiter": {
-          "kind": "interface",
-          "signature": "export interface RateLimiter"
-        },
-        "DurableRateLimiterOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableRateLimiterOptions"
-        },
-        "createDurableApprovalRegistry": {
-          "kind": "function",
-          "signature": "createDurableApprovalRegistry(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableApprovalRegistryOptions): ApprovalRegistry"
-        },
-        "ApprovalStatus": {
-          "kind": "type",
-          "signature": "export type ApprovalStatus = 'pending' | 'approved' | 'rejected'"
-        },
-        "ApprovalRequest": {
-          "kind": "interface",
-          "signature": "export interface ApprovalRequest"
-        },
-        "ApprovalValidation": {
-          "kind": "interface",
-          "signature": "export interface ApprovalValidation"
-        },
-        "ApprovalRequestParams": {
-          "kind": "interface",
-          "signature": "export interface ApprovalRequestParams"
-        },
-        "ApprovalRegistry": {
-          "kind": "interface",
-          "signature": "export interface ApprovalRegistry"
-        },
-        "DurableApprovalRegistryOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableApprovalRegistryOptions"
-        },
-        "toIsa95Path": {
-          "kind": "function",
-          "signature": "toIsa95Path(id: ResourceId): string"
-        },
-        "parseIsa95Path": {
-          "kind": "function",
-          "signature": "parseIsa95Path(path: string): ResourceId",
-          "doc": "ISA-95 hierarchy path `site[/area]/asset[/point]`:\n  2 parts → site/asset; 3 parts → site/area/asset; 4 parts → +point."
-        },
-        "formatModbusEndpoint": {
-          "kind": "function",
-          "signature": "formatModbusEndpoint(register: ModbusRegister): string"
-        },
-        "parseModbusEndpoint": {
-          "kind": "function",
-          "signature": "parseModbusEndpoint(endpoint: string): ModbusRegister"
-        },
-        "formatOpcuaNodeId": {
-          "kind": "function",
-          "signature": "formatOpcuaNodeId(node: OpcuaNodeId): string"
-        },
-        "parseOpcuaNodeId": {
-          "kind": "function",
-          "signature": "parseOpcuaNodeId(nodeId: string): OpcuaNodeId"
-        },
-        "formatSparkplugTopic": {
-          "kind": "function",
-          "signature": "formatSparkplugTopic(topic: SparkplugTopic): string"
-        },
-        "parseSparkplugTopic": {
-          "kind": "function",
-          "signature": "parseSparkplugTopic(topic: string): SparkplugTopic"
-        },
-        "formatBacnetAddress": {
-          "kind": "function",
-          "signature": "formatBacnetAddress(address: BacnetAddress): string"
-        },
-        "parseBacnetAddress": {
-          "kind": "function",
-          "signature": "parseBacnetAddress(address: string): BacnetAddress"
-        },
-        "resourceAddressFor": {
-          "kind": "function",
-          "signature": "resourceAddressFor(protocol: ResourceAddress[\"protocol\"], endpoint: string, unit?: string): ResourceAddress",
-          "doc": "Build a protocol-bound resource address from an ISA-95 id + standard codec."
-        },
-        "ModbusRegisterType": {
-          "kind": "type",
-          "signature": "export type ModbusRegisterType = 'coil' | 'discrete' | 'input' | 'holding'"
-        },
-        "ModbusRegister": {
-          "kind": "interface",
-          "signature": "export interface ModbusRegister"
-        },
-        "OpcuaIdentifierType": {
-          "kind": "type",
-          "signature": "export type OpcuaIdentifierType = 'i' | 's' | 'g' | 'b'"
-        },
-        "OpcuaNodeId": {
-          "kind": "interface",
-          "signature": "export interface OpcuaNodeId"
-        },
-        "SparkplugMessageType": {
-          "kind": "type",
-          "signature": "export type SparkplugMessageType = 'NBIRTH' | 'NDEATH' | 'NDATA' | 'NCMD' | 'DBIRTH' | 'DDEATH' | 'DDATA' | 'DCMD'"
-        },
-        "SparkplugTopic": {
-          "kind": "interface",
-          "signature": "export interface SparkplugTopic"
-        },
-        "BacnetAddress": {
-          "kind": "interface",
-          "signature": "export interface BacnetAddress"
-        },
-        "runProfileConformance": {
-          "kind": "function",
-          "signature": "runProfileConformance(profile: IndustrialProfile): ProfileConformanceReport",
-          "doc": "Validate a profile's structure and internal consistency."
-        },
-        "assertProfileConformance": {
-          "kind": "function",
-          "signature": "assertProfileConformance(profile: IndustrialProfile): void"
-        },
-        "createProfileRegistries": {
-          "kind": "function",
-          "signature": "createProfileRegistries(profile: IndustrialProfile): { units: UnitRegistry; resources: ResourceRegistry; interlocks: InterlockRegistry; }",
-          "doc": "Materialize a profile's registries for a runtime."
-        },
-        "waterProfile": {
-          "kind": "function",
-          "signature": "waterProfile(): IndustrialProfile"
-        },
-        "hvacProfile": {
-          "kind": "function",
-          "signature": "hvacProfile(): IndustrialProfile"
-        },
-        "IndustrialProfile": {
-          "kind": "interface",
-          "signature": "export interface IndustrialProfile"
-        },
-        "ProfileConformanceIssue": {
-          "kind": "interface",
-          "signature": "export interface ProfileConformanceIssue"
-        },
-        "ProfileConformanceReport": {
-          "kind": "interface",
-          "signature": "export interface ProfileConformanceReport"
-        },
-        "createReplicatedActionEventSink": {
-          "kind": "function",
-          "signature": "createReplicatedActionEventSink(log: ReplicatedLog<IndustrialActionEvent>): ActionEventStream"
         }
       }
     },
@@ -10404,7 +11063,7 @@
         },
         "buildEltooScript": {
           "kind": "function",
-          "signature": "buildEltooScript(parties: ChannelParticipant[], contestDelayBlocks?: number): string",
+          "signature": "buildEltooScript(parties: ChannelParticipant[], contestDelayBlocks?: number | bigint): string",
           "doc": "Eltoo channel script (RFC-039, CUSTODY-POLICY §2).\n\nTwo spend paths, **both requiring `MULTISIG(2 A B)`**:\n  - **Update** (`SETTLEMENT` false): `BOTHSIGNED` + `SEQUENCE GT\n    PREVSEQUENCE` — advance the off-chain state.\n  - **Settlement** (`SETTLEMENT` true): `BOTHSIGNED` + `SEQUENCE EQ\n    PREVSEQUENCE` after `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` — close on the\n    pre-signed state.\n\nUnilateral close is achieved by **broadcasting the co-signed close package**:\neach state carries an update + settlement transaction pre-signed by *both*\nparties (`settlement.ts` `startUnilateralClose`/`finalizeUnilateralClose`), and\nbecause the witness already contains both signatures, *either party can relay\nit alone* — no counterparty liveness. `BOTHSIGNED` here is therefore the output\nconstraint: only a transaction both parties signed (the agreed split) can be\nspent. A single-signer settlement branch would let one party pay itself\neverything, so it must never be added without an explicit output constraint.\n\nThe settlement `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` is a *relative* contest\ndelay and is deliberately not converted to an absolute `@BLOCK`: each update\nresets it by design. It cannot be weaponised to push the victim's clock because\nboth update and settlement require `BOTHSIGNED` — no one can move the coin to\nreset coinage without the victim's signature."
         },
         "normalizeScript": {
@@ -10597,7 +11256,11 @@
         "verifyStateForCoSign": {
           "kind": "function",
           "signature": "verifyStateForCoSign(channel: OmniaChannel, state: SignedChannelState): Promise<{ valid: boolean; errors: string[]; }>",
-          "doc": "Validate a one-party state update before this node adds its co-signature.\n\nThis performs the sequence, conservation, V2 commitment, program-hook,\npartial close-package, and present-signature checks needed by the co-sign\npath. It intentionally does not require every channel party to have signed.\nAfter co-signing and merging, use `verifyState()` on the completed state."
+          "doc": "Async wrapper kept for API compatibility."
+        },
+        "validateStateForCoSign": {
+          "kind": "function",
+          "signature": "validateStateForCoSign(channel: OmniaChannel, state: SignedChannelState, opts?: ValidateStateForCoSignOptions): { valid: boolean; errors: string[]; }"
         },
         "verifyChannelSignature": {
           "kind": "function",
@@ -10882,7 +11545,8 @@
         },
         "closePackageSignatureBytes": {
           "kind": "function",
-          "signature": "closePackageSignatureBytes(state: SignedChannelState, tx: \"update\" | \"settlement\"): Uint8Array[]"
+          "signature": "closePackageSignatureBytes(state: SignedChannelState, tx: \"update\" | \"settlement\", partyOrder?: string[]): Uint8Array[]",
+          "doc": "Close-package signatures in `MULTISIG` key order.\n\nMinima verifies `MULTISIG(n pkA pkB …)` against the witness in key order, so\nthe witness must follow the channel's party order, never object insertion order."
         },
         "serializeOmniaWitness": {
           "kind": "function",
@@ -10903,6 +11567,63 @@
         "FinalizeChannelOpeningOptions": {
           "kind": "interface",
           "signature": "export interface FinalizeChannelOpeningOptions"
+        },
+        "AcceptChannelOptions": {
+          "kind": "interface",
+          "signature": "export interface AcceptChannelOptions",
+          "doc": "Bob's side: validates an inbound channel proposal and returns a channel.\n\nIf a chain provider is supplied, the funding coin is verified on-chain.\nThe channel is returned with status 'funding_pending' — call\n`activateChannel()` after the funding transaction reaches the required\nconfirmation depth."
+        },
+        "ConfirmUpdateOptions": {
+          "kind": "interface",
+          "signature": "export interface ConfirmUpdateOptions"
+        },
+        "canonicalSettlementAddress": {
+          "kind": "function",
+          "signature": "canonicalSettlementAddress(party: Pick<ChannelParticipant, \"publicKeyDigest\" | \"settlementAddress\">): string",
+          "doc": "Canonical settlement output address for a channel party.\n\n`settlementAddress` is the agreed address recorded in the channel's\nparticipant set (part of the channel the counterparty verified at open).\nWhen it is absent, the address is derived from the party's channel key, so it\nis always bound to that key and can never be chosen by a peer message.\n\nThe raw `publicKeyDigest` is a `SIGNEDBY` identity, not a spendable address;\npaying it directly burns the funds."
+        },
+        "resolveSettlementAddresses": {
+          "kind": "function",
+          "signature": "resolveSettlementAddresses(parties: ChannelParticipant[], supplied?: Record<string, string>): Record<string, string>",
+          "doc": "Resolve the per-party settlement address map.\n\nA supplied map (e.g. from a peer's settlement request) may only *confirm* the\nchannel's agreed addresses. Any value that disagrees is rejected: a negotiated\nmessage must never be able to redirect a settlement output."
+        },
+        "coinCreatedBlock": {
+          "kind": "function",
+          "signature": "coinCreatedBlock(coin: ChainCoinView | null | undefined): number | null",
+          "doc": "Block height at which a coin was created, or `null` when the provider does not\nreport a usable height.\n\n`mmrentry` is an MMR leaf index, not a block height — using it as a\nconfirmation height silently treats an unconfirmed coin as deeply confirmed.\nCalling code must treat `null` as unconfirmed (fail closed)."
+        },
+        "confirmationsAt": {
+          "kind": "function",
+          "signature": "confirmationsAt(coin: ChainCoinView | null | undefined, tipBlock: number): number | null",
+          "doc": "Confirmation depth of a coin at `tipBlock`, or `null` when the depth cannot be\nproven (missing/invalid creation height, or a future-dated coin)."
+        },
+        "channelContestDelay": {
+          "kind": "function",
+          "signature": "channelContestDelay(channel: Pick<OmniaChannel, \"contestDelayBlocks\">): number",
+          "doc": "The contest window this channel was actually opened with. The script embeds\n`contestDelayBlocks`; settlement logic must use the same value rather than the\nmodule default."
+        },
+        "verifyStateWithRustMirror": {
+          "kind": "function",
+          "signature": "verifyStateWithRustMirror(channel: OmniaChannel, state: SignedChannelState): { valid: boolean; errors: string[]; }",
+          "doc": "Verify a signed channel state with the Rust mirror.\n\nReturns `{ valid: false }` when the mirror is unavailable or throws."
+        },
+        "serializeChannelForMirror": {
+          "kind": "function",
+          "signature": "serializeChannelForMirror(channel: OmniaChannel): string"
+        },
+        "serializeStateForMirror": {
+          "kind": "function",
+          "signature": "serializeStateForMirror(state: SignedChannelState): string"
+        },
+        "isRustMirrorAvailable": {
+          "kind": "function",
+          "signature": "isRustMirrorAvailable(): boolean",
+          "doc": "True when the wasm mirror is loaded in this runtime."
+        },
+        "configureRustMirror": {
+          "kind": "function",
+          "signature": "configureRustMirror(verifier: VerifyStateFn | undefined): void",
+          "doc": "Inject a mirror verifier (tests, hosts, alternate builds). Passing `undefined`\nrestores the bundled lookup."
         },
         "addClosePackageSignature": {
           "kind": "function",
@@ -10928,7 +11649,7 @@
         "enforceUpdateGuards": {
           "kind": "function",
           "signature": "enforceUpdateGuards(channelId: string, newSequence: number, payloadHash: string, pendingProposal?: { sequence: number; payloadHash: string; }): \"CAPACITY_NEAR_EXHAUSTION\" | null",
-          "doc": "Enforce all per-update invariants that must hold for every state transition\nregardless of whether the caller is `updateState`, `addHTLC`, `fulfillHTLC`,\nor `timeoutHTLC`.\n\nSpecifically:\n  1. WOTS capacity check: throws `ChannelCapacityError` at 100%, returns\n     `'CAPACITY_NEAR_EXHAUSTION'` at 95% (caller must NOT advance watermark).\n  2. Stale-sequence guard (SequenceError): rejects any attempt to sign a\n     sequence that is behind the module-level watermark.\n  3. Double-sign guard (DoubleSignError): rejects a different payload at a\n     sequence already committed by this process.\n  4. Watermark advance: after all guards pass, records `(newSequence,\n     payloadHash)` synchronously — before any async work — so no concurrent\n     call can slip in between the guard and the WOTS reservation."
+          "doc": "Enforce all per-update invariants that must hold for every state transition\nregardless of whether the caller is `updateState`, `addHTLC`, `fulfillHTLC`,\n`timeoutHTLC` or the peer co-sign path.\n\nSpecifically:\n  1. WOTS capacity check: throws `ChannelCapacityError` at 100%, returns\n     `'CAPACITY_NEAR_EXHAUSTION'` at 95% (caller must NOT advance watermark).\n  2. Stale-sequence guard (SequenceError): rejects any attempt to sign a\n     sequence that is behind the module-level watermark.\n  3. Double-sign guard (DoubleSignError): rejects a different payload at a\n     sequence already committed by this process.\n  4. Watermark advance: after all guards pass, records `(newSequence,\n     payloadHash)` synchronously — before any async work — so no concurrent\n     call can slip in between the guard and the WOTS reservation."
         },
         "_resetChannelWatermarks": {
           "kind": "function",
@@ -10951,8 +11672,7 @@
         },
         "acceptChannel": {
           "kind": "function",
-          "signature": "acceptChannel(proposal: ChannelProposal, provider?: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
-          "doc": "Bob's side: validates an inbound channel proposal and returns a channel.\n\nIf a chain provider is supplied, the funding coin is verified on-chain.\nThe channel is returned with status 'funding_pending' — call\n`activateChannel()` after the funding transaction reaches the required\nconfirmation depth."
+          "signature": "acceptChannel(proposal: ChannelProposal, provider?: ChainStateProvider, minConfirmations?: number, options?: AcceptChannelOptions): Promise<OmniaChannel>"
         },
         "updateState": {
           "kind": "function",
@@ -10975,6 +11695,11 @@
           "kind": "function",
           "signature": "activateChannel(channel: OmniaChannel): OmniaChannel"
         },
+        "confirmUpdateBroadcast": {
+          "kind": "function",
+          "signature": "confirmUpdateBroadcast(channel: OmniaChannel, opts: ConfirmUpdateOptions, chainProvider: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
+          "doc": "Record that the latest signed update is confirmed on chain.\n\nEltoo settlement spends the channel coin at its *on-chain* state, so\n`onChainSequence` and `latestCoinId` must track the last confirmed update. They\nare read from the coin itself — not from the off-chain sequence, and not from a\ncaller-supplied transaction — so a signed-but-unbroadcast state cannot move them.\n\nThe coin must be under the channel script address, have the requested\nconfirmation depth, and carry the sequence and port-102 commitment of\n`latestState`."
+        },
         "addHTLC": {
           "kind": "function",
           "signature": "addHTLC(channel: OmniaChannel, params: AddHTLCParams, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<{ channel: OmniaChannel; htlcId: string; partialState: Partial<SignedChannelState>; error?: string; }>",
@@ -10982,7 +11707,7 @@
         },
         "fulfillHTLC": {
           "kind": "function",
-          "signature": "fulfillHTLC(channel: OmniaChannel, htlcId: string, preimage: string, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<{ channel: OmniaChannel; partialState: Partial<SignedChannelState>; error?: string; }>",
+          "signature": "fulfillHTLC(channel: OmniaChannel, htlcId: string, preimage: string, leaseProvider: WotsLeaseProvider, chainProvider: ChainStateProvider, signer?: ChannelSigner): Promise<{ channel: OmniaChannel; partialState: Partial<SignedChannelState>; error?: string; }>",
           "doc": "Recipient reveals preimage; HTLC amount moves to recipient balance in new state.\n\nSpec: `fulfillHTLC(channel, htlcId, preimage, leaseProvider)` — signer optional."
         },
         "timeoutHTLC": {
@@ -10992,7 +11717,8 @@
         },
         "buildHtlcFulfillmentReceipt": {
           "kind": "function",
-          "signature": "buildHtlcFulfillmentReceipt(channel: OmniaChannel, htlc: HTLCRecord, sequence: number, fulfilledAt?: number): HtlcFulfillmentReceipt"
+          "signature": "buildHtlcFulfillmentReceipt(channel: OmniaChannel, state: SignedChannelState, htlcId: string, fulfilledAt?: number): HtlcFulfillmentReceipt",
+          "doc": "Build a fee-provenance receipt bound to a **signed** state.\n\nA receipt is only meaningful if it can be traced to a state the recipient\nactually signed. The commitment is included in the hash and\n`verifyHtlcFulfillmentReceipt` re-derives everything from that state and\nverifies the recipient's signature — a bare self-hash is not evidence."
         },
         "computeHtlcFulfillmentReceiptHash": {
           "kind": "function",
@@ -11054,7 +11780,7 @@
         "signSettlementRequest": {
           "kind": "function",
           "signature": "signSettlementRequest(channel: OmniaChannel, request: SettlementSigningRequest, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<{ partyId: string; signature: ChannelSignature; indices: SigningIndices; }>",
-          "doc": "Co-sign a settlement signing request. Used by the counterparty to provide its\nhalf of the eltoo `MULTISIG(2 …)` settlement witness."
+          "doc": "Co-sign a settlement signing request. Used by the counterparty to provide its\nhalf of the eltoo `MULTISIG(2 …)` settlement witness.\n\nThe request is verified against the channel before signing: same channel, same\nsequence, agreed party addresses, and a draft that matches the locally built\nsettlement byte-for-byte. Only the local draft is ever signed."
         },
         "startUnilateralClose": {
           "kind": "function",
@@ -11066,7 +11792,8 @@
         },
         "replaceUnilateralCloseState": {
           "kind": "function",
-          "signature": "replaceUnilateralCloseState(channel: OmniaChannel, newerState: SignedChannelState): OmniaChannel"
+          "signature": "replaceUnilateralCloseState(channel: OmniaChannel, newerState: SignedChannelState, chainProvider: ChainStateProvider, broadcastProofs?: OmniaWitnessProofs): Promise<OmniaChannel>",
+          "doc": "Replace the in-flight unilateral close with a newer signed state and rebroadcast\nits update transaction.\n\nEltoo lets either party outrun a stale close with a newer co-signed update. The\nreplacement must be broadcast (and its contest window restarted); only updating\nlocal metadata would leave the old update on chain and the old deadline in place."
         },
         "buildDisputePayload": {
           "kind": "function",
@@ -11079,6 +11806,11 @@
         "markChannelClosed": {
           "kind": "function",
           "signature": "markChannelClosed(channel: OmniaChannel): OmniaChannel"
+        },
+        "recordUnilateralUpdateCoin": {
+          "kind": "function",
+          "signature": "recordUnilateralUpdateCoin(channel: OmniaChannel, coinId: string, chainProvider?: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
+          "doc": "Record the on-chain output of the broadcast unilateral update.\n\nThe update transaction is built with the eltoo placeholder coin id, so its\noutput coin id cannot be derived locally — only the chain knows it. Until this\nis recorded, `finalizeUnilateralClose` refuses to run: finalising on an\nunfunded assumption is exactly how a premature settlement would happen.\n\nRecording also restarts the contest clock from the coin's actual inclusion\nheight, rather than from the pre-broadcast tip."
         },
         "SettlementSigningRequest": {
           "kind": "interface",
@@ -12476,7 +13208,7 @@
         },
         "fulfillMultiHop": {
           "kind": "function",
-          "signature": "fulfillMultiHop(params: { channel: OmniaChannel; htlcId: string; preimage: string; leaseProvider: WotsLeaseProvider; signer: ChannelSigner; swarm: OmniaSwarm; }): Promise<{ success: boolean; channel: OmniaChannel; htlcId: string; }>",
+          "signature": "fulfillMultiHop(params: { channel: OmniaChannel; htlcId: string; preimage: string; leaseProvider: WotsLeaseProvider; signer: ChannelSigner; chainProvider: ChainStateProvider; swarm: OmniaSwarm; }): Promise<{ success: boolean; channel: OmniaChannel; htlcId: string; }>",
           "doc": "Reveal the preimage for an incoming multi-hop HTLC (RFC-035 B4, receiving side):\nfulfil the HTLC on `channel` and forward the updated STATE_UPDATE to the peer,\nso the preimage propagates back along the route."
         },
         "OmniaRelayClientOptions": {
@@ -18606,6 +19338,11 @@
           "kind": "function",
           "signature": "createTimelockDescriptor(address: string, publicKey: string, unlockBlock: bigint): ScriptDescriptor"
         },
+        "buildHTLCScript": {
+          "kind": "function",
+          "signature": "buildHTLCScript(ownerPublicKey: string, recipientPublicKey: string, hashLock: string, timeoutBlock: bigint, algorithm?: \"sha3\" | \"sha2\"): string",
+          "doc": "Build the HTLC locking script. Single source of truth for the descriptor\nbuilder and `HTLCHelper.createHTLC`.\n\nBranch exclusivity is **time-bounded** (RFC-069 §6 invariant 5): after\n`timeoutBlock` only the owner refund path is valid; at or before\n`timeoutBlock` only the recipient preimage path is valid. The claim branch\nMUST NOT remain spendable once the refund branch becomes valid, otherwise\nthe two paths race."
+        },
         "createHTLCDescriptor": {
           "kind": "function",
           "signature": "createHTLCDescriptor(address: string, ownerPublicKey: string, recipientPublicKey: string, hashLock: string, timeoutBlock: bigint, isOwner: boolean, preimage?: string): ScriptDescriptor"
@@ -19883,6 +20620,280 @@
           "kind": "function",
           "signature": "deserializeTransaction(bytes: Uint8Array): MinimaTransaction",
           "doc": "Deserialize a transaction produced by {@link serializeTransaction}. The\ninverse is byte-exact for canonically-encoded transactions (outputs/inputs\nwritten from decimal amounts, MMR entry numbers and tokens)."
+        },
+        "buildTransaction": {
+          "kind": "function",
+          "signature": "buildTransaction(params: EnhancedBuildParams): EnhancedBuildResult",
+          "doc": "Build a Minima transaction from enhanced inputs/outputs and transaction state.\n\nAmounts are decimal strings (Minima scale handled at serialization time), not\npre-scaled integers."
+        },
+        "serializeWitness": {
+          "kind": "function",
+          "signature": "serializeWitness(wotsData: WotsSignatureData | undefined, coinProofsHex: string[], scriptDescriptors: ScriptDescriptor[], extraScripts?: Map<string, string>, externalSignatures?: ExternalSignature[]): Uint8Array",
+          "doc": "Serialize the three Minima witness sections:\n\n  [Signature count][Signature…]\n  [CoinProof count][CoinProof…]\n  [ScriptProof count][ScriptProof…]\n\n`coinProofsHex` must be the serialized `coinexport` payload. Script proofs are\nderived from each input's `ScriptDescriptor`; extra MAST scripts are appended."
+        },
+        "serializeForTxnImport": {
+          "kind": "function",
+          "signature": "serializeForTxnImport(txId: string, transaction: MinimaTransaction, witness: Uint8Array): Uint8Array",
+          "doc": "Serialize a TxnRow for `txnimport`: MiniString(id) + Transaction + Witness."
+        },
+        "buildScriptProof": {
+          "kind": "function",
+          "signature": "buildScriptProof(script: string): Uint8Array",
+          "doc": "Build the canonical ScriptProof bytes for a single script (empty MMR proof).\nThis is the local equivalent of the node's `ScriptProof(script)` constructor\nand of `txninput scriptmmr:true`."
+        },
+        "scriptAddress": {
+          "kind": "function",
+          "signature": "scriptAddress(script: string): string",
+          "doc": "Address (hex data) for a script, matching the node's `Address(script)`."
+        },
+        "transactionSigningDigestHex": {
+          "kind": "function",
+          "signature": "transactionSigningDigestHex(params: EnhancedBuildParams): string",
+          "doc": "Compute the transaction digest a signer must sign."
+        },
+        "EnhancedBuildResult": {
+          "kind": "interface",
+          "signature": "export interface EnhancedBuildResult"
+        },
+        "WotsSignatureProofHex": {
+          "kind": "interface",
+          "signature": "export interface WotsSignatureProofHex"
+        },
+        "WotsSignatureData": {
+          "kind": "interface",
+          "signature": "export interface WotsSignatureData",
+          "doc": "Hierarchical per-address TreeKey signature data.\n\n`proofs` is the Root→L1→L2→DATA chain; each `mmrProof` is already serialized\nin the Minima MMR proof wire format (the extension returns it that way)."
+        },
+        "WitnessSections": {
+          "kind": "interface",
+          "signature": "export interface WitnessSections"
+        },
+        "buildHtlcClaim": {
+          "kind": "function",
+          "signature": "buildHtlcClaim(params: BuildHtlcClaimParams): EnhancedBuildParams",
+          "doc": "Build the claim transaction parameters. The HTLC input descriptor contains\nthe claim script but no state variables; the preimage is transaction state\nport 1 as raw hex."
+        },
+        "buildHtlcRefund": {
+          "kind": "function",
+          "signature": "buildHtlcRefund(params: BuildHtlcRefundParams): EnhancedBuildParams",
+          "doc": "Build the timeout refund parameters. The refund branch has no preimage/state\nrequirement, but the same input/fee shape is used."
+        },
+        "buildHtlcFundingOutput": {
+          "kind": "function",
+          "signature": "buildHtlcFundingOutput(parties: HtlcParties, amount: string, tokenId?: string): { address: string; script: string; output: EnhancedCoinOutput; }",
+          "doc": "Build the HTLC funding output (the script address the maker/taker funds).\nFunding is a normal output to the HTLC address; the script itself is carried\nby the input descriptors when the coin is later claimed/refunded."
+        },
+        "HtlcParties": {
+          "kind": "interface",
+          "signature": "export interface HtlcParties"
+        },
+        "HtlcCoinRef": {
+          "kind": "interface",
+          "signature": "export interface HtlcCoinRef"
+        },
+        "BuildHtlcClaimParams": {
+          "kind": "interface",
+          "signature": "export interface BuildHtlcClaimParams"
+        },
+        "BuildHtlcRefundParams": {
+          "kind": "interface",
+          "signature": "export interface BuildHtlcRefundParams"
+        },
+        "assembleViaNode": {
+          "kind": "function",
+          "signature": "assembleViaNode(client: NodeAssemblyCommandClient, params: NodeAssemblyParams): Promise<NodeAssemblyResult>",
+          "doc": "Assemble, sign (optionally), and post a transaction using the node's own\n`txn*` command surface."
+        },
+        "NodeAssemblyCommandClient": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyCommandClient"
+        },
+        "NodeAssemblyInput": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyInput"
+        },
+        "NodeAssemblyOutput": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyOutput"
+        },
+        "NodeAssemblyState": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyState"
+        },
+        "NodeAssemblyParams": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyParams"
+        },
+        "NodeAssemblyResult": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyResult"
+        },
+        "fromChainProvider": {
+          "kind": "function",
+          "signature": "fromChainProvider(provider: ChainProviderLike): CoinProvider",
+          "doc": "Adapt `@totemsdk/chain-provider`'s `ChainStateProvider`."
+        },
+        "fromMinimaRpc": {
+          "kind": "function",
+          "signature": "fromMinimaRpc(client: MinimaRpcLike): CoinProvider",
+          "doc": "Adapt a raw `MinimaRpcClient` (Hawk/local node)."
+        },
+        "TxCoin": {
+          "kind": "interface",
+          "signature": "export interface TxCoin"
+        },
+        "TxCoinQuery": {
+          "kind": "interface",
+          "signature": "export interface TxCoinQuery"
+        },
+        "CoinProvider": {
+          "kind": "interface",
+          "signature": "export interface CoinProvider"
+        },
+        "ChainProviderLike": {
+          "kind": "interface",
+          "signature": "export interface ChainProviderLike"
+        },
+        "MinimaRpcLike": {
+          "kind": "interface",
+          "signature": "export interface MinimaRpcLike"
+        },
+        "buildFundedPayment": {
+          "kind": "function",
+          "signature": "buildFundedPayment(params: FundedPaymentParams): Promise<FundedPayment>",
+          "doc": "Select coins for a payment, add a fee coin (for token payments), and build\noutputs including change."
+        },
+        "FundedPaymentParams": {
+          "kind": "interface",
+          "signature": "export interface FundedPaymentParams"
+        },
+        "FundedPayment": {
+          "kind": "interface",
+          "signature": "export interface FundedPayment"
+        },
+        "signAndSerialize": {
+          "kind": "function",
+          "signature": "signAndSerialize(params: EnhancedBuildParams, signer: TransactionSigner, txId: string): Promise<SignedTransaction>",
+          "doc": "Build the transaction, sign its digest, assemble the witness, and serialize a\nTxnRow for `txnimport`/broadcast."
+        },
+        "reserveSigningIndices": {
+          "kind": "function",
+          "signature": "reserveSigningIndices(lease: SigningLease, params: { treeId: string; branchId?: string; digestHex: string; ttlMs?: number; purpose?: string; }): Promise<LeaseReservationLike>",
+          "doc": "Reserve a WOTS leaf for a digest."
+        },
+        "commitSigningReservation": {
+          "kind": "function",
+          "signature": "commitSigningReservation(lease: SigningLease, reservationId: string, txId: string): Promise<void>",
+          "doc": "Mark a reservation as used after the transaction is accepted."
+        },
+        "releaseSigningReservation": {
+          "kind": "function",
+          "signature": "releaseSigningReservation(lease: SigningLease, reservationId: string, reason?: string): Promise<void>",
+          "doc": "Return an unused reservation to the pool."
+        },
+        "signWithLease": {
+          "kind": "function",
+          "signature": "signWithLease(params: { lease: SigningLease; treeId: string; branchId?: string; digestHex: string; sign: (digestHex: string, indices: SigningIndices) => Promise<WotsSignatureData>; }): Promise<{ wotsData: WotsSignatureData; reservation: LeaseReservationLike; }>",
+          "doc": "Convenience: reserve → sign with the supplied local WOTS callback → return\nthe reservation so the caller can commit it after broadcast."
+        },
+        "SigningIndices": {
+          "kind": "interface",
+          "signature": "export interface SigningIndices"
+        },
+        "LeaseReservationLike": {
+          "kind": "interface",
+          "signature": "export interface LeaseReservationLike"
+        },
+        "SigningLease": {
+          "kind": "interface",
+          "signature": "export interface SigningLease",
+          "doc": "Structural subset of `@totemsdk/wots-lease`'s `WotsLeaseProvider`."
+        },
+        "SignerOutput": {
+          "kind": "interface",
+          "signature": "export interface SignerOutput"
+        },
+        "TransactionSigner": {
+          "kind": "interface",
+          "signature": "export interface TransactionSigner",
+          "doc": "Sign the exact transaction digest."
+        },
+        "SignedTransaction": {
+          "kind": "interface",
+          "signature": "export interface SignedTransaction"
+        },
+        "extractTxPowId": {
+          "kind": "function",
+          "signature": "extractTxPowId(response: any): string | undefined",
+          "doc": "Parse a TxPoW id out of common node response shapes."
+        },
+        "dryRunViaNode": {
+          "kind": "function",
+          "signature": "dryRunViaNode(client: TxnCommandClient, txnId: string): Promise<{ valid: boolean; response?: unknown; }>",
+          "doc": "`txncheck` a custom transaction before signing/posting."
+        },
+        "submitSignedTxn": {
+          "kind": "function",
+          "signature": "submitSignedTxn(client: TxnCommandClient, params: { txnId: string; txnRowHex: string; mine?: boolean; }): Promise<{ txpowid?: string; response?: unknown; }>",
+          "doc": "Import a signed TxnRow and post it."
+        },
+        "submitTxnId": {
+          "kind": "function",
+          "signature": "submitTxnId(client: TxnCommandClient, txnId: string, options?: SubmitOptions): Promise<{ txpowid?: string; response?: unknown; }>",
+          "doc": "Post an already-imported custom transaction."
+        },
+        "deleteTxn": {
+          "kind": "function",
+          "signature": "deleteTxn(client: TxnCommandClient, txnId: string): Promise<void>",
+          "doc": "Delete a custom transaction after it has been posted."
+        },
+        "submitTxPoW": {
+          "kind": "function",
+          "signature": "submitTxPoW(provider: ChainBroadcastProvider, txpowHex: string): Promise<{ success: boolean; txpowid?: string; message?: string; }>",
+          "doc": "Broadcast a fully-mined TxPoW through a chain provider."
+        },
+        "mineTransaction": {
+          "kind": "function",
+          "signature": "mineTransaction(params: { transaction: Uint8Array | unknown; witness: Uint8Array; target?: Uint8Array; minWorkSource?: TxPowMinWorkSource | null; mineOptions?: MineOptions; }): Promise<MinedTransaction>",
+          "doc": "Serialize and mine a signed transaction into a TxPoW envelope.\n\nThe caller supplies the transaction (or its serialized bytes) and witness.\nThe target defaults to the node's live `currentmintxpowwork` when a source is\nprovided, otherwise the protocol floor."
+        },
+        "mineAndSubmitTxPoW": {
+          "kind": "function",
+          "signature": "mineAndSubmitTxPoW(params: Parameters<typeof mineTransaction>[0], provider: ChainBroadcastProvider): Promise<{ mined: MinedTransaction; broadcast: { success: boolean; txpowid?: string; message?: string; }; }>",
+          "doc": "Mine and broadcast in one call."
+        },
+        "TxnCommandClient": {
+          "kind": "interface",
+          "signature": "export interface TxnCommandClient"
+        },
+        "ChainBroadcastProvider": {
+          "kind": "interface",
+          "signature": "export interface ChainBroadcastProvider"
+        },
+        "TxPowMinWorkSource": {
+          "kind": "interface",
+          "signature": "export interface TxPowMinWorkSource"
+        },
+        "SubmitOptions": {
+          "kind": "interface",
+          "signature": "export interface SubmitOptions"
+        },
+        "MinedTransaction": {
+          "kind": "interface",
+          "signature": "export interface MinedTransaction"
+        },
+        "createRawNodeCommandClient": {
+          "kind": "function",
+          "signature": "createRawNodeCommandClient(config: RawNodeConfig): RawNodeCommandClient",
+          "doc": "Create a command client that posts the node's text/plain command grammar."
+        },
+        "RawNodeConfig": {
+          "kind": "interface",
+          "signature": "export interface RawNodeConfig"
+        },
+        "RawNodeCommandClient": {
+          "kind": "interface",
+          "signature": "export interface RawNodeCommandClient"
         }
       }
     },

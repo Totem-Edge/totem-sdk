@@ -38,6 +38,17 @@ export const RECIPES: RecipeDefinition[] = [
       requiredCapabilities: ['edge device runtime', 'mqtt transport', 'payment channel', 'agent policy'],
     },
   },
+  {
+    id: 'governed-industrial-action',
+    title: 'Governed Industrial Action',
+    boundary: 'Act-core executes only bounded actions inside a signed authority mandate; a receipt proves governed execution, not the physical outcome.',
+    input: {
+      runtime: 'node-esm',
+      requiredPackages: ['@totemsdk/act-core', '@totemsdk/edge', '@totemsdk/authority'],
+      suggestedPackages: ['@totemsdk/proof', '@totemsdk/proofgraph', '@totemsdk/manifest', '@totemsdk/edge-modbus'],
+      requiredCapabilities: ['governed action runtime', 'edge device runtime', 'authority mandate', 'verifiable receipt'],
+    },
+  },
 ]
 
 export function planRecipe(recipe: RecipeDefinition, index: SdkIndex): CompositionPlan {

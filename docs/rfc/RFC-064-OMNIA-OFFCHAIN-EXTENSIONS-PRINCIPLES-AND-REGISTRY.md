@@ -37,6 +37,10 @@
    cannot be served by the current packages.
 6. **No production or maturity claim changes.** Package levels remain governed by
    RFC-063 and `scripts/workspace-gates.config.json`.
+7. **Two implementation tracks, ordered independently.** RFC-054 (Eefi Gen-1
+   bilateral spot exchange) and the OEX profiles in §3 run on separate tracks.
+   Position in one track never reorders, delays or absorbs the other; §6.2 is the
+   ordering for the OEX track only.
 
 ---
 
@@ -245,12 +249,32 @@ Disclosure does not make an unsafe recovery model acceptable.
   funding state survives restart.
 - `omnia-router`'s forwarding codec is cleartext. RFC-068 completes the existing
   seam; it does not retrofit confidentiality into the current profile.
-- RFC-054 bilateral spot exchange is not started. RFC-066 and OEX-04 must not
-  reorder or absorb that work.
+- RFC-054 bilateral spot exchange is not started. It is the first milestone of
+  the **Eefi Gen-1 track**, which is ordered independently of the OEX track in
+  §6.2. RFC-066 and OEX-04 must not reorder or absorb that work, and RFC-054 v1
+  must not absorb OEX scope (no MPP, no rebalancing, no routing).
+- **OEX-02/03 need a funded channel set, not just code.** MPP and bounded
+  rebalancing produce evidence only over a funded multi-party channel set: at
+  least three channels across two independent operators, including one invoice
+  that a single route cannot carry. Until that exists, RFC-065 and RFC-066
+  remain design-only regardless of their P1 priority. Two-process and unit
+  tests may run, but no success-rate or capital-efficiency claim may be made.
 - RFC-055 Phase 1 is landed; Phase 2+ is not authorised. OEX-14 stays within the
   existing bounded-search and cost-model interfaces.
 
 ### 6.2 Sequence
+
+Two tracks are ordered independently. An item's position in one track never
+gates an item in the other.
+
+**Eefi Gen-1 track** (normative ordering in RFC-054 §12):
+
+- **RFC-054 bilateral spot exchange v1** — signed quote, exclusive reservation,
+  atomic two-leg HTLC swap, settlement evidence, recovery. It is not step 0 of
+  the OEX list below and that list does not gate it.
+
+**OEX track** (this section; items 1–2 are design-only until the
+network-readiness gate in §6.1 is met):
 
 1. **RFC-065 basic MPP** — payment sets, durable reservations, receiver assembly.
 2. **RFC-066 bounded rebalancing** — reuses the reservation/recovery foundation.

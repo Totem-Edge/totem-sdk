@@ -1060,6 +1060,21 @@ async function startupSequenceImpl() {
   const sessionState = await walletManager.restoreSession();
   console.log(`[Background] Session restore result: ${sessionState}`);
 
+  // Test-only artifact (TOTEM_TEST_BUILD=1). Normal builds inject an empty
+  // seed and cannot auto-unlock. The seed is supplied at build time only.
+  if (__TOTEM_TEST_SEED__) {
+    try {
+      if (!await walletManager.hasEncryptedSeed()) {
+        await walletManager.importWallet(__TOTEM_TEST_SEED__, __TOTEM_TEST_PASSWORD__);
+        console.log('[TestBuild] Imported deterministic test wallet');
+      }
+      const unlocked = await walletManager.unlock(__TOTEM_TEST_PASSWORD__);
+      console.log('[TestBuild] Wallet auto-unlock:', unlocked);
+    } catch (testError) {
+      console.error('[TestBuild] Auto wallet setup failed:', testError);
+    }
+  }
+
   // RFC-037-A2: rebuild the Omnia port with signing material if the wallet is
   // unlocked (the builder falls back to the read-only client otherwise).
   void refreshExtensionOmniaPort();
@@ -3062,6 +3077,38 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
       }
     }
 
+    case 'WOTS_BUILD_UNSIGNED': {
+      try {
+        const { buildComplexUnsigned } = await import(
+          '../core/transaction/complexTransactionService'
+        );
+        const result = await buildComplexUnsigned(params?.buildParams);
+        return { ok: true, result, id };
+      } catch (error: any) {
+        return {
+          ok: false,
+          error: error?.message || 'WOTS_BUILD_UNSIGNED failed',
+          id,
+        };
+      }
+    }
+
+    case 'WOTS_SEND_COMPLEX': {
+      try {
+        const { sendComplex } = await import(
+          '../core/transaction/complexTransactionService'
+        );
+        const result = await sendComplex(params?.buildParams, params?.intent);
+        return { ok: true, result, id };
+      } catch (error: any) {
+        return {
+          ok: false,
+          error: error?.message || 'WOTS_SEND_COMPLEX failed',
+          id,
+        };
+      }
+    }
+
     case 'WOTS_SIGN_DATA': {
       try {
         const {
@@ -4495,13 +4542,22 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           
           const built = buildResult.result as any;
           
-          const inputCoinProofs = bp.inputs.map((inp: any) => ({
-            coinId: inp.coinId,
-            amount: inp.amount,
-            tokenId: inp.tokenId || '0x00',
-            address: ensureMx(inp.address),
-            proof: inp.coinProof || null
-          }));
+          const inputCoinProofs =
+            Array.isArray(built.inputCoinProofs) && built.inputCoinProofs.length > 0
+              ? built.inputCoinProofs.map((proof: any) => ({
+                  coinId: proof.coinId,
+                  amount: proof.amount,
+                  tokenId: proof.tokenId || '0x00',
+                  address: ensureMx(proof.address),
+                  proof: proof.proof || null,
+                }))
+              : bp.inputs.map((inp: any) => ({
+                  coinId: inp.coinId,
+                  amount: inp.amount,
+                  tokenId: inp.tokenId || '0x00',
+                  address: ensureMx(inp.address),
+                  proof: inp.coinProof || null,
+                }));
           
           const scriptDescriptors = bp.inputs.map((inp: any) => {
             const sd = inp.scriptDescriptor || {};

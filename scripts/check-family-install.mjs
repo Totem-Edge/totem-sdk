@@ -34,6 +34,7 @@ function readTags(name) {
 }
 
 const entries = [];
+const unpublished = [];
 for (const [dir, meta] of Object.entries(config.packages)) {
   if (meta.status !== 'publishable') continue;
   const pj = join(ROOT, dir, 'package.json');
@@ -42,13 +43,27 @@ for (const [dir, meta] of Object.entries(config.packages)) {
   if (!pkg.name) continue;
   const expected = EXPECTED_TAG[meta.maturity] ?? 'latest';
   const tags = readTags(pkg.name);
-  const tag = tags?.[expected] ? expected : 'latest';
+  // A package with no published version (new package or prerelease rename) cannot
+  // be installed from the registry. Defer it explicitly; strict mode fails so
+  // post-publication verification cannot silently skip it.
+  if (!tags || !tags.latest) {
+    unpublished.push(pkg.name);
+    continue;
+  }
+  const tag = tags[expected] ? expected : 'latest';
   entries.push({ name: pkg.name, tag });
 }
 entries.sort((a, b) => a.name.localeCompare(b.name));
 
+if (unpublished.length > 0) {
+  console.log(`family install: deferring ${unpublished.length} unpublished package(s): ${unpublished.join(', ')}`);
+  if (process.env.STRICT_FAMILY_INSTALL === '1') {
+    console.error('✗ strict family install requires every publishable package to have a registry tag');
+    process.exit(1);
+  }
+}
 if (entries.length === 0) {
-  console.error('✗ no publishable packages found');
+  console.error('✗ no published publishable packages found');
   process.exit(1);
 }
 const specs = entries.map((entry) => `${entry.name}@${entry.tag}`);

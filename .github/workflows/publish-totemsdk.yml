@@ -76,15 +76,33 @@ jobs:
         run: node scripts/smoke-release-install.mjs "${{ matrix.dir }}"
 
       # ── Publish ────────────────────────────────────────────────────────────
+      # Idempotent: a re-run after a later step failed must not die on
+      # "cannot publish over existing version", or the release stays red forever.
       - name: Publish ${{ matrix.npm_name }}@${{ matrix.version }}
-        run: pnpm publish --access public --no-git-checks --tag "${{ matrix.dist_tag }}"
         working-directory: ${{ matrix.dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
+        run: |
+          if npm view "${{ matrix.npm_name }}@${{ matrix.version }}" version >/dev/null 2>&1; then
+            echo "::notice::${{ matrix.npm_name }}@${{ matrix.version }} is already published; skipping publish"
+          else
+            pnpm publish --access public --no-git-checks --tag "${{ matrix.dist_tag }}"
+          fi
 
+      # Scope to the package this job published: global drift belongs to
+      # dist-tags.yml. Retry because a registry can take a few seconds to expose
+      # a brand-new dist-tag.
       - name: Verify maturity dist-tags
-        run: node scripts/report-dist-tags.mjs --check
+        run: |
+          for attempt in $(seq 1 24); do
+            if node scripts/report-dist-tags.mjs --check --package "${{ matrix.npm_name }}"; then
+              exit 0
+            fi
+            echo "::warning::dist-tag for ${{ matrix.npm_name }} not visible yet (attempt ${attempt}/24)"
+            sleep 15
+          done
+          exit 1
 
   # ── Rebuild & deploy TotemEdgeSDKDocs ──────────────────────────────────────
   # Runs only after ALL publish matrix jobs complete successfully.

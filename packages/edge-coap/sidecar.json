@@ -1,0 +1,34 @@
+{
+  "name": "edge-coap-sidecar",
+  "protocolVersion": 1,
+  "distribution": {
+    "mode": "source-build",
+    "bundledInNpmPackage": false,
+    "binary": "bin/edge-coap",
+    "build": "pnpm --filter @totemsdk/edge-coap build:go",
+    "autoDownload": false
+  },
+  "compatibility": {
+    "protocolMajor": 1,
+    "healthCheck": "edge-coap --version",
+    "rule": "Rebuild the sidecar from the matching package source. The npm package does not bundle platform binaries."
+  },
+  "configuration": {
+    "listen": "COAP_LISTEN_ADDR=127.0.0.1:15003",
+    "bindPort": "COAP_BIND_PORT=5683"
+  },
+  "qualified": [
+    "source build on the target platform",
+    "plaintext unicast CoAP request/response over UDP",
+    "CBOR payload pass-through with TypeScript content-format decoding",
+    "RFC 7641 observation registration, notifications and deregistration",
+    "OSCORE client and server contexts in the TypeScript layer (RFC 8613 Appendix C vectors)",
+    "RFC 7959 blockwise Block1 upload, Block1 size renegotiation and Block2 response assembly"
+  ],
+  "unqualified": [
+    "DTLS security (transport-owned)",
+    "blockwise observation notifications and multicast",
+    "OSCORE Class I options (none currently defined)",
+    "Windows prebuilt binaries"
+  ]
+}

@@ -5,13 +5,13 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-004 (Edge SDK V1 Promotion, §7 Wave 2), RFC-011 (Industrial Action Domain Model & Extensibility — the breadth companion)
-**Touches:** `@totemsdk/industrial-action`, `@totemsdk/edge`, `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/storage`
+**Touches:** `@totemsdk/act-core`, `@totemsdk/edge`, `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/storage`
 
 ---
 
 ## 1. Summary
 
-`@totemsdk/industrial-action` is **classified `rc`** in
+`@totemsdk/act-core` is **classified `rc`** in
 `scripts/workspace-gates.config.json` (mechanical promotion, commit `1a99861`,
 2026-08-28) while `README.md:264` still calls it **Alpha**, and the RFC-004 §7
 item for this package — *"Two-phase/idempotent execution, cryptographic
@@ -26,7 +26,7 @@ lifecycle stack. `@totemsdk/edge` already provides the governed execution path
 ungrantable deny → resolve → capability → **prepare** → **deriveEffects** →
 `GrantBoundAutonomyPolicy.authorizeAndReserve` → execute → commit/abort, with
 `requires_human` boundary escalation) and the `EdgeActionRegistry`
-(`packages/edge/src/action-registry.ts`). `industrial-action` should contribute
+(`packages/edge/src/action-registry.ts`). `act-core` should contribute
 **industrial action definitions** to that registry and an **industrial execution
 policy** (idempotency, timeout, retry, rollback), plus schema/guardrail
 validation and authority-bound receipts — not a second registry, governance
@@ -48,7 +48,7 @@ profiles, standards mapping) is deliberately out of scope here and specified in
 
 ### 2.2 The package duplicates a more mature runtime
 
-`@totemsdk/industrial-action` today maintains its **own** `ActionRegistry`
+`@totemsdk/act-core` today maintains its **own** `ActionRegistry`
 (`src/registry.ts`), `GovernanceBridge` (`src/governance-bridge.ts`),
 `executeAction` (`src/executor.ts`), and `ActionReceipt` (`src/receipt.ts`).
 `@totemsdk/edge` already implements the governed equivalent
@@ -63,20 +63,20 @@ must **converge on the edge runtime**.
 |---|---|---|
 | G0 | Parallel registry/bridge/receipt that duplicate `edge` | `src/{registry,governance-bridge,receipt,executor}.ts` vs `edge/src/{action-registry,agent-runtime,receipts}.ts` |
 | G1 | `executeAction` validates params/context against an **empty schema**; both ternary branches identical → no-op | `src/executor.ts:25-26` |
-| G2 | `GovernanceBridge.commit`/`abort` are **stubs** returning `{ ok: true }` | `src/governance-bridge.ts:10-15`; asserted by test `industrial-action.test.ts:505` |
+| G2 | `GovernanceBridge.commit`/`abort` are **stubs** returning `{ ok: true }` | `src/governance-bridge.ts:10-15`; asserted by test `act-core.test.ts:505` |
 | G3 | **No orchestration** tying authority → reserve → execute → commit/abort → storage | no call sites outside `durable-storage.ts` |
 | G4 | **No idempotency** — deterministic `executionId` exists but nothing claims/dedups | `src/ids.ts:17`, `src/executor.ts:14-64` |
 | G5 | **No timeout/retry/rollback** | `src/executor.ts` single `await` |
 | G6 | `mandateProofId` stored but never bound/verified; `checkGovernanceConstraints` reads only `authorityDecision.allowed`/expiry | `src/types.ts:66`, `src/governance-bridge.ts:19-31` |
 | G7 | Execution/receipt carry no mandate proof / decision id | `src/types.ts:70-92` |
 | G8 | `verifyReceiptIntegrity` only recomputes the id | `src/receipt.ts:30-33` |
-| G9 | No `lint`; no `test:integration` (RC gates no-op) | `packages/industrial-action/package.json` |
+| G9 | No `lint`; no `test:integration` (RC gates no-op) | `packages/act-core/package.json` |
 | G10 | README/config maturity disagreement | `README.md:264` vs config `:34` |
 | G11 | No documented breaking-change policy | only `packages/manifest/README.md` has one |
 
 ## 3. Relationship to existing architecture
 
-| Concern | Owner | industrial-action's role |
+| Concern | Owner | act-core's role |
 |---|---|---|
 | Governed action execution (ungrantable, capability, prepare, effects, reserve, commit/abort, `requires_human`) | `@totemsdk/edge` `AgentEdgeRuntime` + `EdgeActionRegistry` | **Register industrial action definitions**; do not re-implement |
 | Mandate/run-budget authorization | `@totemsdk/agent-policy` `GrantBoundAutonomyPolicy` | Supply the canonical action + evidence; bind the resulting mandate proof/decision into the commitment |
@@ -88,7 +88,7 @@ must **converge on the edge runtime**.
 
 ## 4. Scope
 
-- `@totemsdk/industrial-action`: replace the parallel lifecycle with industrial
+- `@totemsdk/act-core`: replace the parallel lifecycle with industrial
   `EdgeActionDefinition`s + an industrial execution policy + schema/guardrail
   validation + authority-bound receipt payloads + durable operation records.
 - Tests: adversarial, crash/restart under load, emulator E2E.
@@ -146,7 +146,7 @@ Industrial actions execute through `AgentEdgeRuntime.executeAction`
 nonce), 7. execute, 8. commit/abort — and returns `REQUIRES_HUMAN` on boundary
 escalation.
 
-`industrial-action` adds only an **industrial facade** that constructs the
+`act-core` adds only an **industrial facade** that constructs the
 `EdgeActionInput` from an `ActionProposal` and surfaces the policy result. The
 old `GovernanceBridge` (`src/governance-bridge.ts`) and `executeAction`
 (`src/executor.ts`) are removed from the public surface; the reserve/commit/abort
@@ -348,9 +348,9 @@ migration is a swap.
 
 - `docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md` — breadth companion
 - `docs/edge-agent-governance.md` — governed runtime, namespaces, receipt graph, boundary escalation
-- `docs/temporal-framework-design.md §2.4` — industrial-action temporal mapping
+- `docs/temporal-framework-design.md §2.4` — act-core temporal mapping
 - `packages/edge/src/{action-registry,agent-runtime,receipts,actions}.ts`
 - `packages/agent-policy` — `GrantBoundAutonomyPolicy`, `CanonicalAgentAction`
 - `packages/authority/src/mandate.ts:93` — `verifyMandate`
-- `packages/industrial-action/src/{executor,governance-bridge,receipt,durable-storage,types}.ts`
+- `packages/act-core/src/{executor,governance-bridge,receipt,durable-storage,types}.ts`
 - `docs/rfc/RFC-004-EDGE-SDK-V1-PROMOTION.md` — Wave 1/2 criteria

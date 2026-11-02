@@ -220,6 +220,12 @@ Tests MUST cover:
 
 ### 9.1 Required evidence
 
+**Entry gate (network readiness).** This profile produces evidence only over a
+funded multi-party channel set: at least three channels across two independent
+operators, including one invoice that a single route cannot carry. Until that
+exists the profile stays design-only. Unit and two-process tests may run, but no
+success-rate or capital-efficiency claim may be made. This mirrors RFC-064 §6.1.
+
 - Deterministic accounting tests with exact integer arithmetic.
 - A real two-host run, not only in-memory mocks, for at least one multi-shard
   invoice that a single route cannot complete.

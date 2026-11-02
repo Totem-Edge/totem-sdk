@@ -5,7 +5,7 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-022 (Prepared-Command Binding & Async Lifecycle), RFC-021, RFC-023, RFC-011
-**Touches:** `@totemsdk/edge-ros2` (existing package), `@totemsdk/industrial-action`
+**Touches:** `@totemsdk/edge-ros2` (existing package), `@totemsdk/act-core`
 
 ---
 
@@ -238,7 +238,7 @@ flowchart TD
   shared `@totemsdk/edge-actions` abstraction reused by RFC-027?
 - **Q2** How is "observed arrival" defined — action `succeeded`, TF readback, or
   both?
-- **Q3** Do waypoint plans belong in the profile or in `industrial-action` core
+- **Q3** Do waypoint plans belong in the profile or in `act-core` core
   (shared with the flight mission envelope, RFC-025)?
 - **Q4** What is the reconnect/attach policy when the original goal id is no
   longer known to the action server?

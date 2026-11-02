@@ -4,19 +4,19 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"strconv"
+	"os/signal"
 	"sync"
-	"time"
+	"syscall"
 )
 
 type Config struct {
 	ListenAddr string `json:"listenAddr"`
 	BindPort   int    `json:"bindPort"`
-	TimeoutMs  int    `json:"timeoutMs"`
 }
 
 type Request struct {
@@ -29,33 +29,38 @@ type Request struct {
 type Response struct {
 	ID    string `json:"id"`
 	OK    bool   `json:"ok"`
-	Data  string `json:"data,omitempty"` // hex-encoded response
 	Error string `json:"error,omitempty"`
 }
 
 type PushMessage struct {
-	Type string `json:"type"` // "message"
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	Data string `json:"data"` // hex-encoded CoAP message
+	Type  string `json:"type"` // "message" | "error"
+	Host  string `json:"host,omitempty"`
+	Port  int    `json:"port,omitempty"`
+	Data  string `json:"data,omitempty"`
+	Code  string `json:"code,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 type Server struct {
-	config   Config
-	conn     *net.UDPConn
-	mu       sync.RWMutex
-	clients  map[net.Conn]struct{}
-	listener net.Listener
-	stopCh   chan struct{}
-	pending  map[string]chan []byte
-	pendingMu sync.Mutex
+	config Config
+
+	conn      *net.UDPConn
+	mu        sync.Mutex
+	clients   map[net.Conn]struct{}
+	listener  net.Listener
+	stopCh    chan struct{}
+	closeOnce sync.Once
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Printf("edge-coap protocol=%d\n", protocolVersion)
+		return
+	}
+
 	config := Config{
 		ListenAddr: getEnv("COAP_LISTEN_ADDR", "127.0.0.1:15003"),
 		BindPort:   getEnvInt("COAP_BIND_PORT", 5683),
-		TimeoutMs:  getEnvInt("COAP_TIMEOUT_MS", 5000),
 	}
 
 	srv, err := NewServer(config)
@@ -64,19 +69,21 @@ func main() {
 	}
 
 	log.Printf("[edge-coap] Starting CoAP transport")
-	log.Printf("[edge-coap] UDP bind port: %d", config.BindPort)
+	log.Printf("[edge-coap] UDP bind port: %d", srv.LocalPort())
 	log.Printf("[edge-coap] Listening on %s", config.ListenAddr)
 
 	if err := srv.Listen(); err != nil {
 		log.Fatalf("[edge-coap] Failed to start: %v", err)
 	}
 
-	select {}
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	<-signals
+	srv.Shutdown()
 }
 
 func NewServer(config Config) (*Server, error) {
-	addr := &net.UDPAddr{Port: config.BindPort}
-	conn, err := net.ListenUDP("udp", addr)
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{Port: config.BindPort})
 	if err != nil {
 		return nil, fmt.Errorf("bind udp: %w", err)
 	}
@@ -86,8 +93,14 @@ func NewServer(config Config) (*Server, error) {
 		conn:    conn,
 		clients: make(map[net.Conn]struct{}),
 		stopCh:  make(chan struct{}),
-		pending: make(map[string]chan []byte),
 	}, nil
+}
+
+func (s *Server) LocalPort() int {
+	if s.conn == nil {
+		return 0
+	}
+	return s.conn.LocalAddr().(*net.UDPAddr).Port
 }
 
 func (s *Server) Listen() error {
@@ -122,8 +135,33 @@ func (s *Server) Listen() error {
 	return nil
 }
 
+func (s *Server) Shutdown() {
+	s.closeOnce.Do(func() {
+		close(s.stopCh)
+		if s.listener != nil {
+			_ = s.listener.Close()
+		}
+		if s.conn != nil {
+			_ = s.conn.Close()
+		}
+		s.mu.Lock()
+		clients := make([]net.Conn, 0, len(s.clients))
+		for conn := range s.clients {
+			clients = append(clients, conn)
+		}
+		s.clients = make(map[net.Conn]struct{})
+		s.mu.Unlock()
+		for _, conn := range clients {
+			_ = conn.Close()
+		}
+	})
+}
+
+// readUDP is a thin bridge: every inbound datagram is pushed to connected
+// clients. Correlation and retransmission belong to the TypeScript gateway,
+// which owns the token/match state.
 func (s *Server) readUDP() {
-	buf := make([]byte, 1500)
+	buf := make([]byte, maxDatagram)
 	for {
 		n, remoteAddr, err := s.conn.ReadFromUDP(buf)
 		if err != nil {
@@ -131,39 +169,22 @@ func (s *Server) readUDP() {
 			case <-s.stopCh:
 				return
 			default:
-				log.Printf("[edge-coap] UDP read error: %v", err)
-				continue
 			}
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			s.broadcast(PushMessage{Type: "error", Code: "read", Error: err.Error()})
+			continue
 		}
 
 		data := make([]byte, n)
 		copy(data, buf[:n])
-
-		// Check if this is a response to a pending request
-		if len(data) >= 4 {
-			msgID := uint16(data[2])<<8 | uint16(data[3])
-			key := fmt.Sprintf("%s:%d:%d", remoteAddr.IP.String(), remoteAddr.Port, msgID)
-			s.pendingMu.Lock()
-			if ch, ok := s.pending[key]; ok {
-				delete(s.pending, key)
-				s.pendingMu.Unlock()
-				select {
-				case ch <- data:
-				default:
-				}
-				continue
-			}
-			s.pendingMu.Unlock()
-		}
-
-		// Push to all connected clients
-		msg := PushMessage{
+		s.broadcast(PushMessage{
 			Type: "message",
 			Host: remoteAddr.IP.String(),
 			Port: remoteAddr.Port,
 			Data: hex.EncodeToString(data),
-		}
-		s.broadcastPush(msg)
+		})
 	}
 }
 
@@ -172,7 +193,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		s.mu.Lock()
 		delete(s.clients, conn)
 		s.mu.Unlock()
-		conn.Close()
+		_ = conn.Close()
 		log.Printf("[edge-coap] Client disconnected: %s", conn.RemoteAddr())
 	}()
 
@@ -196,56 +217,43 @@ func (s *Server) handleConn(conn net.Conn) {
 			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid hex: %v", err)})
 			continue
 		}
-
-		remoteAddr := &net.UDPAddr{IP: net.ParseIP(req.Host), Port: req.Port}
-
-		// Extract message ID for correlation
-		var msgID uint16
-		if len(data) >= 4 {
-			msgID = uint16(data[2])<<8 | uint16(data[3])
-		}
-
-		// Send the CoAP message
-		_, err = s.conn.WriteToUDP(data, remoteAddr)
-		if err != nil {
-			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
+		if err := validateTarget(req.Host, req.Port, data); err != nil {
+			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
 			continue
 		}
 
-		// Wait for response
-		key := fmt.Sprintf("%s:%d:%d", req.Host, req.Port, msgID)
-		ch := make(chan []byte, 1)
-		s.pendingMu.Lock()
-		s.pending[key] = ch
-		s.pendingMu.Unlock()
-
-		select {
-		case respData := <-ch:
-			s.writeResponse(conn, Response{ID: req.ID, OK: true, Data: hex.EncodeToString(respData)})
-		case <-time.After(time.Duration(s.config.TimeoutMs) * time.Millisecond):
-			s.pendingMu.Lock()
-			delete(s.pending, key)
-			s.pendingMu.Unlock()
-			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "request timed out"})
+		remoteAddr := &net.UDPAddr{IP: net.ParseIP(req.Host), Port: req.Port}
+		if _, err := s.conn.WriteToUDP(data, remoteAddr); err != nil {
+			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
+			continue
 		}
+		// Fire-and-forget: the response arrives asynchronously as a pushed
+		// message and is correlated by the gateway's token.
+		s.writeResponse(conn, Response{ID: req.ID, OK: true})
 	}
 }
 
-func (s *Server) broadcastPush(msg PushMessage) {
-	data, _ := json.Marshal(msg)
+func (s *Server) broadcast(msg PushMessage) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
 	data = append(data, '\n')
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	for conn := range s.clients {
-		conn.Write(data)
+		_, _ = conn.Write(data)
 	}
 }
 
 func (s *Server) writeResponse(conn net.Conn, resp Response) {
-	data, _ := json.Marshal(resp)
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return
+	}
 	data = append(data, '\n')
-	conn.Write(data)
+	_, _ = conn.Write(data)
 }
 
 func getEnv(key, defaultVal string) string {
@@ -257,7 +265,8 @@ func getEnv(key, defaultVal string) string {
 
 func getEnvInt(key string, defaultVal int) int {
 	if v := os.Getenv(key); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
+		var i int
+		if _, err := fmt.Sscanf(v, "%d", &i); err == nil {
 			return i
 		}
 	}

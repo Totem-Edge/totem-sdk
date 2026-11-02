@@ -1,0 +1,1 @@
+../../../../packages/act-core/src/prepared-command.ts

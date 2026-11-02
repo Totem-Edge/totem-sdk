@@ -1,7 +1,7 @@
 # RFC-021 Amendment A — Industrial Catalogue Interaction with Model-Aware Decision
 
 **Status:** Draft · **Date:** 2026-10-01 · **Amends:** RFC-021
-**Touches:** `@totemsdk/industrial-action` (decision subpath), `@totemsdk/decision`
+**Touches:** `@totemsdk/act-core` (decision subpath), `@totemsdk/decision`
 **Depends on:** RFC-021 (Catalogue & Decision Binding), RFC-028 (Output Correctness & Native Bridges), RFC-029 (Per-Question Acceptance & Multi-Provider Assembly), RFC-030 (Model-Aware Preflight, Shortlisting & Batching)
 
 > Focused amendment, not a rewrite. RFC-021 defines how registered industrial
@@ -175,4 +175,4 @@ registered resource — without overstating the probability evidence.
 - `docs/rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md` — compiled question count
 - `docs/rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md` — assembly, receipts
 - `docs/rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md` — shortlist/split, transformations
-- `packages/decision/src/decision-ref.ts`, `packages/industrial-action/src/profiles.ts`
+- `packages/decision/src/decision-ref.ts`, `packages/act-core/src/profiles.ts`

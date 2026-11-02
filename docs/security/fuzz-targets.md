@@ -23,7 +23,7 @@ They run inside the normal package test suites.
 | Lookup ticket sequences | `packages/lookup-node/src/__tests__/ticket-fuzz.test.ts` | Random seq/budget/revoke sequences match the ticket model across SQLite reopen |
 | Storage CAS/reopen | `packages/storage/src/__tests__/cas-fuzz.test.ts` | Contending FileStore instances lose no acknowledged update; revisions stay unique and state survives reopen |
 | Omnia channel transitions | `packages/omnia/src/__tests__/channel-transition-fuzz.test.ts` | Monotonic/sequence/conservation validation and watermark replay/rollback boundaries match the model |
-| Industrial policy boundaries | `packages/industrial-action/src/__tests__/condition-fuzz.test.ts` | Numeric/in/not_in conditions match the model; missing fields, unknown operators and throwing evaluators fail closed |
+| Industrial policy boundaries | `packages/act-core/src/__tests__/condition-fuzz.test.ts` | Numeric/in/not_in conditions match the model; missing fields, unknown operators and throwing evaluators fail closed |
 
 Run:
 
@@ -35,7 +35,7 @@ pnpm --filter @totemsdk/kissvm test
 pnpm --filter @totemsdk/proof test
 pnpm --filter @totemsdk/lookup-node test
 pnpm --filter @totemsdk/storage test
-pnpm --filter @totemsdk/industrial-action test
+pnpm --filter @totemsdk/act-core test
 ```
 
 The test files document their fixed seeds. Change a seed only when adding a new

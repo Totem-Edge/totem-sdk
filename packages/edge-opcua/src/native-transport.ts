@@ -36,13 +36,6 @@ interface Request {
   subscriptionId?: string;
 }
 
-interface Response {
-  id: string;
-  ok: boolean;
-  data?: unknown;
-  error?: string;
-}
-
 interface PushMessage {
   type: string;
   subscriptionId?: string;

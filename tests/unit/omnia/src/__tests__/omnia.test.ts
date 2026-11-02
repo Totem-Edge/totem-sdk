@@ -38,16 +38,20 @@ import {
   attachCounterpartySignature,
   getChannelReceipt,
   activateChannel,
+  confirmUpdateBroadcast,
   _resetChannelWatermarks,
 } from '../channel';
-import { addHTLC, fulfillHTLC, timeoutHTLC } from '../htlc';
+import { addHTLC, fulfillHTLC, timeoutHTLC, buildHtlcFulfillmentReceipt, verifyHtlcFulfillmentReceipt } from '../htlc';
 import { executeIntent } from '../intent';
 import {
   proposeSettlement,
   startUnilateralClose,
   finalizeUnilateralClose,
   replaceUnilateralCloseState,
+  recordUnilateralUpdateCoin,
   buildDisputePayload,
+  buildSettlementSigningRequest,
+  signSettlementRequest,
   markChannelClosed,
 } from '../settlement';
 import { buildEltooScript, buildAndHashEltooScript, scriptAddress, COINID_ELTOO, ELTOO_CONTEST_DELAY_BLOCKS } from '../script';
@@ -112,15 +116,20 @@ import type {
 const ALICE_PKD = 'aabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccdd';
 const BOB_PKD   = '1122334411223344112233441122334411223344112233441122334411223344';
 
+const ALICE_SETTLEMENT = '0x' + 'aa'.repeat(32);
+const BOB_SETTLEMENT = '0x' + 'bb'.repeat(32);
+
 const alice: ChannelParticipant = {
   partyId: 'alice',
   publicKeyDigest: ALICE_PKD,
   addressIndex: 0,
+  settlementAddress: ALICE_SETTLEMENT,
 };
 const bob: ChannelParticipant = {
   partyId: 'bob',
   publicKeyDigest: BOB_PKD,
   addressIndex: 1,
+  settlementAddress: BOB_SETTLEMENT,
 };
 
 function waitNextTick(n = 1): Promise<void> {
@@ -173,7 +182,7 @@ function makeMockChainProvider() {
       amount: '1000000',
       tokenid: '0x00',
       spent: false,
-      mmrentry: 1,
+      created: '1',
     })),
     getToken: jest.fn(async (tokenId: string) => ({
       tokenId,
@@ -202,11 +211,11 @@ function makeTipProvider(block: number) {
 }
 
 /** Provider that confirms a funding coin (for acceptChannel). */
-function makeConfirmingProvider(coinId: string, amount: bigint, tokenId: string) {
+function makeConfirmingProvider(coinId: string, amount: bigint, tokenId: string, address: string) {
   return {
     getCoin: jest.fn(async (id: string) => {
       if (id !== coinId) return null;
-      return { coinId, amount: amount.toString(), tokenid: tokenId, spent: false, mmrentry: 1 };
+      return { coinId, amount: amount.toString(), tokenid: tokenId, address, spent: false, created: '1' };
     }),
     getTip: jest.fn(async () => ({ block: 2, hash: '0x02' })),
   };
@@ -344,6 +353,21 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
     expect(() => buildEltooScript([alice])).toThrow();
     expect(() => buildEltooScript([alice, bob, alice])).toThrow();
   });
+
+  it('rejects duplicate public-key digests (MULTISIG(2 A A) is 1-of-1)', () => {
+    expect(() => buildEltooScript([alice, { ...bob, publicKeyDigest: ALICE_PKD }]))
+      .toThrow(/distinct publicKeyDigest/);
+  });
+
+  it('rejects a non-array or malformed parties argument with a domain error', () => {
+    expect(() => buildEltooScript(null as any)).toThrow(/must be an array/);
+    expect(() => buildEltooScript([{} as any, {} as any])).toThrow(/publicKeyDigest/);
+  });
+
+  it('accepts a bigint contest delay and rejects unsafe values', () => {
+    expect(buildEltooScript([alice, bob], 256n)).toContain('@COINAGE GTE 256');
+    expect(() => buildEltooScript([alice, bob], 2n ** 60n)).toThrow(/safe non-negative integer/);
+  });
 });
 
 describe('@totemsdk/omnia — transaction builders', () => {
@@ -394,7 +418,7 @@ describe('@totemsdk/omnia — transaction builders', () => {
       signatures: {},
       signingIndices: {},
     };
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const draft = buildSettlementTx(channel, state, partyAddresses);
     expect(draft.type).toBe('settlement');
     const sv100 = draft.stateVariables.find(sv => sv.port === 100);
@@ -421,7 +445,7 @@ describe('@totemsdk/omnia — transaction builders', () => {
       signatures: {},
       signingIndices: {},
     };
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const draft = buildSettlementTx(channel, state, partyAddresses, { floatingInput: true });
     expect(draft.inputs[0].coinId).toBe(COINID_ELTOO);
   });
@@ -526,7 +550,7 @@ describe('@totemsdk/omnia — acceptChannel', () => {
       fundingTxId: '0xtxpow0',
       fundingCoinId: '0x' + 'aa'.repeat(32),
     };
-    const provider = makeConfirmingProvider(proposal.fundingCoinId, 1000n, '0x00');
+    const provider = makeConfirmingProvider(proposal.fundingCoinId, 1000n, '0x00', address);
     const channel = await acceptChannel(proposal, provider as any);
     expect(channel.status).toBe('active');
     expect(channel.totalValue).toBe(1000n);
@@ -534,6 +558,42 @@ describe('@totemsdk/omnia — acceptChannel', () => {
     expect(channel.balances.bob).toBe(400n);
     expect(channel.currentSequence).toBe(0);
     expect(channel.fundingScript).toBe(script);
+  });
+
+  it('rejects a counterparty contest delay below the default floor', async () => {
+    const script = buildEltooScript([alice, bob], 0);
+    const proposal = {
+      channelId: '0xchannelid',
+      localParty: alice,
+      remoteParty: bob,
+      localAmount: 600n,
+      remoteAmount: 400n,
+      tokenId: '0x00',
+      fundingScript: script,
+      fundingTxId: '0xtxpow0',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
+      contestDelayBlocks: 0,
+    };
+    await expect(acceptChannel(proposal as any))
+      .rejects.toThrow(/below the 256-block minimum/);
+  });
+
+  it('allows a short contest delay only with the explicit opt-in', async () => {
+    const script = buildEltooScript([alice, bob], 0);
+    const proposal = {
+      channelId: '0xchannelid',
+      localParty: alice,
+      remoteParty: bob,
+      localAmount: 600n,
+      remoteAmount: 400n,
+      tokenId: '0x00',
+      fundingScript: script,
+      fundingTxId: '0xtxpow0',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
+      contestDelayBlocks: 0,
+    };
+    const channel = await acceptChannel(proposal as any, undefined, 1, { allowShortContestDelay: true });
+    expect(channel.status).toBe('funding_pending');
   });
 
   it('throws if script is tampered', async () => {
@@ -662,10 +722,34 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       validateTransition: () => ({ valid: false, error: 'blocked by program' }),
     });
     const initial = makeTestChannel({ programId: 'rejecting-program', programVersion: 1 });
-    const { signedState } = await makeCompleteSignedState(initial, { alice: 500n, bob: 500n });
-    const { verifyState } = await import('../sign');
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const { signState, verifyState } = await import('../sign');
 
-    const result = await verifyState(initial, signedState);
+    const { signedState: aliceState } = await updateState(
+      initial,
+      { newBalances: { alice: 500n, bob: 500n } },
+      makeMockLeaseProvider() as any,
+      aliceSigner,
+    );
+    const bobState = await signState(
+      initial,
+      { newSequence: aliceState.sequence!, newBalances: aliceState.balances! },
+      makeMockLeaseProvider() as any,
+      bobSigner,
+    );
+
+    // Build the complete state directly: attachCounterpartySignature now rejects
+    // a program-invalid state, so verifyState's own hook check is what is under
+    // test here.
+    const complete = {
+      ...aliceState,
+      signatures: { ...aliceState.signatures, bob: bobState.signatures!.bob },
+      signingIndices: { ...aliceState.signingIndices, bob: bobState.signingIndices!.bob },
+      closePackage: mergeClosePackages(aliceState.closePackage!, bobState.closePackage!),
+    } as any;
+
+    const result = await verifyState(initial, complete);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(expect.arrayContaining(['program validation failed: blocked by program']));
   });
@@ -1324,9 +1408,9 @@ describe('@totemsdk/omnia — updateState (full lifecycle)', () => {
     ).rejects.toThrow(ChannelStatusError);
   });
 
-  it('returns CAPACITY_NEAR_EXHAUSTION error at ≥95% (3891) updates', async () => {
+  it('returns CAPACITY_NEAR_EXHAUSTION error at ≥95% of the WOTS leaves', async () => {
     const nearExhaustedChannel = makeTestChannel({
-      currentSequence: 3890, // next sequence = 3891 = 95% of 4096
+      currentSequence: 1945, // next state uses 2 leaves: (1945+1)*2 = 95% of 4096
     });
     const result = await updateState(
       nearExhaustedChannel,
@@ -1363,48 +1447,72 @@ describe('@totemsdk/omnia — attachCounterpartySignature', () => {
   it('merges counterparty signature into signed state', async () => {
     const channel = makeTestChannel();
     const aliceSigner = makeMockSigner('alice', ALICE_PKD);
-    const leaseProvider = makeMockLeaseProvider();
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const aliceLeaseProvider = makeMockLeaseProvider();
+    const bobLeaseProvider = makeMockLeaseProvider();
 
     const { channel: ch1, signedState } = await updateState(
       channel,
       { newBalances: { alice: 500n, bob: 500n } },
-      leaseProvider as any,
+      aliceLeaseProvider as any,
       aliceSigner,
     );
 
-    const bobSig = new Uint8Array(1088).fill(2);
-    const bobIndices = { addressIndex: 0, l1: 0, l2: 99 };
-    const { signedState: fullState } = attachCounterpartySignature(
-      ch1, signedState, 'bob', bobSig, bobIndices
-    );
-
-    expect(fullState.signatures['alice']).toBeDefined();
-    expect(fullState.signatures['bob']).toBe(bobSig);
-    expect(fullState.signingIndices['bob']).toBe(bobIndices);
-    expect(fullState.sequence).toBe(1);
-    expect(fullState.closePackage?.update.signatures['bob']).toBeUndefined();
-    expect(fullState.closePackage?.settlement.signatures['bob']).toBeUndefined();
-  });
-
-  it('preserves ProgramTransition when merging counterparty signature', async () => {
-    const channel = makeTestChannel();
-    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
-    const leaseProvider = makeMockLeaseProvider();
-    const programTransition = { action: 'meter_reading', inputs: { meterReading: 88n } };
-
-    const { channel: ch1, signedState } = await updateState(
+    const { signState } = await import('../sign');
+    const bobPartialState = await signState(
       channel,
-      { newBalances: { alice: 500n, bob: 500n }, programTransition },
-      leaseProvider as any,
-      aliceSigner,
+      { newSequence: signedState.sequence!, newBalances: signedState.balances! },
+      bobLeaseProvider as any,
+      bobSigner,
     );
 
     const { signedState: fullState } = attachCounterpartySignature(
       ch1,
       signedState,
       'bob',
-      new Uint8Array(1088).fill(2),
-      { addressIndex: 0, l1: 0, l2: 99 },
+      bobPartialState.signatures!.bob,
+      bobPartialState.signingIndices!.bob,
+      bobPartialState.closePackage,
+    );
+
+    expect(fullState.signatures['alice']).toBeDefined();
+    expect(fullState.signatures['bob']).toBe(bobPartialState.signatures!.bob);
+    expect(fullState.signingIndices['bob']).toBe(bobPartialState.signingIndices!.bob);
+    expect(fullState.sequence).toBe(1);
+    expect(fullState.closePackage?.update.signatures['bob']).toBeDefined();
+    expect(fullState.closePackage?.settlement.signatures['bob']).toBeDefined();
+  });
+
+  it('preserves ProgramTransition when merging counterparty signature', async () => {
+    const channel = makeTestChannel();
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const aliceLeaseProvider = makeMockLeaseProvider();
+    const bobLeaseProvider = makeMockLeaseProvider();
+    const programTransition = { action: 'meter_reading', inputs: { meterReading: 88n } };
+
+    const { channel: ch1, signedState } = await updateState(
+      channel,
+      { newBalances: { alice: 500n, bob: 500n }, programTransition },
+      aliceLeaseProvider as any,
+      aliceSigner,
+    );
+
+    const { signState } = await import('../sign');
+    const bobPartialState = await signState(
+      channel,
+      { newSequence: signedState.sequence!, newBalances: signedState.balances!, programTransition },
+      bobLeaseProvider as any,
+      bobSigner,
+    );
+
+    const { signedState: fullState } = attachCounterpartySignature(
+      ch1,
+      signedState,
+      'bob',
+      bobPartialState.signatures!.bob,
+      bobPartialState.signingIndices!.bob,
+      bobPartialState.closePackage,
     );
 
     expect(fullState.programTransition).toEqual(programTransition);
@@ -1626,7 +1734,7 @@ describe('@totemsdk/omnia — getChannelReceipt', () => {
     };
     const receipt = getChannelReceipt(channel, state);
     expect(receipt.sequence).toBe(3);
-    expect(receipt.capacityUsed).toBe(3);
+    expect(receipt.capacityUsed).toBe(6);
     expect(receipt.capacityTotal).toBe(WOTS_CAPACITY_TOTAL);
     expect(receipt.channelId).toBe(channel.channelId);
   });
@@ -1687,7 +1795,7 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
     const bobSigner = makeMockSigner('bob', BOB_PKD);
-    const { channel: ch2 } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, bobSigner);
+    const { channel: ch2 } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(0) as any, bobSigner);
 
     expect(ch2.pendingHTLCs[0].status).toBe('fulfilled');
     expect(ch2.balances.bob).toBe(400n + 100n);
@@ -1705,8 +1813,61 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
     const wrongPreimage = 'ff'.repeat(32);
-    await expect(fulfillHTLC(ch1, htlcId, wrongPreimage, leaseProvider as any, aliceSigner))
+    await expect(fulfillHTLC(ch1, htlcId, wrongPreimage, leaseProvider as any, makeTipProvider(0) as any, aliceSigner))
       .rejects.toThrow('Preimage does not match');
+  });
+
+  it('addHTLC: rejects a counterparty that is not the channel counterparty', async () => {
+    const { hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    await expect(addHTLC(channel, {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: '0x' + 'ff'.repeat(32),
+    }, leaseProvider as any, aliceSigner)).rejects.toThrow(/not the channel counterparty/);
+  });
+
+  it('addHTLC: rejects a malformed hashlock', async () => {
+    await expect(addHTLC(channel, {
+      amount: 100n,
+      hashlock: 'abcd',
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner)).rejects.toThrow(/32-byte hex/);
+  });
+
+  it('fulfillHTLC: rejects a fulfil after the timeout', async () => {
+    const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const { channel: ch1, htlcId } = await addHTLC(channel, {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner);
+
+    await expect(fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(1001) as any, makeMockSigner('bob', BOB_PKD)))
+      .rejects.toThrow(/expired/);
+  });
+
+  it('fulfilment receipt is bound to a signed state', async () => {
+    const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const { channel: ch1, htlcId } = await addHTLC(channel, {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner);
+    const { channel: ch2, partialState } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(0) as any, bobSigner);
+
+    const state = partialState as any;
+    const receipt = buildHtlcFulfillmentReceipt(ch2, state, htlcId, 1234);
+    expect(verifyHtlcFulfillmentReceipt(ch2, state, receipt)).toBe(true);
+    expect(verifyHtlcFulfillmentReceipt(ch2, state, { ...receipt, amount: 999n })).toBe(false);
   });
 
   it('timeoutHTLC: reclaims amount to sender when block >= timeoutBlock', async () => {
@@ -1748,14 +1909,14 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
     const { channel: ch1 } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
     const htlcId = ch1.pendingHTLCs[0].htlcId;
     const bobSigner = makeMockSigner('bob', BOB_PKD);
-    const { channel: ch2 } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, bobSigner);
+    const { channel: ch2 } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(0) as any, bobSigner);
 
     const totalAfter = ch2.balances.alice + ch2.balances.bob;
     expect(totalAfter).toBe(channel.totalValue);
   });
 
   it('addHTLC: returns CAPACITY_NEAR_EXHAUSTION error at ≥95% capacity without mutating channel', async () => {
-    const nearExhausted = makeTestChannel({ currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) });
+    const nearExhausted = makeTestChannel({ currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) });
     const params: AddHTLCParams = {
       amount: 100n,
       hashlock: 'aabbcc00'.repeat(8),
@@ -1792,9 +1953,9 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
       counterpartPublicKeyDigest: BOB_PKD,
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
-    const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
+    const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) };
     const bobSigner = makeMockSigner('bob', BOB_PKD);
-    const result = await fulfillHTLC(nearExhausted, htlcId, preimage, leaseProvider as any, bobSigner);
+    const result = await fulfillHTLC(nearExhausted, htlcId, preimage, leaseProvider as any, makeTipProvider(0) as any, bobSigner);
     expect(result.error).toBe('CAPACITY_NEAR_EXHAUSTION');
     expect(result.channel.currentSequence).toBe(nearExhausted.currentSequence);
   });
@@ -1808,7 +1969,7 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
       counterpartPublicKeyDigest: BOB_PKD,
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
-    const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
+    const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) };
     const result = await timeoutHTLC(nearExhausted, htlcId, leaseProvider as any, makeTipProvider(500) as any, aliceSigner);
     expect(result.error).toBe('CAPACITY_NEAR_EXHAUSTION');
     expect(result.channel.currentSequence).toBe(nearExhausted.currentSequence);
@@ -1829,7 +1990,7 @@ describe('@totemsdk/omnia — settlement', () => {
 
   it('proposeSettlement: returns settlementPayload with correct channelId and sequence', async () => {
     channel.onChainSequence = 5;
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const { settlementPayload, partialState } = await proposeSettlement(channel, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     expect(settlementPayload.channelId).toBe(channel.channelId);
     expect(settlementPayload.sequence).toBe(5);
@@ -1838,8 +1999,33 @@ describe('@totemsdk/omnia — settlement', () => {
     expect(settlementPayload.balances.bob).toBe(400n);
   });
 
+  it('rejects a settlement request whose transaction does not match the channel', async () => {
+    channel.onChainSequence = 5;
+    const request = buildSettlementSigningRequest(channel);
+    const tampered = { ...request, settlementTxHex: request.settlementTxHex.replace(/^../, 'ff') };
+    await expect(signSettlementRequest(channel, tampered, leaseProvider as any, aliceSigner))
+      .rejects.toThrow(/does not match the channel state/);
+  });
+
+  it('rejects a settlement address override that disagrees with the channel', async () => {
+    channel.onChainSequence = 5;
+    const request = {
+      ...buildSettlementSigningRequest(channel),
+      partyAddresses: { alice: ALICE_SETTLEMENT, bob: '0x' + 'dd'.repeat(32) },
+    };
+    await expect(signSettlementRequest(channel, request, leaseProvider as any, aliceSigner))
+      .rejects.toThrow(/does not match the channel's agreed address/);
+  });
+
+  it('rejects a settlement request for a different sequence', async () => {
+    channel.onChainSequence = 5;
+    const request = { ...buildSettlementSigningRequest(channel), sequence: 4 };
+    await expect(signSettlementRequest(channel, request, leaseProvider as any, aliceSigner))
+      .rejects.toThrow(/does not match the channel sequence/);
+  });
+
   it('settlement partialState has STATE(100)=true', async () => {
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const { partialState } = await proposeSettlement(channel, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     const sv100 = partialState.stateVariables?.find(sv => sv.port === 100);
     expect(sv100?.value).toBe(true);
@@ -1909,7 +2095,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('proposeSettlement with chainProvider: mines TxPoW and broadcasts to chain', async () => {
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const chainProvider = makeMockChainProvider();
 
     const { settlementPayload } = await proposeSettlement(
@@ -1932,7 +2118,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('proposeSettlement with chainProvider fails closed without serialized broadcast proofs', async () => {
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const chainProvider = makeMockChainProvider();
 
     await expect(proposeSettlement(
@@ -1949,12 +2135,27 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
     _resetChannelWatermarks();
   });
 
+  const UPDATE_COIN = '0x' + 'cc'.repeat(32);
+
+  const makeUnilateralProvider = (fundingAddress: string) => ({
+    ...makeMockChainProvider(),
+    getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })),
+    getCoin: jest.fn(async (id: string) => ({
+      coinId: id,
+      address: fundingAddress,
+      amount: '1000',
+      tokenid: '0x00',
+      spent: false,
+      created: '100',
+    })),
+  });
+
   it('broadcasts latest signed update and records contest deadline', async () => {
     const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
     const result = await startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
       chainProvider as any,
@@ -1974,7 +2175,7 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
 
     await expect(startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
@@ -1988,18 +2189,25 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
     const started = await startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
       chainProvider as any,
       MOCK_BROADCAST_PROOFS,
     );
 
+    // The update output coin must be recorded from the chain before finalising.
+    // One block later, the coin created at 100 has one confirmation.
+    chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
+    const recorded = await recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any);
+    expect(recorded.unilateralClose?.contestStartBlock).toBe(100);
+    expect(recorded.unilateralClose?.contestDeadlineBlock).toBe(started.contestDeadlineBlock);
+
     chainProvider.getTip.mockResolvedValueOnce({ block: started.contestDeadlineBlock - 1, hash: '0xearly' });
-    await expect(finalizeUnilateralClose(started.channel, chainProvider as any)).rejects.toThrow('Contest delay not elapsed');
+    await expect(finalizeUnilateralClose(recorded, chainProvider as any)).rejects.toThrow('Contest delay not elapsed');
 
     chainProvider.getTip.mockResolvedValueOnce({ block: started.contestDeadlineBlock, hash: '0xready' });
-    const finalized = await finalizeUnilateralClose(started.channel, chainProvider as any, MOCK_BROADCAST_PROOFS);
+    const finalized = await finalizeUnilateralClose(recorded, chainProvider as any, MOCK_BROADCAST_PROOFS);
     expect(finalized.channel.status).toBe('closed');
     expect(finalized.settlementPayload.sequence).toBe(signedState.sequence);
     expect(finalized.settlementPayload.settlementTxHex).toBe(signedState.closePackage!.settlement.txHex);
@@ -2008,7 +2216,7 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
 
   it('replaces stale unilateral state with a newer signed state during dispute', async () => {
     const first = await makeCompleteSignedState(makeTestChannel(), { alice: 500n, bob: 500n });
-    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+    const chainProvider = makeUnilateralProvider(first.channel.fundingAddress);
     const started = await startUnilateralClose(
       { ...first.channel, latestState: first.signedState },
       chainProvider as any,
@@ -2023,12 +2231,22 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
     };
     const second = await makeCompleteSignedState(secondBase, { alice: 450n, bob: 550n }, 10);
 
-    const replaced = replaceUnilateralCloseState(started.channel, second.signedState);
+    const replaced = await replaceUnilateralCloseState(
+      started.channel,
+      second.signedState,
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
 
     expect(replaced.status).toBe('disputing');
     expect(replaced.unilateralClose?.sequence).toBe(2);
     expect(replaced.unilateralClose?.updateTxHex).toBe(second.signedState.closePackage!.update.txHex);
     expect(replaced.unilateralClose?.settlementTxHex).toBe(second.signedState.closePackage!.settlement.txHex);
+    // The replacement update is rebroadcast (start + replace) and gets a fresh window.
+    expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(2);
+    expect(replaced.unilateralClose?.contestDeadlineBlock).toBe(100 + ELTOO_CONTEST_DELAY_BLOCKS);
+    // The previous update's coin no longer applies; record the new one before finalising.
+    expect(replaced.unilateralClose?.updateCoinId).toBeUndefined();
   });
 });
 
@@ -2508,7 +2726,7 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
     expect(ch.balances.bob).toBe(500n);
 
     // 3. Propose settlement
-    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
+    const partyAddresses = { alice: ALICE_SETTLEMENT, bob: BOB_SETTLEMENT };
     const { settlementPayload } = await proposeSettlement(ch, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     expect(settlementPayload.balances.alice).toBe(500n);
     expect(settlementPayload.balances.bob).toBe(500n);
@@ -2567,15 +2785,15 @@ describe('@totemsdk/omnia — executeIntent', () => {
     channel = {
       ...makeTestChannel(),
       parties: [
-        { partyId: 'alice', publicKeyDigest: ALICE_PKD, addressIndex: 0, settlementAddress: '0xALICEADDR' },
-        { partyId: 'bob', publicKeyDigest: BOB_PKD, addressIndex: 1, settlementAddress: '0xBOBADDR' },
+        { partyId: 'alice', publicKeyDigest: ALICE_PKD, addressIndex: 0, settlementAddress: ALICE_SETTLEMENT },
+        { partyId: 'bob', publicKeyDigest: BOB_PKD, addressIndex: 1, settlementAddress: BOB_SETTLEMENT },
       ],
       localSigner: aliceSigner,
     };
   });
 
   it('approved path: recipient matched by settlementAddress, returns approved with updated channel', async () => {
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(channel, intent as any, makeAutoApprovePolicy() as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('approved');
     expect(result.channel?.balances.alice).toBe(500n);
@@ -2589,20 +2807,20 @@ describe('@totemsdk/omnia — executeIntent', () => {
   });
 
   it('pending_user when policy rejects auto-approve', async () => {
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(channel, intent as any, makeRejectPolicy() as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('pending_user');
   });
 
   it('rejected when recipient address not found in channel', async () => {
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xUNKNOWNADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0x' + 'cc'.repeat(32) };
     const result = await executeIntent(channel, intent as any, makeAutoApprovePolicy() as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('rejected');
   });
 
   it('never returns approved when updateState.error is present (CAPACITY_NEAR_EXHAUSTION)', async () => {
-    const nearExhausted: OmniaChannel = { ...channel, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const nearExhausted: OmniaChannel = { ...channel, currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(nearExhausted, intent as any, makeAutoApprovePolicy() as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('pending_user');
     expect(result.status).not.toBe('approved');
@@ -2623,7 +2841,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
         calls.push(`release:${id}`);
       },
     };
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('approved');
     expect(calls).toEqual([`reserve:${ALICE_PKD}`, expect.stringMatching(/^commit:intent-/), ]);
@@ -2645,8 +2863,8 @@ describe('@totemsdk/omnia — executeIntent', () => {
         calls.push(`release:${id}`);
       },
     };
-    const nearExhausted: OmniaChannel = { ...channel, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const nearExhausted: OmniaChannel = { ...channel, currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(nearExhausted, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('pending_user');
     expect(calls).toEqual(['reserve', expect.stringMatching(/^release:intent-/)]);
@@ -2658,7 +2876,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
       canAutoApprove: async () => true,
       reserve: async () => ({ outcome: 'rejected' as const, reason: 'Daily cap exceeded' }),
     };
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('rejected');
     expect(result.receipt?.rejectionReason).toBe('Daily cap exceeded');
@@ -2673,7 +2891,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
         return { outcome: 'approved' as const, reason: 'ok' };
       },
     };
-    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: BOB_SETTLEMENT };
     const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('pending_user');
     expect(reserveCalled).toBe(false);
@@ -2687,7 +2905,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
       release: async (id: string) => calls.push(`release:${id}`),
     };
     const signer = { ...aliceSigner, sign: jest.fn().mockRejectedValue(new Error('sign failed')) } as any;
-    await expect(executeIntent(channel, { type: 'channel_update', amount: '100', recipient: '0xBOBADDR' } as any, lifecyclePolicy as any, leaseProvider as any, signer, { operationId: 'stable-throw' })).rejects.toThrow('sign failed');
+    await expect(executeIntent(channel, { type: 'channel_update', amount: '100', recipient: BOB_SETTLEMENT } as any, lifecyclePolicy as any, leaseProvider as any, signer, { operationId: 'stable-throw' })).rejects.toThrow('sign failed');
     expect(calls).toEqual(['release:intent-stable-throw']);
   });
 
@@ -2698,7 +2916,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
       reserve: async () => ({ outcome: 'approved' as const, reason: 'already', reservationState: 'already_committed' as const }),
       commit: async () => calls.push('commit'),
     };
-    const result = await executeIntent(channel, { type: 'channel_update', amount: '100', recipient: '0xBOBADDR' } as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner, { operationId: 'stable-replay' });
+    const result = await executeIntent(channel, { type: 'channel_update', amount: '100', recipient: BOB_SETTLEMENT } as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner, { operationId: 'stable-replay' });
     expect(result.idempotentReplay).toBe(true);
     expect(calls).toEqual([]);
   });
@@ -2732,5 +2950,244 @@ describe('RFC-020 H9: funding-script key validation', () => {
         { partyId: 'b', publicKeyDigest: 'aa\nRETURN TRUE', addressIndex: 1 },
       ]),
     ).toThrow(/64 hex/);
+  });
+});
+
+describe('@totemsdk/omnia — state authentication', () => {
+  beforeEach(() => {
+    _resetChannelWatermarks();
+  });
+
+  it('binds carried stateVariables to the signed payload', async () => {
+    const { verifyState, verifyStateSignature } = await import('../sign');
+    const channel = makeTestChannel();
+    const { signedState } = await makeCompleteSignedState(channel, { alice: 500n, bob: 500n });
+
+    const tampered = {
+      ...signedState,
+      stateVariables: [...signedState.stateVariables, { port: 199, value: 1n, type: 'number' as const }],
+    };
+
+    expect(verifyStateSignature(channel, tampered as any, 'alice', ALICE_PKD)).toBe(false);
+    const result = await verifyState(channel, tampered as any);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining(['invalid WOTS signature for party alice', 'invalid WOTS signature for party bob']),
+    );
+  });
+
+  it('binds the carried transactionHex to the signed payload', async () => {
+    const { verifyState, verifyStateSignature } = await import('../sign');
+    const channel = makeTestChannel();
+    const { signedState } = await makeCompleteSignedState(channel, { alice: 500n, bob: 500n });
+
+    const tampered = { ...signedState, transactionHex: '00' + signedState.transactionHex.slice(2) };
+
+    expect(verifyStateSignature(channel, tampered as any, 'alice', ALICE_PKD)).toBe(false);
+    const result = await verifyState(channel, tampered as any);
+    expect(result.valid).toBe(false);
+  });
+
+  it('seals the sequence once a signature exists (failed flow cannot double-sign)', async () => {
+    const channel = makeTestChannel();
+    const leaseProvider = makeMockLeaseProvider();
+    let calls = 0;
+    const flakySigner: ChannelSigner = {
+      publicKeyDigest: ALICE_PKD,
+      sign: jest.fn(async () => {
+        calls += 1;
+        if (calls === 2) throw new Error('settlement sign failed');
+        return new Uint8Array(1088).fill(1);
+      }),
+    };
+
+    await expect(
+      updateState(channel, { newBalances: { alice: 500n, bob: 500n } }, leaseProvider as any, flakySigner),
+    ).rejects.toThrow('settlement sign failed');
+
+    // The update signature was already produced for sequence 1, so a different
+    // payload at the same sequence must stay rejected.
+    await expect(
+      updateState(
+        channel,
+        { newBalances: { alice: 400n, bob: 600n } },
+        makeMockLeaseProvider() as any,
+        makeMockSigner('alice', ALICE_PKD),
+      ),
+    ).rejects.toThrow(DoubleSignError);
+  });
+
+  it('attachCounterpartySignature rejects a stale state', async () => {
+    const channel = makeTestChannel({ currentSequence: 3 });
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const { signedState } = await updateState(
+      channel,
+      { newBalances: { alice: 500n, bob: 500n } },
+      makeMockLeaseProvider() as any,
+      aliceSigner,
+    );
+
+    // A state at an older sequence than the channel's current sequence.
+    expect(() =>
+      attachCounterpartySignature(
+        { ...channel, currentSequence: 99 },
+        signedState,
+        'bob',
+        new Uint8Array(1088).fill(2),
+        { addressIndex: 0, l1: 0, l2: 99 },
+        signedState.closePackage,
+      ),
+    ).toThrow(/stale sequence/);
+  });
+});
+
+describe('@totemsdk/omnia — chain truth', () => {
+  beforeEach(() => {
+    _resetChannelWatermarks();
+  });
+
+  const proposalFor = (script: string) => ({
+    channelId: '0xchaintruth00001',
+    localParty: alice,
+    remoteParty: bob,
+    localAmount: 600n,
+    remoteAmount: 400n,
+    tokenId: '0x00',
+    fundingScript: script,
+    fundingTxId: '0xtxpow0',
+    fundingCoinId: '0x' + 'aa'.repeat(32),
+  });
+
+  it('treats a funding coin without a creation height as unconfirmed', async () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    const provider = {
+      getCoin: jest.fn(async (coinId: string) => ({
+        coinId, amount: '1000', tokenid: '0x00', address, spent: false,
+      })),
+      getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
+    };
+    const channel = await acceptChannel(proposalFor(script) as any, provider as any);
+    expect(channel.status).toBe('funding_pending');
+  });
+
+  it('treats a funding coin created at the tip as unconfirmed', async () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    const provider = {
+      getCoin: jest.fn(async (coinId: string) => ({
+        coinId, amount: '1000', tokenid: '0x00', address, spent: false, created: '10',
+      })),
+      getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
+    };
+    const channel = await acceptChannel(proposalFor(script) as any, provider as any);
+    expect(channel.status).toBe('funding_pending');
+  });
+
+  it('confirmUpdateBroadcast records the confirmed on-chain sequence and coin', async () => {
+    const initial = makeTestChannel();
+    const { signedState } = await makeCompleteSignedState(initial, { alice: 500n, bob: 500n });
+    const coinId = '0x' + 'bb'.repeat(32);
+    const state: unknown[] = [];
+    for (const sv of signedState.stateVariables ?? []) {
+      state[sv.port] = typeof sv.value === 'bigint' ? sv.value.toString() : sv.value;
+    }
+    const provider = {
+      getCoin: jest.fn(async () => ({
+        coinId, address: initial.fundingAddress, amount: '1000', tokenid: '0x00',
+        spent: false, created: '5', state,
+      })),
+      getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
+    };
+
+    const confirmed = await confirmUpdateBroadcast(
+      { ...initial, latestState: signedState },
+      { coinId },
+      provider as any,
+    );
+
+    expect(confirmed.onChainSequence).toBe(signedState.sequence);
+    expect(confirmed.latestCoinId).toBe(coinId);
+  });
+
+  it('confirmUpdateBroadcast rejects a coin that does not carry the latest state', async () => {
+    const initial = makeTestChannel();
+    const { signedState } = await makeCompleteSignedState(initial, { alice: 500n, bob: 500n });
+    const provider = {
+      getCoin: jest.fn(async () => {
+        const state: unknown[] = [];
+        state[101] = '0';
+        return {
+          coinId: '0x' + 'bb'.repeat(32), address: initial.fundingAddress, amount: '1000',
+          tokenid: '0x00', spent: false, created: '5', state,
+        };
+      }),
+      getTip: jest.fn(async () => ({ block: 10 })),
+    };
+
+    await expect(confirmUpdateBroadcast(
+      { ...initial, latestState: signedState },
+      { coinId: '0x' + 'bb'.repeat(32) },
+      provider as any,
+    )).rejects.toThrow('does not match the latest signed state');
+  });
+
+  it('uses the channel contest delay, not the module default', async () => {
+    const script = buildEltooScript([alice, bob], 10);
+    const address = scriptAddress(script);
+    const channel = makeTestChannel({
+      fundingScript: script,
+      fundingAddress: address,
+      contestDelayBlocks: 10,
+    });
+    const { channel: updated, signedState } = await makeCompleteSignedState(channel, { alice: 500n, bob: 500n });
+    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+
+    const started = await startUnilateralClose(
+      { ...updated, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    expect(started.contestDeadlineBlock).toBe(110);
+  });
+
+  it('finalizeUnilateralClose refuses to run until the update coin is recorded', async () => {
+    const { channel: updated, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const getTip = jest.fn()
+      .mockResolvedValueOnce({ block: 100, hash: '0x64' })
+      .mockResolvedValue({ block: 1000, hash: '0x3e8' });
+    const chainProvider = { ...makeMockChainProvider(), getTip };
+    const started = await startUnilateralClose(
+      { ...updated, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    // Past the stored deadline, but the update output was never recorded.
+    await expect(finalizeUnilateralClose(started.channel, chainProvider as any, MOCK_BROADCAST_PROOFS))
+      .rejects.toThrow(/has not been recorded/);
+  });
+
+  it('finalizeUnilateralClose rejects a stale close package', async () => {
+    const { channel: updated, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const chainProvider = { ...makeMockChainProvider(), getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })) };
+    const started = await startUnilateralClose(
+      { ...updated, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    const stale = {
+      ...started.channel,
+      latestState: { ...signedState, sequence: signedState.sequence! + 1 },
+    };
+
+    await expect(finalizeUnilateralClose(stale, chainProvider as any, MOCK_BROADCAST_PROOFS))
+      .rejects.toThrow(/stale/);
   });
 });

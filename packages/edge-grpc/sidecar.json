@@ -1,0 +1,30 @@
+{
+  "name": "edge-grpc-sidecar",
+  "protocolVersion": 1,
+  "distribution": {
+    "mode": "source-build",
+    "bundledInNpmPackage": false,
+    "binary": "bin/edge-grpc",
+    "build": "pnpm --filter @totemsdk/edge-grpc build:go",
+    "autoDownload": false
+  },
+  "compatibility": {
+    "protocolMajor": 1,
+    "healthCheck": "edge-grpc --version",
+    "rule": "Rebuild the sidecar from the matching package source. The npm package does not bundle platform binaries."
+  },
+  "configuration": {
+    "listen": "GRPC_LISTEN_ADDR=127.0.0.1:15005",
+    "timeout": "GRPC_TIMEOUT_MS=30000"
+  },
+  "qualified": [
+    "raw-byte unary and server/client/bidi streaming",
+    "TLS with a custom CA and metadata authentication",
+    "deadline propagation, cancellation and per-client stream ownership"
+  ],
+  "unqualified": [
+    "reflection, health checking and generated client stubs",
+    "retry policies, load balancing and connection pooling",
+    "Windows prebuilt binaries"
+  ]
+}

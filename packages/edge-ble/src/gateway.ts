@@ -3,7 +3,7 @@
  */
 
 import type { EdgeRuntime, EdgeOperationResult } from '@totemsdk/edge';
-import type { BleTransportPort, BlePeripheral, BleNotification } from './transport.js';
+import type { BleTransportPort, BlePeripheral } from './transport.js';
 
 export interface BleGatewayConfig {
   runtime: EdgeRuntime;

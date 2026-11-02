@@ -15,7 +15,7 @@
 3. [The Edge Runtime](#3-the-edge-runtime)
 4. [MachinePay: Credit Gating & Offline Operation](#4-machinepay-credit-gating--offline-operation)
 5. [Protocol Adapters: Every Protocol, One Runtime](#5-protocol-adapters-every-protocol-one-runtime)
-6. [Industrial Action: When Finance Meets Physics](#6-industrial-action-when-finance-meets-physics)
+6. [Industrial Action: When Finance Meets Physics](#6-act-core-when-finance-meets-physics)
 7. [Transport & Infrastructure](#7-transport--infrastructure)
 8. [The Full Bridge: Sensor to Settlement](#8-the-full-bridge-sensor-to-settlement)
 9. [Real-World Edge Deployments](#9-real-world-edge-deployments)
@@ -325,7 +325,7 @@ The PLC never imported a network library. The Modbus adapter never imported a Mo
 
 ## 6. Industrial Action: When Finance Meets Physics
 
-`@totemsdk/industrial-action` bridges the gap between "a financial event occurred" and "a physical action must happen." A payment clears → a vending machine dispenses. A channel settles → a smart lock opens. A governance vote passes → a circuit breaker trips.
+`@totemsdk/act-core` bridges the gap between "a financial event occurred" and "a physical action must happen." A payment clears → a vending machine dispenses. A channel settles → a smart lock opens. A governance vote passes → a circuit breaker trips.
 
 ### 6.1 The Action Lifecycle
 
@@ -490,7 +490,7 @@ A robot arm on an automotive assembly line. OPC-UA connectivity to the factory S
 **The stack:**
 - `edge-opcua` — protocol adapter, transport port bridged to OPC-UA server
 - `@totemsdk/edge` — runtime with `payment`, `proof`, `policy`, `identity`, `manifest` ports
-- `@totemsdk/industrial-action` — guardrails: max torque, max speed, authorised operators only
+- `@totemsdk/act-core` — guardrails: max torque, max speed, authorised operators only
 - `@totemsdk/recursive-mast` — 7-layer policy stack: manufacturer → regulatory → owner → site → operator
 - `@totemsdk/authority` — mandate verification before every operation
 
@@ -562,7 +562,7 @@ Guest presents statechain to lock. Lock verifies chain of custody off-chain. Loc
 | `createMinimaL1PaymentPort` | `@totemsdk/root-identity` (on-chain) |
 | `createOmniaL2PaymentPort` | `@totemsdk/omnia-router` (off-chain) |
 
-### `@totemsdk/industrial-action` — Physical Actuation
+### `@totemsdk/act-core` — Physical Actuation
 
 | Export | Purpose |
 |--------|---------|

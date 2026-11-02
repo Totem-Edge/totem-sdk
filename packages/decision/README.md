@@ -11,7 +11,7 @@ inference and authority:
 @totemsdk/decision      → bounded semantic choice ("what should be proposed?")
 @totemsdk/agent-policy  → policy / governance
 @totemsdk/authority     → permission
-@totemsdk/industrial-action / edge-* → execution
+@totemsdk/act-core / edge-* → execution
 ```
 
 **AI proposes, Totem authorizes.** A decision provider is a compute surface: it

@@ -1,22 +1,12 @@
 // edge-grpc: gRPC transport proxy for Totem Edge Runtime.
 //
-// Architecture:
-//   TypeScript (EdgeRuntime) ←→ TCP/JSON ←→ Go binary ←→ gRPC/HTTP2 ←→ gRPC server
+// TypeScript (EdgeRuntime) ←→ TCP/JSON ←→ this proxy ←→ gRPC/HTTP2 ←→ server.
 //
-// The Go binary accepts newline-delimited JSON commands from the TypeScript
-// native transport and translates them to real gRPC calls using the standard
-// google.golang.org/grpc library. All protobuf payloads are base64-encoded
-// in the JSON protocol.
-//
-// Supported operations:
-//   connect     — dial a gRPC server
-//   disconnect  — close the gRPC connection
-//   unary       — single request → single response
-//   server_stream — single request → stream of responses
-//   client_stream — stream of requests → single response
-//   bidi_stream — bidirectional streaming
-//   stream_send — send a message on an open stream
-//   stream_close — close the send side of a stream
+// The proxy supports raw-byte unary and streaming calls (no generated
+// protobuf), optional TLS (custom CA, client certificate, server name) and
+// connection-level metadata for authentication. Each TypeScript client gets
+// its own gRPC connection and stream namespace; stream pushes go only to the
+// owning connection.
 //
 // Environment:
 //   GRPC_LISTEN_ADDR  — TCP address to listen on (default: 127.0.0.1:15005)
@@ -26,77 +16,140 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
-	"strconv"
+	"os/signal"
+	"strings"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-// ── JSON protocol types ──────────────────────────────────────────────────
+const (
+	protocolVersion = 1
+	maxPayloadBytes = 8 << 20 // 8 MiB per message
+	maxDeadlineMs   = 10 * 60 * 1000
+)
+
+// ── JSON protocol ────────────────────────────────────────────────────────
+
+type TLSRequest struct {
+	CACert             string `json:"caCert,omitempty"`
+	Cert               string `json:"cert,omitempty"`
+	Key                string `json:"key,omitempty"`
+	ServerName         string `json:"serverName,omitempty"`
+	InsecureSkipVerify bool   `json:"insecureSkipVerify,omitempty"`
+}
 
 type Request struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Address  string `json:"address,omitempty"`
-	Path     string `json:"path,omitempty"`
-	Payload  string `json:"payload,omitempty"` // base64-encoded protobuf
-	Deadline int    `json:"deadline_ms,omitempty"`
-	StreamID string `json:"stream_id,omitempty"`
+	ID        string            `json:"id"`
+	Type      string            `json:"type"`
+	Address   string            `json:"address,omitempty"`
+	Path      string            `json:"path,omitempty"`
+	Payload   string            `json:"payload,omitempty"`
+	Deadline  int               `json:"deadline_ms,omitempty"`
+	StreamID  string            `json:"stream_id,omitempty"`
+	TLS       *TLSRequest       `json:"tls,omitempty"`
+	Authority string            `json:"authority,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 type Response struct {
 	ID       string `json:"id"`
 	OK       bool   `json:"ok"`
-	Data     string `json:"data,omitempty"` // base64-encoded protobuf
+	Data     string `json:"data,omitempty"`
 	Error    string `json:"error,omitempty"`
-	Code     int    `json:"code,omitempty"` // gRPC status code
+	Code     int    `json:"code,omitempty"`
 	StreamID string `json:"stream_id,omitempty"`
 }
 
 type PushMessage struct {
-	Type     string `json:"type"` // "stream_data" | "stream_end" | "stream_error"
+	Type     string `json:"type"`
 	StreamID string `json:"stream_id"`
 	Payload  string `json:"payload,omitempty"`
 	Error    string `json:"error,omitempty"`
 	Code     int    `json:"code,omitempty"`
 }
 
-// ── Server ───────────────────────────────────────────────────────────────
+// ── Raw-byte gRPC codec ──────────────────────────────────────────────────
 
-type Server struct {
-	config   Config
-	mu       sync.RWMutex
-	clients  map[net.Conn]struct{}
-	conn     *grpc.ClientConn
-	connAddr string
-	streams  map[string]streamHandle
-	listener net.Listener
-	stopCh   chan struct{}
+// rawCodec passes protobuf bytes through untouched. The "proto" name keeps the
+// HTTP/2 content-subtype compatible with ordinary gRPC servers.
+type rawCodec struct{}
+
+func (rawCodec) Marshal(value any) ([]byte, error) {
+	switch message := value.(type) {
+	case *[]byte:
+		return *message, nil
+	case []byte:
+		return message, nil
+	default:
+		return nil, fmt.Errorf("raw codec: unsupported type %T", value)
+	}
 }
+
+func (rawCodec) Unmarshal(data []byte, value any) error {
+	message, ok := value.(*[]byte)
+	if !ok {
+		return fmt.Errorf("raw codec: unsupported destination %T", value)
+	}
+	*message = append((*message)[:0], data...)
+	return nil
+}
+
+func (rawCodec) Name() string { return "proto" }
+
+// ── Server ───────────────────────────────────────────────────────────────
 
 type Config struct {
 	ListenAddr string
 	TimeoutMs  int
 }
 
+type Server struct {
+	config Config
+
+	mu        sync.Mutex
+	clients   map[net.Conn]*clientState
+	listener  net.Listener
+	stopCh    chan struct{}
+	closeOnce sync.Once
+	streamSeq atomic.Uint64
+}
+
+type clientState struct {
+	conn     *grpc.ClientConn
+	addr     string
+	metadata metadata.MD
+	streams  map[string]*streamHandle
+}
+
 type streamHandle struct {
 	stream grpc.ClientStream
 	cancel context.CancelFunc
-	ctx    context.Context
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Printf("edge-grpc protocol=%d\n", protocolVersion)
+		return
+	}
+
 	config := Config{
 		ListenAddr: getEnv("GRPC_LISTEN_ADDR", "127.0.0.1:15005"),
 		TimeoutMs:  getEnvInt("GRPC_TIMEOUT_MS", 30000),
@@ -104,19 +157,20 @@ func main() {
 
 	srv := &Server{
 		config:  config,
-		clients: make(map[net.Conn]struct{}),
-		streams: make(map[string]streamHandle),
+		clients: make(map[net.Conn]*clientState),
 		stopCh:  make(chan struct{}),
 	}
 
 	log.Printf("[edge-grpc] gRPC transport proxy starting")
 	log.Printf("[edge-grpc] Listening on %s", config.ListenAddr)
-
 	if err := srv.Listen(); err != nil {
 		log.Fatalf("[edge-grpc] Failed to start: %v", err)
 	}
 
-	select {}
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	<-signals
+	srv.Shutdown()
 }
 
 func (s *Server) Listen() error {
@@ -125,7 +179,6 @@ func (s *Server) Listen() error {
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
-
 	go func() {
 		for {
 			conn, err := s.listener.Accept()
@@ -139,460 +192,534 @@ func (s *Server) Listen() error {
 				}
 			}
 			s.mu.Lock()
-			s.clients[conn] = struct{}{}
+			s.clients[conn] = &clientState{streams: make(map[string]*streamHandle)}
 			s.mu.Unlock()
 			log.Printf("[edge-grpc] Client connected: %s", conn.RemoteAddr())
 			go s.handleConn(conn)
 		}
 	}()
-
 	return nil
 }
 
-// ── Connection handler ───────────────────────────────────────────────────
+func (s *Server) Shutdown() {
+	s.closeOnce.Do(func() {
+		close(s.stopCh)
+		if s.listener != nil {
+			_ = s.listener.Close()
+		}
+		s.mu.Lock()
+		conns := make([]net.Conn, 0, len(s.clients))
+		for conn := range s.clients {
+			conns = append(conns, conn)
+		}
+		s.mu.Unlock()
+		for _, conn := range conns {
+			_ = conn.Close()
+		}
+	})
+}
 
 func (s *Server) handleConn(conn net.Conn) {
+	state := s.clientState(conn)
 	defer func() {
-		s.mu.Lock()
-		delete(s.clients, conn)
-		s.mu.Unlock()
-		conn.Close()
+		s.closeClient(conn)
 		log.Printf("[edge-grpc] Client disconnected: %s", conn.RemoteAddr())
 	}()
 
-	buf := make([]byte, 0, 64*1024)
+	buffer := make([]byte, 0, 64*1024)
 	tmp := make([]byte, 4096)
-
 	for {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			return
 		}
-		buf = append(buf, tmp[:n]...)
-
+		buffer = append(buffer, tmp[:n]...)
 		for {
-			nl := -1
-			for i, b := range buf {
-				if b == '\n' {
-					nl = i
-					break
-				}
-			}
-			if nl < 0 {
+			index := strings.IndexByte(string(buffer), '\n')
+			if index < 0 {
 				break
 			}
-
-			line := string(buf[:nl])
-			buf = buf[nl+1:]
-
+			line := string(buffer[:index])
+			buffer = buffer[index+1:]
 			if line == "" {
 				continue
 			}
-
 			var req Request
 			if err := json.Unmarshal([]byte(line), &req); err != nil {
 				s.writeResponse(conn, Response{ID: "", OK: false, Error: fmt.Sprintf("invalid json: %v", err)})
 				continue
 			}
-
-			s.handleRequest(conn, &req)
+			s.handleRequest(conn, state, &req)
 		}
 	}
 }
 
-// ── Request dispatcher ───────────────────────────────────────────────────
+func (s *Server) clientState(conn net.Conn) *clientState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.clients[conn]
+}
 
-func (s *Server) handleRequest(conn net.Conn, req *Request) {
+func (s *Server) closeClient(conn net.Conn) {
+	s.mu.Lock()
+	state := s.clients[conn]
+	delete(s.clients, conn)
+	s.mu.Unlock()
+	if state != nil {
+		for _, handle := range state.streams {
+			handle.cancel()
+		}
+		if state.conn != nil {
+			_ = state.conn.Close()
+		}
+	}
+	_ = conn.Close()
+}
+
+func (s *Server) handleRequest(conn net.Conn, state *clientState, req *Request) {
 	switch req.Type {
 	case "connect":
-		s.handleConnect(conn, req)
+		s.handleConnect(conn, state, req)
 	case "disconnect":
-		s.handleDisconnect(conn, req)
+		s.handleDisconnect(conn, state, req)
 	case "unary":
-		s.handleUnary(conn, req)
+		s.handleUnary(conn, state, req)
 	case "server_stream":
-		s.handleServerStream(conn, req)
+		s.handleServerStream(conn, state, req)
 	case "client_stream":
-		s.handleClientStream(conn, req)
+		s.handleClientStream(conn, state, req)
 	case "bidi_stream":
-		s.handleBidiStream(conn, req)
+		s.handleBidiStream(conn, state, req)
 	case "stream_send":
-		s.handleStreamSend(conn, req)
+		s.handleStreamSend(conn, state, req)
 	case "stream_close":
-		s.handleStreamClose(conn, req)
+		s.handleStreamClose(conn, state, req)
+	case "cancel_stream":
+		s.handleCancelStream(conn, state, req)
 	default:
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("unknown request type: %s", req.Type)})
 	}
 }
 
-// ── connect / disconnect ──────────────────────────────────────────────────
+// ── connect / disconnect ─────────────────────────────────────────────────
 
-func (s *Server) handleConnect(conn net.Conn, req *Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Server) handleConnect(conn net.Conn, state *clientState, req *Request) {
+	if req.Address == "" {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "address required"})
+		return
+	}
 
-	if s.conn != nil {
-		s.conn.Close()
+	var transport credentials.TransportCredentials
+	if req.TLS != nil {
+		tlsCredentials, err := buildTLSCredentials(req.TLS)
+		if err != nil {
+			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+			return
+		}
+		transport = tlsCredentials
+	} else {
+		transport = insecure.NewCredentials()
+	}
+
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(transport),
+		grpc.WithDefaultCallOptions(grpc.ForceCodec(rawCodec{})),
+		grpc.WithBlock(),
+	}
+	if req.Authority != "" {
+		options = append(options, grpc.WithAuthority(req.Authority))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.config.TimeoutMs)*time.Millisecond)
 	defer cancel()
 
-	grpcConn, err := grpc.DialContext(ctx, req.Address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	grpcConn, err := grpc.DialContext(ctx, req.Address, options...)
 	if err != nil {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("dial failed: %v", err)})
 		return
 	}
 
-	s.conn = grpcConn
-	s.connAddr = req.Address
-	log.Printf("[edge-grpc] Connected to gRPC server: %s", req.Address)
+	md := metadata.New(nil)
+	for key, value := range req.Metadata {
+		md.Append(key, value)
+	}
+
+	s.mu.Lock()
+	if state.conn != nil {
+		_ = state.conn.Close()
+	}
+	for id, handle := range state.streams {
+		handle.cancel()
+		delete(state.streams, id)
+	}
+	state.conn = grpcConn
+	state.addr = req.Address
+	state.metadata = md
+	s.mu.Unlock()
+
+	log.Printf("[edge-grpc] Connected to gRPC server: %s (tls=%v)", req.Address, req.TLS != nil)
 	s.writeResponse(conn, Response{ID: req.ID, OK: true})
 }
 
-func (s *Server) handleDisconnect(conn net.Conn, req *Request) {
+func buildTLSCredentials(request *TLSRequest) (credentials.TransportCredentials, error) {
+	config := &tls.Config{
+		ServerName:         request.ServerName,
+		InsecureSkipVerify: request.InsecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
+	}
+	if request.CACert != "" {
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM([]byte(request.CACert)) {
+			return nil, errors.New("invalid CA certificate")
+		}
+		config.RootCAs = pool
+	}
+	if request.Cert != "" || request.Key != "" {
+		certificate, err := tls.X509KeyPair([]byte(request.Cert), []byte(request.Key))
+		if err != nil {
+			return nil, fmt.Errorf("invalid client certificate: %w", err)
+		}
+		config.Certificates = []tls.Certificate{certificate}
+	}
+	return credentials.NewTLS(config), nil
+}
+
+func (s *Server) handleDisconnect(conn net.Conn, state *clientState, req *Request) {
+	s.mu.Lock()
+	if state.conn != nil {
+		_ = state.conn.Close()
+		state.conn = nil
+		state.addr = ""
+		state.metadata = nil
+	}
+	for id, handle := range state.streams {
+		handle.cancel()
+		delete(state.streams, id)
+	}
+	s.mu.Unlock()
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+}
+
+// ── calls ────────────────────────────────────────────────────────────────
+
+func (s *Server) callContext(state *clientState, deadlineMs int) (context.Context, context.CancelFunc, int) {
+	deadline := deadlineMs
+	if deadline <= 0 {
+		deadline = s.config.TimeoutMs
+	}
+	if deadline > maxDeadlineMs {
+		deadline = maxDeadlineMs
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(deadline)*time.Millisecond)
+	if state.metadata != nil {
+		ctx = metadata.NewOutgoingContext(ctx, state.metadata)
+	}
+	return ctx, cancel, deadline
+}
+
+func (s *Server) connection(state *clientState) (*grpc.ClientConn, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if s.conn != nil {
-		s.conn.Close()
-		s.conn = nil
-		s.connAddr = ""
-	}
-	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+	return state.conn, state.conn != nil
 }
 
-// ── unary ────────────────────────────────────────────────────────────────
+func decodePayload(encoded string) ([]byte, error) {
+	payload, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base64: %w", err)
+	}
+	if len(payload) > maxPayloadBytes {
+		return nil, fmt.Errorf("payload exceeds %d bytes", maxPayloadBytes)
+	}
+	return payload, nil
+}
 
-func (s *Server) handleUnary(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	grpcConn := s.conn
-	s.mu.RUnlock()
+func validPath(path string) error {
+	// gRPC method paths are exactly /service/method.
+	parts := strings.Split(path, "/")
+	if len(parts) != 3 || parts[0] != "" || parts[1] == "" || parts[2] == "" {
+		return fmt.Errorf("invalid gRPC method path %q", path)
+	}
+	return nil
+}
 
-	if grpcConn == nil {
+func (s *Server) handleUnary(conn net.Conn, state *clientState, req *Request) {
+	if err := validPath(req.Path); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	payload, err := decodePayload(req.Payload)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	grpcConn, ok := s.connection(state)
+	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
 		return
 	}
 
-	payload, err := base64.StdEncoding.DecodeString(req.Payload)
-	if err != nil {
-		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
-		return
-	}
-
-	deadline := time.Duration(req.Deadline) * time.Millisecond
-	if deadline <= 0 {
-		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	ctx, cancel, _ := s.callContext(state, req.Deadline)
 	defer cancel()
 
-	var respData []byte
-	var respHeader, respTrailer metadata.MD
-
-	err = grpcConn.Invoke(ctx, req.Path, payload, &respData,
-		grpc.Header(&respHeader),
-		grpc.Trailer(&respTrailer),
-	)
+	var response []byte
+	err = grpcConn.Invoke(ctx, req.Path, &payload, &response)
 	if err != nil {
 		st := status.Convert(err)
-		s.writeResponse(conn, Response{
-			ID: req.ID, OK: false,
-			Error: st.Message(),
-			Code:  int(st.Code()),
-		})
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: st.Message(), Code: int(st.Code())})
 		return
 	}
-
-	s.writeResponse(conn, Response{
-		ID:   req.ID,
-		OK:   true,
-		Data: base64.StdEncoding.EncodeToString(respData),
-	})
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, Data: base64.StdEncoding.EncodeToString(response)})
 }
 
-// ── server_stream ────────────────────────────────────────────────────────
+func (s *Server) newStreamID() string {
+	return fmt.Sprintf("grpc-stream-%d", s.streamSeq.Add(1))
+}
 
-func (s *Server) handleServerStream(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	grpcConn := s.conn
-	s.mu.RUnlock()
+func (s *Server) registerStream(state *clientState, id string, handle *streamHandle) {
+	s.mu.Lock()
+	state.streams[id] = handle
+	s.mu.Unlock()
+}
 
-	if grpcConn == nil {
+func (s *Server) removeStream(state *clientState, id string) {
+	s.mu.Lock()
+	delete(state.streams, id)
+	s.mu.Unlock()
+}
+
+func (s *Server) handleServerStream(conn net.Conn, state *clientState, req *Request) {
+	if err := validPath(req.Path); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	payload, err := decodePayload(req.Payload)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	grpcConn, ok := s.connection(state)
+	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
 		return
 	}
 
-	payload, err := base64.StdEncoding.DecodeString(req.Payload)
-	if err != nil {
-		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
-		return
-	}
-
-	deadline := time.Duration(req.Deadline) * time.Millisecond
-	if deadline <= 0 {
-		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
-
+	ctx, cancel, _ := s.callContext(state, req.Deadline)
 	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
-		StreamName:    req.Path,
-		ServerStreams: true,
-		ClientStreams: false,
+		StreamName: req.Path, ServerStreams: true,
 	}, req.Path)
 	if err != nil {
 		cancel()
 		st := status.Convert(err)
-		s.writeResponse(conn, Response{
-			ID: req.ID, OK: false,
-			Error: st.Message(),
-			Code:  int(st.Code()),
-		})
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: st.Message(), Code: int(st.Code())})
 		return
 	}
-
-	if err := stream.SendMsg(payload); err != nil {
+	if err := stream.SendMsg(&payload); err != nil {
 		cancel()
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
 		return
 	}
-	stream.CloseSend()
+	_ = stream.CloseSend()
 
-	// Acknowledge stream creation
-	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
+	id := s.newStreamID()
+	s.registerStream(state, id, &streamHandle{stream: stream, cancel: cancel})
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: id})
 
-	// Read responses in background
 	go func() {
-		defer cancel()
+		defer func() {
+			cancel()
+			s.removeStream(state, id)
+		}()
 		for {
-			var msg []byte
-			if err := stream.RecvMsg(&msg); err != nil {
+			var message []byte
+			if err := stream.RecvMsg(&message); err != nil {
 				if err == io.EOF {
-					s.pushToAll(PushMessage{Type: "stream_end", StreamID: req.ID})
+					s.pushToConn(conn, PushMessage{Type: "stream_end", StreamID: id})
 				} else {
 					st := status.Convert(err)
-					s.pushToAll(PushMessage{
-						Type: "stream_error", StreamID: req.ID,
-						Error: st.Message(), Code: int(st.Code()),
-					})
+					s.pushToConn(conn, PushMessage{Type: "stream_error", StreamID: id, Error: st.Message(), Code: int(st.Code())})
 				}
 				return
 			}
-			s.pushToAll(PushMessage{
-				Type: "stream_data", StreamID: req.ID,
-				Payload: base64.StdEncoding.EncodeToString(msg),
-			})
+			s.pushToConn(conn, PushMessage{Type: "stream_data", StreamID: id, Payload: base64.StdEncoding.EncodeToString(message)})
 		}
 	}()
 }
 
-// ── client_stream ────────────────────────────────────────────────────────
-
-func (s *Server) handleClientStream(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	grpcConn := s.conn
-	s.mu.RUnlock()
-
-	if grpcConn == nil {
+func (s *Server) handleClientStream(conn net.Conn, state *clientState, req *Request) {
+	if err := validPath(req.Path); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	grpcConn, ok := s.connection(state)
+	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
 		return
 	}
 
-	deadline := time.Duration(req.Deadline) * time.Millisecond
-	if deadline <= 0 {
-		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
-
+	ctx, cancel, _ := s.callContext(state, req.Deadline)
 	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
-		StreamName:    req.Path,
-		ServerStreams: false,
-		ClientStreams: true,
+		StreamName: req.Path, ClientStreams: true,
 	}, req.Path)
 	if err != nil {
 		cancel()
 		st := status.Convert(err)
-		s.writeResponse(conn, Response{
-			ID: req.ID, OK: false,
-			Error: st.Message(), Code: int(st.Code()),
-		})
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: st.Message(), Code: int(st.Code())})
 		return
 	}
 
-	s.mu.Lock()
-	s.streams[req.ID] = streamHandle{stream: stream, cancel: cancel, ctx: ctx}
-	s.mu.Unlock()
+	id := s.newStreamID()
+	s.registerStream(state, id, &streamHandle{stream: stream, cancel: cancel})
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: id})
 
-	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
-
-	// Wait for close, then receive response
 	go func() {
 		defer func() {
 			cancel()
-			s.mu.Lock()
-			delete(s.streams, req.ID)
-			s.mu.Unlock()
+			s.removeStream(state, id)
 		}()
-
-		// Block until RecvMsg returns (stream closed by client)
-		var resp []byte
-		if err := stream.RecvMsg(&resp); err != nil {
+		var response []byte
+		if err := stream.RecvMsg(&response); err != nil {
 			st := status.Convert(err)
-			s.pushToAll(PushMessage{
-				Type: "stream_error", StreamID: req.ID,
-				Error: st.Message(), Code: int(st.Code()),
-			})
+			s.pushToConn(conn, PushMessage{Type: "stream_error", StreamID: id, Error: st.Message(), Code: int(st.Code())})
 			return
 		}
-		s.pushToAll(PushMessage{
-			Type: "stream_end", StreamID: req.ID,
-			Payload: base64.StdEncoding.EncodeToString(resp),
+		s.pushToConn(conn, PushMessage{
+			Type: "stream_end", StreamID: id,
+			Payload: base64.StdEncoding.EncodeToString(response),
 		})
 	}()
 }
 
-// ── bidi_stream ──────────────────────────────────────────────────────────
-
-func (s *Server) handleBidiStream(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	grpcConn := s.conn
-	s.mu.RUnlock()
-
-	if grpcConn == nil {
+func (s *Server) handleBidiStream(conn net.Conn, state *clientState, req *Request) {
+	if err := validPath(req.Path); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
+		return
+	}
+	grpcConn, ok := s.connection(state)
+	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
 		return
 	}
 
-	deadline := time.Duration(req.Deadline) * time.Millisecond
-	if deadline <= 0 {
-		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
-
+	ctx, cancel, _ := s.callContext(state, req.Deadline)
 	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
-		StreamName:    req.Path,
-		ServerStreams: true,
-		ClientStreams: true,
+		StreamName: req.Path, ServerStreams: true, ClientStreams: true,
 	}, req.Path)
 	if err != nil {
 		cancel()
 		st := status.Convert(err)
-		s.writeResponse(conn, Response{
-			ID: req.ID, OK: false,
-			Error: st.Message(), Code: int(st.Code()),
-		})
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: st.Message(), Code: int(st.Code())})
 		return
 	}
 
-	s.mu.Lock()
-	s.streams[req.ID] = streamHandle{stream: stream, cancel: cancel, ctx: ctx}
-	s.mu.Unlock()
+	id := s.newStreamID()
+	s.registerStream(state, id, &streamHandle{stream: stream, cancel: cancel})
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: id})
 
-	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
-
-	// Read responses in background
 	go func() {
 		defer func() {
 			cancel()
-			s.mu.Lock()
-			delete(s.streams, req.ID)
-			s.mu.Unlock()
+			s.removeStream(state, id)
 		}()
 		for {
-			var msg []byte
-			if err := stream.RecvMsg(&msg); err != nil {
+			var message []byte
+			if err := stream.RecvMsg(&message); err != nil {
 				if err == io.EOF {
-					s.pushToAll(PushMessage{Type: "stream_end", StreamID: req.ID})
+					s.pushToConn(conn, PushMessage{Type: "stream_end", StreamID: id})
 				} else {
 					st := status.Convert(err)
-					s.pushToAll(PushMessage{
-						Type: "stream_error", StreamID: req.ID,
-						Error: st.Message(), Code: int(st.Code()),
-					})
+					s.pushToConn(conn, PushMessage{Type: "stream_error", StreamID: id, Error: st.Message(), Code: int(st.Code())})
 				}
 				return
 			}
-			s.pushToAll(PushMessage{
-				Type: "stream_data", StreamID: req.ID,
-				Payload: base64.StdEncoding.EncodeToString(msg),
-			})
+			s.pushToConn(conn, PushMessage{Type: "stream_data", StreamID: id, Payload: base64.StdEncoding.EncodeToString(message)})
 		}
 	}()
 }
 
-// ── stream_send / stream_close ────────────────────────────────────────────
+// ── stream operations ────────────────────────────────────────────────────
 
-func (s *Server) handleStreamSend(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	sh, ok := s.streams[req.StreamID]
-	s.mu.RUnlock()
+func (s *Server) ownerStream(state *clientState, id string) (*streamHandle, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	handle, ok := state.streams[id]
+	return handle, ok
+}
 
+func (s *Server) handleStreamSend(conn net.Conn, state *clientState, req *Request) {
+	handle, ok := s.ownerStream(state, req.StreamID)
 	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "stream not found"})
 		return
 	}
-
-	payload, err := base64.StdEncoding.DecodeString(req.Payload)
+	payload, err := decodePayload(req.Payload)
 	if err != nil {
-		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: err.Error()})
 		return
 	}
-
-	if err := sh.stream.SendMsg(payload); err != nil {
+	if err := handle.stream.SendMsg(&payload); err != nil {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
 		return
 	}
-
 	s.writeResponse(conn, Response{ID: req.ID, OK: true})
 }
 
-func (s *Server) handleStreamClose(conn net.Conn, req *Request) {
-	s.mu.RLock()
-	sh, ok := s.streams[req.StreamID]
-	s.mu.RUnlock()
-
+func (s *Server) handleStreamClose(conn net.Conn, state *clientState, req *Request) {
+	handle, ok := s.ownerStream(state, req.StreamID)
 	if !ok {
 		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "stream not found"})
 		return
 	}
-
-	sh.stream.CloseSend()
+	if err := handle.stream.CloseSend(); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("close failed: %v", err)})
+		return
+	}
 	s.writeResponse(conn, Response{ID: req.ID, OK: true})
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-func (s *Server) writeResponse(conn net.Conn, resp Response) {
-	data, _ := json.Marshal(resp)
-	data = append(data, '\n')
-	conn.Write(data)
+func (s *Server) handleCancelStream(conn net.Conn, state *clientState, req *Request) {
+	handle, ok := s.ownerStream(state, req.StreamID)
+	if !ok {
+		s.writeResponse(conn, Response{ID: req.ID, OK: true})
+		return
+	}
+	handle.cancel()
+	s.removeStream(state, req.StreamID)
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
 }
 
-func (s *Server) pushToAll(msg PushMessage) {
-	data, _ := json.Marshal(msg)
-	data = append(data, '\n')
+// ── output ───────────────────────────────────────────────────────────────
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for conn := range s.clients {
-		conn.Write(data)
+func (s *Server) writeResponse(conn net.Conn, resp Response) {
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return
 	}
+	data = append(data, '\n')
+	_, _ = conn.Write(data)
+}
+
+func (s *Server) pushToConn(conn net.Conn, message PushMessage) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		return
+	}
+	data = append(data, '\n')
+	_, _ = conn.Write(data)
 }
 
 func getEnv(key, defaultVal string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
 	return defaultVal
 }
 
 func getEnvInt(key string, defaultVal int) int {
-	if v := os.Getenv(key); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
+	if value := os.Getenv(key); value != "" {
+		var parsed int
+		if _, err := fmt.Sscanf(value, "%d", &parsed); err == nil {
+			return parsed
 		}
 	}
 	return defaultVal

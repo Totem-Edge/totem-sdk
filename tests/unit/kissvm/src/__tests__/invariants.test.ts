@@ -18,7 +18,7 @@ import { buildAttestedTxPoWMetaScript } from '../templates/txpow.js';
 import { buildCapabilityScript } from '../templates/manifest.js';
 import { buildLinearRelease, buildCliffRelease } from '../templates/temporal.js';
 import { buildFeeAccrualScript, buildWithdrawalScript } from '../templates/liquidity-bond.js';
-import { buildRevealScript } from '../templates/industrial-action.js';
+import { buildRevealScript } from '../templates/act-core.js';
 import { buildMultiSigTreasuryScript } from '../templates/treasury.js';
 import { buildDistributionScript, buildRedemptionScript } from '../templates/rwa-lifecycle.js';
 import { buildDelegatedCredentialScript } from '../templates/recovery.js';

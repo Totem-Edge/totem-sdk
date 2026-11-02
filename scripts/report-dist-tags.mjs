@@ -3,8 +3,11 @@
  * Report npm dist-tag drift against the RFC-063 maturity/support-tier model.
  *
  * Usage:
- *   node scripts/report-dist-tags.mjs           # report only
- *   node scripts/report-dist-tags.mjs --check   # exit 1 on drift
+ *   node scripts/report-dist-tags.mjs                     # report only
+ *   node scripts/report-dist-tags.mjs --check             # exit 1 on drift
+ *   node scripts/report-dist-tags.mjs --check --package @totemsdk/edge
+ *                                                         # scope a publish job
+ *                                                         # to its own package
  *
  * This is intentionally read-only. Moving tags is a release action:
  *   npm dist-tag add <pkg>@<version> <tag>
@@ -31,9 +34,12 @@ function shortName(name) {
 
 function readTags(name) {
   try {
-    const out = execFileSync('npm', ['view', name, 'dist-tags', '--json'], {
+    // --prefer-online revalidates the cached packument. Without it a check that
+    // runs seconds after `npm publish` can read a stale dist-tag map and report
+    // the version it just published as missing.
+    const out = execFileSync('npm', ['view', name, 'dist-tags', '--json', '--prefer-online'], {
       encoding: 'utf8',
-      timeout: 15000,
+      timeout: 30000,
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     return JSON.parse(out);
@@ -42,8 +48,28 @@ function readTags(name) {
   }
 }
 
+// A publish job runs for exactly one package. Checking the whole workspace there
+// makes an unrelated package's drift fail an otherwise successful release; the
+// global `dist-tags.yml` workflow owns that check.
+const packageFlag = process.argv.indexOf('--package');
+const onlyPackage = packageFlag === -1 ? null : process.argv[packageFlag + 1];
+
+if (packageFlag !== -1 && !onlyPackage) {
+  console.error('✗ --package requires a package name');
+  process.exit(1);
+}
+
+const packages = onlyPackage
+  ? manifest.packages.filter((pkg) => pkg.name === onlyPackage)
+  : manifest.packages;
+
+if (onlyPackage && packages.length === 0) {
+  console.error(`✗ --package ${onlyPackage} is not in SDK_MANIFEST.json`);
+  process.exit(1);
+}
+
 const rows = [];
-for (const pkg of manifest.packages) {
+for (const pkg of packages) {
   const short = shortName(pkg.name);
   const meta = config.packages[`packages/${short}`] ?? {};
   const tier = meta.supportTier ?? 'outside';

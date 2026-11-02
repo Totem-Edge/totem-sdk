@@ -13,7 +13,7 @@
  * NegotiationEngine never sees sockets/topics/connection IDs.
  */
 
-import type { NegotiationMessage, NegotiationTransport, TransportMessageContext } from '@totemsdk/edge';
+import type { NegotiationMessage, NegotiationTransport } from '@totemsdk/edge';
 import type { EdgePubSubPort, EdgeStreamPort } from '@totemsdk/edge';
 
 // ─────────────────────────────────────────────────────────────────────────────

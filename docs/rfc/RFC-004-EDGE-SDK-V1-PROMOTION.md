@@ -6,6 +6,11 @@
 **Authors:** Totem SDK Contributors  
 **Reviewers:** [Pending stakeholder assignment]
 
+> Package maturity is now generated in [`docs/maturity.md`](../maturity.md) from
+> `scripts/workspace-gates.config.json`. The tables below record the original
+> promotion plan; later qualifications (for example `edge-coap` v1) are
+> authoritative in the generated matrix.
+
 ---
 
 ## 1. Summary
@@ -190,7 +195,7 @@ Packages needing real-system integration, adversarial testing, and persistence v
 | `@totemsdk/statechain` | Threat-model tests, replay/nonce attacks, co-signer compromise, withdrawal/ownership transfer E2E | High | ✅ RC |
 | `@totemsdk/se-server` | Auth, secrets-at-rest, rotation, replay resistance, multi-client concurrency | High | ✅ RC |
 | `@totemsdk/tx-builder` | Coin selection, fees/change, token conservation, WOTS signing, malformed proof, Minima acceptance | High | ✅ RC |
-| `@totemsdk/industrial-action` | Two-phase/idempotent execution, cryptographic authority proof binding, retry/timeout/rollback | High | ✅ RC |
+| `@totemsdk/act-core` | Two-phase/idempotent execution, cryptographic authority proof binding, retry/timeout/rollback | High | ✅ RC |
 | `@totemsdk/omnia-host` | RPC auth/authorization, SQLite migration/recovery, request-bound idempotency, crash tests | High | ✅ RC |
 | `@totemsdk/minima-rpc` | Live Minima server contract suite, TLS error cases, malformed RPC responses, timeout/cancellation | Medium | ✅ RC |
 | `@totemsdk/pear` | Actual Bare/Pear runtime CI, native environment edge cases, packed consumer tests | Medium | ✅ RC |
@@ -294,7 +299,7 @@ Ship after Omnia base covenant defects are resolved:
 - Edge integration: edge-mqtt
 - Trust: governance, agent-policy, recursive-mast
 - Networking: lookup-node, minima-rpc, realtime, stream-transport, pubsub-transport
-- Settlement: liquidity-bond, provider-bond, omnia-router, omnia-factory, omnia-splice, omnia-vtxo, statechain, se-server, tx-builder, industrial-action, omnia-host
+- Settlement: liquidity-bond, provider-bond, omnia-router, omnia-factory, omnia-splice, omnia-vtxo, statechain, se-server, tx-builder, act-core, omnia-host
 - Infrastructure: pear, mcp-server
 
 ### Phase 3: Wave 3 protocol qualification (11 packages)
@@ -360,7 +365,7 @@ Ship after native packaging and real-system integration:
 | se-server | RC | 2 |
 | liquidity-bond | RC | 2 |
 | provider-bond | RC | 2 |
-| industrial-action | RC | 2 |
+| act-core | RC | 2 |
 | omnia-host | RC | 2 |
 
 ### Sovereignty/Networking (12 packages)

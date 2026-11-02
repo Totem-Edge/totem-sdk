@@ -394,3 +394,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-email/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+Email simulator integration: `npm run test:integration` exercises mailboxes, search, flags, new-message proofs, bridge polling and failures against an injected transport. Real SMTP/IMAP wire behaviour is not claimed.

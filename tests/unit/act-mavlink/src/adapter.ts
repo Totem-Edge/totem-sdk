@@ -1,0 +1,1 @@
+../../../../packages/act-mavlink/src/adapter.ts

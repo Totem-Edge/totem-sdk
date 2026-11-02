@@ -26,6 +26,7 @@ import { detectHawkPairing, storeHawkInvitation } from '../../../core/providers/
 import { useTheme } from '../../theme/useTheme';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import { getExtensionVersion } from '../../shared/extensionVersion';
+import { getServiceVersionInfo, formatVersionLine } from '../../../shared/apiVersion';
 import { ConnectedSites } from './ConnectedSites';
 import '../../theme/axia-tokens.css';
 
@@ -149,6 +150,21 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
   });
   const [quotaLoading, setQuotaLoading] = useState<boolean>(true);
   const [walletLocked, setWalletLocked] = useState<boolean>(true);
+  const [serviceVersion, setServiceVersion] = useState<{ api: string; schema: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getServiceVersionInfo()
+      .then((info) => {
+        if (!cancelled) setServiceVersion({ api: info.api, schema: info.schema });
+      })
+      .catch(() => {
+        /* diagnostics only — never block Settings */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   // WOTS Health state
   const [wotsHealth, setWotsHealth] = useState<WotsHealthData | null>(null);
@@ -1631,6 +1647,11 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
             <Typography variant="caption" style={{ opacity: 0.7, fontSize: 'var(--text-2xs)' }}>
               Totem Wallet v{getExtensionVersion()}
             </Typography>
+            {serviceVersion && (
+              <Typography variant="caption" style={{ opacity: 0.55, fontSize: 'var(--text-2xs)', marginTop: '2px' }}>
+                {formatVersionLine(serviceVersion)}
+              </Typography>
+            )}
           </div>
         </div>}
       </Card>

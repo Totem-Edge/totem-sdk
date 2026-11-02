@@ -278,7 +278,10 @@ function ensurePrerequisiteBuilds(labelPrefix) {
 
 function packageHasTestFiles(pkgDir, workspaceDir = '') {
   const candidates = ['src/__tests__', 'test', '__tests__', 'src/test'];
-  if (workspaceDir) candidates.push(`../../tests/unit/${workspaceDir.split('/').pop()}`);
+  if (workspaceDir) {
+    const external = join(ROOT, 'tests', 'unit', workspaceDir.split('/').pop());
+    if (existsSync(external)) return true;
+  }
   for (const c of candidates) {
     const full = join(pkgDir, c);
     if (existsSync(full)) {
@@ -316,6 +319,43 @@ if (STALE_CONFIG.length > 0) {
     results.push({ label: `${dir}: stale config entry`, ok: false });
   }
   process.stdout.write('\n');
+}
+
+// 0a. Qualification registry: v1 packages must have reviewed external evidence.
+const REGISTRY_PATH = join(ROOT, 'qualification', 'registry.json');
+if (maturityLevel === 'v1' && existsSync(REGISTRY_PATH)) {
+  const registry = JSON.parse(readFileSync(REGISTRY_PATH, 'utf8'));
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
+    const manifest = readPackageManifest(dir);
+    if (!manifest?.name) continue;
+    const entry = registry.packages?.[manifest.name];
+    if (!entry) {
+      failures += 1;
+      results.push({ label: `${dir}: missing qualification registry entry`, ok: false });
+      process.stdout.write(`FAIL: ${dir}: missing qualification registry entry\n`);
+      continue;
+    }
+    if (typeof entry.owner !== 'string' || !entry.owner.trim()) {
+      failures += 1;
+      results.push({ label: `${dir}: qualification owner missing`, ok: false });
+    }
+    const profiles = entry.profiles && typeof entry.profiles === 'object' ? Object.entries(entry.profiles) : [];
+    if (profiles.length === 0) {
+      failures += 1;
+      results.push({ label: `${dir}: no qualification profile`, ok: false });
+    }
+    for (const [profile, suites] of profiles) {
+      const commands = suites && typeof suites === 'object' ? Object.values(suites) : [];
+      if (commands.length === 0 || commands.some((c) => typeof c !== 'string' || !c.trim())) {
+        failures += 1;
+        results.push({ label: `${dir}: invalid qualification profile '${profile}'`, ok: false });
+      }
+    }
+    if (!Array.isArray(entry.limitations)) {
+      failures += 1;
+      results.push({ label: `${dir}: qualification limitations must be an array`, ok: false });
+    }
+  }
 }
 
 // 0b. Fail-closed evidence: every selected package must declare the scripts

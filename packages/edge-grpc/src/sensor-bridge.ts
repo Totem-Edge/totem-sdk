@@ -3,7 +3,7 @@
  */
 
 import type { EdgeRuntime } from '@totemsdk/edge';
-import type { GrpcTransportPort, GrpcMessage } from './transport.js';
+import type { GrpcTransportPort } from './transport.js';
 import type { GrpcGateway } from './gateway.js';
 
 export interface GrpcSensorBinding {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button } from '../../components/atoms';
 import { ReceiveModal } from '../../components/molecules';
-import { formatAmount, parseTokenImageUrl } from '../../../constants';
+import { formatAmount, formatTokenAmount, parseTokenImageUrl } from '../../../constants';
 import { NavTab } from '../../components/organisms';
 import { getApiBase, getProjectId } from '../../../core/api/base';
 import '../../theme/axia-tokens.css';
@@ -77,9 +77,9 @@ export function BrutalistTokenDetail({ token, onNavigate, onSendToken, onBack }:
   const isVerified = !!token.webvalidate;
   const displayName = token.ticker || token.tokenName;
   const hasUnconfirmed = token.unconfirmed && token.unconfirmed !== '0';
-  const formattedBalance = formatAmount(token.balance, Math.min(token.decimals ?? 4, 8));
-  const formattedSendable = token.sendable ? formatAmount(token.sendable, Math.min(token.decimals ?? 4, 8)) : formattedBalance;
-  const formattedUnconfirmed = hasUnconfirmed ? formatAmount(token.unconfirmed!, 4) : null;
+  const formattedBalance = formatTokenAmount(token.balance, token.decimals ?? 4);
+  const formattedSendable = token.sendable ? formatTokenAmount(token.sendable, token.decimals ?? 4) : formattedBalance;
+  const formattedUnconfirmed = hasUnconfirmed ? formatTokenAmount(token.unconfirmed!, token.decimals ?? 4) : null;
 
   const initialArtworkUrl = parseTokenImageUrl(token.icon) || parseTokenImageUrl(token.url) || parseTokenImageUrl(token.artimage);
   const [artworkUrl, setArtworkUrl] = useState<string | undefined>(initialArtworkUrl);

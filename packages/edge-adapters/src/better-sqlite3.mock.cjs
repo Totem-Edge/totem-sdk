@@ -8,8 +8,6 @@
  * SQLiteCommerceStore onto `DatabaseSync`.
  */
 
-/* eslint-disable @typescript-eslint/no-var-requires */
-
 const { DatabaseSync } = require('node:sqlite');
 
 const toBuffer = (v) => (v instanceof Uint8Array ? Buffer.from(v) : v);

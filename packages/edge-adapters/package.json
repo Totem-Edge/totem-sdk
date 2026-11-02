@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-adapters",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Reference adapters bridging Totem SDK packages to @totemsdk/edge port interfaces",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -20,7 +20,8 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest --config ../../tests/jest/edge-adapters.cjs"
+    "test": "jest --config ../../tests/jest/edge-adapters.cjs",
+    "test:integration": "jest --config ../../tests/jest/edge-adapters.cjs --testPathPatterns=\"two-machine.e2e|commerce-store.conformance\""
   },
   "files": [
     "dist",
@@ -34,9 +35,11 @@
   "peerDependencies": {
     "@totemsdk/agent-policy": ">=0.3.1 <1.0.0",
     "@totemsdk/chain-provider": ">=0.2.1 <1.0.0",
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/edge": "workspace:^",
     "@totemsdk/identity": "workspace:^",
-    "@totemsdk/lookup-client": ">=0.2.0 <1.0.0",
     "@totemsdk/location-proof": "workspace:^",
+    "@totemsdk/lookup-client": ">=0.2.0 <1.0.0",
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/omnia-router": ">=0.3.0 <1.0.0",
     "@totemsdk/proof": "workspace:^",

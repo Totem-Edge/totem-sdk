@@ -31,8 +31,16 @@ export function getStateBool(
   fallback = false,
 ): boolean {
   const value = getStateValue(state, port)?.value;
-  if (value === undefined) return fallback;
-  return Boolean(value);
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'bigint') return value !== 0n;
+  if (typeof value === 'number') return value !== 0;
+  const text = String(value).trim().toLowerCase();
+  if (text === 'true' || text === '1') return true;
+  if (text === 'false' || text === '0') return false;
+  // Unknown representation: fail closed to the caller's default rather than
+  // letting Boolean("false") === true invert a flag.
+  return fallback;
 }
 
 export function getStateHex(

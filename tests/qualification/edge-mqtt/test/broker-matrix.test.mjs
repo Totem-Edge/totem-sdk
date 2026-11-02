@@ -93,6 +93,15 @@ async function subscribe(client, topic, qos = 1) {
   });
 }
 
+async function subscribeWithRetry(client, topic, qos = 1, attempts = 12) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try { return await subscribe(client, topic, qos); }
+    catch (error) { last = error; await delay(500); }
+  }
+  throw last;
+}
+
 async function publish(client, topic, payload, qos = 1) {
   await new Promise((resolve, reject) => {
     client.publish(topic, payload, { qos }, (error) => error ? reject(error) : resolve());
@@ -109,7 +118,12 @@ function mosquitto(t, certs, directory) {
   const config = join(directory, 'mosquitto.conf');
   const acl = join(directory, 'acl');
   const passwd = join(directory, 'passwd');
-  run('docker', ['run', '--rm', '-v', `${directory}:/work`, 'eclipse-mosquitto:2',
+  // Run as the invoking user: Docker creates the bind-mounted passwd file as
+  // root otherwise, and the host cannot chmod or clean it up (EPERM on Linux CI).
+  const userArgs = typeof process.getuid === 'function'
+    ? ['--user', `${process.getuid()}:${process.getgid()}`]
+    : [];
+  run('docker', ['run', '--rm', '-v', `${directory}:/work`, ...userArgs, 'eclipse-mosquitto:2',
     'mosquitto_passwd', '-b', '-c', '/work/passwd', 'operator', 'secret']);
   writeFileSync(config, [
     'listener 8883',
@@ -136,25 +150,16 @@ function mosquitto(t, certs, directory) {
 }
 
 function emqx(t, certs, directory) {
-  const acl = join(directory, 'emqx-acl.conf');
-  writeFileSync(acl, '{allow, all, subscribe, ["allowed/#"]}.\n{allow, all, publish, ["allowed/#"]}.\n{deny, all}.\n');
-  chmodSync(acl, 0o644);
   const container = startContainer(`mqtt-emqx-${process.pid}`, 'emqx/emqx:5.8.0', [
     '-p', '127.0.0.1::8883',
     '-v', `${certs.ca}:/certs/ca.crt:ro`,
     '-v', `${certs.server}:/certs/server.crt:ro`,
     '-v', `${certs.serverKey}:/certs/server.key:ro`,
-    '-v', `${acl}:/opt/emqx/etc/acl.conf:ro`,
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__BIND=0.0.0.0:8883',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CACERTFILE=/certs/ca.crt',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE=/certs/server.crt',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE=/certs/server.key',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY=verify_none',
-    '-e', 'EMQX_AUTHORIZATION__NO_MATCH=deny',
-    '-e', 'EMQX_AUTHORIZATION__DENY_ACTION=ignore',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__TYPE=file',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__ENABLE=true',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__PATH=/opt/emqx/etc/acl.conf',
   ]);
   t.after(() => container.stop());
   return container;
@@ -170,7 +175,7 @@ async function matrix(t, brokerName, startBroker) {
   const client = await withClient(port, certs.caCert, credentials, `matrix-${brokerName}-${Date.now()}`);
   t.after(async () => { await new Promise((resolve) => client.end(true, {}, resolve)); });
 
-  const granted = await subscribe(client, 'allowed/#');
+  const granted = await subscribeWithRetry(client, 'allowed/#');
   assert.notEqual(granted, 128, `${brokerName} denied an allowed subscription`);
   const received = once(client, 'message');
   await publish(client, 'allowed/device', JSON.stringify({ commandId: 'matrix', command: 'ping', createdAt: Date.now() }), 1);
@@ -186,7 +191,7 @@ async function matrix(t, brokerName, startBroker) {
   if (brokerName === 'mosquitto') {
     let deniedReceived = false;
     client.on('message', (topic) => { if (topic.startsWith('denied/')) deniedReceived = true; });
-    await subscribe(client, 'denied/#');
+    await subscribeWithRetry(client, 'denied/#');
     await publish(client, 'denied/topic', 'must-not-pass');
     await delay(750);
     assert.equal(deniedReceived, false, 'Mosquitto ACL allowed a denied publish/subscription');

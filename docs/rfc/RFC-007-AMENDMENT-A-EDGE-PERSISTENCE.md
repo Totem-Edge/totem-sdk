@@ -18,7 +18,7 @@ RFC-007 defines the storage contracts but leaves three things under-specified:
 
 1. **No standard persistence injection point** for edge adapters, so adapters invent
    local stores. Several already inject `StorageAdapter`/`CasStore` ad hoc
-   (`industrial-action/src/{approvals,events,locks}.ts`, `edge-mqtt/src/durable-queue.ts`).
+   (`act-core/src/{approvals,events,locks}.ts`, `edge-mqtt/src/durable-queue.ts`).
 2. **No observable corruption policy.** `failurePolicy` is a private option on
    `FileStore`/`SqliteStore`/`IdbStore` (`file-store.ts:154`, `sqlite-store.ts:112`,
    `idb-store.ts:66`); a consumer cannot verify the policy of an injected adapter
@@ -387,7 +387,7 @@ Selection rule — adopt `ArtifactStore` only where all hold:
 | **done** | `proofgraph` — `createProofGraphEvidenceStore(artifacts, index, …)` (`packages/proofgraph/src/evidence.ts:74`) | Evidence bytes for raster/spatial/location/integritas claims; flight-provenance chain | **Reference consumer** | Keystone: domains route evidence through it; do not open parallel stores. |
 | **A1** | `edge-adapters` — Edge artifact cache | Edge-adjacent cached bytes | **First consumer of the injection point** | Must not depend on `@totemsdk/edge`. |
 | **A3/P1** | `@totemsdk/edge` ↔ `@totemsdk/qvac` — generated inference outputs | TTS audio, `audioGen`, `video`, diffusion/upscale images (`intelligence/src/types.ts:162-166`) | **New consumer, highest value** | Provider-owned RAG/model caches stay behind QVAC ops; only Totem-generated outputs are retained, with the ref recorded in the existing usage journal/KV. |
-| **P2** | `industrial-action` — work-order attachments, inspection media, receipt PDFs (`industrial-receipt.ts`, `edge-adapter.ts`) | Evidence media attached to lifecycle records | **New consumer** | Lifecycle record stays in `ActionStorage`; only bytes go to `ArtifactStore`, referenced by digest. Strict. |
+| **P2** | `act-core` — work-order attachments, inspection media, receipt PDFs (`industrial-receipt.ts`, `edge-adapter.ts`) | Evidence media attached to lifecycle records | **New consumer** | Lifecycle record stays in `ActionStorage`; only bytes go to `ArtifactStore`, referenced by digest. Strict. |
 | **P2** | `proof-integritas` — `report:pdf` output | PDF attestation reports | **New consumer (narrow)** | Provider produces; Totem retains. Strict if used as evidence; external `uri` may coexist. |
 | **P3** | Firmware image distribution (`kissvm/templates/firmware-update.ts` hash only) | Firmware binaries | **Candidate domain** | Needs a domain owner package before adoption; large, content-addressed, integrity-bearing. |
 | **Evaluate** | `recursive-mast` `encrypted-branch.ts` / `branch-capsule.ts` | Encrypted branch capsules | Probably KV | Move only if capsules carry large encrypted payloads. |
@@ -401,7 +401,7 @@ template-only concern (KISSVM templates commit hashes, they do not retain bytes)
 
 **Consumer priority.** ProofGraph is the anchor. The Edge cache is the injection
 point's first consumer. Generated inference outputs are the highest-value next one,
-then `industrial-action` evidence and Integritas reports. The proof primitives stay
+then `act-core` evidence and Integritas reports. The proof primitives stay
 storage-free and route through ProofGraph. Everything else stays on KV/CAS/Journal or
 behind provider ops.
 
@@ -731,5 +731,5 @@ No implementation until explicitly approved. When approved, the landing is:
 - `packages/proofgraph/src/evidence.ts` (`createProofGraphEvidenceStore`).
 - `packages/{raster,spatial,location}-proof`, `packages/proof-integritas`.
 - `packages/intelligence/src/types.ts` (stream chunks), `packages/qvac/src/api-snapshot.ts`.
-- Integration precedent: `packages/industrial-action/src/{approvals,events,locks}.ts`,
+- Integration precedent: `packages/act-core/src/{approvals,events,locks}.ts`,
   `packages/edge-mqtt/src/durable-queue.ts`.

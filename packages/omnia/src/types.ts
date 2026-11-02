@@ -128,6 +128,8 @@ export interface UnilateralCloseState {
   contestDeadlineBlock: number;
   status: 'update_broadcast' | 'settlement_broadcast';
   updateTxpowId?: string;
+  /** Coin id of the broadcast update output (the contest clock starts at its block). */
+  updateCoinId?: string;
   settlementTxpowId?: string;
 }
 

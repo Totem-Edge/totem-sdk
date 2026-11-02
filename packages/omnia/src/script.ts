@@ -42,17 +42,36 @@ function kissHex(hex: string): string {
  */
 export function buildEltooScript(
   parties: ChannelParticipant[],
-  contestDelayBlocks: number = ELTOO_CONTEST_DELAY_BLOCKS,
+  contestDelayBlocks: number | bigint = ELTOO_CONTEST_DELAY_BLOCKS,
 ): string {
+  if (!Array.isArray(parties)) {
+    throw new Error(`parties must be an array of channel participants, got ${parties === null ? 'null' : typeof parties}`);
+  }
   if (parties.length !== 2) {
     throw new Error(`v0.1.0 supports exactly 2 parties, got ${parties.length}`);
   }
-  if (!Number.isInteger(contestDelayBlocks) || contestDelayBlocks < 0) {
-    throw new Error(`contestDelayBlocks must be a non-negative integer, got ${contestDelayBlocks}`);
+  parties.forEach((party, index) => {
+    if (typeof party !== 'object' || party === null) {
+      throw new Error(`parties[${index}] must be a channel participant object`);
+    }
+    if (typeof party.publicKeyDigest !== 'string') {
+      throw new Error(`parties[${index}].publicKeyDigest must be a 64-hex string`);
+    }
+  });
+  // Block heights are bigint elsewhere in the SDK; accept either here and emit a
+  // decimal number so the script stays indexable by the node.
+  const delay = typeof contestDelayBlocks === 'bigint' ? Number(contestDelayBlocks) : contestDelayBlocks;
+  if (!Number.isSafeInteger(delay) || delay < 0) {
+    throw new Error(`contestDelayBlocks must be a safe non-negative integer, got ${String(contestDelayBlocks)}`);
   }
   const [a, b] = parties;
   const pkA = kissHex(a.publicKeyDigest);
   const pkB = kissHex(b.publicKeyDigest);
+  if (pkA === pkB) {
+    // MULTISIG(2 A A) is satisfiable by a single signature of A, so a duplicate
+    // key silently collapses the 2-of-2 spend constraint to 1-of-1.
+    throw new Error('parties must have distinct publicKeyDigest values; a duplicate key collapses MULTISIG(2) to 1-of-1');
+  }
 
   const script = [
     'LET SETTLEMENT=STATE(100)',
@@ -62,7 +81,7 @@ export function buildEltooScript(
     'IF SETTLEMENT THEN',
     '    ASSERT BOTHSIGNED',
     '    ASSERT SEQUENCE EQ PREVSEQUENCE',
-    `    ASSERT @COINAGE GTE ${contestDelayBlocks}`,
+    `    ASSERT @COINAGE GTE ${delay}`,
     '    RETURN TRUE',
     'ENDIF',
     'ASSERT BOTHSIGNED',

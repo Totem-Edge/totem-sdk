@@ -1,0 +1,1 @@
+../../../../packages/edge-gnss/src/sensor-bridge.ts
