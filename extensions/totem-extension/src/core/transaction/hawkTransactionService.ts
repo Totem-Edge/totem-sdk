@@ -214,9 +214,36 @@ export class HawkTransactionService {
 
     try {
       await client.txnImport(hex, id);
+      const check = await client.txnCheck(id);
+      if (check && check.valid === false) {
+        throw new Error(
+          `Node rejected transaction ${id}: ${JSON.stringify(check).slice(0, 400)}`,
+        );
+      }
       const posted = await client.txnPost({ id, mine: true });
       const txpowid = posted?.txpowid;
       if (!txpowid) throw new Error('txnpost returned no txpowid');
+
+      // Do not report success unless the node actually holds the TxPoW. A
+      // rejected transaction can still produce an id in the response.
+      let observed = false;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        try {
+          const found = await client.runCommand('txpow', { txpowid });
+          if (found) {
+            observed = true;
+            break;
+          }
+        } catch {
+          // keep polling; the node may still be mining
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      if (!observed) {
+        throw new Error(
+          `Node accepted txnpost but TxPoW ${txpowid} is not on-chain: ${JSON.stringify(posted).slice(0, 1200)}`,
+        );
+      }
       if (lease) await leaseStore.updateStatus(lease.leaseId, 'finalized');
 
       TxSignLogger.info('Hawk transaction finalized', { txpowid, leaseId, id });

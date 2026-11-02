@@ -6,6 +6,30 @@
 import { getApiBase, getApiBypassBase, getProjectId } from '../api/base';
 import { TxSignLogger, TxSendLogger } from './TxLogger';
 
+/**
+ * RFC-013 / RFC-073: when a consented local Hawk node is configured, the
+ * transaction backend must use it for lease, proofs, and finalize instead of
+ * the Axia REST endpoints. Keep the import dynamic so Axia-only builds/tests
+ * do not pull in the node RPC surface.
+ */
+async function useHawkBackend(): Promise<boolean> {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local?.getTyped) {
+      // Unit-test / non-extension environments have no typed storage; Axia is
+      // the default there.
+      return false;
+    }
+    const { isHawkTransactionMode } = await import('../providers/activeNode');
+    return await isHawkTransactionMode();
+  } catch (error) {
+    console.warn(
+      '[TransactionService] Hawk mode check failed; using the Axia backend',
+      error,
+    );
+    return false;
+  }
+}
+
 export interface PrepareRequest {
   to?: string;
   amount?: string;
@@ -130,6 +154,10 @@ export class TransactionService {
    * Step 1: Request WOTS lease from Axia API
    */
   static async prepare(params: PrepareRequest, rootPublicKey: string): Promise<PrepareResponse> {
+    if (await useHawkBackend()) {
+      const { HawkTransactionService } = await import('./hawkTransactionService');
+      return HawkTransactionService.prepare(params, rootPublicKey);
+    }
     const startTime = performance.now();
     const base = await getApiBase();
     const projectId = await getProjectId();
@@ -333,6 +361,10 @@ export class TransactionService {
    * Step 3: Finalize transaction with Axia API
    */
   static async finalize(params: FinalizeRequest): Promise<FinalizeResponse> {
+    if (await useHawkBackend()) {
+      const { HawkTransactionService } = await import('./hawkTransactionService');
+      return HawkTransactionService.finalize(params);
+    }
     const startTime = performance.now();
     // Use bypass URL to avoid Cloudflare WAF blocking large transaction payloads
     // The bypass subdomain (api2.axia.to) is DNS-only, routing directly to Render
@@ -408,6 +440,10 @@ export class TransactionService {
    * @returns Array of CoinProof hex strings (in order of coinIds)
    */
   static async fetchCoinProofs(leaseToken: string, coinIds: string[]): Promise<string[]> {
+    if (await useHawkBackend()) {
+      const { HawkTransactionService } = await import('./hawkTransactionService');
+      return HawkTransactionService.fetchCoinProofs(leaseToken, coinIds);
+    }
     const startTime = performance.now();
     const base = await getApiBase();
     const projectId = await getProjectId();

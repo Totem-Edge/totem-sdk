@@ -29,6 +29,56 @@ npm install @totemsdk/tx-builder @noble/hashes
 | `MultisigConfig` | Configuration for `'2of2'` or `'mofn'` multi-sig (`threshold`, `publicKeys`, `ownPublicKey`) |
 | `PendingMultisigTransaction` | A multi-sig transaction awaiting co-signatures |
 
+### Local transaction + witness assembly
+
+| Export | What it does |
+|--------|-------------|
+| `buildTransaction(params)` | Build a `MinimaTransaction` locally from `EnhancedBuildParams` |
+| `serializeWitness(wots, coinProofs, descriptors)` | Full witness: signatures + coin proofs + script proofs |
+| `serializeForTxnImport(txId, tx, witness)` | `MiniString(id) + Transaction + Witness` for `txnimport` |
+| `buildScriptProof(script)` | Node-equivalent single-script `ScriptProof` |
+| `scriptAddress(script)` | Node-equivalent script address (hex data) |
+| `transactionSigningDigestHex(params)` | Digest a local signer must sign |
+
+### HTLC helpers
+
+| Export | What it does |
+|--------|-------------|
+| `buildHtlcFundingOutput(parties, amount, tokenId?)` | HTLC script/address + funding output |
+| `buildHtlcClaim(params)` | Claim params with preimage as transaction state port 1 (`hex`) |
+| `buildHtlcRefund(params)` | Timout refund params (no preimage state) |
+
+### Optional node-side assembly
+
+| Export | What it does |
+|--------|-------------|
+| `assembleViaNode(client, params)` | `txncreate → txninput(scriptmmr) → txnoutput → txnstate → txnbasics → txnpost → txndelete` |
+
+`assembleViaNode` is for a local/paired node. The edge path is
+`buildTransaction` + `serializeWitness` + local signing.
+
+### Coin providers, fee/change, signing, submit (P1)
+
+| Export | What it does |
+|--------|-------------|
+| `fromChainProvider(provider)` | Adapt `@totemsdk/chain-provider` to a `CoinProvider` |
+| `fromMinimaRpc(client)` | Adapt a raw `MinimaRpcClient` (Hawk/local node) |
+| `buildFundedPayment(params)` | Select coins, add a fee coin, build outputs + change |
+| `signAndSerialize(params, signer, txId)` | Build → sign digest → witness → TxnRow |
+| `reserveSigningIndices` / `commitSigningReservation` / `releaseSigningReservation` | WOTS lease lifecycle |
+| `signWithLease(...)` | Reserve → local sign → return reservation |
+| `dryRunViaNode(client, txnId)` | `txncheck` before signing/posting |
+| `submitSignedTxn(client, {txnId, txnRowHex})` | `txnimport` → `txnpost` |
+| `submitTxnId(client, txnId)` | `txnpost` an imported txn |
+| `submitTxPoW(provider, txpowHex)` | Chain-provider broadcast |
+| `mineTransaction({transaction, witness})` | Serialize + mine a TxPoW (`@totemsdk/txpow`) |
+| `mineAndSubmitTxPoW(params, provider)` | Mine + broadcast |
+| `createRawNodeCommandClient(config)` | Text/plain node transport that preserves script spaces |
+
+`buildFundedPayment` returns `EnhancedBuildParams` plus the selected coins,
+change, and fee coin. Token payments select a separate native fee coin and
+return it as change.
+
 ### Transaction types
 
 | Export | What it does |

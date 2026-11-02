@@ -25,6 +25,7 @@ import type { ExternalSignature } from './types/ScriptTypes';
 import { TransactionService } from './service';
 import { isHawkTransactionMode } from '../providers/activeNode';
 import { walletManager } from '../wallet';
+import { mxToHex } from '../utils/minima-base32';
 
 function toHex(bytes: Uint8Array): string {
   return '0x' + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -37,6 +38,17 @@ function strip0x(value: string): string {
 function ensure0x(value: string): string {
   if (!value) return value;
   return value.startsWith('0x') || value.startsWith('0X') ? value : `0x${value}`;
+}
+
+/**
+ * The transaction builder and wallet ownership checks operate on 0x addresses.
+ * dApps commonly pass Minima `Mx…` addresses (for example, the fee coin from
+ * TOTEM_GET_COINS), so normalize those before the builder sees them.
+ */
+function ensureAddressHex(value: string): string {
+  if (!value) return value;
+  if (value.startsWith('Mx') || value.startsWith('mx')) return mxToHex(value);
+  return ensure0x(value);
 }
 
 function proofHexFrom(value: any): string | undefined {
@@ -52,7 +64,7 @@ function proofHexFrom(value: any): string | undefined {
 
 function mapInput(input: any): EnhancedCoinInput {
   const descriptor = input?.scriptDescriptor ?? {};
-  const address = ensure0x(input.address);
+  const address = ensureAddressHex(input.address);
   const extraScripts =
     descriptor.extraScripts && !(descriptor.extraScripts instanceof Map)
       ? new Map<string, string>(Object.entries(descriptor.extraScripts as Record<string, string>))
@@ -74,7 +86,7 @@ function mapInput(input: any): EnhancedCoinInput {
 
 function mapOutput(output: any): EnhancedCoinOutput {
   return {
-    address: ensure0x(output.address),
+    address: ensureAddressHex(output.address),
     amount: String(output.amount),
     tokenId: ensure0x(output.tokenId || '0x00'),
     ...(output.storeState !== undefined ? { storeState: output.storeState } : {}),
@@ -90,11 +102,38 @@ function toEnhancedParams(buildParams: any): EnhancedBuildParams {
     throw new Error('buildParams.outputs must be a non-empty array');
   }
 
+  const inputs = buildParams.inputs.map(mapInput);
+
+  // `STATE(n)` reads the transaction's new state, not the spent coin's state.
+  // HTLC descriptors carry the preimage in `stateVariables`; lift those into
+  // `transactionState` so the HTLC script can check SHA3(STATE(1)).
+  const stateByPort = new Map<number, any>();
+  if (Array.isArray(buildParams.transactionState)) {
+    for (const sv of buildParams.transactionState) stateByPort.set(Number(sv.port), sv);
+  }
+  for (const input of inputs) {
+    const descriptor = input.scriptDescriptor as any;
+    if (
+      descriptor?.scriptType === 'htlc' &&
+      Array.isArray(descriptor.stateVariables)
+    ) {
+      for (const sv of descriptor.stateVariables) {
+        const port = Number(sv.port);
+        if (!stateByPort.has(port)) {
+          // The installed @totemsdk/core may encode the preimage as a string;
+          // the script hashes raw bytes, so force hex for HTLC state.
+          stateByPort.set(port, { ...sv, type: sv.type === 'string' ? 'hex' : sv.type });
+        }
+      }
+      delete descriptor.stateVariables;
+    }
+  }
+
   return {
-    inputs: buildParams.inputs.map(mapInput),
+    inputs,
     outputs: buildParams.outputs.map(mapOutput),
-    ...(Array.isArray(buildParams.transactionState)
-      ? { transactionState: buildParams.transactionState }
+    ...(stateByPort.size > 0
+      ? { transactionState: [...stateByPort.values()] as any }
       : {}),
     ...(typeof buildParams.linkHash === 'string' && buildParams.linkHash.length > 0
       ? { linkHash: hexToBytes(buildParams.linkHash) }

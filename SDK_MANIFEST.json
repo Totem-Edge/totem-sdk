@@ -1536,22 +1536,27 @@
     },
     {
       "name": "@totemsdk/tx-builder",
-      "version": "0.2.2",
-      "description": "Transaction builder for Minima — coin selection, multisig, WOTS signing",
+      "version": "0.3.0",
+      "description": "Transaction builder for Minima — local transaction/witness assembly, coin selection, fee/change, HTLC, signing, and submission",
       "domain": "payment-network",
       "keywords": [
         "transaction",
         "builder",
         "coin-selection",
-        "multisig"
+        "multisig",
+        "htlc",
+        "witness",
+        "fee",
+        "wots"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.4.2"
+        "@totemsdk/core": "^1.4.2",
+        "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "TxBuilder, buildTransaction, selectCoins, addInput, addOutput, sign, MultiSigConfig",
+      "exportsDescription": "buildTransaction, serializeWitness, serializeForTxnImport, buildScriptProof, HTLC builders, CoinProvider, buildFundedPayment, signer/lease helpers, mineTransaction, submitSignedTxn, assembleViaNode",
       "custody": {
         "classification": "non-custodial",
         "reason": "builds transactions; holds no on-chain value"

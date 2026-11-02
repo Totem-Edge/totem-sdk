@@ -36,6 +36,7 @@ import {
   createSlowCashDescriptor,
   createEmptyMMRProof
 } from './types.js';
+import { computeScriptAddress } from './witness-serializer.js';
 
 function kissHex(hex: string): string {
   const raw = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
@@ -588,13 +589,6 @@ export class StatefulGameHelper {
   ): boolean {
     return currentRound === previousRound + 1;
   }
-}
-
-function computeScriptAddress(script: string): string {
-  const cleanScript = script.trim().toUpperCase();
-  const scriptBytes = new TextEncoder().encode(cleanScript);
-  const hashBytes = sha3_256(scriptBytes);
-  return bytesToHex(hashBytes);
 }
 
 function encodeSimpleProof(siblingHash: string, isLeft: boolean): string {

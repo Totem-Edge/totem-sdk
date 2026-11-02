@@ -57,6 +57,11 @@ import {
   type SignatureProof as StreamableSignatureProof,
   type MMRProof as StreamableMMRProof
 } from '@totemsdk/core';
+import {
+  buildTransaction as sdkBuildTransaction,
+  serializeWitness as sdkSerializeWitness,
+  serializeForTxnImport as sdkSerializeForTxnImport,
+} from '@totemsdk/tx-builder';
 
 const MINIMA_DECIMALS = 44;
 const ZERO_HASH = new Uint8Array(32);
@@ -173,7 +178,7 @@ function stateValueToVariable(sv: StateValue): StateVariable {
 /**
  * Build a transaction with full ScriptDescriptor support.
  */
-export function buildEnhancedTransaction(params: EnhancedBuildParams): EnhancedBuildResult {
+function buildEnhancedTransactionLegacy(params: EnhancedBuildParams): EnhancedBuildResult {
   const { inputs, outputs, transactionState, linkHash } = params;
   
   if (!inputs || inputs.length === 0) {
@@ -304,7 +309,7 @@ export function buildEnhancedTransaction(params: EnhancedBuildParams): EnhancedB
  * For MAST contracts, extra branch scripts are included as additional ScriptProofs
  * with their merkle proofs linking them to the MAST root.
  */
-export function serializeEnhancedWitness(
+function serializeEnhancedWitnessLegacy(
   wotsData: WotsSignatureData | undefined,
   coinProofsHex: string[],
   scriptDescriptors: ScriptDescriptor[],
@@ -527,7 +532,7 @@ function serializeSignature(signatureProofs: Uint8Array[]): Uint8Array {
 /**
  * Serialize for txnimport with enhanced witness support.
  */
-export function serializeEnhancedForTxnImport(
+function serializeEnhancedForTxnImportLegacy(
   tx: MinimaTransaction,
   txId: string,
   wotsData: WotsSignatureData | undefined,
@@ -630,3 +635,48 @@ export function validateVerifyOutExpectations(
 }
 
 export { hexToBytes, bytesToHex, concat, parseDecimalToBaseUnits, formatBaseUnitsToDecimal };
+
+// ---------------------------------------------------------------------------
+// Canonical implementations now live in @totemsdk/tx-builder. These wrappers
+// keep the extension's existing imports stable while making tx-builder the
+// single source of truth for building and witness assembly.
+// ---------------------------------------------------------------------------
+
+export function buildEnhancedTransaction(params: EnhancedBuildParams): EnhancedBuildResult {
+  return sdkBuildTransaction(params as any) as unknown as EnhancedBuildResult;
+}
+
+export function serializeEnhancedWitness(
+  wotsData: WotsSignatureData | undefined,
+  coinProofsHex: string[],
+  scriptDescriptors: ScriptDescriptor[],
+  extraScripts?: Map<string, string>,
+  externalSignatures?: ExternalSignature[]
+): Uint8Array {
+  return sdkSerializeWitness(
+    wotsData as any,
+    coinProofsHex,
+    scriptDescriptors as any,
+    extraScripts,
+    externalSignatures as any,
+  );
+}
+
+export function serializeEnhancedForTxnImport(
+  tx: MinimaTransaction,
+  txId: string,
+  wotsData: WotsSignatureData | undefined,
+  coinProofsHex: string[],
+  scriptDescriptors: ScriptDescriptor[],
+  extraScripts?: Map<string, string>,
+  externalSignatures?: ExternalSignature[]
+): Uint8Array {
+  const witness = sdkSerializeWitness(
+    wotsData as any,
+    coinProofsHex,
+    scriptDescriptors as any,
+    extraScripts,
+    externalSignatures as any,
+  );
+  return sdkSerializeForTxnImport(txId, tx as any, witness);
+}

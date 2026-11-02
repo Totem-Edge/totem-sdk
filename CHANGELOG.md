@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`@totemsdk/tx-builder` 0.3.0:** local `buildTransaction`, full witness assembly
+  (`serializeWitness` / `serializeForTxnImport`), `buildScriptProof` /
+  `scriptAddress`, HTLC funding/claim/refund builders, coin-provider adapters,
+  `buildFundedPayment` fee/change selection, signer/WOTS-lease helpers,
+  TxPoW mining (`mineTransaction` / `mineAndSubmitTxPoW`), dry-run/submit
+  helpers, and a raw node command transport that preserves KISSVM script spaces.
+  The extension now delegates build/witness/import to tx-builder.
 - **RFC-054 Gate 0 proof scripts:** `npm run test:swap:vm` runs the on-chain HTLC
   claim/refund cases and `npm run test:channel:vm` runs the Eltoo channel
   update/settlement cases, each through the Rust/WASM KISSVM and the TypeScript
@@ -26,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`@totemsdk/core` contract addresses:** `HTLCHelper` and the other contract
+  helpers no longer use the legacy `SHA3(uppercase(script))` address hash. They
+  now use the canonical single-leaf MMR `computeScriptAddress`, matching the
+  node's `Address(script)` so funded HTLC coins can be claimed.
 - **`@totemsdk/omnia` HTLC semantics:** `addHTLC` binds the HTLC to the channel
   counterparty and validates direction, hashlock, timeout and token-scale
   divisibility. `fulfillHTLC` rejects a fulfil after the timeout (chain tip) and
