@@ -1,0 +1,76 @@
+{
+  "name": "@totemsdk/act-mavlink",
+  "version": "0.1.0",
+  "description": "Governed MAVLink autonomous-flight profile for Totem — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "clean": "rm -rf dist",
+    "test": "jest --config ../../tests/jest/act-mavlink.cjs",
+    "test:integration": "node --test ../../tests/qualification/act-mavlink/integration.test.mjs",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dependencies": {
+    "@totemsdk/act-core": "workspace:^",
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/edge": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "jest-environment-node": "^30.0.0",
+    "jest-runtime": "^30.5.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/act-mavlink"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "mavlink",
+    "drone",
+    "flight",
+    "mission",
+    "geofence",
+    "governed-action",
+    "act-core"
+  ],
+  "type": "module"
+}
