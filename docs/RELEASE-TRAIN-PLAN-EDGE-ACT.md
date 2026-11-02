@@ -87,6 +87,7 @@ commit 14 before the release tag.
 | `act-core` | 0.5.0 | 0.5.0 (new name) | `next` |
 | `edge-gnss`, `edge-ocpp`, `edge-mavlink` | — | 0.1.0 | `next` |
 | `mcp-server` | 0.5.0 | 0.5.1 | `next` (after the new packages) |
+| `act-ocpp`, `act-mavlink` | — | 0.1.0 | `next` |
 
 `edge-mqtt`, `edge-modbus` and `edge-lorawan` do not need a republish; their
 dependency on `edge@^1.5.1` resolves once `edge@1.5.1` exists.
@@ -201,12 +202,24 @@ edge/act/MCP package's `latest` or `next` tag now points at the released
 version (v1 -> `latest`, rc -> `next`). v1 packages still carry an older `next`
 tag from before promotion; it is unused by the maturity model and left as-is.
 
-### Stage 5 — governed profiles (separate train)
+### Stage 5 — governed profiles
 
-`act-ocpp` (RFC-024) and `act-mavlink` (RFC-025) are **not yet implemented** and
-must not be published as wire-only substitutes. They depend on `act-core` and
-must ship after their mission/charging envelopes, authority binding, physical
-limits, async lifecycle and receipts are implemented and gated.
+`act-ocpp` (RFC-024) and `act-mavlink` (RFC-025) are implemented as real
+governed profiles, not wire-only substitutes:
+
+- **act-ocpp** — connector resources and safe states, power/energy/duration
+  interlocks, six governed operations, canonical prepared commands, RFC-022
+  accepted→confirmed session lifecycle with charger meter/transaction readback,
+  meter evidence digests, capability negotiation and an OCPP error taxonomy.
+- **act-mavlink** — mission envelope model/digest/validation (altitude,
+  waypoints, geofence), vehicle resources and safe state, envelope-bound
+  `startMission`, telemetry reconciliation for arrival, hold/RTL/land
+  confirmation, an autopilot conformance harness and a MAVLink error taxonomy.
+
+Both ship at `0.1.0` on `next`. The remaining open items are vendor bindings
+documented in RFC-024 §9 / RFC-025 §9 (a CSMS/charger stack and an
+autopilot/SITL target), plus OCPP 2.1 bidirectional support; these are integration
+decisions, not missing governed semantics.
 
 ## Risks and rules
 

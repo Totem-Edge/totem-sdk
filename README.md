@@ -44,7 +44,7 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 | **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `omnia-vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
 | **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `location-proof`, `spatial-proof`, `raster-proof`, `identity`, `manifest`, `connect` |
 | **Policy** | Decisions, delegation, governance, agent seams | `recursive-mast`, `authority`, `governance`, `agent-policy` |
-| **Action** | Bounded operational execution on devices | `edge`, `act-core`, `edge-adapters` |
+| **Action** | Bounded operational execution on devices | `edge`, `act-core`, `act-ocpp`, `act-mavlink`, `edge-adapters` |
 | **Edge** | Protocol connectors for sensing | `edge-mqtt`, `edge-modbus`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-grpc`, `edge-gnss`, `edge-lorawan`, `edge-matter`, `edge-mavlink`, `edge-nfc`, `edge-ocpp`, `edge-opcua`, `edge-ros2`, `edge-email`, `pear` |
 | **Foundation** | KISSVM, serialization, crypto primitives | `core`, `kissvm`, `core-wasm` |
 
@@ -189,6 +189,8 @@ Every stage produces evidence the next stage consumes — and every stage can be
 |---------|-------------|
 | [`@totemsdk/edge`](packages/edge) | Unified edge runtime — port injection, capability model, device identity |
 | [`@totemsdk/act-core`](packages/act-core) | Industrial action lifecycle — governed intent → guarded, verifiable operations on field devices |
+| [`@totemsdk/act-ocpp`](packages/act-ocpp) | Governed OCPP/EV charging profile — bounded sessions, limits, reservations and meter evidence |
+| [`@totemsdk/act-mavlink`](packages/act-mavlink) | Governed MAVLink flight profile — bounded mission envelopes and telemetry reconciliation |
 | [`@totemsdk/edge-adapters`](packages/edge-adapters) | Reference adapters bridging SDK packages to Edge port interfaces |
 
 ### Edge system
@@ -251,7 +253,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **72 packages across 9 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **74 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -480,8 +482,10 @@ packages/                   # 62 workspace packages, 61 publishable @totemsdk sc
 ├── governance/             # On-chain governance (voting, DAO)
 ├── recursive-mast/         # Nested MAST policy trees + PREVSTATE
 ├── act-core/      # Industrial action lifecycle
+├── act-ocpp/      # Governed OCPP / EV charging profile
+├── act-mavlink/   # Governed MAVLink / flight mission profile
 ├── sdk-tests/              # Private integration + parity test package
-└── ... (43 more packages)
+└── ... (45 more packages)
 
 extensions/                 # Non-SDK applications
 ├── totem-extension/        # Chrome MV3 browser extension wallet
@@ -560,7 +564,7 @@ docs/                       # SDK documentation
 | [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 72 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 74 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

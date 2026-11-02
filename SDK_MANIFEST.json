@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 72,
+  "total": 74,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -73,7 +73,9 @@
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
         "@totemsdk/act-core",
-        "@totemsdk/connect"
+        "@totemsdk/connect",
+        "@totemsdk/act-ocpp",
+        "@totemsdk/act-mavlink"
       ]
     },
     "verifiable-claims": {
@@ -1692,6 +1694,60 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "ActCoreDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/act-ocpp",
+      "version": "0.1.0",
+      "description": "Governed OCPP EV-charging profile — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
+      "domain": "edge-computing",
+      "keywords": [
+        "ocpp",
+        "ev",
+        "charging",
+        "governed-action",
+        "act-core"
+      ],
+      "dependencies": {
+        "@totemsdk/act-core": "^0.5.0",
+        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createOcppDefinitions, createOcppProfile, negotiateOcppCapabilities, reconcileChargingSession, deriveChargingEffects, chargingInterlocks, ocppErrorTaxonomy",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/act-mavlink",
+      "version": "0.1.0",
+      "description": "Governed MAVLink autonomous-flight profile — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
+      "domain": "edge-computing",
+      "keywords": [
+        "mavlink",
+        "drone",
+        "flight",
+        "mission",
+        "geofence",
+        "governed-action",
+        "act-core"
+      ],
+      "dependencies": {
+        "@totemsdk/act-core": "^0.5.0",
+        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createMavlinkDefinitions, createMavlinkProfile, envelopeDigest, validateMissionEnvelope, runMavlinkConformance, deriveFlightEffects, vehicleInterlocks, mavlinkErrorTaxonomy",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"

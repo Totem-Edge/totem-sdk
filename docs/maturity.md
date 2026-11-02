@@ -17,7 +17,7 @@
 | Level | Packages |
 |---|---:|
 | v1 | 7 |
-| rc | 57 |
+| rc | 59 |
 | beta | 3 |
 | alpha | 5 |
 | excluded | 6 |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 39 |
+| Outside production surface | 41 |
 | Excluded | 6 |
 
-Total: **72** publishable packages + **6** excluded entries = **78** workspace entries.
+Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
 
 ## Matrix
 
@@ -66,12 +66,14 @@ Total: **72** publishable packages + **6** excluded entries = **78** workspace e
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.11 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
-| `@totemsdk/tx-builder` | 0.2.2 | rc | 2 | `packages/tx-builder` |
+| `@totemsdk/tx-builder` | 0.3.0 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
 | `@totemsdk/edge-can` | 0.3.0 | v1 | outside | `packages/edge-can` |
 | `@totemsdk/edge-coap` | 0.3.0 | v1 | outside | `packages/edge-coap` |
 | `@totemsdk/edge-lorawan` | 0.2.3 | v1 | outside | `packages/edge-lorawan` |
+| `@totemsdk/act-mavlink` | 0.1.0 | rc | outside | `packages/act-mavlink` |
+| `@totemsdk/act-ocpp` | 0.1.0 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.3.2 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |

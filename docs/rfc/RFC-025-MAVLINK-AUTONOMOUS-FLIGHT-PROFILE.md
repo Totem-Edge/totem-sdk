@@ -1,6 +1,6 @@
 # RFC-025: MAVLink / Autonomous Flight Profile — `@totemsdk/act-mavlink`
 
-**Status:** Draft — design specification
+**Status:** Implemented (RC) — `@totemsdk/act-mavlink`; autopilot/SITL vendor bindings remain open
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

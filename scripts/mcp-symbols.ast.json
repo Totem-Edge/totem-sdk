@@ -327,7 +327,7 @@
         },
         "Dimension": {
           "kind": "type",
-          "signature": "export type Dimension = | 'temperature' | 'pressure' | 'volumetricFlow' | 'mass' | 'length' | 'ratio' | 'time' | 'speed' | 'dimensionless'",
+          "signature": "export type Dimension = | 'temperature' | 'pressure' | 'volumetricFlow' | 'mass' | 'length' | 'ratio' | 'time' | 'speed' | 'power' | 'energy' | 'linearSpeed' | 'dimensionless'",
           "doc": "RFC-011 §4.1 — quantities and units.\n\nIndustrial parameters are typed quantities, not bare numbers, so unit errors\n(a pressure satisfying a temperature guardrail) are impossible. A definition\ndeclares a canonical `unit`; adapter profiles declare their wire units and the\ncore converts, recording both."
         },
         "Unit": {
@@ -730,6 +730,324 @@
         "createReplicatedActionEventSink": {
           "kind": "function",
           "signature": "createReplicatedActionEventSink(log: ReplicatedLog<IndustrialActionEvent>): ActionEventStream"
+        }
+      }
+    },
+    "@totemsdk/act-mavlink": {
+      "symbols": {
+        "MavlinkTransportError": {
+          "kind": "class",
+          "signature": "export class MavlinkTransportError extends Error"
+        },
+        "assertEnvelopeBinding": {
+          "kind": "function",
+          "signature": "assertEnvelopeBinding(envelope: MissionEnvelope, digest: string): void",
+          "doc": "A start must reference the exact plan that was authorized. A digest that does\nnot match the envelope fails closed before dispatch."
+        },
+        "MavlinkTransportPort": {
+          "kind": "interface",
+          "signature": "export interface MavlinkTransportPort"
+        },
+        "MissionStartRequest": {
+          "kind": "interface",
+          "signature": "export interface MissionStartRequest"
+        },
+        "MissionUploadRequest": {
+          "kind": "interface",
+          "signature": "export interface MissionUploadRequest"
+        },
+        "MissionUploadResult": {
+          "kind": "interface",
+          "signature": "export interface MissionUploadResult"
+        },
+        "TelemetrySnapshot": {
+          "kind": "interface",
+          "signature": "export interface TelemetrySnapshot"
+        },
+        "assertValidMissionEnvelope": {
+          "kind": "function",
+          "signature": "assertValidMissionEnvelope(envelope: MissionEnvelope): void"
+        },
+        "distanceMetres": {
+          "kind": "function",
+          "signature": "distanceMetres(a: Waypoint, b: Waypoint): number",
+          "doc": "Great-circle distance between two WGS-84 points, in metres."
+        },
+        "envelopeDigest": {
+          "kind": "function",
+          "signature": "envelopeDigest(envelope: MissionEnvelope): string",
+          "doc": "Canonical digest of the authorized plan."
+        },
+        "validateMissionEnvelope": {
+          "kind": "function",
+          "signature": "validateMissionEnvelope(envelope: MissionEnvelope): string[]",
+          "doc": "Structural and physical validation; returns human-readable issues."
+        },
+        "Geofence": {
+          "kind": "interface",
+          "signature": "export interface Geofence"
+        },
+        "MissionEnvelope": {
+          "kind": "interface",
+          "signature": "export interface MissionEnvelope"
+        },
+        "Waypoint": {
+          "kind": "interface",
+          "signature": "export interface Waypoint"
+        },
+        "deriveFlightEffects": {
+          "kind": "function",
+          "signature": "deriveFlightEffects(limits: FlightLimits): StepEffects"
+        },
+        "FlightLimits": {
+          "kind": "interface",
+          "signature": "export interface FlightLimits"
+        },
+        "MAVLINK_PROTOCOL": {
+          "kind": "const",
+          "signature": "MAVLINK_PROTOCOL = 'mavlink'"
+        },
+        "createMavlinkProfile": {
+          "kind": "function",
+          "signature": "createMavlinkProfile(options: MavlinkProfileOptions): IndustrialProfile",
+          "doc": "Data-only flight profile (definitions are supplied by the adapter)."
+        },
+        "mavlinkErrorTaxonomy": {
+          "kind": "function",
+          "signature": "mavlinkErrorTaxonomy(): DeviceErrorTaxonomy",
+          "doc": "MAVLink result codes → device error classification (RFC-011 §4.7)."
+        },
+        "vehicleInterlocks": {
+          "kind": "function",
+          "signature": "vehicleInterlocks(site: string, vehicle: FlightVehicle): Interlock[]",
+          "doc": "Interlocks enforcing the vehicle's declared envelope ceilings."
+        },
+        "vehicleResource": {
+          "kind": "function",
+          "signature": "vehicleResource(site: string, vehicle: FlightVehicle): Resource"
+        },
+        "vehicleResourceId": {
+          "kind": "function",
+          "signature": "vehicleResourceId(site: string, vehicleId: string): ResourceId"
+        },
+        "FlightVehicle": {
+          "kind": "interface",
+          "signature": "export interface FlightVehicle"
+        },
+        "MavlinkProfileOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkProfileOptions"
+        },
+        "createMavlinkDefinitions": {
+          "kind": "function",
+          "signature": "createMavlinkDefinitions(options: MavlinkAdapterOptions): IndustrialActionDefinition[]"
+        },
+        "MavlinkAdapterOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkAdapterOptions"
+        },
+        "runMavlinkConformance": {
+          "kind": "function",
+          "signature": "runMavlinkConformance(transport: MavlinkTransportPort, options: MavlinkConformanceOptions): Promise<MavlinkConformanceReport>"
+        },
+        "MavlinkConformanceCheck": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceCheck"
+        },
+        "MavlinkConformanceOptions": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceOptions"
+        },
+        "MavlinkConformanceReport": {
+          "kind": "interface",
+          "signature": "export interface MavlinkConformanceReport"
+        }
+      }
+    },
+    "@totemsdk/act-ocpp": {
+      "symbols": {
+        "OCPP_ACCEPTED": {
+          "kind": "const",
+          "signature": "OCPP_ACCEPTED = 'Accepted'"
+        },
+        "OcppTransportError": {
+          "kind": "class",
+          "signature": "export class OcppTransportError extends Error",
+          "doc": "Transport/OCPP rejection carrying the protocol code."
+        },
+        "assertAccepted": {
+          "kind": "function",
+          "signature": "assertAccepted(response: OcppResponse, action: string): void",
+          "doc": "Throw unless the response status is `Accepted`."
+        },
+        "OcppChargingProfileRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppChargingProfileRequest"
+        },
+        "OcppClearProfileRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppClearProfileRequest"
+        },
+        "OcppMeterQuery": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterQuery"
+        },
+        "OcppMeterValue": {
+          "kind": "interface",
+          "signature": "export interface OcppMeterValue"
+        },
+        "OcppReserveRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppReserveRequest"
+        },
+        "OcppResponse": {
+          "kind": "interface",
+          "signature": "export interface OcppResponse",
+          "doc": "RFC-024 §5.2 — OCPP transport port.\n\nThe caller injects a transport that talks to a CSMS or a local charger stack.\nThis package owns the governed operation semantics only: it never opens a\nsocket and never implements an OCPP stack. A deployment can back the port\nwith a CSMS client, a charger stack, or a simulator.\n\nEvery operation is idempotent at the port boundary: the prepared command and\nthe operation id are stable across retries (RFC-022 §5.1), so a transport may\nsafely deduplicate a replayed request."
+        },
+        "OcppStartRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppStartRequest"
+        },
+        "OcppStopRequest": {
+          "kind": "interface",
+          "signature": "export interface OcppStopRequest"
+        },
+        "OcppTransactionEvent": {
+          "kind": "interface",
+          "signature": "export interface OcppTransactionEvent"
+        },
+        "OcppTransactionEventType": {
+          "kind": "type",
+          "signature": "export type OcppTransactionEventType = 'Started' | 'Updated' | 'Ended'"
+        },
+        "OcppTransactionState": {
+          "kind": "interface",
+          "signature": "export interface OcppTransactionState"
+        },
+        "OcppTransportPort": {
+          "kind": "interface",
+          "signature": "export interface OcppTransportPort",
+          "doc": "Injected OCPP port. Implementations map these calls onto their CSMS/charger\nstack (RemoteStartTransaction, SetChargingProfile, ReserveNow, …)."
+        },
+        "OCPP_CORE_PROFILES": {
+          "kind": "const",
+          "signature": "OCPP_CORE_PROFILES = [ 'charging:startSession', 'charging:stopSession', 'charging:setLimit', 'charging:reserveConnector', 'charging:clearProfile', 'charging:readMeter', ] as const",
+          "doc": "Definition kinds provided by this package."
+        },
+        "OCPP_VERSION_PREFERENCE": {
+          "kind": "const",
+          "signature": "OCPP_VERSION_PREFERENCE: readonly OcppVersion[] = ['2.1', '2.0.1', '1.6J']",
+          "doc": "Highest first; negotiation picks the newest mutually supported version."
+        },
+        "negotiateOcppCapabilities": {
+          "kind": "function",
+          "signature": "negotiateOcppCapabilities(options: NegotiateOptions): OcppCapabilitySet",
+          "doc": "Select the newest mutually supported version and assert the required profiles\nare available. Throws `ActionDefinitionError` (registration-time failure)\nrather than silently degrading."
+        },
+        "supportsOcppProfile": {
+          "kind": "function",
+          "signature": "supportsOcppProfile(capabilities: OcppCapabilitySet, profile: string): boolean"
+        },
+        "NegotiateOptions": {
+          "kind": "interface",
+          "signature": "export interface NegotiateOptions"
+        },
+        "OcppCapabilitySet": {
+          "kind": "interface",
+          "signature": "export interface OcppCapabilitySet"
+        },
+        "OcppProfileName": {
+          "kind": "type",
+          "signature": "export type OcppProfileName = (typeof OCPP_CORE_PROFILES)[number]"
+        },
+        "OcppVersion": {
+          "kind": "type",
+          "signature": "export type OcppVersion = '1.6J' | '2.0.1' | '2.1'"
+        },
+        "deriveChargingEffects": {
+          "kind": "function",
+          "signature": "deriveChargingEffects(limits: ChargingLimits): StepEffects"
+        },
+        "ChargingLimits": {
+          "kind": "interface",
+          "signature": "export interface ChargingLimits"
+        },
+        "meterEvidenceDigest": {
+          "kind": "function",
+          "signature": "meterEvidenceDigest(evidence: Omit<ChargingMeterEvidence, \"digest\">): string"
+        },
+        "reconcileChargingSession": {
+          "kind": "function",
+          "signature": "reconcileChargingSession(transport: OcppTransportPort, query: ChargingMeterQuery): Promise<ChargingReconcileResult>",
+          "doc": "Reconcile an accepted charging operation against the charger.\n\n- `confirmed` only when the charger reports the transaction ended (an energy\n  register alone is progress, not completion);\n- `running` while the transaction is active or meter values advance;\n- `unknown` when the charger cannot be read — the reservation must stay held."
+        },
+        "ChargingMeterEvidence": {
+          "kind": "interface",
+          "signature": "export interface ChargingMeterEvidence"
+        },
+        "ChargingMeterQuery": {
+          "kind": "interface",
+          "signature": "export interface ChargingMeterQuery"
+        },
+        "ChargingReconcileResult": {
+          "kind": "interface",
+          "signature": "export interface ChargingReconcileResult"
+        },
+        "ChargingReconcileStatus": {
+          "kind": "type",
+          "signature": "export type ChargingReconcileStatus = 'running' | 'confirmed' | 'unknown'"
+        },
+        "OCPP_PROTOCOL": {
+          "kind": "const",
+          "signature": "OCPP_PROTOCOL = 'ocpp'"
+        },
+        "chargingInterlocks": {
+          "kind": "function",
+          "signature": "chargingInterlocks(site: string, connector: ChargingConnector): Interlock[]",
+          "doc": "Interlocks that enforce a connector's declared ceiling before authorization."
+        },
+        "chargingResource": {
+          "kind": "function",
+          "signature": "chargingResource(site: string, connector: ChargingConnector): Resource"
+        },
+        "chargingResourceId": {
+          "kind": "function",
+          "signature": "chargingResourceId(site: string, connectorId: number, asset?: string): ResourceId"
+        },
+        "createOcppProfile": {
+          "kind": "function",
+          "signature": "createOcppProfile(options: OcppProfileOptions): IndustrialProfile",
+          "doc": "Data-only charger profile (definitions are supplied by the adapter)."
+        },
+        "ocppErrorTaxonomy": {
+          "kind": "function",
+          "signature": "ocppErrorTaxonomy(): DeviceErrorTaxonomy",
+          "doc": "OCPP status → device error classification (RFC-011 §4.7).\nSafety codes require a safe state and are never retried."
+        },
+        "ChargingConnector": {
+          "kind": "interface",
+          "signature": "export interface ChargingConnector"
+        },
+        "OcppProfileOptions": {
+          "kind": "interface",
+          "signature": "export interface OcppProfileOptions"
+        },
+        "createOcppDefinitions": {
+          "kind": "function",
+          "signature": "createOcppDefinitions(options: OcppAdapterOptions): IndustrialActionDefinition[]"
+        },
+        "errorCodeOf": {
+          "kind": "function",
+          "signature": "errorCodeOf(error: unknown): string | undefined"
+        },
+        "ChargingCommand": {
+          "kind": "interface",
+          "signature": "interface ChargingCommand"
+        },
+        "OcppAdapterOptions": {
+          "kind": "interface",
+          "signature": "export interface OcppAdapterOptions"
         }
       }
     },
@@ -20302,6 +20620,280 @@
           "kind": "function",
           "signature": "deserializeTransaction(bytes: Uint8Array): MinimaTransaction",
           "doc": "Deserialize a transaction produced by {@link serializeTransaction}. The\ninverse is byte-exact for canonically-encoded transactions (outputs/inputs\nwritten from decimal amounts, MMR entry numbers and tokens)."
+        },
+        "buildTransaction": {
+          "kind": "function",
+          "signature": "buildTransaction(params: EnhancedBuildParams): EnhancedBuildResult",
+          "doc": "Build a Minima transaction from enhanced inputs/outputs and transaction state.\n\nAmounts are decimal strings (Minima scale handled at serialization time), not\npre-scaled integers."
+        },
+        "serializeWitness": {
+          "kind": "function",
+          "signature": "serializeWitness(wotsData: WotsSignatureData | undefined, coinProofsHex: string[], scriptDescriptors: ScriptDescriptor[], extraScripts?: Map<string, string>, externalSignatures?: ExternalSignature[]): Uint8Array",
+          "doc": "Serialize the three Minima witness sections:\n\n  [Signature count][Signature…]\n  [CoinProof count][CoinProof…]\n  [ScriptProof count][ScriptProof…]\n\n`coinProofsHex` must be the serialized `coinexport` payload. Script proofs are\nderived from each input's `ScriptDescriptor`; extra MAST scripts are appended."
+        },
+        "serializeForTxnImport": {
+          "kind": "function",
+          "signature": "serializeForTxnImport(txId: string, transaction: MinimaTransaction, witness: Uint8Array): Uint8Array",
+          "doc": "Serialize a TxnRow for `txnimport`: MiniString(id) + Transaction + Witness."
+        },
+        "buildScriptProof": {
+          "kind": "function",
+          "signature": "buildScriptProof(script: string): Uint8Array",
+          "doc": "Build the canonical ScriptProof bytes for a single script (empty MMR proof).\nThis is the local equivalent of the node's `ScriptProof(script)` constructor\nand of `txninput scriptmmr:true`."
+        },
+        "scriptAddress": {
+          "kind": "function",
+          "signature": "scriptAddress(script: string): string",
+          "doc": "Address (hex data) for a script, matching the node's `Address(script)`."
+        },
+        "transactionSigningDigestHex": {
+          "kind": "function",
+          "signature": "transactionSigningDigestHex(params: EnhancedBuildParams): string",
+          "doc": "Compute the transaction digest a signer must sign."
+        },
+        "EnhancedBuildResult": {
+          "kind": "interface",
+          "signature": "export interface EnhancedBuildResult"
+        },
+        "WotsSignatureProofHex": {
+          "kind": "interface",
+          "signature": "export interface WotsSignatureProofHex"
+        },
+        "WotsSignatureData": {
+          "kind": "interface",
+          "signature": "export interface WotsSignatureData",
+          "doc": "Hierarchical per-address TreeKey signature data.\n\n`proofs` is the Root→L1→L2→DATA chain; each `mmrProof` is already serialized\nin the Minima MMR proof wire format (the extension returns it that way)."
+        },
+        "WitnessSections": {
+          "kind": "interface",
+          "signature": "export interface WitnessSections"
+        },
+        "buildHtlcClaim": {
+          "kind": "function",
+          "signature": "buildHtlcClaim(params: BuildHtlcClaimParams): EnhancedBuildParams",
+          "doc": "Build the claim transaction parameters. The HTLC input descriptor contains\nthe claim script but no state variables; the preimage is transaction state\nport 1 as raw hex."
+        },
+        "buildHtlcRefund": {
+          "kind": "function",
+          "signature": "buildHtlcRefund(params: BuildHtlcRefundParams): EnhancedBuildParams",
+          "doc": "Build the timeout refund parameters. The refund branch has no preimage/state\nrequirement, but the same input/fee shape is used."
+        },
+        "buildHtlcFundingOutput": {
+          "kind": "function",
+          "signature": "buildHtlcFundingOutput(parties: HtlcParties, amount: string, tokenId?: string): { address: string; script: string; output: EnhancedCoinOutput; }",
+          "doc": "Build the HTLC funding output (the script address the maker/taker funds).\nFunding is a normal output to the HTLC address; the script itself is carried\nby the input descriptors when the coin is later claimed/refunded."
+        },
+        "HtlcParties": {
+          "kind": "interface",
+          "signature": "export interface HtlcParties"
+        },
+        "HtlcCoinRef": {
+          "kind": "interface",
+          "signature": "export interface HtlcCoinRef"
+        },
+        "BuildHtlcClaimParams": {
+          "kind": "interface",
+          "signature": "export interface BuildHtlcClaimParams"
+        },
+        "BuildHtlcRefundParams": {
+          "kind": "interface",
+          "signature": "export interface BuildHtlcRefundParams"
+        },
+        "assembleViaNode": {
+          "kind": "function",
+          "signature": "assembleViaNode(client: NodeAssemblyCommandClient, params: NodeAssemblyParams): Promise<NodeAssemblyResult>",
+          "doc": "Assemble, sign (optionally), and post a transaction using the node's own\n`txn*` command surface."
+        },
+        "NodeAssemblyCommandClient": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyCommandClient"
+        },
+        "NodeAssemblyInput": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyInput"
+        },
+        "NodeAssemblyOutput": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyOutput"
+        },
+        "NodeAssemblyState": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyState"
+        },
+        "NodeAssemblyParams": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyParams"
+        },
+        "NodeAssemblyResult": {
+          "kind": "interface",
+          "signature": "export interface NodeAssemblyResult"
+        },
+        "fromChainProvider": {
+          "kind": "function",
+          "signature": "fromChainProvider(provider: ChainProviderLike): CoinProvider",
+          "doc": "Adapt `@totemsdk/chain-provider`'s `ChainStateProvider`."
+        },
+        "fromMinimaRpc": {
+          "kind": "function",
+          "signature": "fromMinimaRpc(client: MinimaRpcLike): CoinProvider",
+          "doc": "Adapt a raw `MinimaRpcClient` (Hawk/local node)."
+        },
+        "TxCoin": {
+          "kind": "interface",
+          "signature": "export interface TxCoin"
+        },
+        "TxCoinQuery": {
+          "kind": "interface",
+          "signature": "export interface TxCoinQuery"
+        },
+        "CoinProvider": {
+          "kind": "interface",
+          "signature": "export interface CoinProvider"
+        },
+        "ChainProviderLike": {
+          "kind": "interface",
+          "signature": "export interface ChainProviderLike"
+        },
+        "MinimaRpcLike": {
+          "kind": "interface",
+          "signature": "export interface MinimaRpcLike"
+        },
+        "buildFundedPayment": {
+          "kind": "function",
+          "signature": "buildFundedPayment(params: FundedPaymentParams): Promise<FundedPayment>",
+          "doc": "Select coins for a payment, add a fee coin (for token payments), and build\noutputs including change."
+        },
+        "FundedPaymentParams": {
+          "kind": "interface",
+          "signature": "export interface FundedPaymentParams"
+        },
+        "FundedPayment": {
+          "kind": "interface",
+          "signature": "export interface FundedPayment"
+        },
+        "signAndSerialize": {
+          "kind": "function",
+          "signature": "signAndSerialize(params: EnhancedBuildParams, signer: TransactionSigner, txId: string): Promise<SignedTransaction>",
+          "doc": "Build the transaction, sign its digest, assemble the witness, and serialize a\nTxnRow for `txnimport`/broadcast."
+        },
+        "reserveSigningIndices": {
+          "kind": "function",
+          "signature": "reserveSigningIndices(lease: SigningLease, params: { treeId: string; branchId?: string; digestHex: string; ttlMs?: number; purpose?: string; }): Promise<LeaseReservationLike>",
+          "doc": "Reserve a WOTS leaf for a digest."
+        },
+        "commitSigningReservation": {
+          "kind": "function",
+          "signature": "commitSigningReservation(lease: SigningLease, reservationId: string, txId: string): Promise<void>",
+          "doc": "Mark a reservation as used after the transaction is accepted."
+        },
+        "releaseSigningReservation": {
+          "kind": "function",
+          "signature": "releaseSigningReservation(lease: SigningLease, reservationId: string, reason?: string): Promise<void>",
+          "doc": "Return an unused reservation to the pool."
+        },
+        "signWithLease": {
+          "kind": "function",
+          "signature": "signWithLease(params: { lease: SigningLease; treeId: string; branchId?: string; digestHex: string; sign: (digestHex: string, indices: SigningIndices) => Promise<WotsSignatureData>; }): Promise<{ wotsData: WotsSignatureData; reservation: LeaseReservationLike; }>",
+          "doc": "Convenience: reserve → sign with the supplied local WOTS callback → return\nthe reservation so the caller can commit it after broadcast."
+        },
+        "SigningIndices": {
+          "kind": "interface",
+          "signature": "export interface SigningIndices"
+        },
+        "LeaseReservationLike": {
+          "kind": "interface",
+          "signature": "export interface LeaseReservationLike"
+        },
+        "SigningLease": {
+          "kind": "interface",
+          "signature": "export interface SigningLease",
+          "doc": "Structural subset of `@totemsdk/wots-lease`'s `WotsLeaseProvider`."
+        },
+        "SignerOutput": {
+          "kind": "interface",
+          "signature": "export interface SignerOutput"
+        },
+        "TransactionSigner": {
+          "kind": "interface",
+          "signature": "export interface TransactionSigner",
+          "doc": "Sign the exact transaction digest."
+        },
+        "SignedTransaction": {
+          "kind": "interface",
+          "signature": "export interface SignedTransaction"
+        },
+        "extractTxPowId": {
+          "kind": "function",
+          "signature": "extractTxPowId(response: any): string | undefined",
+          "doc": "Parse a TxPoW id out of common node response shapes."
+        },
+        "dryRunViaNode": {
+          "kind": "function",
+          "signature": "dryRunViaNode(client: TxnCommandClient, txnId: string): Promise<{ valid: boolean; response?: unknown; }>",
+          "doc": "`txncheck` a custom transaction before signing/posting."
+        },
+        "submitSignedTxn": {
+          "kind": "function",
+          "signature": "submitSignedTxn(client: TxnCommandClient, params: { txnId: string; txnRowHex: string; mine?: boolean; }): Promise<{ txpowid?: string; response?: unknown; }>",
+          "doc": "Import a signed TxnRow and post it."
+        },
+        "submitTxnId": {
+          "kind": "function",
+          "signature": "submitTxnId(client: TxnCommandClient, txnId: string, options?: SubmitOptions): Promise<{ txpowid?: string; response?: unknown; }>",
+          "doc": "Post an already-imported custom transaction."
+        },
+        "deleteTxn": {
+          "kind": "function",
+          "signature": "deleteTxn(client: TxnCommandClient, txnId: string): Promise<void>",
+          "doc": "Delete a custom transaction after it has been posted."
+        },
+        "submitTxPoW": {
+          "kind": "function",
+          "signature": "submitTxPoW(provider: ChainBroadcastProvider, txpowHex: string): Promise<{ success: boolean; txpowid?: string; message?: string; }>",
+          "doc": "Broadcast a fully-mined TxPoW through a chain provider."
+        },
+        "mineTransaction": {
+          "kind": "function",
+          "signature": "mineTransaction(params: { transaction: Uint8Array | unknown; witness: Uint8Array; target?: Uint8Array; minWorkSource?: TxPowMinWorkSource | null; mineOptions?: MineOptions; }): Promise<MinedTransaction>",
+          "doc": "Serialize and mine a signed transaction into a TxPoW envelope.\n\nThe caller supplies the transaction (or its serialized bytes) and witness.\nThe target defaults to the node's live `currentmintxpowwork` when a source is\nprovided, otherwise the protocol floor."
+        },
+        "mineAndSubmitTxPoW": {
+          "kind": "function",
+          "signature": "mineAndSubmitTxPoW(params: Parameters<typeof mineTransaction>[0], provider: ChainBroadcastProvider): Promise<{ mined: MinedTransaction; broadcast: { success: boolean; txpowid?: string; message?: string; }; }>",
+          "doc": "Mine and broadcast in one call."
+        },
+        "TxnCommandClient": {
+          "kind": "interface",
+          "signature": "export interface TxnCommandClient"
+        },
+        "ChainBroadcastProvider": {
+          "kind": "interface",
+          "signature": "export interface ChainBroadcastProvider"
+        },
+        "TxPowMinWorkSource": {
+          "kind": "interface",
+          "signature": "export interface TxPowMinWorkSource"
+        },
+        "SubmitOptions": {
+          "kind": "interface",
+          "signature": "export interface SubmitOptions"
+        },
+        "MinedTransaction": {
+          "kind": "interface",
+          "signature": "export interface MinedTransaction"
+        },
+        "createRawNodeCommandClient": {
+          "kind": "function",
+          "signature": "createRawNodeCommandClient(config: RawNodeConfig): RawNodeCommandClient",
+          "doc": "Create a command client that posts the node's text/plain command grammar."
+        },
+        "RawNodeConfig": {
+          "kind": "interface",
+          "signature": "export interface RawNodeConfig"
+        },
+        "RawNodeCommandClient": {
+          "kind": "interface",
+          "signature": "export interface RawNodeCommandClient"
         }
       }
     },

@@ -1,8 +1,10 @@
 {
   "note": "Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update",
-  "totalSymbols": 4300,
+  "totalSymbols": 4425,
   "packages": {
     "@totemsdk/act-core": 173,
+    "@totemsdk/act-mavlink": 30,
+    "@totemsdk/act-ocpp": 43,
     "@totemsdk/agent-policy": 101,
     "@totemsdk/authority": 29,
     "@totemsdk/chain-provider": 35,
@@ -70,7 +72,7 @@
     "@totemsdk/statechain": 35,
     "@totemsdk/storage": 59,
     "@totemsdk/stream-transport": 27,
-    "@totemsdk/tx-builder": 54,
+    "@totemsdk/tx-builder": 115,
     "@totemsdk/txpow": 70,
     "@totemsdk/wallet-adapter": 18,
     "@totemsdk/wots-lease": 56

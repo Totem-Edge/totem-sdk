@@ -1,6 +1,6 @@
 # RFC-024: OCPP / EV Charging Profile — `@totemsdk/act-ocpp`
 
-**Status:** Draft — design specification
+**Status:** Implemented (RC) — `@totemsdk/act-ocpp`; vendor CSMS/charger bindings and OCPP 2.1 remain open
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

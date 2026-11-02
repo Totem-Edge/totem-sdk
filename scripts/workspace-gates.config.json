@@ -303,6 +303,30 @@
         "reason": "library — holds no on-chain value"
       }
     },
+    "packages/act-ocpp": {
+      "status": "publishable",
+      "maturity": "rc",
+      "supportTier": "outside",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      },
+      "supportReason": "RC governed OCPP charging profile with unit and simulator integration gates; no CSMS/charger vendor binding and no OCPP 2.1 bidirectional support",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-024-OCPP-EV-CHARGING-PROFILE.md"
+    },
+    "packages/act-mavlink": {
+      "status": "publishable",
+      "maturity": "rc",
+      "supportTier": "outside",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      },
+      "supportReason": "RC governed MAVLink mission profile with envelope, telemetry-reconciliation and conformance harness gates; no autopilot vendor binding or SITL CI run",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-025-MAVLINK-AUTONOMOUS-FLIGHT-PROFILE.md"
+    },
     "packages/intelligence": {
       "status": "publishable",
       "maturity": "beta",
