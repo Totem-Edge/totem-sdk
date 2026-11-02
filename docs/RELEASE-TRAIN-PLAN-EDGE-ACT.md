@@ -143,13 +143,46 @@ After `act-core` is live, deprecate the old package:
 npm deprecate @totemsdk/industrial-action "Renamed to @totemsdk/act-core (prerelease, no alias)"
 ```
 
+**Done 2026-11-02.** `act-core@0.5.0`, `edge-grpc@0.3.0`, `edge-nfc@0.2.0`,
+`edge-adapters@0.3.2`, the RC patch connectors, `edge-gnss@0.1.0`,
+`edge-ocpp@0.1.0`, `edge-mavlink@0.1.0` and `mcp-server@0.5.1` are on `next`.
+
+The deprecation is **pending**: `npm deprecate` needs an npm token, and GitHub
+only dispatches a workflow that already exists on the default branch.
+`.github/workflows/npm-deprecate.yml` is ready; run it once this branch reaches
+`main`, or run `npm login` and the command above locally.
+
 ### Stage 3 — v1 packages (`latest`)
 
 - `edge-can@0.3.0`
 - `edge-coap@0.3.0`
 
-`edge-mqtt/modbus/lorawan` remain published versions; only their dependency on
-`edge@1.5.1` needs to resolve.
+`edge-mqtt@0.3.1`, `edge-modbus@0.2.2` and `edge-lorawan@0.2.3` were **also
+published**: their v1 versions existed in the repo but had never reached npm.
+The earlier assumption that they needed no republish was wrong — their `latest`
+tag still pointed at 0.2.x.
+
+**Done 2026-11-02.** All five are on `latest` at their v1 version.
+
+### Release failures fixed during the train
+
+Twelve releases created on 2026-10-29 were still waiting for `npm-production`
+approval (`edge-v1.5.0`, mqtt 0.3.0, modbus/lorawan/can/coap 0.2.1, and the RC
+patches). That is why the v1 packages were behind. They were cancelled as
+superseded and the current versions released.
+
+The first stage-2 pass exposed four CI-only defects, all fixed:
+
+- `act-core` resolved `@swc/jest` from the package while the filtered publish
+  install only provides root devDependencies; it now uses `ts-jest`.
+- `edge-adapters` and `edge-lorawan` tests imported workspace packages that a
+  filtered install does not hoist to the repo root; jest maps them explicitly
+  and `setup-pnpm` links every workspace package into the root `node_modules`.
+- `edge-adapters` never declared `@totemsdk/edge` or `@totemsdk/core` as peers
+  although they are in its public types; the consumer pack probe now also packs
+  optional peers, whose types the declarations reference.
+- the MQTT broker matrix created its bind-mounted passwd file as root and then
+  failed to `chmod` it (EPERM); the container now runs as the invoking user.
 
 ### Stage 4 — strict verification
 
@@ -161,6 +194,12 @@ pnpm --filter @totemsdk/edge-gnss test:integration
 pnpm --filter @totemsdk/edge-ocpp test:integration
 pnpm --filter @totemsdk/edge-mavlink test:integration
 ```
+
+**Done 2026-11-02.** Strict family install: 72 packages, no deferrals.
+Upstream guard: 256 first-party refs resolve to published versions. Every
+edge/act/MCP package's `latest` or `next` tag now points at the released
+version (v1 -> `latest`, rc -> `next`). v1 packages still carry an older `next`
+tag from before promotion; it is unused by the maturity model and left as-is.
 
 ### Stage 5 — governed profiles (separate train)
 
