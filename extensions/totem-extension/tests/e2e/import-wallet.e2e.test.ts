@@ -1,8 +1,9 @@
-import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome } from './fixtures';
+import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome, chooseAxiaProvider } from './fixtures';
 
 test.describe('Import Wallet Flow', () => {
   test.beforeEach(async ({ popupPage }) => {
     await waitForOnboarding(popupPage);
+    await chooseAxiaProvider(popupPage);
   });
 
   test('complete import wallet flow with valid 24-word mnemonic', async ({ popupPage }) => {

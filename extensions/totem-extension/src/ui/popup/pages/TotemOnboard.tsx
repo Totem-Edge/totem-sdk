@@ -11,18 +11,43 @@ import { TotemNotification } from '../components/TotemNotification';
 import { TotemEagleMark } from '../../assets';
 import { isDesignerMode } from '../../../config/constants';
 import { detectHawkPairing, storeHawkInvitation, type HawkInvitation } from '../../../core/providers/hawkDetection';
+import { saveWalletNetworkConfig } from '../../../core/config/selfHosted';
+import { activeChainProviderStore } from '../../../core/config/activeChainProvider';
 import '../../theme/axia-tokens.css';
 
-type OnboardStep = 'welcome' | 'display-phrase' | 'confirm-phrase' | 'enter-phrase' | 'password' | 'loading';
+type OnboardStep = 'connect' | 'welcome' | 'display-phrase' | 'confirm-phrase' | 'enter-phrase' | 'password' | 'loading';
 type OnboardMode = 'create' | 'import';
+type ProviderChoice = 'hawk' | 'axia';
+type HawkState = 'checking' | 'detected' | 'not-detected' | 'paired';
+
+const HAWK_NODE_DOWNLOAD_URL = 'https://github.com/Totem-Edge/hawk-node';
+const HAWK_PAIRING_KEY = 'self_hosted_pairing';
+const HAWK_RELATED_STORAGE_KEYS = [
+  HAWK_PAIRING_KEY,
+  'hawk_pairing_invitation',
+  'wallet_network_config',
+  'self_hosted_node_consent',
+  'p2p_hub_config',
+];
+
+function removeLocalStorageKeys(keys: string[]): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof chrome === 'undefined' || !chrome?.storage?.local) {
+      resolve();
+      return;
+    }
+    chrome.storage.local.remove(keys, () => resolve());
+  });
+}
 
 interface TotemOnboardProps {
   onDone: () => void;
 }
 
 export function TotemOnboard({ onDone }: TotemOnboardProps) {
-  const [step, setStep] = useState<OnboardStep>('welcome');
+  const [step, setStep] = useState<OnboardStep>('connect');
   const [mode, setMode] = useState<OnboardMode>('create');
+  const [providerChoice, setProviderChoice] = useState<ProviderChoice>('axia');
   const [mnemonic, setMnemonic] = useState<string>('');
   const [confirmInput, setConfirmInput] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -32,7 +57,11 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
   const [verificationWords, setVerificationWords] = useState<Record<number, string>>({});
   const [hawkInvitation, setHawkInvitation] = useState<HawkInvitation | null>(null);
+  const [hawkState, setHawkState] = useState<HawkState>('checking');
   const [hawkBusy, setHawkBusy] = useState(false);
+  const [hawkPairingOpened, setHawkPairingOpened] = useState(false);
+  const [hawkDownloadOpened, setHawkDownloadOpened] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   
   // Random verification indices (generated once when entering confirm step)
   const [verificationIndices, setVerificationIndices] = useState<number[]>([]);
@@ -117,32 +146,105 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
     console.log('[TotemOnboard] Mnemonic validation - wordCount:', mnemonic ? mnemonic.split(' ').length : 0, 'valid:', isValidMnemonic);
   }, [mnemonic, isValidMnemonic]);
 
-  // First-run detection: pair the local Hawk backend before the wallet seed exists.
-  useEffect(() => {
-    if (typeof chrome === 'undefined' || !chrome?.storage?.local) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const existing = await chrome.storage.local.get('self_hosted_pairing');
-        if (existing?.self_hosted_pairing) return;
-        const invitation = await detectHawkPairing();
-        if (!cancelled) setHawkInvitation(invitation);
-      } catch {
-        // No local Hawk is a normal first-run path.
+  const runHawkDetection = async () => {
+    if (typeof chrome === 'undefined' || !chrome?.storage?.local) {
+      setHawkState('not-detected');
+      return;
+    }
+
+    setHawkState('checking');
+    setHawkInvitation(null);
+
+    try {
+      const existing = await chrome.storage.local.get(HAWK_PAIRING_KEY);
+      if (existing?.[HAWK_PAIRING_KEY]) {
+        setHawkState('paired');
+        return;
       }
-    })();
-    return () => { cancelled = true; };
+
+      const invitation = await detectHawkPairing();
+      setHawkInvitation(invitation);
+      setHawkState('detected');
+    } catch {
+      // No local Hawk is a normal first-run path.
+      setHawkState('not-detected');
+    }
+  };
+
+  // First-run detection: offer the local node immediately, but never block
+  // the Axia path while the loopback probe is running.
+  useEffect(() => {
+    void runHawkDetection();
   }, []);
 
-  const handlePairHawk = async () => {
-    if (!hawkInvitation) return;
+  const handleChooseAxia = async () => {
     setHawkBusy(true);
+    setConnectError(null);
     try {
-      await storeHawkInvitation(hawkInvitation);
-      chrome.tabs.create({ url: chrome.runtime.getURL('approval/pairing.html?detected=1') });
+      // Choosing Axia is an explicit provider decision. Remove any stale
+      // pairing/config so a previously detected node cannot keep routing
+      // traffic after the user selected the hosted path.
+      await removeLocalStorageKeys(HAWK_RELATED_STORAGE_KEYS);
+      await saveWalletNetworkConfig(activeChainProviderStore(), {
+        chain: { mode: 'axia' },
+        lease: { mode: 'axia' },
+      });
+      setProviderChoice('axia');
+      setStep('welcome');
+    } catch (error) {
+      setConnectError(error instanceof Error ? error.message : String(error));
     } finally {
       setHawkBusy(false);
     }
+  };
+
+  const handleHawkAction = async () => {
+    setConnectError(null);
+
+    if (hawkState === 'paired') {
+      setProviderChoice('hawk');
+      setStep('welcome');
+      return;
+    }
+
+    if (hawkState === 'detected' && hawkInvitation) {
+      setHawkBusy(true);
+      try {
+        await storeHawkInvitation(hawkInvitation);
+        chrome.tabs.create({ url: chrome.runtime.getURL('approval/pairing.html?detected=1') });
+        setHawkPairingOpened(true);
+      } catch (error) {
+        setConnectError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setHawkBusy(false);
+      }
+      return;
+    }
+
+    if (!hawkDownloadOpened) {
+      setHawkDownloadOpened(true);
+      chrome.tabs.create({ url: HAWK_NODE_DOWNLOAD_URL });
+      return;
+    }
+
+    await runHawkDetection();
+  };
+
+  const handleContinueWithHawk = async () => {
+    if (typeof chrome === 'undefined' || !chrome?.storage?.local) {
+      setConnectError('Extension storage is unavailable.');
+      return;
+    }
+
+    const stored = await chrome.storage.local.get(HAWK_PAIRING_KEY);
+    if (!stored?.[HAWK_PAIRING_KEY]) {
+      setConnectError('Hawk pairing is not complete yet. Finish it in the pairing tab, then try again.');
+      return;
+    }
+
+    setHawkState('paired');
+    setProviderChoice('hawk');
+    setStep('welcome');
   };
 
   // Start CREATE flow
@@ -230,15 +332,29 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
       }}
     >
       <div style={{ width: '100%', maxWidth: '380px', paddingBottom: 'var(--space-3)' }}>
-        {/* STEP 1: WELCOME */}
-        {step === 'welcome' && (
-          <WelcomeStep
-            onCreateWallet={handleCreateWallet}
-            onImportWallet={handleImportWallet}
+        {/* STEP 0: PROVIDER CONNECTION */}
+        {step === 'connect' && (
+          <ConnectStep
+            hawkState={hawkState}
             hawkInvitation={hawkInvitation}
             hawkBusy={hawkBusy}
-            onPairHawk={handlePairHawk}
-            onDismissHawk={() => setHawkInvitation(null)}
+            hawkPairingOpened={hawkPairingOpened}
+            hawkDownloadOpened={hawkDownloadOpened}
+            error={connectError}
+            onHawkAction={handleHawkAction}
+            onContinueWithHawk={handleContinueWithHawk}
+            onUseAxia={handleChooseAxia}
+          />
+        )}
+
+        {/* STEP 1: WALLET SETUP */}
+        {step === 'welcome' && (
+          <WelcomeStep
+            providerChoice={providerChoice}
+            hawkState={hawkState}
+            onCreateWallet={handleCreateWallet}
+            onImportWallet={handleImportWallet}
+            onBack={() => setStep('connect')}
           />
         )}
 
@@ -310,20 +426,185 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
 
 // ========== STEP COMPONENTS ==========
 
-function WelcomeStep({
-  onCreateWallet,
-  onImportWallet,
+function ConnectStep({
+  hawkState,
   hawkInvitation,
   hawkBusy,
-  onPairHawk,
-  onDismissHawk,
+  hawkPairingOpened,
+  hawkDownloadOpened,
+  error,
+  onHawkAction,
+  onContinueWithHawk,
+  onUseAxia,
 }: {
-  onCreateWallet: () => void;
-  onImportWallet: () => void;
+  hawkState: HawkState;
   hawkInvitation: HawkInvitation | null;
   hawkBusy: boolean;
-  onPairHawk: () => void;
-  onDismissHawk: () => void;
+  hawkPairingOpened: boolean;
+  hawkDownloadOpened: boolean;
+  error: string | null;
+  onHawkAction: () => void;
+  onContinueWithHawk: () => void;
+  onUseAxia: () => void;
+}) {
+  const hawkBusyNow = hawkBusy || hawkState === 'checking';
+
+  const hawkStatus = (() => {
+    if (hawkState === 'checking') {
+      return 'Checking for a local Hawk node on 127.0.0.1:7789…';
+    }
+    if (hawkState === 'paired') {
+      return 'A local Hawk node is already paired.';
+    }
+    if (hawkState === 'detected' && hawkInvitation) {
+      return `Detected at ${hawkInvitation.endpoint}. Pair it to keep chain reads on your node.`;
+    }
+    if (hawkPairingOpened) {
+      return 'Pairing tab opened. Confirm the fingerprint there, then continue below.';
+    }
+    if (hawkDownloadOpened) {
+      return 'Download opened. Start Hawk, then check again.';
+    }
+    return 'No local Hawk detected. Download and start it, then check again.';
+  })();
+
+  const hawkButtonLabel = (() => {
+    if (hawkState === 'checking') return 'CHECKING…';
+    if (hawkState === 'paired') return 'USE PAIRED HAWK NODE';
+    if (hawkState === 'detected') return hawkBusy ? 'OPENING…' : 'PAIR LOCAL HAWK';
+    return hawkDownloadOpened ? 'CHECK AGAIN' : 'DOWNLOAD HAWK NOW';
+  })();
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100%',
+      padding: 'var(--space-3) var(--space-2)',
+      gap: 'var(--space-2)',
+    }}>
+      <div style={{ textAlign: 'center', marginBottom: 'var(--space-1)' }}>
+        <div
+          style={{
+            width: '64px',
+            height: '64px',
+            margin: '0 auto var(--space-1-5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <TotemEagleMark size={64} />
+        </div>
+        <Typography variant="h2" color="primary">
+          TOTEM WALLET
+        </Typography>
+        <Typography variant="caption" color="muted" style={{ marginTop: 'var(--space-1)' }}>
+          Choose how to connect to Minima
+        </Typography>
+      </div>
+
+      <Card style={{ width: '100%', padding: 'var(--space-2)', borderColor: 'var(--accent-primary)' }}>
+        <Typography variant="h3" color="accent" uppercase style={{ marginBottom: '4px' }}>
+          LOCAL HAWK NODE
+        </Typography>
+        <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1)', lineHeight: 1.45 }}>
+          Run your own full node and keep chain reads, broadcast and key-use coordination on your own infrastructure.
+        </Typography>
+        <Typography
+          variant="caption"
+          color={hawkState === 'detected' || hawkState === 'paired' ? 'accent' : 'muted'}
+          bold={hawkState === 'detected' || hawkState === 'paired'}
+          style={{ display: 'block', marginBottom: 'var(--space-1-5)', lineHeight: 1.45 }}
+        >
+          {hawkStatus}
+        </Typography>
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          onClick={onHawkAction}
+          disabled={hawkBusyNow}
+        >
+          {hawkButtonLabel}
+        </Button>
+        {hawkPairingOpened && (
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={onContinueWithHawk}
+            style={{ marginTop: 'var(--space-1)' }}
+          >
+            I'VE PAIRED — CONTINUE
+          </Button>
+        )}
+      </Card>
+
+      <Card style={{ width: '100%', padding: 'var(--space-2)' }}>
+        <Typography variant="h3" color="primary" uppercase style={{ marginBottom: '4px' }}>
+          <a
+            href="https://axia.to"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => {
+              event.preventDefault();
+              chrome.tabs.create({ url: 'https://axia.to' });
+            }}
+            style={{
+              color: 'inherit',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+              cursor: 'pointer',
+            }}
+          >
+            Axia
+          </a>{' '}
+          (FREE HOSTED NODE)
+        </Typography>
+        <Typography variant="caption" color="accent" bold style={{ display: 'block', marginBottom: 'var(--space-1)' }}>
+          FREE
+        </Typography>
+        <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1-5)', lineHeight: 1.45 }}>
+          Use Axia's shared RPC. No local node or download required. You can switch to a local Hawk node later in Settings.
+        </Typography>
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          onClick={onUseAxia}
+          disabled={hawkBusy}
+        >
+          CONNECT VIA AXIA (FREE)
+        </Button>
+      </Card>
+
+      {error && (
+        <Typography variant="caption" color="danger" style={{ display: 'block', textAlign: 'center', lineHeight: 1.45 }}>
+          {error}
+        </Typography>
+      )}
+
+      <Typography variant="caption" color="muted" style={{ textAlign: 'center', fontSize: '10px' }}>
+        Your recovery phrase stays in the extension either way.
+      </Typography>
+    </div>
+  );
+}
+
+function WelcomeStep({
+  providerChoice,
+  hawkState,
+  onCreateWallet,
+  onImportWallet,
+  onBack,
+}: {
+  providerChoice: ProviderChoice;
+  hawkState: HawkState;
+  onCreateWallet: () => void;
+  onImportWallet: () => void;
+  onBack: () => void;
 }) {
   return (
     <div style={{
@@ -355,27 +636,16 @@ function WelcomeStep({
         </Typography>
       </div>
 
-      {hawkInvitation && (
-        <Card style={{ marginBottom: 'var(--space-2)', padding: 'var(--space-1-5)', borderColor: 'var(--accent-primary)' }}>
-          <Typography variant="caption" bold color="accent" uppercase style={{ display: 'block', marginBottom: '4px' }}>
-            HAWK DETECTED
-          </Typography>
-          <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: '4px' }}>
-            {hawkInvitation.endpoint} · node {hawkInvitation.nodeId}
-          </Typography>
-          <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>
-            Pair this node as your backend. Your extension wallet keeps its own recovery phrase.
-          </Typography>
-          <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-            <Button variant="primary" onClick={onPairHawk} disabled={hawkBusy} style={{ flex: 1 }}>
-              {hawkBusy ? 'OPENING…' : 'PAIR NOW'}
-            </Button>
-            <Button variant="secondary" onClick={onDismissHawk} style={{ flex: 1 }}>
-              NOT NOW
-            </Button>
-          </div>
-        </Card>
-      )}
+      <Card style={{ width: '100%', marginBottom: 'var(--space-2)', padding: 'var(--space-1-5)' }}>
+        <Typography variant="caption" color="muted" uppercase style={{ display: 'block', fontSize: '10px' }}>
+          Connection
+        </Typography>
+        <Typography variant="caption" bold color="accent" style={{ display: 'block', marginTop: '2px' }}>
+          {providerChoice === 'hawk' && hawkState === 'paired'
+            ? 'Local Hawk Node'
+            : 'Axia (Free Hosted Node)'}
+        </Typography>
+      </Card>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', width: '100%' }}>
         <Button variant="primary" size="lg" fullWidth onClick={onCreateWallet}>
@@ -383,6 +653,9 @@ function WelcomeStep({
         </Button>
         <Button variant="secondary" size="lg" fullWidth onClick={onImportWallet}>
           ↓ IMPORT EXISTING WALLET
+        </Button>
+        <Button variant="secondary" fullWidth onClick={onBack}>
+          ← CHANGE CONNECTION
         </Button>
       </div>
     </div>
