@@ -43,6 +43,22 @@ interface BrutalistHomeProps {
   activeAccountAddress?: string;
 }
 
+function formatSyncAge(timestamp: number | null, now: number): string {
+  if (!timestamp || !Number.isFinite(timestamp)) return 'at an unknown time';
+
+  const seconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  if (seconds < 60) return 'just now';
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
 export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress }: BrutalistHomeProps) {
   const [balanceDetails, setBalanceDetails] = useState<{ confirmed: string; unconfirmed: string; sendable: string }>({
     confirmed: '0',
@@ -75,8 +91,24 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
     dismiss: dismissAnnouncement 
   } = useAnnouncements();
 
-  const { entries, status, connectionState, startStream } = usePortfolio();
+  const {
+    entries,
+    status,
+    connectionState,
+    error: portfolioError,
+    lastSyncedAt,
+    startStream,
+  } = usePortfolio();
   const isLoading = status === 'loading';
+  const [syncAgeNow, setSyncAgeNow] = useState(() => Date.now());
+
+  // Keep the stale-balance age text current while the service is unavailable.
+  useEffect(() => {
+    if (connectionState !== 'error') return;
+    setSyncAgeNow(Date.now());
+    const interval = setInterval(() => setSyncAgeNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, [connectionState]);
 
   // Derive balance details and token list from PortfolioEntry[] whenever entries change
   useEffect(() => {
@@ -122,9 +154,9 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
     setIsRefreshing(true);
     console.log('[BrutalistHome] Manual refresh triggered');
     try {
-      await chrome.runtime.sendMessage({ type: 'balance:replay' });
+      await chrome.runtime.sendMessage({ type: 'balance:refresh' });
     } catch (error) {
-      console.error('[BrutalistHome] Refresh replay failed:', error);
+      console.error('[BrutalistHome] Refresh failed:', error);
     } finally {
       setTimeout(() => setIsRefreshing(false), 500);
     }
@@ -136,10 +168,6 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
     setCurrentAddress(activeAccountAddress);
     console.log('[BrutalistHome] Starting balance stream for address:', activeAccountAddress);
     startStream([activeAccountAddress]);
-    // Trigger a cache replay so we get an immediate result
-    setTimeout(() => {
-      chrome.runtime.sendMessage({ type: 'balance:replay' }).catch((err) => console.warn('[Home] balance:replay failed:', err));
-    }, 150);
   }, [activeAccountAddress, startStream]);
 
   // Balance loading is now handled by PortfolioStreamManager via usePortfolio hook
@@ -151,13 +179,13 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
       // Only show error state if we have never successfully displayed a balance.
       // Once a valid balance has been shown, keep it visible through WS reconnects.
       setBalanceState('error');
-      setBalanceError('Failed to connect to balance stream');
+      setBalanceError(portfolioError || 'Balance service unavailable');
     } else {
       // Stream is ready — exit any stuck loading/error state.
       // BalanceCard will show a spinner placeholder until portfolio entries arrive via the stream.
       setBalanceState(prev => (prev === 'loading' || prev === 'error' ? 'idle' : prev));
     }
-  }, [isLoading, connectionState]);
+  }, [isLoading, connectionState, portfolioError]);
 
   useEffect(() => {
     if (currentAddress && entries.length === 0) {
@@ -287,6 +315,21 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
           isRefreshing={isRefreshing}
           isBalancePending={balanceState === 'idle'}
         />
+      )}
+
+      {connectionState === 'error' && balanceState === 'success' && (
+        <div style={{
+          border: '1px solid var(--color-danger)',
+          padding: 'var(--space-1-5) var(--space-2)',
+          textAlign: 'center',
+        }}>
+          <Typography variant="caption" color="danger">
+            {portfolioError || 'Balance service unavailable'} — showing last known balance
+            {lastSyncedAt
+              ? ` (last synced ${formatSyncAge(lastSyncedAt, syncAgeNow)})`
+              : ' (sync time unknown)'}.
+          </Typography>
+        </div>
       )}
 
       {/* Announcement Banner - between Balance Card and Assets */}

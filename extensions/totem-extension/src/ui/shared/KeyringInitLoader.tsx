@@ -32,32 +32,9 @@ export function KeyringInitLoader({ onComplete, onError, password, baseSeed, mne
   useEffect(() => {
     let port: chrome.runtime.Port | null = null;
     
-    const initBalanceStream = async () => {
-      // NOTE: Balance streaming is now handled by useBalanceStream hook in Home page.
-      // We only request a snapshot here to warm the cache.
-      // The idempotent start() in BalanceStreamManager prevents duplicate subscriptions.
-      try {
-        const walletStateResponse = await chrome.runtime.sendMessage({
-          method: 'wallet:getState'
-        });
-        
-        const accounts = walletStateResponse?.result?.accounts || walletStateResponse?.accounts || [];
-        if (accounts.length > 0) {
-          const addresses = accounts.map((acc: { address: string }) => acc.address);
-          // Only request snapshot to warm cache - don't start a new stream
-          // The Home page's useBalanceStream hook will start the stream
-          const portfolioPort = chrome.runtime.connect({ name: 'portfolio-stream' });
-          portfolioPort.postMessage({ type: 'GET_SNAPSHOT', addresses });
-          // Disconnect after snapshot request (stream not needed from here)
-          setTimeout(() => {
-            try { portfolioPort.disconnect(); } catch (e) {}
-          }, 2000);
-        }
-      } catch (balanceErr) {
-        console.warn('[KeyringLoader] Failed to request balance snapshot:', balanceErr);
-      }
-    };
-    
+    // Balance streaming starts from the Home page's single `usePortfolio()`
+    // hook. Opening a second portfolio-stream port here duplicated both the
+    // connection and the initial snapshot work during wallet creation.
     const executeInitialization = async () => {
       try {
         if (isDesignerMode()) {
@@ -70,10 +47,8 @@ export function KeyringInitLoader({ onComplete, onError, password, baseSeed, mne
               // Wallet is usable after fast_unlock (4 addresses ready)
               // Background generation continues for remaining 60 addresses
               setIsComplete(true);
-              // Fire onComplete immediately - don't wait for balance stream
+              // Fire onComplete immediately - Home starts the balance stream.
               onComplete();
-              // Start balance stream in background (fire and forget)
-              initBalanceStream().catch((err) => console.warn('[KeyringInit] initBalanceStream failed:', err));
             } else if (event.phase === 'error') {
               setHasError(true);
               onError(event.error || 'Unknown error');
@@ -93,14 +68,12 @@ export function KeyringInitLoader({ onComplete, onError, password, baseSeed, mne
               // Also handle fast_unlock phase from events
               if (event.phase === 'fast_unlock') {
                 setIsComplete(true);
-                // Fire onComplete immediately - don't wait for balance stream
+                // Fire onComplete immediately - Home starts the balance stream.
                 onComplete();
-                initBalanceStream().catch((err) => console.warn('[KeyringInit] initBalanceStream failed:', err));
               }
             } else if (msg.type === 'IMPORT_COMPLETE') {
               setIsComplete(true);
               onComplete();
-              initBalanceStream().catch((err) => console.warn('[KeyringInit] initBalanceStream failed:', err));
             } else if (msg.type === 'IMPORT_ERROR') {
               addLog(`ERROR: ${msg.payload.error}`);
               setHasError(true);

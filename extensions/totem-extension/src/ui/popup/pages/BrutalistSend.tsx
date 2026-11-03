@@ -13,7 +13,7 @@ import {
   buildTransactionPreviewViewModel
 } from '../../components/molecules';
 import { Card, Typography, Button, StatusPill } from '../../components/atoms';
-import { parseMinimaAmount, formatAmount, parseTokenImageUrl } from '../../../constants';
+import { parseMinimaAmount, formatAmount, formatTokenAmount, parseTokenImageUrl } from '../../../constants';
 import { useSendTransaction } from '../../../core/transaction/useSendTransaction';
 import { parseDecimalToBaseUnits } from '../../../core/transaction/MinimaTransactionBuilder';
 import { validateMinimaAddress } from '../../../core/validation';
@@ -223,9 +223,6 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
     const activeAccount = addresses.find(a => a.index === activeAccountIndex) || addresses[0];
     if (!activeAccount?.address) return;
     startStream([activeAccount.address]);
-    setTimeout(() => {
-      chrome.runtime.sendMessage({ type: 'balance:replay' }).catch((err) => console.warn('[Send] balance:replay failed:', err));
-    }, 150);
   }, [addresses, activeAccountIndex, startStream]);
 
 

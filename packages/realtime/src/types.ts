@@ -104,6 +104,8 @@ export interface PortfolioUpdateEvent {
   type: 'portfolio_update';
   address: string;
   entries: PortfolioEntry[];
+  /** When the underlying balance data was fetched from the chain/API. */
+  lastSyncedAt?: number;
 }
 
 export interface TxConfirmationEvent {
