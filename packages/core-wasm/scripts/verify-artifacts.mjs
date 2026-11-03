@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { sourceDigest } from './source-hash.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(readFileSync(join(root, 'artifacts.json'), 'utf8'));
@@ -32,6 +33,12 @@ for (const [rel, expected] of Object.entries(manifest.artifacts)) {
 
 const cargoLock = readFileSync(join(root, 'Cargo.lock'), 'utf8');
 const wasmBindgen = /name = "wasm-bindgen"\nversion = "([^"]+)"/.exec(cargoLock)?.[1];
+
+// A rebuild is not byte-portable across machines, so pin the source digest:
+// stale committed artifacts (source changed without a rebuild/write) still fail.
+if (manifest.source && sourceDigest(root) !== manifest.source) {
+  failures.push('source changed since artifacts.json was written; run npm run build && npm run artifacts:write');
+}
 if (wasmBindgen && wasmBindgen !== manifest.wasmBindgen) {
   failures.push(`wasm-bindgen ${wasmBindgen} != manifest ${manifest.wasmBindgen}`);
 }

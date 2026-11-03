@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { sourceDigest } from './source-hash.mjs';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,6 +47,7 @@ const manifest = {
   rustc: version('rustc --version'),
   wasmPack: version('wasm-pack --version'),
   wasmBindgen,
+  source: sourceDigest(root),
   artifacts,
 };
 

@@ -80,12 +80,10 @@ jobs:
             packages/core-wasm/pkg
             packages/core-wasm/pkg-node
             packages/core-wasm/pkg-web
-      - name: WASM provenance — committed pkg/pkg-node/pkg-web must match source (RFC-018 P2-5, RFC-031)
-        run: |
-          if ! git diff --exit-code -- packages/core-wasm/pkg packages/core-wasm/pkg-node packages/core-wasm/pkg-web; then
-            echo "::error::committed core-wasm artifacts are stale; run 'npm run build' in packages/core-wasm and commit the result"
-            exit 1
-          fi
+      # Byte-for-byte rebuild equality is not portable (rustc embeds crate and
+      # registry paths). artifacts:verify pins the source digest instead: the
+      # committed artifacts must match artifacts.json, and the source they were
+      # built from must still be the source in the tree.
       - name: WASM artifact hash provenance (RFC-031 P3)
         working-directory: packages/core-wasm
         run: npm run artifacts:verify
