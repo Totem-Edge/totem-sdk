@@ -106,13 +106,13 @@ jobs:
       # resolves into those dist/ files).
       #
       # Build the packages the extension actually imports, NOT its full
-      # dependency closure. Two closure members are intentionally excluded:
-      #   - @totemsdk/core-wasm: its pkg/ artifacts are committed and its build
-      #     requires wasm-pack (and would rewrite the committed WASM
-      #     nondeterministically).
-      #   - @totemsdk/tx-builder: needs a gitignored Rust/wasm-pack artifact and
-      #     its code is never imported by omnia/omnia-factory/omnia-splice (they
-      #     use local type mirrors), so it is not needed to build the closure.
+      # dependency closure. @totemsdk/core-wasm is intentionally excluded:
+      # its pkg/ artifacts are committed and its build requires wasm-pack
+      # (and would rewrite the committed WASM nondeterministically).
+      #
+      # @totemsdk/tx-builder IS required: the extension uses it for simple
+      # and scripted transaction assembly. Its TypeScript build does not need
+      # wasm-pack; the Rust artifact is only used by optional coin selection.
       # @totemsdk/omnia-relay brings in the router/factory/splice closure
       # (agent-policy → authority/identity/proof/manifest, kissvm,
       # stream-transport); those are listed explicitly.
@@ -121,6 +121,7 @@ jobs:
           pnpm \
             --filter @totemsdk/core \
             --filter @totemsdk/txpow \
+            --filter @totemsdk/tx-builder \
             --filter @totemsdk/connect \
             --filter @totemsdk/realtime \
             --filter @totemsdk/chain-provider \
