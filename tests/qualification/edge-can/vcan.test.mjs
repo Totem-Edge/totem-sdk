@@ -45,6 +45,9 @@ test('vcan sidecar sends/receives standard and extended frames', { timeout: 60_0
   const child = spawn('go', ['build', '-o', binary, '.'], { cwd: new URL('../../../packages/edge-can/go', import.meta.url), stdio: 'pipe' });
   await new Promise((resolve, reject) => { child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`go build ${code}`))); });
   const sidecar = spawn(binary, [], { env: { ...process.env, CAN_INTERFACE: name, CAN_DEBUG: '1', CAN_LISTEN_ADDR: `127.0.0.1:${port}` }, stdio: ['ignore','pipe','pipe'] });
+  let sidecarLog = '';
+  sidecar.stdout.on('data', (chunk) => { sidecarLog += chunk; });
+  sidecar.stderr.on('data', (chunk) => { sidecarLog += chunk; });
   t.after(async () => {
     sidecar.kill('SIGKILL');
     try { run('sh', ['-c', `${sudo} ip link delete ${name}`]); } catch {}
@@ -69,7 +72,7 @@ test('vcan sidecar sends/receives standard and extended frames', { timeout: 60_0
   // Native sidecar -> vcan -> our reader
   run('cansend', [name, '123#0500']);
   for (let i = 0; i < 40 && proofCalls.length === 0; i++) await delay(50);
-  assert.ok(proofCalls.length > 0, 'no frame/proof received from vcan');
+  assert.ok(proofCalls.length > 0, `no frame/proof received from vcan. sidecar logs:\n${sidecarLog}`);
   assert.equal(proofCalls[0].claims[0].signals[0].value, 2.5);
 
   // Gateway -> sidecar -> vcan -> candump

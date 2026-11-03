@@ -194,7 +194,10 @@ func (s *Server) readCAN(generation uint64, fd int, ifname string) {
 			return
 		}
 
-		n, _, err := syscall.Recvfrom(fd, buf, 0)
+		// read(2), not recvfrom(2): Go's syscall.Recvfrom converts the peer
+		// sockaddr and returns EAFNOSUPPORT for AF_CAN even though the frame was
+		// delivered, so every frame was discarded as a read error.
+		n, err := syscall.Read(fd, buf)
 		if err != nil {
 			if errors.Is(err, syscall.EINTR) {
 				continue
