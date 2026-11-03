@@ -445,10 +445,10 @@ jobs:
         run: npx jest --config ../../tests/jest/storage.cjs persistence --runInBand
       - name: Edge artifact cache conformance (first consumer)
         working-directory: packages/edge-adapters
-        run: npx jest artifact-cache --runInBand
+        run: npx jest --config ../../tests/jest/edge-adapters.cjs artifact-cache --runInBand
       - name: ProofGraph evidence conformance (reference ArtifactStore consumer)
         working-directory: packages/proofgraph
-        run: npx jest evidence --runInBand
+        run: npx jest --config ../../tests/jest/proofgraph.cjs evidence --runInBand
 
   pack:
     name: Pack validation (publishable packages)
