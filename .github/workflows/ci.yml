@@ -80,6 +80,11 @@ jobs:
             packages/core-wasm/pkg
             packages/core-wasm/pkg-node
             packages/core-wasm/pkg-web
+      # The build above proved the source compiles. Provenance is checked against
+      # the committed bytes (restore them first): artifacts.json pins both the
+      # committed artifact hashes and the source digest they were built from.
+      - name: Restore committed core-wasm artifacts for provenance
+        run: git checkout -- packages/core-wasm/pkg packages/core-wasm/pkg-node packages/core-wasm/pkg-web
       # Byte-for-byte rebuild equality is not portable (rustc embeds crate and
       # registry paths). artifacts:verify pins the source digest instead: the
       # committed artifacts must match artifacts.json, and the source they were
@@ -253,7 +258,7 @@ jobs:
       - name: Wallet ⇄ connect parity audit (anti-drift)
         run: node scripts/audit-wallet-connect-parity.mjs --check
       - name: Axia public API contract tests (RFC-0002 P2, RFC-015)
-        run: npx jest --config packages/connect/jest.config.cjs axia-contract
+        run: npx jest --config tests/jest/connect.cjs axia-contract
 
   v1-qualification:
     name: v1 qualification (integration, conformance, recovery, consumer)
