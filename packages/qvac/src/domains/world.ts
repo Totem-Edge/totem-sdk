@@ -13,7 +13,7 @@ import type {
   WorldStepClientParams,
   WorldStepProgressTick,
   WorldStepResult,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const worldDomain = 'world' as const;
 
@@ -24,7 +24,7 @@ export type {
   WorldStepClientParams,
   WorldStepProgressTick,
   WorldStepResult,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export type WorldCreateSceneResult = WorldSceneResult | WorldSceneResultWithPack;
 

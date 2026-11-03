@@ -11,7 +11,7 @@ import type { IntelligenceOutcome, IntelligenceProvider } from '@totemsdk/intell
 import { bindDomain, bindPositional } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { VlaClientRunParams, VlaClientRunResult, VlaEmbodimentSelection, VlaHparams } from '@qvac/sdk';
+import type { VlaClientRunParams, VlaClientRunResult, VlaEmbodimentSelection, VlaHparams } from '../vendor/qvac-sdk.js';
 
 export const vlaDomain = 'vla' as const;
 
@@ -21,7 +21,7 @@ export type {
   VlaEmbodimentSelection,
   VlaHparams,
   VlaStats,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface VlaHparamsOpResult {
   hparams: VlaHparams;

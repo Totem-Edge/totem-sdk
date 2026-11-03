@@ -17,7 +17,7 @@ import type {
   TextToSpeechStreamSession,
   TtsClientParamsInput,
   TtsSentenceChunkUpdate,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const ttsDomain = 'tts' as const;
 
@@ -29,7 +29,7 @@ export type {
   TtsClientParamsInput,
   TtsPace,
   TtsSentenceChunkUpdate,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface QvacTtsOps {
   textToSpeech: QvacOp<TtsClientParamsInput, TextToSpeechStreamResult>;

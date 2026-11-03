@@ -15,7 +15,7 @@ import type {
   CompletionParams,
   CompletionRun,
   FinetuneHandle,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const llmDomain = 'llm' as const;
 
@@ -28,7 +28,7 @@ export type {
   CompletionFinal,
   CompletionStats,
   StopReason,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface QvacLlmOps {
   completion: QvacOp<CompletionParams, CompletionRun>;

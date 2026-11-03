@@ -15,7 +15,7 @@ import type {
   DiffusionProgressTick,
   DiffusionResult,
   UpscaleClientParams,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const diffusionDomain = 'diffusion' as const;
 
@@ -26,12 +26,12 @@ export type {
   UpscaleClientParams,
   UpscaleStats,
   UpscaleStreamResponse,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface UpscaleResult {
   progressStream: AsyncGenerator<DiffusionProgressTick>;
   outputs: Promise<Uint8Array[]>;
-  stats: Promise<import('@qvac/sdk').UpscaleStats | undefined>;
+  stats: Promise<import('../vendor/qvac-sdk.js').UpscaleStats | undefined>;
 }
 
 export interface QvacDiffusionOps {

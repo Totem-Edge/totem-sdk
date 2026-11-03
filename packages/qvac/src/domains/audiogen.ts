@@ -6,11 +6,11 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { AudioGenClientParams, AudioGenResult } from '@qvac/sdk';
+import type { AudioGenClientParams, AudioGenResult } from '../vendor/qvac-sdk.js';
 
 export const audiogenDomain = 'audiogen' as const;
 
-export type { AudioGenClientParams, AudioGenResult } from '@qvac/sdk';
+export type { AudioGenClientParams, AudioGenResult } from '../vendor/qvac-sdk.js';
 
 export interface QvacAudiogenOps {
   audioGen: QvacOp<AudioGenClientParams, AudioGenResult>;

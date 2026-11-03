@@ -219,10 +219,10 @@
     "NOTICE"
   ],
   "dependencies": {
+    "@totemsdk/core": "workspace:^",
     "@totemsdk/intelligence": "workspace:^",
     "@totemsdk/replication-holepunch": "workspace:^",
-    "@totemsdk/storage": "workspace:^",
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

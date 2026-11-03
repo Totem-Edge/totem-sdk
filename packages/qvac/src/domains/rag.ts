@@ -37,7 +37,7 @@ import type {
   RagSearchResult,
   RagReindexParams,
   RagWorkspaceInfo,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const ragDomain = 'rag' as const;
 
@@ -50,7 +50,7 @@ export type {
   RagSearchResult,
   RagReindexParams,
   RagWorkspaceInfo,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface RagIngestParams {
   documents: unknown[];
@@ -59,7 +59,7 @@ export interface RagIngestParams {
 }
 
 export interface RagSaveEmbeddingsParams {
-  chunks: import('@qvac/sdk').RagEmbeddedDoc[];
+  chunks: import('../vendor/qvac-sdk.js').RagEmbeddedDoc[];
   embeddingModelId: string;
   workspaceId?: string;
 }
@@ -84,7 +84,7 @@ export interface QvacRagOps {
   ragSearch: QvacOp<RagSearchParams, RagSearchResult[]>;
   ragSaveEmbeddings: QvacOp<RagSaveEmbeddingsParams, RagSaveEmbeddingsResult[]>;
   ragDeleteEmbeddings: QvacOp<RagDeleteEmbeddingsParams, void>;
-  ragReindex: QvacOp<RagReindexParams, import('@qvac/sdk').RagReindexResult>;
+  ragReindex: QvacOp<RagReindexParams, import('../vendor/qvac-sdk.js').RagReindexResult>;
   ragListWorkspaces: QvacOp<Record<string, never>, RagWorkspaceInfo[]>;
   ragCloseWorkspace: QvacOp<RagCloseWorkspaceParams, void>;
   ragDeleteWorkspace: QvacOp<RagDeleteWorkspaceParams, void>;
