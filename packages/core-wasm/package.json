@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/core-wasm",
   "version": "1.0.5",
-  "description": "WOTS (Winternitz) cryptographic engine compiled to WASM — Rust core for @totemsdk/core",
+  "description": "WOTS (Winternitz) cryptographic engine compiled to WASM \u2014 Rust core for @totemsdk/core",
   "main": "pkg-node/totemsdk_core_wasm.js",
   "types": "pkg/totemsdk_core_wasm.d.ts",
   "exports": {
@@ -33,9 +33,9 @@
   ],
   "scripts": {
     "build": "npm run build:bundler && npm run build:node && npm run build:web",
-    "build:bundler": "wasm-pack build --target bundler --out-dir pkg && node scripts/prepare-publish-assets.mjs",
-    "build:node": "wasm-pack build --target nodejs --out-dir pkg-node && node scripts/prepare-publish-assets.mjs",
-    "build:web": "wasm-pack build --target web --out-dir pkg-web && node scripts/prepare-publish-assets.mjs",
+    "build:bundler": "RUSTFLAGS=\"--remap-path-prefix=$PWD=/totem-sdk --remap-path-prefix=$(cd ../.. && pwd)=/totem-sdk --remap-path-prefix=$HOME/.cargo/registry=/cargo/registry --remap-path-prefix=$HOME/.cargo/git=/cargo/git ${RUSTFLAGS:-}\" CARGO_INCREMENTAL=0 wasm-pack build --target bundler --out-dir pkg && node scripts/prepare-publish-assets.mjs",
+    "build:node": "RUSTFLAGS=\"--remap-path-prefix=$PWD=/totem-sdk --remap-path-prefix=$(cd ../.. && pwd)=/totem-sdk --remap-path-prefix=$HOME/.cargo/registry=/cargo/registry --remap-path-prefix=$HOME/.cargo/git=/cargo/git ${RUSTFLAGS:-}\" CARGO_INCREMENTAL=0 wasm-pack build --target nodejs --out-dir pkg-node && node scripts/prepare-publish-assets.mjs",
+    "build:web": "RUSTFLAGS=\"--remap-path-prefix=$PWD=/totem-sdk --remap-path-prefix=$(cd ../.. && pwd)=/totem-sdk --remap-path-prefix=$HOME/.cargo/registry=/cargo/registry --remap-path-prefix=$HOME/.cargo/git=/cargo/git ${RUSTFLAGS:-}\" CARGO_INCREMENTAL=0 wasm-pack build --target web --out-dir pkg-web && node scripts/prepare-publish-assets.mjs",
     "test": "wasm-pack test --node",
     "test:web": "node ../../tests/qualification/core-wasm/tests/web-init.test.mjs && node ../../tests/qualification/core-wasm/tests/web-worker.mjs",
     "test:web:bun": "bun ../../tests/qualification/core-wasm/tests/web-init.test.mjs && bun ../../tests/qualification/core-wasm/tests/web-worker.mjs",
