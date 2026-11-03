@@ -1,14 +1,18 @@
+import { createPerAddressTreeKey } from '@totemsdk/core';
 import { TransactionService, PrepareRequest, PrepareResponse } from '../src/core/transaction/service';
 import './setup';
+
+// Force the Axia REST backend; the Hawk backend is covered by
+// hawk-transaction.test.ts.
+jest.mock('../src/core/providers/activeNode', () => ({
+  isHawkTransactionMode: jest.fn().mockResolvedValue(false),
+  resolveActiveNodeRpc: jest.fn().mockResolvedValue(null),
+}));
 
 // Mock fetch for API calls
 global.fetch = jest.fn();
 
-// Mock chrome storage for API base and project ID
-const mockChromeStorage = {
-  get: jest.fn(),
-};
-Object.assign(global.chrome.storage.local, mockChromeStorage);
+const TEST_SEED = new Uint8Array(32).fill(0x42);
 
 describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Real SDK', () => {
   let mockFetch: jest.Mock;
@@ -16,26 +20,23 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
   beforeEach(async () => {
     jest.clearAllMocks();
     mockFetch = global.fetch as jest.Mock;
-    
-    // Setup chrome storage mock
-    mockChromeStorage.get.mockImplementation((keys, callback) => {
-      callback({
-        AXIA_BASE: 'https://rpc.axia.to',
-        AXIA_PROJECT_ID: 'test-project-id'
-      });
+
+    // getApiBase()/getProjectId() read through the typed-storage bridge.
+    (chrome.storage.local as any).getTyped = jest.fn().mockResolvedValue({
+      AXIA_BASE: 'https://rpc.axia.to',
+      AXIA_BYPASS_BASE: 'https://api2.axia.to',
+      AXIA_PROJECT_ID: 'test-project-id',
     });
   });
 
   describe('Full transaction flow with real WOTS signing', () => {
     const rootPublicKey = '0x' + 'aa'.repeat(32);
-    const testSeed = new Uint8Array(32).fill(0x42);
-    
+
     test('executes complete prepare → sign → finalize flow', async () => {
-      // Mock prepare response
       const prepareResponse: PrepareResponse = {
+        addressIndex: 2,
         l1: 10,
         l2: 5,
-        l3: 3,
         leaseToken: 'lease-token-123',
         digestTx: '0x' + 'ab'.repeat(32),
         digestL2: null,
@@ -56,34 +57,37 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       const prepareRequest: PrepareRequest = {
         to: '0x' + 'ff'.repeat(32),
         amount: '100000000000000000000000000000000000000000000', // 1 MINIMA in base units
-        tokenId: '0x00'
+        tokenId: '0x00',
+        addressIndex: 2,
       };
 
       const prepared = await TransactionService.prepare(prepareRequest, rootPublicKey);
-      
+
+      expect(prepared.addressIndex).toBe(2);
       expect(prepared.l1).toBe(10);
       expect(prepared.l2).toBe(5);
-      expect(prepared.l3).toBe(3);
       expect(prepared.leaseToken).toBe('lease-token-123');
       expect(prepared.digestTx).toBe('0x' + 'ab'.repeat(32));
 
-      // Step 2: Sign locally with REAL SDK
-      const { witnessBundle, signedHex } = await TransactionService.sign(
+      // Step 2: Sign locally with REAL SDK using the per-address TreeKey
+      const { witnessBundle, signedHex } = await TransactionService.signWithPerAddressTreeKey(
         {
+          addressIndex: prepared.addressIndex,
           l1: prepared.l1,
           l2: prepared.l2,
-          l3: prepared.l3,
-          digestTx: prepared.digestTx
+          digestTx: prepared.digestTx,
         },
-        testSeed,
-        'v2-spec'
+        createPerAddressTreeKey(TEST_SEED, prepared.addressIndex),
       );
 
-      // Verify REAL signature structure
+      // Verify REAL signature structure (Root → L1 → L2 → DATA)
+      expect(witnessBundle.addressIndex).toBe(2);
       expect(witnessBundle.l1).toBe(10);
-      expect(witnessBundle.signatures.l1Proof).toHaveLength(34);
-      expect(witnessBundle.signatures.l2Proof).toHaveLength(34);
-      expect(witnessBundle.signatures.l3Proof).toHaveLength(34);
+      expect(witnessBundle.l2).toBe(5);
+      expect(witnessBundle.proofs).toHaveLength(3);
+      expect(witnessBundle.proofs[0].leafPubkey).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(witnessBundle.proofs[1].leafPubkey).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(witnessBundle.proofs[2].leafPubkey).toMatch(/^0x[0-9a-f]{64}$/);
       expect(signedHex).toMatch(/^0x[0-9a-f]+$/);
 
       // Step 3: Finalize
@@ -116,7 +120,8 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
 
       const prepareRequest: PrepareRequest = {
         to: '0x' + 'ff'.repeat(32),
-        amount: '100000000000000000000000000000000000000000000'
+        amount: '100000000000000000000000000000000000000000000',
+        addressIndex: 0,
       };
 
       await expect(
@@ -147,7 +152,9 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          l1: 0, l2: 0, l3: 0,
+          addressIndex: 0,
+          l1: 0,
+          l2: 0,
           leaseToken: 'token',
           digestTx: '0x' + '00'.repeat(32),
           digestL2: null,
@@ -164,13 +171,14 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
         to: '0x' + 'ff'.repeat(32),
         amount: '500000000000000000000000000000000000000000000',
         tokenId: '0x00',
-        burn: '100'
+        burn: '100',
+        addressIndex: 0,
       };
 
       await TransactionService.prepare(prepareRequest, rootPublicKey);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/wots/hardened/prepare'),
+        expect.stringContaining('/wots-hardened/prepare'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -185,6 +193,7 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       expect(callBody.to).toBe('0x' + 'ff'.repeat(32));
       expect(callBody.amount).toBe('500000000000000000000000000000000000000000000');
       expect(callBody.rootPublicKey).toBe(rootPublicKey);
+      expect(callBody.addressIndex).toBe(0);
       expect(callBody.paramSet).toBe('v2-spec');
     });
 
@@ -204,7 +213,7 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/wots/hardened/finalize'),
+        expect.stringContaining('/wots-hardened/finalize'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -222,16 +231,15 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
 
   describe('Real-world transaction scenarios with real signatures', () => {
     const rootPublicKey = '0x' + 'aa'.repeat(32);
-    const testSeed = new Uint8Array(32).fill(0x42);
 
     test('sends 5.25 MINIMA transaction with real WOTS signature', async () => {
       // 5.25 MINIMA in base units (44 decimals)
       const amount = '525000000000000000000000000000000000000000000';
 
       const prepareResponse: PrepareResponse = {
+        addressIndex: 5,
         l1: 15,
         l2: 30,
-        l3: 7,
         leaseToken: 'lease-xyz',
         digestTx: '0x' + '12'.repeat(32),
         digestL2: null,
@@ -251,25 +259,25 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       const prepared = await TransactionService.prepare(
         {
           to: '0x' + 'bb'.repeat(32),
-          amount
+          amount,
+          addressIndex: 5,
         },
         rootPublicKey
       );
 
       // Sign with real SDK
-      const { witnessBundle } = await TransactionService.sign(
+      const { witnessBundle } = await TransactionService.signWithPerAddressTreeKey(
         {
+          addressIndex: prepared.addressIndex,
           l1: prepared.l1,
           l2: prepared.l2,
-          l3: prepared.l3,
-          digestTx: prepared.digestTx
+          digestTx: prepared.digestTx,
         },
-        testSeed,
-        'v2-spec'
+        createPerAddressTreeKey(TEST_SEED, prepared.addressIndex),
       );
 
-      expect(witnessBundle.signatures.l1Proof).toHaveLength(34);
-      expect(witnessBundle.signatures.l1Proof[0]).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(witnessBundle.proofs).toHaveLength(3);
+      expect(witnessBundle.proofs[0].signature).toHaveLength(2 + 34 * 32 * 2);
     });
 
     test('handles token transfer (non-MINIMA) with real signature', async () => {
@@ -279,7 +287,9 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          l1: 0, l2: 0, l3: 0,
+          addressIndex: 1,
+          l1: 0,
+          l2: 0,
           leaseToken: 'token-lease',
           digestTx: '0x' + '34'.repeat(32),
           digestL2: null,
@@ -296,7 +306,8 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
         {
           to: '0x' + 'cc'.repeat(32),
           amount,
-          tokenId
+          tokenId,
+          addressIndex: 1,
         },
         rootPublicKey
       );
@@ -309,7 +320,9 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
   describe('Session and lease management', () => {
     test('includes lease TTL in prepare response', async () => {
       const prepareResponse: PrepareResponse = {
-        l1: 0, l2: 0, l3: 0,
+        addressIndex: 0,
+        l1: 0,
+        l2: 0,
         leaseToken: 'ttl-lease',
         digestTx: '0x' + '78'.repeat(32),
         digestL2: null,
@@ -329,7 +342,8 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
       const prepared = await TransactionService.prepare(
         {
           to: '0x' + 'ee'.repeat(32),
-          amount: '100000000000000000000000000000000000000000000'
+          amount: '100000000000000000000000000000000000000000000',
+          addressIndex: 0,
         },
         '0x' + 'aa'.repeat(32)
       );

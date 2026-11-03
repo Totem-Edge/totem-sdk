@@ -254,7 +254,10 @@ const walletPortfolioBackend: PortfolioBackend = {
     const coins = await coinSelectionService.fetchSpendableCoins(
       [address],
       '*',
-      { relevant: true }
+      // `relevant:true` means "coins the node's wallet tracks". The paired
+      // lookup node has its own wallet, so a dApp address is not relevant to
+      // it. Ask for all unspent coins at the address instead.
+      { relevant: false }
     );
     return aggregateWalletCoins(coins, address);
   },
