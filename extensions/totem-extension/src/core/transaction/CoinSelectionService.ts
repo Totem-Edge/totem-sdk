@@ -47,7 +47,10 @@ export interface CoinQueryOptions {
   sendable?: boolean;
   /** Only coins relevant to the wallet. */
   relevant?: boolean;
-  /** Use the MegaMMR endpoint on the Axia path. */
+  /**
+   * Search the MegaMMR (the node's unspent-coin set). Defaults to true because
+   * a paired lookup node's wallet does not track extension/dApp addresses.
+   */
   megammr?: boolean;
 }
 
@@ -238,6 +241,12 @@ class CoinSelectionService {
     const allTokens = tokenId === '*';
     const queryTokenId = allTokens ? undefined : tokenId || '0x00';
 
+    // A local Hawk node's `coins address:…` command only searches the node
+    // wallet's relevant set unless `megammr:true` is supplied. The extension
+    // and dApp addresses are not in the node wallet, so always ask the
+    // MegaMMR (the node's UTXO set) by default.
+    const megammr = options?.megammr ?? true;
+
     // Self-hosted mode routes chain reads through the user's node (RFC-013 §7).
     // Axia mode (null) keeps the existing REST path below.
     try {
@@ -253,7 +262,7 @@ class CoinSelectionService {
             // which is false for every dApp/extension address. Never forward it
             // to the node provider; callers filter spent coins themselves.
             ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
-            ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),
+            megammr,
           });
           for (const coin of coins) {
             const mapped = mapProviderCoin(coin);
