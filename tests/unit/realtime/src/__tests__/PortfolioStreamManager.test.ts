@@ -260,6 +260,51 @@ describe('PortfolioStreamManager — backend mode (no WS)', () => {
   });
 });
 
+describe('PortfolioStreamManager — backend outage handling', () => {
+  const cachedEntry: PortfolioEntry = {
+    kind: 'native', tokenid: '0x00', confirmed: '42', unconfirmed: '0',
+    sendable: '42', total: '42', decimals: 18, name: 'MIN', ticker: 'MIN', address: 'MxABC',
+  };
+
+  it('surfaces an error and keeps the last good cache when every backend read fails', async () => {
+    const backend: PortfolioBackend = {
+      supportsPush: false,
+      getPortfolio: vi.fn().mockRejectedValue(new Error('RPC unavailable')),
+    };
+    const states: Array<{ state: string; error?: string }> = [];
+    const { mgr, cache } = makeManager({ backend });
+    await cache.set('MxABC', [cachedEntry]);
+    mgr.addListener({
+      onPortfolioUpdate: vi.fn(),
+      onConnectionStateChange: (state, error) => states.push({ state, error }),
+    });
+
+    await mgr.start(['MxABC']);
+    await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
+
+    expect(await mgr.getCachedPortfolio('MxABC')).toEqual([cachedEntry]);
+    expect(states[states.length - 1]?.error).toMatch(/Balance service unavailable: RPC unavailable/);
+  });
+
+  it('recovers from error to fallback after a later successful poll', async () => {
+    const backend: PortfolioBackend = {
+      supportsPush: false,
+      getPortfolio: vi.fn()
+        .mockRejectedValueOnce(new Error('RPC unavailable'))
+        .mockResolvedValue([cachedEntry]),
+    };
+    const { mgr, cache } = makeManager({ backend });
+
+    await mgr.start(['MxABC']);
+    await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
+
+    await mgr.forceRefresh();
+
+    expect(mgr.getConnectionState()).toBe('fallback');
+    expect(await mgr.getCachedPortfolio('MxABC')).toEqual([cachedEntry]);
+  });
+});
+
 describe('PortfolioStreamManager — getSnapshot', () => {
   it('returns cached portfolios and connectionState', async () => {
     const { mgr, cache } = makeManager();
@@ -272,6 +317,7 @@ describe('PortfolioStreamManager — getSnapshot', () => {
     const snap = await mgr.getSnapshot(['MxABC']);
     expect(snap.connectionState).toBe('disconnected');
     expect(snap.portfolios['MxABC']).toEqual(entries);
+    expect(snap.lastSyncedAt['MxABC']).toBeGreaterThan(0);
   });
 
   it('returns empty portfolios for uncached addresses', async () => {
