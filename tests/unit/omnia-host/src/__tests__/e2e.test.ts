@@ -58,6 +58,11 @@ describe('omnia-host end-to-end (real control server)', () => {
       OMNIA_LOCAL_ADDRESS_INDEX: '0',
     });
     const signing = createHostSigning(config);
+    const bobSigning = createHostSigning(loadConfigFromEnv({
+      OMNIA_HOST_SEED: '0x' + 'cd'.repeat(32),
+      OMNIA_HOST_DB: `/tmp/omnia-host-e2e-bob-${port}.sqlite`,
+      OMNIA_LOCAL_ADDRESS_INDEX: '1',
+    }));
 
     const chainProvider = {
       broadcastTxPoW: jest.fn(async () => ({ txpowid: '0xtxpow-e2e' })),
@@ -86,18 +91,21 @@ describe('omnia-host end-to-end (real control server)', () => {
         connectToPeer: jest.fn(async (_pubkey: string, channelId: string) => {
           let cb: ((msg: any) => void) | undefined;
           let last: any;
-          const deliver = () => {
+          const deliver = async () => {
             if (!cb || !last) return;
-            const reply = last.type === 'SETTLEMENT_PROPOSAL'
-              ? { type: 'ACK', channelId: last.channelId, payload: { partyId: 'bob', signature: '0x' + '11'.repeat(64) } }
-              : { type: 'ACK', channelId: last.channelId };
+            let reply: any = { type: 'ACK', channelId: last.channelId };
+            if (last.type === 'SETTLEMENT_PROPOSAL') {
+              const digest = Buffer.from(String(last.payload.digestHex).replace(/^0x/, ''), 'hex');
+              const signature = await bobSigning.signer.sign(digest, { addressIndex: 1, l1: 5, l2: 0 });
+              reply = { type: 'ACK', channelId: last.channelId, payload: { partyId: 'bob', signature: '0x' + Buffer.from(signature).toString('hex') } };
+            }
             setTimeout(() => cb?.(reply), 0);
           };
           return {
             pubkey: 'peer',
             channelId,
-            sendMessage: jest.fn(async (msg: any) => { last = msg; deliver(); }),
-            onMessage: jest.fn((f: (msg: any) => void) => { cb = f; deliver(); return () => { cb = undefined; }; }),
+            sendMessage: jest.fn(async (msg: any) => { last = msg; await deliver(); }),
+            onMessage: jest.fn((f: (msg: any) => void) => { cb = f; void deliver(); return () => { cb = undefined; }; }),
             disconnect: jest.fn(),
             isConnected: jest.fn(() => true),
           };
@@ -126,7 +134,7 @@ describe('omnia-host end-to-end (real control server)', () => {
       const opened = await rpcCall(port, 'totem_omniaOpenChannel', {
         operationId: 'e2e-open',
         remotePartyId: 'bob',
-        remotePublicKeyDigest: '0x' + 'bb'.repeat(32),
+        remotePublicKeyDigest: bobSigning.publicKeyDigest,
         remoteAddressIndex: 1,
         remoteSettlementAddress: '0x' + '55'.repeat(32),
         localAmount: '600',

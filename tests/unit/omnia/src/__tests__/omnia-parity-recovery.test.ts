@@ -6,7 +6,9 @@ import { CounterProgram, MeterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, M
 import { programNumberState } from '../state-vars';
 import type { ProgramTransition, SignedChannelState, StateValue } from '../types';
 
-const wasm = require('../../rust/pkg-node/omnia_wasm.js') as {
+const WASM_PATH = path.join(__dirname, '../../../../../packages/omnia/rust/pkg-node/omnia_wasm.js');
+const hasWasm = fs.existsSync(WASM_PATH);
+const wasm = (hasWasm ? require(WASM_PATH) : null) as {
   build_counter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   build_meter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   recover_channel_snapshot_wasm(snapshot: string): { channel: Record<string, unknown>; warnings: string[]; latestSignedState?: unknown };
@@ -56,7 +58,7 @@ function makeState(stateVariables: StateValue[]): SignedChannelState {
   };
 }
 
-describe('Omnia recovery parity (golden fixtures)', () => {
+(hasWasm ? describe : describe.skip)('Omnia recovery parity (golden fixtures)', () => {
   it('matches TS and WASM recovery for the default channel snapshot', () => {
     const json = fixture('default-channel.snapshot.json');
     const ts = recoverChannelSnapshot(json);

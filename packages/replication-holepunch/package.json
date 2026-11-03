@@ -48,7 +48,8 @@
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "test": "jest --config ../../tests/jest/replication-holepunch.cjs"
+    "test": "jest --config ../../tests/jest/replication-holepunch-unit.cjs",
+    "test:integration": "jest --config ../../tests/jest/replication-holepunch.cjs"
   },
   "files": [
     "dist",
