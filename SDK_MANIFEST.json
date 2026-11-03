@@ -365,7 +365,7 @@
     },
     {
       "name": "@totemsdk/edge-adapters",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "Reference adapters bridging SDK packages to @totemsdk/edge port interfaces",
       "domain": "edge-computing",
       "keywords": [
@@ -376,6 +376,8 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.4.0",
         "@totemsdk/chain-provider": "^0.3.2",
+        "@totemsdk/core": "^1.4.2",
+        "@totemsdk/edge": "^1.5.1",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/location-proof": "^1.0.1",
         "@totemsdk/lookup-client": "^0.4.0",
@@ -398,7 +400,7 @@
     },
     {
       "name": "@totemsdk/edge-bacnet",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for BACnet — building automation, HVAC, device properties",
       "domain": "edge-computing",
       "keywords": [
@@ -420,7 +422,7 @@
     },
     {
       "name": "@totemsdk/edge-ble",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for BLE — wearables, beacons, proximity tracking",
       "domain": "edge-computing",
       "keywords": [
@@ -443,7 +445,7 @@
     },
     {
       "name": "@totemsdk/edge-can",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Edge runtime adapter for CAN bus — automotive, heavy machinery, socketcan",
       "domain": "edge-computing",
       "keywords": [
@@ -466,7 +468,7 @@
     },
     {
       "name": "@totemsdk/edge-coap",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Edge runtime adapter for CoAP — constrained devices, RFC 7252, UDP transport",
       "domain": "edge-computing",
       "keywords": [
@@ -489,7 +491,7 @@
     },
     {
       "name": "@totemsdk/edge-grpc",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Edge runtime adapter for gRPC — service-to-service, cloud-to-edge control planes",
       "domain": "edge-computing",
       "keywords": [
@@ -584,7 +586,7 @@
     },
     {
       "name": "@totemsdk/edge-matter",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for Matter — smart home, multi-transport, fabric management",
       "domain": "edge-computing",
       "keywords": [
@@ -662,7 +664,7 @@
     },
     {
       "name": "@totemsdk/edge-nfc",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "description": "Edge runtime adapter for NFC — NDEF read/write/erase, ISO 14443-4 APDU transceive, P2P, and Host Card Emulation",
       "domain": "edge-computing",
       "keywords": [
@@ -711,7 +713,7 @@
     },
     {
       "name": "@totemsdk/edge-opcua",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
       "domain": "edge-computing",
       "keywords": [
@@ -734,7 +736,7 @@
     },
     {
       "name": "@totemsdk/edge-ros2",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for ROS 2 — robotics, DDS middleware, typed topics",
       "domain": "edge-computing",
       "keywords": [
@@ -987,7 +989,7 @@
         "@totemsdk/kissvm": "^1.3.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/stream-transport": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1021,7 +1023,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/omnia": "^2.4.0",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1078,7 +1080,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/omnia": "^2.4.0",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1382,7 +1384,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/kissvm": "^1.3.1",
-        "@totemsdk/tx-builder": "^0.2.2"
+        "@totemsdk/tx-builder": "^0.3.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1494,7 +1496,7 @@
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1645,7 +1647,7 @@
     },
     {
       "name": "@totemsdk/edge-email",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for email — IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email",
       "domain": "edge-computing",
       "keywords": [
@@ -1755,7 +1757,7 @@
     },
     {
       "name": "@totemsdk/mcp-server",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1804,7 +1806,7 @@
         "@totemsdk/omnia-vtxo": "^0.8.1",
         "@totemsdk/p2p-hub": "^0.1.1",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "exports": {
@@ -1938,7 +1940,7 @@
         "@totemsdk/omnia-splice": "^0.3.1",
         "@totemsdk/omnia-vtxo": "^0.8.1",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.3.0",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "peerDependencies": {
