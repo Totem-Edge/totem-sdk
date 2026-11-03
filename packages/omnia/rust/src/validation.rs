@@ -49,7 +49,8 @@ pub fn validate_balance_conservation(
 
     let mut htlc_total: i128 = 0;
     for htlc in pending_htlcs.iter().filter(|h| h.status == "pending") {
-        let parsed = match parse_amount(&htlc.amount, &format!("HTLC amount for {}", htlc.htlc_id)) {
+        let parsed = match parse_amount(&htlc.amount, &format!("HTLC amount for {}", htlc.htlc_id))
+        {
             Ok(v) => v,
             Err(reason) => {
                 return ValidationResult {
@@ -61,7 +62,10 @@ pub fn validate_balance_conservation(
         if parsed < 0 {
             return ValidationResult {
                 valid: false,
-                reason: Some(format!("Negative HTLC amount for {}: {parsed}", htlc.htlc_id)),
+                reason: Some(format!(
+                    "Negative HTLC amount for {}: {parsed}",
+                    htlc.htlc_id
+                )),
             };
         }
         htlc_total += parsed;
@@ -121,7 +125,10 @@ fn normalize_value(value: &serde_json::Value) -> String {
     }
 }
 
-fn state_variables_equal(left: &[crate::types::StateValue], right: &[crate::types::StateValue]) -> bool {
+fn state_variables_equal(
+    left: &[crate::types::StateValue],
+    right: &[crate::types::StateValue],
+) -> bool {
     if left.len() != right.len() {
         return false;
     }
@@ -132,7 +139,10 @@ fn state_variables_equal(left: &[crate::types::StateValue], right: &[crate::type
     })
 }
 
-fn settlement_variables(channel: &OmniaChannel, state: &SignedChannelState) -> Vec<crate::types::StateValue> {
+fn settlement_variables(
+    channel: &OmniaChannel,
+    state: &SignedChannelState,
+) -> Vec<crate::types::StateValue> {
     let commitment = commitment_hex(channel, state, true);
     state
         .state_variables
@@ -159,7 +169,8 @@ fn settlement_variables(channel: &OmniaChannel, state: &SignedChannelState) -> V
 }
 
 fn raw_total(channel: &OmniaChannel) -> Result<u128, String> {
-    let total = crate::serialize::parse_amount(&serde_json::Value::String(channel.total_value.clone()))?;
+    let total =
+        crate::serialize::parse_amount(&serde_json::Value::String(channel.total_value.clone()))?;
     let scale = channel.token_scale;
     if scale == 0 {
         return Ok(total);
@@ -168,7 +179,9 @@ fn raw_total(channel: &OmniaChannel) -> Result<u128, String> {
         .checked_pow(scale)
         .ok_or_else(|| "tokenScale out of range".to_string())?;
     if total % divisor != 0 {
-        return Err(format!("totalValue {total} is not divisible by tokenScale {scale}"));
+        return Err(format!(
+            "totalValue {total} is not divisible by tokenScale {scale}"
+        ));
     }
     Ok(total / divisor)
 }
@@ -217,7 +230,9 @@ fn verify_artifact(
                 for output in &draft.outputs {
                     match crate::serialize::parse_amount(&output.amount) {
                         Ok(amount) => output_total += amount,
-                        Err(error) => errors.push(format!("settlement output amount invalid: {error}")),
+                        Err(error) => {
+                            errors.push(format!("settlement output amount invalid: {error}"))
+                        }
                     }
                 }
                 if output_total != total {
@@ -230,11 +245,16 @@ fn verify_artifact(
                     errors.push("update tx must have exactly one channel output".to_string());
                 } else {
                     let output = &draft.outputs[0];
-                    if !output.address.eq_ignore_ascii_case(&channel.funding_address) {
+                    if !output
+                        .address
+                        .eq_ignore_ascii_case(&channel.funding_address)
+                    {
                         errors.push("update output is not the channel script address".to_string());
                     }
                     if crate::serialize::parse_amount(&output.amount).ok() != Some(total) {
-                        errors.push("update output amount does not equal the channel total".to_string());
+                        errors.push(
+                            "update output amount does not equal the channel total".to_string(),
+                        );
                     }
                 }
             }
@@ -320,7 +340,11 @@ pub fn verify_state_checks(channel: &OmniaChannel, state: &SignedChannelState) -
     let conservation =
         validate_balance_conservation(&channel.total_value, &state.balances, &state.pending_htlcs);
     if !conservation.valid {
-        errors.push(conservation.reason.unwrap_or_else(|| "balance conservation failed".to_string()));
+        errors.push(
+            conservation
+                .reason
+                .unwrap_or_else(|| "balance conservation failed".to_string()),
+        );
     }
 
     match state_variable_string(state, PORT_COMMITMENT) {
@@ -355,7 +379,10 @@ pub fn verify_state_checks(channel: &OmniaChannel, state: &SignedChannelState) -
                 None => errors.push(format!("missing signature for party {}", party.party_id)),
                 Some(signature) => {
                     if state.signing_indices.get(&party.party_id).is_none() {
-                        errors.push(format!("missing signing indices for party {}", party.party_id));
+                        errors.push(format!(
+                            "missing signing indices for party {}",
+                            party.party_id
+                        ));
                     }
                     match crate::signature::verify_signature_hex(
                         signature,
@@ -437,10 +464,17 @@ pub fn validate_state_transition(
     let delta = parse_amount(pending_htlc_delta, "pendingHTLCDelta")?;
 
     let mut htlc_total: i128 = delta;
-    for htlc in channel.pending_htlcs.iter().filter(|h| h.status == "pending") {
+    for htlc in channel
+        .pending_htlcs
+        .iter()
+        .filter(|h| h.status == "pending")
+    {
         let amount = parse_amount(&htlc.amount, &format!("HTLC amount for {}", htlc.htlc_id))?;
         if amount < 0 {
-            return Err(format!("Negative HTLC amount for {}: {amount}", htlc.htlc_id));
+            return Err(format!(
+                "Negative HTLC amount for {}: {amount}",
+                htlc.htlc_id
+            ));
         }
         htlc_total += amount;
     }
@@ -469,7 +503,12 @@ pub fn verify_htlc_preimage(preimage: &str, hashlock: &str) -> bool {
 
     // The SDK hashes the raw preimage bytes (hex-decoded) and compares the hex
     // digest case-insensitively; hashing the UTF-8 hex text is a different value.
-    let strip = |h: &str| h.strip_prefix("0x").or_else(|| h.strip_prefix("0X")).unwrap_or(h).to_string();
+    let strip = |h: &str| {
+        h.strip_prefix("0x")
+            .or_else(|| h.strip_prefix("0X"))
+            .unwrap_or(h)
+            .to_string()
+    };
     let bytes = match hex::decode(strip(preimage)) {
         Ok(b) => b,
         Err(_) => return false,

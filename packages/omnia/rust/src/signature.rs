@@ -70,7 +70,9 @@ pub fn deserialize_tree_signature(bytes: &[u8]) -> Result<TreeSignature, String>
     let mut reader = Reader::new(bytes);
     let count = reader.mini_number()?;
     if count < 1 || count > 8 {
-        return Err(format!("Malformed signature: impossible proof count ({count})"));
+        return Err(format!(
+            "Malformed signature: impossible proof count ({count})"
+        ));
     }
 
     let mut proofs = Vec::with_capacity(count as usize);
@@ -81,7 +83,9 @@ pub fn deserialize_tree_signature(bytes: &[u8]) -> Result<TreeSignature, String>
         let _block_time = reader.mini_number()?;
         let chunk_count = reader.mini_number()?;
         if chunk_count > 1024 {
-            return Err(format!("Malformed signature: impossible chunk count ({chunk_count})"));
+            return Err(format!(
+                "Malformed signature: impossible chunk count ({chunk_count})"
+            ));
         }
 
         let mut chunks = Vec::with_capacity(chunk_count as usize);

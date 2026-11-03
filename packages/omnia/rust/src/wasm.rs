@@ -42,12 +42,14 @@ pub fn compute_state_commitment_v2_wasm(
 ) -> Result<String, JsValue> {
     let channel: OmniaChannel = serde_wasm_bindgen::from_value(channel_js)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse channel: {}", e)))?;
-    let balances: std::collections::HashMap<String, String> = serde_wasm_bindgen::from_value(balances_js)
-        .map_err(|e| JsValue::from_str(&format!("Failed to parse balances: {}", e)))?;
+    let balances: std::collections::HashMap<String, String> =
+        serde_wasm_bindgen::from_value(balances_js)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse balances: {}", e)))?;
     let pending_htlcs: Vec<HTLCRecord> = serde_wasm_bindgen::from_value(pending_htlcs_js)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse HTLCs: {}", e)))?;
-    let state_variables: Vec<crate::types::StateValue> = serde_wasm_bindgen::from_value(program_state_variables_js)
-        .map_err(|e| JsValue::from_str(&format!("Failed to parse state variables: {}", e)))?;
+    let state_variables: Vec<crate::types::StateValue> =
+        serde_wasm_bindgen::from_value(program_state_variables_js)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse state variables: {}", e)))?;
     let digest = commitment::compute_state_commitment_v2(
         &channel,
         sequence,

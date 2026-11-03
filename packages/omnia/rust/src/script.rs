@@ -122,11 +122,7 @@ mod tests {
             "LET settlement=STATE(100)",
             "LET sequence=STATE(101)",
             "LET prevsequence=PREVSTATE(101)",
-            &format!(
-                "LET bothsigned=MULTISIG(2 {} {})",
-                kiss_hex(A),
-                kiss_hex(B)
-            ),
+            &format!("LET bothsigned=MULTISIG(2 {} {})", kiss_hex(A), kiss_hex(B)),
             "IF settlement THEN",
             "    ASSERT bothsigned",
             "    ASSERT sequence EQ prevsequence",
