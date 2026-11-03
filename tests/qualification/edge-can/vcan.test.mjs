@@ -44,7 +44,7 @@ test('vcan sidecar sends/receives standard and extended frames', { timeout: 60_0
   await new Promise((resolve) => reservation.close(resolve));
   const child = spawn('go', ['build', '-o', binary, '.'], { cwd: new URL('../../../packages/edge-can/go', import.meta.url), stdio: 'pipe' });
   await new Promise((resolve, reject) => { child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`go build ${code}`))); });
-  const sidecar = spawn(binary, [], { env: { ...process.env, CAN_INTERFACE: name, CAN_LISTEN_ADDR: `127.0.0.1:${port}` }, stdio: ['ignore','pipe','pipe'] });
+  const sidecar = spawn(binary, [], { env: { ...process.env, CAN_INTERFACE: name, CAN_DEBUG: '1', CAN_LISTEN_ADDR: `127.0.0.1:${port}` }, stdio: ['ignore','pipe','pipe'] });
   t.after(async () => {
     sidecar.kill('SIGKILL');
     try { run('sh', ['-c', `${sudo} ip link delete ${name}`]); } catch {}

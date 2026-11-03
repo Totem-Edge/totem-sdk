@@ -111,7 +111,7 @@ test('sidecar exchanges classic, extended and filtered frames over vcan', { time
   assert.equal(contract.protocolVersion, 1);
   assert.equal(contract.distribution.bundledInNpmPackage, false);
   const sidecar = spawn(binary, [], {
-    env: { ...process.env, CAN_INTERFACE: ifname, CAN_LISTEN_ADDR: `127.0.0.1:${port}` },
+    env: { ...process.env, CAN_INTERFACE: ifname, CAN_DEBUG: '1', CAN_LISTEN_ADDR: `127.0.0.1:${port}` },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const logs = [];

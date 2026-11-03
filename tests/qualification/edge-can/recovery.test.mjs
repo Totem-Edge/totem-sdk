@@ -71,7 +71,7 @@ async function waitForPort(port, timeoutMs = 5000) {
 
 function startSidecar(binary, port, interfaceName) {
   const child = spawn(binary, [], {
-    env: { ...process.env, CAN_INTERFACE: interfaceName, CAN_LISTEN_ADDR: `127.0.0.1:${port}` },
+    env: { ...process.env, CAN_INTERFACE: interfaceName, CAN_DEBUG: '1', CAN_LISTEN_ADDR: `127.0.0.1:${port}` },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const logs = [];
