@@ -273,7 +273,7 @@ fn verify_artifact(
                 continue;
             }
         };
-        if artifact.signing_indices.get(&party.party_id).is_none() {
+        if !artifact.signing_indices.contains_key(&party.party_id) {
             errors.push(format!(
                 "missing close artifact signing indices for {}",
                 party.party_id
@@ -378,7 +378,7 @@ pub fn verify_state_checks(channel: &OmniaChannel, state: &SignedChannelState) -
             match state.signatures.get(&party.party_id) {
                 None => errors.push(format!("missing signature for party {}", party.party_id)),
                 Some(signature) => {
-                    if state.signing_indices.get(&party.party_id).is_none() {
+                    if !state.signing_indices.contains_key(&party.party_id) {
                         errors.push(format!(
                             "missing signing indices for party {}",
                             party.party_id

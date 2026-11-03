@@ -69,7 +69,7 @@ impl<'a> Reader<'a> {
 pub fn deserialize_tree_signature(bytes: &[u8]) -> Result<TreeSignature, String> {
     let mut reader = Reader::new(bytes);
     let count = reader.mini_number()?;
-    if count < 1 || count > 8 {
+    if !(1..=8).contains(&count) {
         return Err(format!(
             "Malformed signature: impossible proof count ({count})"
         ));

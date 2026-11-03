@@ -52,11 +52,11 @@ pub fn compute_tx_draft_digest(
     hasher.finalize().to_vec()
 }
 
-/// Canonical state commitment v2 — byte-identical to the TS
-/// `computeStateCommitmentV2` (including the port-102 exclusion and JSON encoding).
-///
-/// The payload is serialised with `serde_json`, whose object maps are sorted, which
-/// matches the TS `canonicalJson` (keys sorted at every level).
+// Canonical state commitment v2 — byte-identical to the TS
+// `computeStateCommitmentV2` (including the port-102 exclusion and JSON encoding).
+//
+// The payload is serialised with `serde_json`, whose object maps are sorted, which
+// matches the TS `canonicalJson` (keys sorted at every level).
 thread_local! {
     static STATE_COMMITMENT_V2_INPUT: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
 }
@@ -109,7 +109,7 @@ pub fn compute_state_commitment_v2(
 
     let mut program_vars: Vec<&crate::types::StateValue> = program_state_variables
         .iter()
-        .filter(|sv| !matches!(sv.port, 100 | 101 | 102))
+        .filter(|sv| !matches!(sv.port, 100..=102))
         .collect();
     program_vars.sort_by_key(|sv| sv.port);
     let program_vars_value: Vec<serde_json::Value> = program_vars

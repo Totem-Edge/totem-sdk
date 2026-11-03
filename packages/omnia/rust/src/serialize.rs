@@ -51,7 +51,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
     if raw.is_empty() {
         return Ok(Vec::new());
     }
-    if raw.len() % 2 != 0 {
+    if !raw.len().is_multiple_of(2) {
         return Err(format!("Invalid hex string: odd length ({})", raw.len()));
     }
     hex::decode(raw).map_err(|_| format!("Invalid hex string: {hex}"))
