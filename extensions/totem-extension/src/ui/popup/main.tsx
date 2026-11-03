@@ -1,13 +1,13 @@
 import "../../core/storage/typedStorage"; // runtime chrome.storage.*.getTyped (must run first)
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { BrutalistApp } from "./BrutalistApp";
+import { TotemApp } from "./TotemApp";
 import { DebugLogProvider } from "../contexts/DebugLogContext";
 import { isDesignerMode } from "../../config/constants";
 import { ensureCoreWasm } from "../../core/wasm-init";
 import { applyTheme, DEFAULT_THEME, THEME_STORAGE_KEY, themes, ThemeId } from "../theme/ThemeRegistry";
 
-// Import the Axia Brutalist Design System tokens
+// Import the Axia Totem Design System tokens
 import "../theme/axia-tokens.css";
 
 // CRITICAL: Apply theme synchronously BEFORE React renders to prevent color flash
@@ -45,7 +45,7 @@ function applyThemeImmediately() {
 // Apply theme immediately on script load (before React)
 applyThemeImmediately();
 
-console.log('[Totem Brutalist] Initializing React app...');
+console.log('[Totem] Initializing React app...');
 
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
@@ -62,28 +62,28 @@ async function initApp() {
 
     const rootElement = document.getElementById("root");
     if (!rootElement) {
-      console.error('[Totem Brutalist] Root element not found!');
+      console.error('[Totem] Root element not found!');
       return;
     }
-    console.log('[Totem Brutalist] Root element found, rendering app...');
+    console.log('[Totem] Root element found, rendering app...');
     const root = createRoot(rootElement);
     
     // Wrap with DebugLogProvider in Designer mode only
     const app = isDesignerMode() ? (
       <DebugLogProvider>
-        <BrutalistApp />
+        <TotemApp />
       </DebugLogProvider>
     ) : (
-      <BrutalistApp />
+      <TotemApp />
     );
     
     root.render(app);
-    console.log('[Totem Brutalist] Brutalist app rendered successfully ✓');
+    console.log('[Totem] Totem app rendered successfully ✓');
     
     if (isDesignerMode()) {
-      console.log('[Totem Brutalist] 🔧 Debug mode active - console will be captured');
+      console.log('[Totem] 🔧 Debug mode active - console will be captured');
     }
   } catch (error) {
-    console.error('[Totem Brutalist] Error initializing React app:', error);
+    console.error('[Totem] Error initializing React app:', error);
   }
 }

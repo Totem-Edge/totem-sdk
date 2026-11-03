@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST ATOMIC COMPONENTS
+ * AXIA TOTEM ATOMIC COMPONENTS
  * Export all atoms for easy import
  */
 

@@ -1,5 +1,5 @@
 /**
- * AXIA TOTEM SETTINGS PAGE - BRUTALIST REDESIGN
+ * AXIA TOTEM SETTINGS PAGE - TOTEM REDESIGN
  * Settings, security, and Axia API quota management
  */
 
@@ -30,7 +30,7 @@ import { getServiceVersionInfo, formatVersionLine } from '../../../shared/apiVer
 import { ConnectedSites } from './ConnectedSites';
 import '../../theme/axia-tokens.css';
 
-// Brutalist Toggle Switch Component
+// Totem Toggle Switch Component
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <label style={{
@@ -94,7 +94,7 @@ interface WotsHealthData {
   addressCount?: number;
 }
 
-interface BrutalistSettingsProps {
+interface TotemSettingsProps {
   onAccountsUpdated?: () => void;
 }
 
@@ -118,7 +118,7 @@ async function requestNodeOriginPermission(url: string): Promise<void> {
   if (!granted) throw new Error('Host permission for the node was not granted.');
 }
 
-export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps = {}) {
+export function TotemSettings({ onAccountsUpdated }: TotemSettingsProps = {}) {
   const { currentTheme, setTheme } = useTheme();
   const { showAnnouncements, toggleShowAnnouncements } = useAnnouncements();
   const [walletAccountCount, setWalletAccountCount] = useState<number>(1);

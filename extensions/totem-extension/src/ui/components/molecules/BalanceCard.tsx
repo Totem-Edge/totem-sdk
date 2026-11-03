@@ -80,26 +80,29 @@ export function BalanceCard({
   const getStreamingIndicator = (status: StreamingStatus | undefined) => {
     if (!status) return null;
     
-    const statusConfig: Record<StreamingStatus, { color: string; label: string; pulse?: boolean }> = {
-      connected: { color: 'var(--color-success)', label: 'LIVE', pulse: true },
-      connecting: { color: 'var(--color-warning)', label: 'Connecting...', pulse: true },
-      fallback: { color: 'var(--color-warning)', label: 'Polling', pulse: false },
-      error: { color: 'var(--color-danger)', label: 'Offline', pulse: false },
-      disconnected: { color: 'var(--text-muted)', label: '', pulse: false }
+    const statusConfig: Record<StreamingStatus, { color: string; label: string; title: string; pulse?: boolean }> = {
+      connected: { color: 'var(--color-success)', label: 'LIVE', title: 'Live balance updates', pulse: true },
+      connecting: { color: 'var(--color-warning)', label: 'Connecting...', title: 'Connecting to the balance service', pulse: true },
+      fallback: { color: 'var(--color-warning)', label: 'Cached', title: 'Showing cached balance while polling for updates', pulse: false },
+      error: { color: 'var(--color-danger)', label: 'Offline', title: 'Last refresh failed; showing the last known balance', pulse: false },
+      disconnected: { color: 'var(--text-muted)', label: '', title: '', pulse: false }
     };
     
     const config = statusConfig[status];
     if (!config.label) return null;
     
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        fontSize: '10px',
-        color: config.color,
-        opacity: 0.9
-      }}>
+      <div
+        title={config.title}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '10px',
+          color: config.color,
+          opacity: 0.9
+        }}
+      >
         <span style={{
           width: '6px',
           height: '6px',

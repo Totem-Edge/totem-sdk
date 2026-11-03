@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST MOLECULAR COMPONENTS
+ * AXIA TOTEM MOLECULAR COMPONENTS
  * Export all molecules for easy import
  */
 

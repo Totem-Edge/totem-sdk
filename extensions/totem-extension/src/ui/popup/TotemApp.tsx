@@ -1,23 +1,23 @@
 /**
- * AXIA TOTEM WALLET - BRUTALIST APP SHELL
- * Complete rebuild with flat brutalist design system
+ * AXIA TOTEM WALLET - TOTEM APP SHELL
+ * Complete rebuild with flat totem design system
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import { BrutalistHeader, BrutalistNavigation, NavTab, SplashScreen } from '../components/organisms';
+import { TotemHeader, TotemNavigation, NavTab, SplashScreen } from '../components/organisms';
 import { Typography } from '../components/atoms';
-import { BrutalistOnboard } from './pages/BrutalistOnboard';
+import { TotemOnboard } from './pages/TotemOnboard';
 import { isDesignerMode } from '../../config/constants';
 import { CONNECTION_STATUS_KEY, ConnectionState } from '../../core/connectivity';
 import '../theme/axia-tokens.css';
 
-// Import brutalist pages
-import { BrutalistHome } from './pages/BrutalistHome';
-import { BrutalistSend } from './pages/BrutalistSend';
-import { BrutalistActivity } from './pages/BrutalistActivity';
-import { BrutalistReceive } from './pages/BrutalistReceive';
-import { BrutalistSettings } from './pages/BrutalistSettings';
-import { BrutalistTokenDetail, TokenDetailData } from './pages/BrutalistTokenDetail';
+// Import totem pages
+import { TotemHome } from './pages/TotemHome';
+import { TotemSend } from './pages/TotemSend';
+import { TotemActivity } from './pages/TotemActivity';
+import { TotemReceive } from './pages/TotemReceive';
+import { TotemSettings } from './pages/TotemSettings';
+import { TotemTokenDetail, TokenDetailData } from './pages/TotemTokenDetail';
 
 // Import unlock modal components
 import { UnlockProvider, useUnlock } from './contexts/UnlockContext';
@@ -75,7 +75,7 @@ function SessionExpiryDetector() {
   return null;
 }
 
-export function BrutalistApp() {
+export function TotemApp() {
   const [inited, setInited] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
@@ -88,11 +88,11 @@ export function BrutalistApp() {
   const [wotsHealth, setWotsHealth] = useState<'healthy' | 'warning' | 'critical'>('healthy');
 
   useEffect(() => {
-    console.log('[BrutalistApp] Initializing...');
+    console.log('[TotemApp] Initializing...');
 
     // Check if we're in extension context
     if (typeof chrome === 'undefined' || !chrome?.runtime?.id) {
-      console.error('[BrutalistApp] Not in Chrome extension context!');
+      console.error('[TotemApp] Not in Chrome extension context!');
       setInited(false);
       setShowSplash(false);
       return;
@@ -102,16 +102,16 @@ export function BrutalistApp() {
     // Increased to 45s to handle case where service worker is busy with TreeKey generation
     // from an interrupted wallet setup (TreeKey takes ~40s)
     const timeout = setTimeout(async () => {
-      console.warn('[BrutalistApp] Background communication timeout - checking storage directly');
+      console.warn('[TotemApp] Background communication timeout - checking storage directly');
       
       // Fallback: check storage directly instead of giving up
       try {
         const stored = await chrome.storage.local.getTyped('encryptedSeed');
         const hasWallet = !!(stored.encryptedSeed?.iv && stored.encryptedSeed?.ct);
-        console.log(`[BrutalistApp] Storage fallback check: hasWallet=${hasWallet}`);
+        console.log(`[TotemApp] Storage fallback check: hasWallet=${hasWallet}`);
         setInited(hasWallet);
       } catch (e) {
-        console.error('[BrutalistApp] Storage fallback failed:', e);
+        console.error('[TotemApp] Storage fallback failed:', e);
         setInited(false);
       }
       setShowSplash(false);
@@ -124,18 +124,18 @@ export function BrutalistApp() {
 
     try {
       chrome.runtime.sendMessage(
-        { method: 'ui:isInitialized', id: 'brutalist-popup-init' },
+        { method: 'ui:isInitialized', id: 'totem-popup-init' },
         (response) => {
           clearTimeout(timeout);
-          console.log('[BrutalistApp] Background response:', response);
+          console.log('[TotemApp] Background response:', response);
 
           if (chrome.runtime.lastError) {
-            console.error('[BrutalistApp] Chrome runtime error:', chrome.runtime.lastError);
+            console.error('[TotemApp] Chrome runtime error:', chrome.runtime.lastError);
             // Fresh install or service worker not responding - show onboarding
             setInited(false);
           } else {
             const hasEncryptedSeed = !!response?.result?.ok;
-            console.log(`[BrutalistApp] Encrypted seed exists: ${hasEncryptedSeed}`);
+            console.log(`[TotemApp] Encrypted seed exists: ${hasEncryptedSeed}`);
             setInited(hasEncryptedSeed);
             // NOTE: Address loading happens in the post-init effect (lines 92-99)
             // to ensure wallet is unlocked before calling wallet:getState
@@ -144,7 +144,7 @@ export function BrutalistApp() {
       );
     } catch (error) {
       clearTimeout(timeout);
-      console.error('[BrutalistApp] Error sending message to background:', error);
+      console.error('[TotemApp] Error sending message to background:', error);
       setInited(false);
     }
 
@@ -158,7 +158,7 @@ export function BrutalistApp() {
   useEffect(() => {
     if (inited !== true || accountAddress) return;
 
-    console.log('[BrutalistApp] Wallet initialized - loading active account and WOTS health...');
+    console.log('[TotemApp] Wallet initialized - loading active account and WOTS health...');
     let cancelled = false;
 
     const tryLoadActiveAccount = async () => {
@@ -172,11 +172,11 @@ export function BrutalistApp() {
           setWalletAccounts(accounts);
           setActiveAccountIndex(safeIdx);
           setAccountAddress(accounts[safeIdx].address);
-          console.log(`[BrutalistApp] Active account #${safeIdx + 1}:`, accounts[safeIdx].address);
+          console.log(`[TotemApp] Active account #${safeIdx + 1}:`, accounts[safeIdx].address);
           return;
         }
       } catch (e) {
-        console.warn('[BrutalistApp] Fast path storage read failed:', e);
+        console.warn('[TotemApp] Fast path storage read failed:', e);
       }
 
       // Fallback: background script with retries
@@ -195,12 +195,12 @@ export function BrutalistApp() {
               setWalletAccounts(accounts2.length > 0 ? accounts2 : [response.account]);
               setActiveAccountIndex(idx);
               setAccountAddress(response.account.address);
-              console.log(`[BrutalistApp] Background: active account #${idx + 1}:`, response.account.address);
+              console.log(`[TotemApp] Background: active account #${idx + 1}:`, response.account.address);
             }
             return;
           }
         } catch (e) {
-          console.warn('[BrutalistApp] Background getActiveAccount failed:', e);
+          console.warn('[TotemApp] Background getActiveAccount failed:', e);
         }
         retries++;
         if (retries < maxRetries && !cancelled) {
@@ -217,7 +217,7 @@ export function BrutalistApp() {
   }, [inited, accountAddress]);
 
   useEffect(() => {
-    console.log('[BrutalistApp] Setting up connection status monitoring...');
+    console.log('[TotemApp] Setting up connection status monitoring...');
 
     chrome.storage.local.getTyped([CONNECTION_STATUS_KEY], (result) => {
       const connectionState = result[CONNECTION_STATUS_KEY] as ConnectionState | undefined;
@@ -229,7 +229,7 @@ export function BrutalistApp() {
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes[CONNECTION_STATUS_KEY]) {
         const newState = changes[CONNECTION_STATUS_KEY].newValue as ConnectionState;
-        console.log('[BrutalistApp] Connection status changed:', newState.status);
+        console.log('[TotemApp] Connection status changed:', newState.status);
         updateNetworkStatus(newState);
       }
     };
@@ -238,7 +238,7 @@ export function BrutalistApp() {
 
     const handleConnectionMessage = (msg: any) => {
       if (msg?.method === 'connection:statusChanged' && msg?.status) {
-        console.log('[BrutalistApp] Connection status message:', msg.status.status);
+        console.log('[TotemApp] Connection status message:', msg.status.status);
         updateNetworkStatus(msg.status);
       }
     };
@@ -254,7 +254,7 @@ export function BrutalistApp() {
   const updateNetworkStatus = (connectionState: ConnectionState) => {
     const isOnline = connectionState.status === 'online';
     setNetworkStatus(isOnline ? 'online' : 'offline');
-    console.log(`[BrutalistApp] Network status updated: ${isOnline ? 'online' : 'offline'} (reason: ${connectionState.reason || 'none'})`);
+    console.log(`[TotemApp] Network status updated: ${isOnline ? 'online' : 'offline'} (reason: ${connectionState.reason || 'none'})`);
   };
 
   // Switch active account — called by header account switcher
@@ -267,7 +267,7 @@ export function BrutalistApp() {
       setActiveAccountIndex(safeIdx);
       setAccountAddress(accounts[safeIdx]?.address ?? '');
     } catch (error) {
-      console.error('[BrutalistApp] Failed to switch account:', error);
+      console.error('[TotemApp] Failed to switch account:', error);
     }
   };
 
@@ -278,30 +278,30 @@ export function BrutalistApp() {
       const accounts: { address: string; index: number; name?: string }[] = stored.walletAddresses || [];
       setWalletAccounts(accounts);
     } catch (e) {
-      console.warn('[BrutalistApp] Failed to refresh accounts after add:', e);
+      console.warn('[TotemApp] Failed to refresh accounts after add:', e);
     }
   };
 
   // Load WOTS health status from blockchain
   const loadWotsHealth = async () => {
     try {
-      console.log('[BrutalistApp] Loading WOTS health...');
+      console.log('[TotemApp] Loading WOTS health...');
       
       const response = await chrome.runtime.sendMessage({
         method: 'wallet:getWotsHealth'
       });
 
-      console.log('[BrutalistApp] WOTS health response:', response);
+      console.log('[TotemApp] WOTS health response:', response);
 
       if (response?.result?.health) {
         const health = response.result.health;
-        console.log(`[BrutalistApp] ✓ WOTS health: ${health}`);
+        console.log(`[TotemApp] ✓ WOTS health: ${health}`);
         setWotsHealth(health);
       } else {
-        console.warn('[BrutalistApp] ⚠️ Invalid WOTS health response:', response);
+        console.warn('[TotemApp] ⚠️ Invalid WOTS health response:', response);
       }
     } catch (error) {
-      console.error('[BrutalistApp] ❌ Failed to load WOTS health:', error);
+      console.error('[TotemApp] ❌ Failed to load WOTS health:', error);
     }
   };
 
@@ -312,7 +312,7 @@ export function BrutalistApp() {
 
   // Onboarding
   if (!inited) {
-    return <BrutalistOnboard onDone={() => setInited(true)} />;
+    return <TotemOnboard onDone={() => setInited(true)} />;
   }
 
   // Main App
@@ -328,7 +328,7 @@ export function BrutalistApp() {
         overflow: 'hidden',
       }}>
         {/* Header */}
-        <BrutalistHeader
+        <TotemHeader
           accountAddress={accountAddress}
           activeAccountIndex={activeAccountIndex}
           accounts={walletAccounts}
@@ -347,16 +347,16 @@ export function BrutalistApp() {
           overflowX: 'hidden',
           paddingBottom: '72px',
         }}>
-          {activeTab === 'home' && <BrutalistHome activeAccountAddress={accountAddress} onNavigate={setActiveTab} onSelectToken={(token) => { setSelectedToken(token); setActiveTab('token-detail'); }} />}
-          {activeTab === 'send' && <BrutalistSend activeAccountIndex={activeAccountIndex} initialToken={sendToken} onTokenConsumed={() => setSendToken(null)} />}
-          {activeTab === 'receive' && <BrutalistReceive accountAddress={accountAddress} accounts={walletAccounts} />}
-          {activeTab === 'activity' && <BrutalistActivity activeAccountAddress={accountAddress} />}
-          {activeTab === 'settings' && <BrutalistSettings onAccountsUpdated={handleAccountsUpdated} />}
-          {activeTab === 'token-detail' && selectedToken && <BrutalistTokenDetail token={selectedToken} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
+          {activeTab === 'home' && <TotemHome activeAccountAddress={accountAddress} onNavigate={setActiveTab} onSelectToken={(token) => { setSelectedToken(token); setActiveTab('token-detail'); }} />}
+          {activeTab === 'send' && <TotemSend activeAccountIndex={activeAccountIndex} initialToken={sendToken} onTokenConsumed={() => setSendToken(null)} />}
+          {activeTab === 'receive' && <TotemReceive accountAddress={accountAddress} accounts={walletAccounts} />}
+          {activeTab === 'activity' && <TotemActivity activeAccountAddress={accountAddress} />}
+          {activeTab === 'settings' && <TotemSettings onAccountsUpdated={handleAccountsUpdated} />}
+          {activeTab === 'token-detail' && selectedToken && <TotemTokenDetail token={selectedToken} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
         </main>
 
         {/* Bottom Navigation */}
-        <BrutalistNavigation
+        <TotemNavigation
           activeTab={activeTab}
           onTabChange={(tab) => {
             if (tab === 'send') setSendToken(null);

@@ -152,8 +152,8 @@ interface MockRpcState {
 MockRpcControls.handleSimulateReceive()
   → Creates UTXO + transaction in mock state
   → Dispatches 'mock-rpc-balance-changed' event
-  → BrutalistHome listener → loadBalance() + loadTokens()
-  → BrutalistActivity listener → loadTransactions()
+  → TotemHome listener → loadBalance() + loadTokens()
+  → TotemActivity listener → loadTransactions()
   → UI updates complete
 ```
 
@@ -202,7 +202,7 @@ Located on the right side of Designer Mode:
 
 Search for these patterns in Debug Console:
 
-- `[BrutalistSend]` - Send transaction flow logs
+- `[TotemSend]` - Send transaction flow logs
 - `[useSendTransaction]` - Transaction submission and polling
 - `[ReceiveModal]` - Receive workflow logs
 - `[MockRpcControls]` - Mock RPC operation logs
@@ -285,7 +285,7 @@ window.dispatchEvent(new CustomEvent('mock-rpc-balance-changed', {
   detail: { amount, type: 'receive' }
 }));
 
-// Listen for event (BrutalistHome, BrutalistActivity)
+// Listen for event (TotemHome, TotemActivity)
 window.addEventListener('mock-rpc-balance-changed', handleBalanceChange);
 ```
 
@@ -307,7 +307,7 @@ if (data.response.isinblock) {
 
 **Symptoms**: Simulate receive updates balance but no transaction in Activity tab
 
-**Fix**: Verify BrutalistActivity has event listener:
+**Fix**: Verify TotemActivity has event listener:
 ```typescript
 useEffect(() => {
   const handler = () => loadTransactions();
@@ -344,9 +344,9 @@ useEffect(() => {
 - `packages/totem-extension/src/dev/mock-rpc/components/MockRpcControls.tsx` - Controls UI
 - `packages/totem-extension/src/core/transaction/useSendTransaction.ts` - Send workflow hook
 - `packages/totem-extension/src/ui/components/molecules/ReceiveModal.tsx` - Receive modal
-- `packages/totem-extension/src/ui/popup/pages/BrutalistSend.tsx` - Send page
-- `packages/totem-extension/src/ui/popup/pages/BrutalistHome.tsx` - Home page (balance)
-- `packages/totem-extension/src/ui/popup/pages/BrutalistActivity.tsx` - Activity page (history)
+- `packages/totem-extension/src/ui/popup/pages/TotemSend.tsx` - Send page
+- `packages/totem-extension/src/ui/popup/pages/TotemHome.tsx` - Home page (balance)
+- `packages/totem-extension/src/ui/popup/pages/TotemActivity.tsx` - Activity page (history)
 
 ### Configuration
 

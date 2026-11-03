@@ -10,12 +10,12 @@ interface WalletAccount {
   address: string;
 }
 
-interface BrutalistReceiveProps {
+interface TotemReceiveProps {
   accountAddress?: string;
   accounts: WalletAccount[];
 }
 
-export function BrutalistReceive({ accountAddress, accounts }: BrutalistReceiveProps) {
+export function TotemReceive({ accountAddress, accounts }: TotemReceiveProps) {
   const [selectedAddress, setSelectedAddress] = useState<string>(accountAddress || '');
   const [copied, setCopied] = useState(false);
 
@@ -32,7 +32,7 @@ export function BrutalistReceive({ accountAddress, accounts }: BrutalistReceiveP
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('[BrutalistReceive] Failed to copy address:', error);
+      console.error('[TotemReceive] Failed to copy address:', error);
     }
   };
 

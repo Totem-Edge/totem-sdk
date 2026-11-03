@@ -1,5 +1,5 @@
 /**
- * AXIA TOTEM HOME PAGE - BRUTALIST REDESIGN
+ * AXIA TOTEM HOME PAGE - TOTEM REDESIGN
  * Balance dashboard with USD value, price change, and token list
  * Now with real-time SmartRouter balance streaming
  */
@@ -37,7 +37,7 @@ interface TokenData {
   mintBlock?: number;
 }
 
-interface BrutalistHomeProps {
+interface TotemHomeProps {
   onNavigate: (tab: NavTab) => void;
   onSelectToken?: (token: TokenData) => void;
   activeAccountAddress?: string;
@@ -59,7 +59,7 @@ function formatSyncAge(timestamp: number | null, now: number): string {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress }: BrutalistHomeProps) {
+export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: TotemHomeProps) {
   const [balanceDetails, setBalanceDetails] = useState<{ confirmed: string; unconfirmed: string; sendable: string }>({
     confirmed: '0',
     unconfirmed: '0',
@@ -100,6 +100,19 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
     startStream,
   } = usePortfolio();
   const isLoading = status === 'loading';
+
+  // The transport is plain HTTP polling, so `connectionState` stays
+  // "fallback" even when every poll succeeds. Prefer the data status for the
+  // badge: LIVE when the last poll succeeded, Cached for a cache-only
+  // snapshot, and Offline only after a real failure.
+  const streamingStatus =
+    connectionState === 'error'
+      ? 'error'
+      : status === 'live'
+        ? 'connected'
+        : status === 'cached'
+          ? 'fallback'
+          : connectionState;
   const [syncAgeNow, setSyncAgeNow] = useState(() => Date.now());
 
   // Keep the stale-balance age text current while the service is unavailable.
@@ -152,11 +165,11 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
   const handleRefreshBalance = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    console.log('[BrutalistHome] Manual refresh triggered');
+    console.log('[TotemHome] Manual refresh triggered');
     try {
       await chrome.runtime.sendMessage({ type: 'balance:refresh' });
     } catch (error) {
-      console.error('[BrutalistHome] Refresh failed:', error);
+      console.error('[TotemHome] Refresh failed:', error);
     } finally {
       setTimeout(() => setIsRefreshing(false), 500);
     }
@@ -166,7 +179,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
   useEffect(() => {
     if (!activeAccountAddress) return;
     setCurrentAddress(activeAccountAddress);
-    console.log('[BrutalistHome] Starting balance stream for address:', activeAccountAddress);
+    console.log('[TotemHome] Starting balance stream for address:', activeAccountAddress);
     startStream([activeAccountAddress]);
   }, [activeAccountAddress, startStream]);
 
@@ -203,7 +216,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
           id: Date.now() 
         });
         if (cachedResponse?.result?.usd) {
-          console.log('[BrutalistHome] Using background cached price:', cachedResponse.result.usd);
+          console.log('[TotemHome] Using background cached price:', cachedResponse.result.usd);
           setPriceData({
             usd: cachedResponse.result.usd,
             change24h: cachedResponse.result.change24h || 0,
@@ -212,7 +225,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
           return;
         }
       } catch (e) {
-        console.warn('[BrutalistHome] Background price cache miss, fetching fresh');
+        console.warn('[TotemHome] Background price cache miss, fetching fresh');
       }
       
       // Fallback to direct CoinGecko fetch
@@ -241,7 +254,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
   
   useEffect(() => {
     const handleBalanceChange = (event: any) => {
-      console.log('[BrutalistHome] Mock RPC balance event (WS delivers the real update):', event.detail);
+      console.log('[TotemHome] Mock RPC balance event (WS delivers the real update):', event.detail);
     };
 
     window.addEventListener('mock-rpc-balance-changed', handleBalanceChange);
@@ -310,7 +323,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
           label=""
           usdValue={usdValue}
           priceChange24h={priceData?.change24h}
-          streamingStatus={connectionState}
+          streamingStatus={streamingStatus}
           onRefresh={handleRefreshBalance}
           isRefreshing={isRefreshing}
           isBalancePending={balanceState === 'idle'}

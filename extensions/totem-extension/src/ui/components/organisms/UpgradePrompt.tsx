@@ -1,5 +1,5 @@
 /**
- * UPGRADE PROMPT MODAL - BRUTALIST DESIGN
+ * UPGRADE PROMPT MODAL - TOTEM DESIGN
  * Modal displayed when user exceeds quota limits
  */
 

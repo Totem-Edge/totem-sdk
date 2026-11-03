@@ -97,6 +97,7 @@ export class PortfolioStreamManager {
   private connectionState: ConnectionState = 'disconnected';
   private lastError: string | undefined;
   private seenEventIds: Set<string> = new Set();
+  private backendFailureCounts: Map<string, number> = new Map();
   private isSuspending = false;
   private cleanupSuspendHandler?: () => void;
   private cleanupResumeHandler?: () => void;
@@ -170,6 +171,7 @@ export class PortfolioStreamManager {
     this.wsTokenExpiry = null;
     this.reconnectAttempts = 0;
     this.seenEventIds.clear();
+    this.backendFailureCounts.clear();
   }
 
   private clearReconnectTimeout(): void {
@@ -899,6 +901,7 @@ export class PortfolioStreamManager {
     source: 'websocket' | 'http',
   ): void {
     const eventId = `backend-${source}-${this.timer.now()}-${address.substring(0, 8)}`;
+    this.backendFailureCounts.delete(address);
     void this.portfolioCache.set(address, entries);
     this._emitPortfolioUpdate(address, entries, eventId);
 
@@ -916,12 +919,21 @@ export class PortfolioStreamManager {
    */
   private reportBackendFailure(address: string, error: unknown): void {
     const detail = error instanceof Error ? error.message : String(error);
+    const failures = (this.backendFailureCounts.get(address) ?? 0) + 1;
+    this.backendFailureCounts.set(address, failures);
+
     this.logger.warn(
       '[PortfolioStream] Backend portfolio fetch failed for',
       address,
-      '— keeping last known balance:',
+      `(attempt ${failures}) — keeping last known balance:`,
       detail,
     );
+
+    // A single failed poll is usually a transient restart/network blip. Keep
+    // the last good state and only declare the service offline after two
+    // consecutive failures, so the UI does not flash a stale warning.
+    if (failures < 2) return;
+
     this.setConnectionState(
       'error',
       detail ? `Balance service unavailable: ${detail}` : 'Balance service temporarily unavailable',

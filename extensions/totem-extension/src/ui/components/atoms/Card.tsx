@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST CARD
+ * AXIA TOTEM CARD
  * Flat panel with geometric shadow, zero border-radius
  */
 

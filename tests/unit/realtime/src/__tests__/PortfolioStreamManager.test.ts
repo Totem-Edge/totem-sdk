@@ -280,6 +280,9 @@ describe('PortfolioStreamManager — backend outage handling', () => {
     });
 
     await mgr.start(['MxABC']);
+    // One transient failure must not flash the stale-balance warning.
+    expect(mgr.getConnectionState()).toBe('fallback');
+    await mgr.forceRefresh(); // second consecutive failure crosses the threshold
     await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
 
     expect(await mgr.getCachedPortfolio('MxABC')).toEqual([cachedEntry]);
@@ -287,17 +290,22 @@ describe('PortfolioStreamManager — backend outage handling', () => {
   });
 
   it('recovers from error to fallback after a later successful poll', async () => {
+    let fail = true;
     const backend: PortfolioBackend = {
       supportsPush: false,
-      getPortfolio: vi.fn()
-        .mockRejectedValueOnce(new Error('RPC unavailable'))
-        .mockResolvedValue([cachedEntry]),
+      getPortfolio: vi.fn(async () => {
+        if (fail) throw new Error('RPC unavailable');
+        return [cachedEntry];
+      }),
     };
     const { mgr, cache } = makeManager({ backend });
 
     await mgr.start(['MxABC']);
+    await mgr.forceRefresh(); // second failure -> error
     await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
 
+    fail = false;
+    (mgr as any).lastForceRefreshAt = 0; // bypass the 5s refresh throttle in the test
     await mgr.forceRefresh();
 
     expect(mgr.getConnectionState()).toBe('fallback');

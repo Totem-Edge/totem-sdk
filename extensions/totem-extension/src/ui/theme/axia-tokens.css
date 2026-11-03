@@ -1,9 +1,9 @@
 /**
- * AXIA BRUTALIST DESIGN SYSTEM
+ * AXIA TOTEM DESIGN SYSTEM
  * Totem Wallet Extension - Design Tokens
  * 
  * Principles:
- * - Flat, geometric, brutalist aesthetic
+ * - Flat, geometric, totem aesthetic
  * - Zero border-radius
  * - Hard geometric shadows only
  * - UPPERCASE headings with letter spacing
@@ -97,7 +97,7 @@
   --tracking-wider: 0.1em;
   
   /* ========================================
-     GEOMETRIC SHADOWS (Brutalist)
+     GEOMETRIC SHADOWS (Totem)
      ======================================== */
   --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.2);
   --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.2);

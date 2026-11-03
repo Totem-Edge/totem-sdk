@@ -1,6 +1,6 @@
 import React from 'react';
 
-export interface BrutalistNotificationProps {
+export interface TotemNotificationProps {
   type: 'error' | 'success' | 'warning' | 'info';
   title: string;
   message: string;
@@ -8,7 +8,7 @@ export interface BrutalistNotificationProps {
   show: boolean;
 }
 
-export const BrutalistNotification: React.FC<BrutalistNotificationProps> = ({
+export const TotemNotification: React.FC<TotemNotificationProps> = ({
   type,
   title,
   message,

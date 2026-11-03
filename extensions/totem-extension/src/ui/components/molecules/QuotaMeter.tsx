@@ -1,5 +1,5 @@
 /**
- * QUOTA METER - BRUTALIST DESIGN
+ * QUOTA METER - TOTEM DESIGN
  * Progress bar showing RPC quota usage with UPPERCASE labels
  */
 

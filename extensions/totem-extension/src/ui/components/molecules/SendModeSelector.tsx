@@ -1,6 +1,6 @@
 /**
  * Send Mode Selector - Global vs Focused Send
- * Brutalist design dropdown for selecting source account mode
+ * Totem design dropdown for selecting source account mode
  */
 
 import React, { useState, useEffect } from 'react';
