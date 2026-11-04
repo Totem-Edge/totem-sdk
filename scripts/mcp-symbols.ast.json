@@ -5748,6 +5748,15 @@
           "kind": "interface",
           "signature": "export interface LocationPortConfig"
         },
+        "gnssFixToLocationClaim": {
+          "kind": "function",
+          "signature": "gnssFixToLocationClaim(fix: GnssFix, options: GnssLocationClaimOptions): LocationClaim",
+          "doc": "Convert one receiver fix into a deterministic location claim.\n\nByte-level evidence is preserved as hashes (never the raw payload) so a\nverifier can bind the claim back to the receiver output. The claim is\nunsigned until `signLocationProof` is called."
+        },
+        "GnssLocationClaimOptions": {
+          "kind": "interface",
+          "signature": "export interface GnssLocationClaimOptions"
+        },
         "createPolicyPortAdapter": {
           "kind": "function",
           "signature": "createPolicyPortAdapter(policy: PolicyLike): EdgePolicyPort",
