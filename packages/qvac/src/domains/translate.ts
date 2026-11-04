@@ -10,11 +10,11 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { TranslateClientParams, TranslationStats } from '@qvac/sdk';
+import type { TranslateClientParams, TranslationStats } from '../vendor/qvac-sdk.js';
 
 export const translateDomain = 'translate' as const;
 
-export type { TranslateClientParams, TranslationStats } from '@qvac/sdk';
+export type { TranslateClientParams, TranslationStats } from '../vendor/qvac-sdk.js';
 
 export interface TranslateResult {
   tokenStream: AsyncGenerator<string>;

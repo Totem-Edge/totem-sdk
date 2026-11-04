@@ -7,6 +7,7 @@ import { DefaultEltooPaymentProgram, addHTLC } from '@totemsdk/omnia';
 import type { ChannelSigner, OmniaChannel, OmniaPeer, OmniaMessage, OmniaSwarm } from '@totemsdk/omnia';
 import { createCleartextRoutingCodec, type RoutingHop } from '@totemsdk/omnia-router';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { createMultiHopForwarder } from '../forwarder.js';
 
 const A = '0x' + 'aa'.repeat(32);
@@ -72,6 +73,10 @@ function swarmWithPeer(sendMessage: jest.Mock): OmniaSwarm {
 const hop = (channelId: string, from: string, to: string, amount: bigint): RoutingHop =>
   ({ channelId, from, to, amount, tokenId: '0x00' });
 
+function chainProviderAt(block: bigint): ChainStateProvider {
+  return { getTip: async () => ({ block, hash: `0x${block.toString(16)}` }) } as unknown as ChainStateProvider;
+}
+
 describe('createMultiHopForwarder (RFC-035 B4)', () => {
   it('peels one hop and locks the outgoing HTLC', async () => {
     const sendMessage = jest.fn(async (_m: unknown) => {});
@@ -85,6 +90,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
       signer: signer(I),
       swarm,
       codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
     });
 
     const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
@@ -122,7 +128,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     );
     channels.set(inChannel.channelId, incoming.channel);
 
-    const forwarder = createMultiHopForwarder({ channels, leaseProvider: lp, signer: sg, swarm });
+    const forwarder = createMultiHopForwarder({ channels, leaseProvider: lp, signer: sg, swarm, chainProvider: chainProviderAt(10n) });
     // Register a link as forwardIncoming would (via a one-hop forward to B).
     const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
     channels.set(outChannel.channelId, outChannel);

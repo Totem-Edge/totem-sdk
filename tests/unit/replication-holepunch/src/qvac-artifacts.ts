@@ -1,0 +1,1 @@
+../../../../packages/replication-holepunch/src/qvac-artifacts.ts

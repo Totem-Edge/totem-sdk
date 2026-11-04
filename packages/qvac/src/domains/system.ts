@@ -19,7 +19,7 @@ import type {
   LoggingStreamResponse,
   ServerLogHandler,
   SystemResources,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const systemDomain = 'system' as const;
 
@@ -32,7 +32,7 @@ export type {
   LoggingStreamResponse,
   ServerLogHandler,
   SystemResources,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface QvacSystemOps {
   heartbeat: QvacOp<Record<string, never>, HeartbeatResponse>;

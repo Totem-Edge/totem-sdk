@@ -22,7 +22,7 @@ import type {
   ModelInfo,
   ModelRegistryEntry,
   ModelRegistrySearchParams,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const modelsDomain = 'models' as const;
 
@@ -38,7 +38,7 @@ export type {
   ModelRegistryEntry,
   ModelRegistryEntryAddon,
   ModelRegistrySearchParams,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export type DeleteCacheParams = { all: true } | { kvCacheKey: string; modelId?: string };
 

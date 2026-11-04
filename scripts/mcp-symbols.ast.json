@@ -15830,36 +15830,36 @@
           "signature": "llmDomain = 'llm' as const"
         },
         "BatchCompletionRun": {
-          "kind": "const",
-          "signature": "BatchCompletionRun"
+          "kind": "interface",
+          "signature": "export interface BatchCompletionRun"
         },
         "CompletionParams": {
-          "kind": "const",
-          "signature": "CompletionParams"
+          "kind": "interface",
+          "signature": "export interface CompletionParams"
         },
         "CompletionRun": {
-          "kind": "const",
-          "signature": "CompletionRun"
+          "kind": "interface",
+          "signature": "export interface CompletionRun"
         },
         "FinetuneHandle": {
-          "kind": "const",
-          "signature": "FinetuneHandle"
+          "kind": "interface",
+          "signature": "export interface FinetuneHandle"
         },
         "CompletionEvent": {
-          "kind": "const",
-          "signature": "CompletionEvent"
+          "kind": "type",
+          "signature": "export type CompletionEvent = | ContentDeltaEvent | RawDeltaEvent | ThinkingDeltaEvent | ToolCallEvent | ToolErrorEvent | StatsEvent | DoneEvent"
         },
         "CompletionFinal": {
-          "kind": "const",
-          "signature": "CompletionFinal"
+          "kind": "interface",
+          "signature": "export interface CompletionFinal"
         },
         "CompletionStats": {
-          "kind": "const",
-          "signature": "CompletionStats"
+          "kind": "interface",
+          "signature": "export interface CompletionStats"
         },
         "StopReason": {
-          "kind": "const",
-          "signature": "StopReason"
+          "kind": "type",
+          "signature": "export type StopReason = 'cancelled' | 'eos' | 'length' | 'stopSequence'"
         },
         "QvacLlmOps": {
           "kind": "interface",
@@ -15882,8 +15882,8 @@
           "signature": "export interface EmbedResult"
         },
         "EmbedStats": {
-          "kind": "const",
-          "signature": "EmbedStats"
+          "kind": "interface",
+          "signature": "export interface EmbedStats"
         },
         "QvacEmbedOps": {
           "kind": "interface",
@@ -15940,36 +15940,36 @@
           "signature": "ragDomain = 'rag' as const"
         },
         "RagChunkParams": {
-          "kind": "const",
-          "signature": "RagChunkParams"
+          "kind": "interface",
+          "signature": "export interface RagChunkParams"
         },
         "RagDoc": {
-          "kind": "const",
-          "signature": "RagDoc"
+          "kind": "interface",
+          "signature": "export interface RagDoc"
         },
         "RagEmbeddedDoc": {
-          "kind": "const",
-          "signature": "RagEmbeddedDoc"
+          "kind": "interface",
+          "signature": "export interface RagEmbeddedDoc"
         },
         "RagSaveEmbeddingsResult": {
-          "kind": "const",
-          "signature": "RagSaveEmbeddingsResult"
+          "kind": "interface",
+          "signature": "export interface RagSaveEmbeddingsResult"
         },
         "RagSearchParams": {
-          "kind": "const",
-          "signature": "RagSearchParams"
+          "kind": "interface",
+          "signature": "export interface RagSearchParams"
         },
         "RagSearchResult": {
-          "kind": "const",
-          "signature": "RagSearchResult"
+          "kind": "interface",
+          "signature": "export interface RagSearchResult"
         },
         "RagReindexParams": {
-          "kind": "const",
-          "signature": "RagReindexParams"
+          "kind": "interface",
+          "signature": "export interface RagReindexParams"
         },
         "RagWorkspaceInfo": {
-          "kind": "const",
-          "signature": "RagWorkspaceInfo"
+          "kind": "interface",
+          "signature": "export interface RagWorkspaceInfo"
         },
         "RagIngestParams": {
           "kind": "interface",
@@ -16004,24 +16004,24 @@
           "signature": "asrDomain = 'asr' as const"
         },
         "BciTranscribeClientParams": {
-          "kind": "const",
-          "signature": "BciTranscribeClientParams"
+          "kind": "interface",
+          "signature": "export interface BciTranscribeClientParams"
         },
         "BciTranscribeStreamSession": {
-          "kind": "const",
-          "signature": "BciTranscribeStreamSession"
+          "kind": "interface",
+          "signature": "export interface BciTranscribeStreamSession"
         },
         "TranscribeClientParams": {
-          "kind": "const",
-          "signature": "TranscribeClientParams"
+          "kind": "interface",
+          "signature": "export interface TranscribeClientParams"
         },
         "TranscribeSegment": {
-          "kind": "const",
-          "signature": "TranscribeSegment"
+          "kind": "interface",
+          "signature": "export interface TranscribeSegment"
         },
         "TranscribeStreamSession": {
-          "kind": "const",
-          "signature": "TranscribeStreamSession"
+          "kind": "interface",
+          "signature": "export interface TranscribeStreamSession"
         },
         "QvacAsrOps": {
           "kind": "interface",
@@ -16036,12 +16036,12 @@
           "signature": "translateDomain = 'translate' as const"
         },
         "TranslateClientParams": {
-          "kind": "const",
-          "signature": "TranslateClientParams"
+          "kind": "interface",
+          "signature": "export interface TranslateClientParams"
         },
         "TranslationStats": {
-          "kind": "const",
-          "signature": "TranslationStats"
+          "kind": "interface",
+          "signature": "export interface TranslationStats"
         },
         "TranslateResult": {
           "kind": "interface",
@@ -16060,32 +16060,32 @@
           "signature": "ttsDomain = 'tts' as const"
         },
         "TextToSpeechStreamClientParams": {
-          "kind": "const",
-          "signature": "TextToSpeechStreamClientParams"
+          "kind": "interface",
+          "signature": "export interface TextToSpeechStreamClientParams"
         },
         "TextToSpeechStreamResult": {
-          "kind": "const",
-          "signature": "TextToSpeechStreamResult"
+          "kind": "interface",
+          "signature": "export interface TextToSpeechStreamResult"
         },
         "TextToSpeechStreamResponse": {
-          "kind": "const",
-          "signature": "TextToSpeechStreamResponse"
+          "kind": "interface",
+          "signature": "export interface TextToSpeechStreamResponse"
         },
         "TextToSpeechStreamSession": {
-          "kind": "const",
-          "signature": "TextToSpeechStreamSession"
+          "kind": "interface",
+          "signature": "export interface TextToSpeechStreamSession"
         },
         "TtsClientParamsInput": {
-          "kind": "const",
-          "signature": "TtsClientParamsInput"
+          "kind": "interface",
+          "signature": "export interface TtsClientParamsInput"
         },
         "TtsPace": {
-          "kind": "const",
-          "signature": "TtsPace"
+          "kind": "type",
+          "signature": "export type TtsPace = 'slow' | 'moderate' | 'fast'"
         },
         "TtsSentenceChunkUpdate": {
-          "kind": "const",
-          "signature": "TtsSentenceChunkUpdate"
+          "kind": "interface",
+          "signature": "export interface TtsSentenceChunkUpdate"
         },
         "QvacTtsOps": {
           "kind": "interface",
@@ -16100,28 +16100,28 @@
           "signature": "diffusionDomain = 'diffusion' as const"
         },
         "DiffusionClientParams": {
-          "kind": "const",
-          "signature": "DiffusionClientParams"
+          "kind": "interface",
+          "signature": "export interface DiffusionClientParams"
         },
         "DiffusionProgressTick": {
-          "kind": "const",
-          "signature": "DiffusionProgressTick"
+          "kind": "interface",
+          "signature": "export interface DiffusionProgressTick"
         },
         "DiffusionResult": {
-          "kind": "const",
-          "signature": "DiffusionResult"
+          "kind": "interface",
+          "signature": "export interface DiffusionResult"
         },
         "UpscaleClientParams": {
-          "kind": "const",
-          "signature": "UpscaleClientParams"
+          "kind": "interface",
+          "signature": "export interface UpscaleClientParams"
         },
         "UpscaleStats": {
-          "kind": "const",
-          "signature": "UpscaleStats"
+          "kind": "interface",
+          "signature": "export interface UpscaleStats"
         },
         "UpscaleStreamResponse": {
-          "kind": "const",
-          "signature": "UpscaleStreamResponse"
+          "kind": "interface",
+          "signature": "export interface UpscaleStreamResponse"
         },
         "UpscaleResult": {
           "kind": "interface",
@@ -16140,16 +16140,16 @@
           "signature": "ocrDomain = 'ocr' as const"
         },
         "OCRClientParams": {
-          "kind": "const",
-          "signature": "OCRClientParams"
+          "kind": "interface",
+          "signature": "export interface OCRClientParams"
         },
         "OCRStats": {
-          "kind": "const",
-          "signature": "OCRStats"
+          "kind": "interface",
+          "signature": "export interface OCRStats"
         },
         "OCRTextBlock": {
-          "kind": "const",
-          "signature": "OCRTextBlock"
+          "kind": "interface",
+          "signature": "export interface OCRTextBlock"
         },
         "OcrResult": {
           "kind": "interface",
@@ -16168,12 +16168,12 @@
           "signature": "classifyDomain = 'classify' as const"
         },
         "ClassificationResult": {
-          "kind": "const",
-          "signature": "ClassificationResult"
+          "kind": "interface",
+          "signature": "export interface ClassificationResult"
         },
         "ClassifyClientParams": {
-          "kind": "const",
-          "signature": "ClassifyClientParams"
+          "kind": "interface",
+          "signature": "export interface ClassifyClientParams"
         },
         "QvacClassifyOps": {
           "kind": "interface",
@@ -16188,12 +16188,12 @@
           "signature": "audiogenDomain = 'audiogen' as const"
         },
         "AudioGenClientParams": {
-          "kind": "const",
-          "signature": "AudioGenClientParams"
+          "kind": "interface",
+          "signature": "export interface AudioGenClientParams"
         },
         "AudioGenResult": {
-          "kind": "const",
-          "signature": "AudioGenResult"
+          "kind": "interface",
+          "signature": "export interface AudioGenResult"
         },
         "QvacAudiogenOps": {
           "kind": "interface",
@@ -16204,16 +16204,16 @@
           "signature": "videoAdapter(provider: IntelligenceProvider): QvacVideoOps"
         },
         "VideoClientParams": {
-          "kind": "const",
-          "signature": "VideoClientParams"
+          "kind": "interface",
+          "signature": "export interface VideoClientParams"
         },
         "VideoProgressTick": {
-          "kind": "const",
-          "signature": "VideoProgressTick"
+          "kind": "interface",
+          "signature": "export interface VideoProgressTick"
         },
         "VideoResult": {
-          "kind": "const",
-          "signature": "VideoResult"
+          "kind": "interface",
+          "signature": "export interface VideoResult"
         },
         "videoDomain": {
           "kind": "const",
@@ -16232,24 +16232,24 @@
           "signature": "vlaDomain = 'vla' as const"
         },
         "VlaClientRunParams": {
-          "kind": "const",
-          "signature": "VlaClientRunParams"
+          "kind": "interface",
+          "signature": "export interface VlaClientRunParams"
         },
         "VlaClientRunResult": {
-          "kind": "const",
-          "signature": "VlaClientRunResult"
+          "kind": "interface",
+          "signature": "export interface VlaClientRunResult"
         },
         "VlaEmbodimentSelection": {
-          "kind": "const",
-          "signature": "VlaEmbodimentSelection"
+          "kind": "type",
+          "signature": "export type VlaEmbodimentSelection = | string | number | { tag: string"
         },
         "VlaHparams": {
-          "kind": "const",
-          "signature": "VlaHparams"
+          "kind": "interface",
+          "signature": "export interface VlaHparams"
         },
         "VlaStats": {
-          "kind": "const",
-          "signature": "VlaStats"
+          "kind": "interface",
+          "signature": "export interface VlaStats"
         },
         "VlaHparamsOpResult": {
           "kind": "interface",
@@ -16268,28 +16268,28 @@
           "signature": "worldDomain = 'world' as const"
         },
         "WorldSceneClientParams": {
-          "kind": "const",
-          "signature": "WorldSceneClientParams"
+          "kind": "interface",
+          "signature": "export interface WorldSceneClientParams"
         },
         "WorldSceneResult": {
-          "kind": "const",
-          "signature": "WorldSceneResult"
+          "kind": "interface",
+          "signature": "export interface WorldSceneResult"
         },
         "WorldSceneResultWithPack": {
-          "kind": "const",
-          "signature": "WorldSceneResultWithPack"
+          "kind": "interface",
+          "signature": "export interface WorldSceneResultWithPack"
         },
         "WorldStepClientParams": {
-          "kind": "const",
-          "signature": "WorldStepClientParams"
+          "kind": "interface",
+          "signature": "export interface WorldStepClientParams"
         },
         "WorldStepProgressTick": {
-          "kind": "const",
-          "signature": "WorldStepProgressTick"
+          "kind": "interface",
+          "signature": "export interface WorldStepProgressTick"
         },
         "WorldStepResult": {
-          "kind": "const",
-          "signature": "WorldStepResult"
+          "kind": "interface",
+          "signature": "export interface WorldStepResult"
         },
         "WorldCreateSceneResult": {
           "kind": "type",
@@ -16308,48 +16308,48 @@
           "signature": "modelsDomain = 'models' as const"
         },
         "AssessModelFitInput": {
-          "kind": "const",
-          "signature": "AssessModelFitInput"
+          "kind": "interface",
+          "signature": "export interface AssessModelFitInput"
         },
         "AssessModelFitResult": {
-          "kind": "const",
-          "signature": "AssessModelFitResult"
+          "kind": "interface",
+          "signature": "export interface AssessModelFitResult"
         },
         "DownloadAssetOptions": {
-          "kind": "const",
-          "signature": "DownloadAssetOptions"
+          "kind": "interface",
+          "signature": "export interface DownloadAssetOptions"
         },
         "GetLoadedModelInfoParams": {
-          "kind": "const",
-          "signature": "GetLoadedModelInfoParams"
+          "kind": "interface",
+          "signature": "export interface GetLoadedModelInfoParams"
         },
         "GetModelInfoParams": {
-          "kind": "const",
-          "signature": "GetModelInfoParams"
+          "kind": "interface",
+          "signature": "export interface GetModelInfoParams"
         },
         "LoadedModelInfo": {
-          "kind": "const",
-          "signature": "LoadedModelInfo"
+          "kind": "interface",
+          "signature": "export interface LoadedModelInfo"
         },
         "LoadModelOptions": {
-          "kind": "const",
-          "signature": "LoadModelOptions"
+          "kind": "interface",
+          "signature": "export interface LoadModelOptions"
         },
         "ModelInfo": {
-          "kind": "const",
-          "signature": "ModelInfo"
+          "kind": "interface",
+          "signature": "export interface ModelInfo"
         },
         "ModelRegistryEntry": {
-          "kind": "const",
-          "signature": "ModelRegistryEntry"
+          "kind": "interface",
+          "signature": "export interface ModelRegistryEntry"
         },
         "ModelRegistryEntryAddon": {
-          "kind": "const",
-          "signature": "ModelRegistryEntryAddon"
+          "kind": "interface",
+          "signature": "export interface ModelRegistryEntryAddon extends ModelRegistryEntry"
         },
         "ModelRegistrySearchParams": {
-          "kind": "const",
-          "signature": "ModelRegistrySearchParams"
+          "kind": "interface",
+          "signature": "export interface ModelRegistrySearchParams"
         },
         "DeleteCacheParams": {
           "kind": "type",
@@ -16368,36 +16368,36 @@
           "signature": "systemDomain = 'system' as const"
         },
         "CancelClientInput": {
-          "kind": "const",
-          "signature": "CancelClientInput"
+          "kind": "type",
+          "signature": "export type CancelClientInput = | { requestId: string"
         },
         "GetSystemResourcesInput": {
-          "kind": "const",
-          "signature": "GetSystemResourcesInput"
+          "kind": "interface",
+          "signature": "export interface GetSystemResourcesInput"
         },
         "HeartbeatResponse": {
-          "kind": "const",
-          "signature": "HeartbeatResponse"
+          "kind": "interface",
+          "signature": "export interface HeartbeatResponse"
         },
         "LogLevel": {
-          "kind": "const",
-          "signature": "LogLevel"
+          "kind": "type",
+          "signature": "export type LogLevel = 'error' | 'off' | 'warn' | 'info' | 'debug'"
         },
         "LoggingParams": {
-          "kind": "const",
-          "signature": "LoggingParams"
+          "kind": "interface",
+          "signature": "export interface LoggingParams"
         },
         "LoggingStreamResponse": {
-          "kind": "const",
-          "signature": "LoggingStreamResponse"
+          "kind": "interface",
+          "signature": "export interface LoggingStreamResponse"
         },
         "ServerLogHandler": {
-          "kind": "const",
-          "signature": "ServerLogHandler"
+          "kind": "interface",
+          "signature": "export interface ServerLogHandler"
         },
         "SystemResources": {
-          "kind": "const",
-          "signature": "SystemResources"
+          "kind": "interface",
+          "signature": "export interface SystemResources"
         },
         "QvacSystemOps": {
           "kind": "interface",
@@ -16412,8 +16412,8 @@
           "signature": "pluginsDomain = 'plugins' as const"
         },
         "InvokePluginOptions": {
-          "kind": "const",
-          "signature": "InvokePluginOptions"
+          "kind": "interface",
+          "signature": "export interface InvokePluginOptions<TParams = unknown>"
         },
         "QvacPluginsOps": {
           "kind": "interface",

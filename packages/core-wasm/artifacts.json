@@ -3,9 +3,10 @@
   "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
   "wasmPack": "wasm-pack 0.15.0",
   "wasmBindgen": "0.2.126",
+  "source": "d6e51c31457f2b4c68b0901b7972de485f893474054a2d61823eafdfc43fa329",
   "artifacts": {
-    "pkg/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767",
-    "pkg-node/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767",
-    "pkg-web/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767"
+    "pkg/totemsdk_core_wasm_bg.wasm": "aca89ccf5c5200a1733e177020ded19e7e50ffcab37ea1fd15376e0fcfd227f5",
+    "pkg-node/totemsdk_core_wasm_bg.wasm": "aca89ccf5c5200a1733e177020ded19e7e50ffcab37ea1fd15376e0fcfd227f5",
+    "pkg-web/totemsdk_core_wasm_bg.wasm": "aca89ccf5c5200a1733e177020ded19e7e50ffcab37ea1fd15376e0fcfd227f5"
   }
 }

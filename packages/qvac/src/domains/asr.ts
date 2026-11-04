@@ -16,7 +16,7 @@ import type {
   TranscribeClientParams,
   TranscribeSegment,
   TranscribeStreamSession,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export const asrDomain = 'asr' as const;
 
@@ -26,7 +26,7 @@ export type {
   TranscribeClientParams,
   TranscribeSegment,
   TranscribeStreamSession,
-} from '@qvac/sdk';
+} from '../vendor/qvac-sdk.js';
 
 export interface QvacAsrOps {
   transcribe: QvacOp<TranscribeClientParams, string>;

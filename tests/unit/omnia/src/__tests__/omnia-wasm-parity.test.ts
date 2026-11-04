@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { sha3_256, writeMiniNumber } from '@totemsdk/core';
 import type { OmniaChannel, ProgramTransition, SignedChannelState, StateValue } from '../types';
 import {
@@ -44,7 +46,9 @@ import { serializeProgramTransition } from '../transition';
 import { programBoolState, programHexState, programNumberState, programStringState } from '../state-vars';
 import { serializeChannelSnapshot } from '../persistence';
 
-const wasm = require('../../rust/pkg-node/omnia_wasm.js') as {
+const WASM_PATH = join(__dirname, '../../../../../packages/omnia/rust/pkg-node/omnia_wasm.js');
+const hasWasm = existsSync(WASM_PATH);
+const wasm = (hasWasm ? require(WASM_PATH) : null) as {
   build_counter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   build_meter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   build_htlc_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
@@ -141,7 +145,7 @@ function makeChannel(overrides: Partial<OmniaChannel> = {}): OmniaChannel {
   };
 }
 
-describe('Omnia Rust/WASM parity', () => {
+(hasWasm ? describe : describe.skip)('Omnia Rust/WASM parity', () => {
   it('serializes program transitions with the same canonical JSON as TypeScript', () => {
     const transition: ProgramTransition = {
       action: 'set',

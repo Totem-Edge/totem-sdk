@@ -1,0 +1,1 @@
+../../../../packages/replication-holepunch/src/hyperdrive-artifacts.ts

@@ -51,7 +51,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
     if raw.is_empty() {
         return Ok(Vec::new());
     }
-    if raw.len() % 2 != 0 {
+    if !raw.len().is_multiple_of(2) {
         return Err(format!("Invalid hex string: odd length ({})", raw.len()));
     }
     hex::decode(raw).map_err(|_| format!("Invalid hex string: {hex}"))
@@ -100,7 +100,10 @@ fn java_bytes(value: u128) -> Vec<u8> {
         return vec![0];
     }
     let be = value.to_be_bytes();
-    let first = be.iter().position(|byte| *byte != 0).unwrap_or(be.len() - 1);
+    let first = be
+        .iter()
+        .position(|byte| *byte != 0)
+        .unwrap_or(be.len() - 1);
     let mut bytes = be[first..].to_vec();
     if bytes[0] & 0x80 != 0 {
         bytes.insert(0, 0);
@@ -159,7 +162,9 @@ fn write_state_value(value: &StateValue) -> Result<Vec<u8>, String> {
         }
         "hex" => {
             out.push(1);
-            out.extend_from_slice(&write_mini_data(&hex_to_bytes(&value_as_string(&value.value))?));
+            out.extend_from_slice(&write_mini_data(&hex_to_bytes(&value_as_string(
+                &value.value,
+            ))?));
         }
         "string" => {
             out.push(4);
@@ -205,14 +210,19 @@ fn serialize_coin(
 /// Output coin ids, matching `minimaOutputCoinIdsForDraft`.
 pub fn output_coin_ids(draft: &TxDraft) -> Result<Vec<String>, String> {
     if draft.inputs.is_empty() {
-        return Ok(draft.outputs.iter().map(|_| COINID_OUTPUT.to_string()).collect());
+        return Ok(draft
+            .outputs
+            .iter()
+            .map(|_| COINID_OUTPUT.to_string())
+            .collect());
     }
-    let base = draft.inputs[0]
-        .coin_id
-        .as_deref()
-        .unwrap_or(COINID_OUTPUT);
+    let base = draft.inputs[0].coin_id.as_deref().unwrap_or(COINID_OUTPUT);
     if base.eq_ignore_ascii_case(COINID_ELTOO) {
-        return Ok(draft.outputs.iter().map(|_| COINID_OUTPUT.to_string()).collect());
+        return Ok(draft
+            .outputs
+            .iter()
+            .map(|_| COINID_OUTPUT.to_string())
+            .collect());
     }
     let mut ids = Vec::with_capacity(draft.outputs.len());
     for index in 0..draft.outputs.len() {
@@ -239,7 +249,12 @@ pub fn canonical_bytes(draft: &TxDraft) -> Result<Vec<u8>, String> {
             &input.token_id,
             input.store_state.unwrap_or(false),
             input.state_variables.as_deref().unwrap_or(&[]),
-            input.mmr_entry.as_ref().map(parse_amount).transpose()?.unwrap_or(0),
+            input
+                .mmr_entry
+                .as_ref()
+                .map(parse_amount)
+                .transpose()?
+                .unwrap_or(0),
         )?);
     }
 
@@ -261,7 +276,12 @@ pub fn canonical_bytes(draft: &TxDraft) -> Result<Vec<u8>, String> {
             &output.token_id,
             store_state,
             variables,
-            output.mmr_entry.as_ref().map(parse_amount).transpose()?.unwrap_or(0),
+            output
+                .mmr_entry
+                .as_ref()
+                .map(parse_amount)
+                .transpose()?
+                .unwrap_or(0),
         )?);
     }
 

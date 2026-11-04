@@ -20,6 +20,13 @@ describe('omnia prepareSettle / submitSettle', () => {
   it('co-signs with the peer, verifies wallet signatures and broadcasts the close', async () => {
     const config = loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: dbPath });
     const signing = createHostSigning(config);
+    // A real counterparty key: the settlement proposal is now verified against
+    // the counterparty's public key, so the peer must actually sign the digest.
+    const bobSigning = createHostSigning(loadConfigFromEnv({
+      OMNIA_HOST_SEED: '0x' + 'cd'.repeat(32),
+      OMNIA_HOST_DB: `${dbPath}.bob`,
+      OMNIA_LOCAL_ADDRESS_INDEX: '1',
+    }));
     const channel: OmniaChannel = {
       channelId: '0x' + 'ab'.repeat(32),
       fundingTxId: '0x' + 'ef'.repeat(32),
@@ -40,7 +47,7 @@ describe('omnia prepareSettle / submitSettle', () => {
         },
         {
           partyId: 'bob',
-          publicKeyDigest: '0x' + 'bb'.repeat(32),
+          publicKeyDigest: bobSigning.publicKeyDigest,
           addressIndex: 1,
           settlementAddress: '0x' + '55'.repeat(32),
         },
@@ -63,11 +70,13 @@ describe('omnia prepareSettle / submitSettle', () => {
       channelId: channel.channelId,
       sendMessage: jest.fn(async (msg: any) => {
         if (msg.type === 'SETTLEMENT_PROPOSAL') {
+          const digest = Buffer.from(String(msg.payload.digestHex).replace(/^0x/, ''), 'hex');
+          const signature = await bobSigning.signer.sign(digest, { addressIndex: 1, l1: 5, l2: 0 });
           setTimeout(() => onMessage?.({
             type: 'ACK',
             channelId: msg.channelId,
             nonce: msg.nonce,
-            payload: { partyId: 'bob', signature: hex(new Uint8Array(64)) },
+            payload: { partyId: 'bob', signature: hex(signature) },
           }), 0);
         }
       }),

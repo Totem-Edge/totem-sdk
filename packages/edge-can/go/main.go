@@ -194,7 +194,10 @@ func (s *Server) readCAN(generation uint64, fd int, ifname string) {
 			return
 		}
 
-		n, _, err := syscall.Recvfrom(fd, buf, 0)
+		// read(2), not recvfrom(2): Go's syscall.Recvfrom converts the peer
+		// sockaddr and returns EAFNOSUPPORT for AF_CAN even though the frame was
+		// delivered, so every frame was discarded as a read error.
+		n, err := syscall.Read(fd, buf)
 		if err != nil {
 			if errors.Is(err, syscall.EINTR) {
 				continue
@@ -208,6 +211,7 @@ func (s *Server) readCAN(generation uint64, fd int, ifname string) {
 			}
 			// A transient link error (for example the interface was set down)
 			// must not turn into a busy loop.
+			log.Printf("[edge-can] read error: %v", err)
 			s.broadcastError("read", err.Error())
 			time.Sleep(100 * time.Millisecond)
 			continue
@@ -223,12 +227,16 @@ func (s *Server) readCAN(generation uint64, fd int, ifname string) {
 
 		frame, err := decodeClassicFrame(buf[:n], time.Now().UnixMilli())
 		if err != nil {
+			log.Printf("[edge-can] decode error: %v", err)
 			s.broadcastError("frame", err.Error())
 			continue
 		}
 		if frame.IsError {
 			s.handleErrorFrame(generation, ifname, frame)
 			continue
+		}
+		if os.Getenv("CAN_DEBUG") == "1" {
+			log.Printf("[edge-can] frame id=0x%x ext=%v rtr=%v dlc=%d", frame.ID, frame.IsExtended, frame.IsRtr, frame.DLC)
 		}
 		s.broadcastPush(frame)
 	}

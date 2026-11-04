@@ -10,11 +10,11 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { OCRClientParams, OCRStats, OCRTextBlock } from '@qvac/sdk';
+import type { OCRClientParams, OCRStats, OCRTextBlock } from '../vendor/qvac-sdk.js';
 
 export const ocrDomain = 'ocr' as const;
 
-export type { OCRClientParams, OCRStats, OCRTextBlock } from '@qvac/sdk';
+export type { OCRClientParams, OCRStats, OCRTextBlock } from '../vendor/qvac-sdk.js';
 
 export interface OcrResult {
   blockStream: AsyncGenerator<OCRTextBlock[]>;

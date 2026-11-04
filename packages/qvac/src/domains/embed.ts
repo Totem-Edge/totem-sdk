@@ -9,7 +9,7 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { EmbedStats } from '@qvac/sdk';
+import type { EmbedStats } from '../vendor/qvac-sdk.js';
 
 export const embedDomain = 'embed' as const;
 
@@ -23,7 +23,7 @@ export interface EmbedResult {
   stats?: EmbedStats;
 }
 
-export type { EmbedStats } from '@qvac/sdk';
+export type { EmbedStats } from '../vendor/qvac-sdk.js';
 
 export interface QvacEmbedOps {
   embed: QvacOp<EmbedParams, EmbedResult>;

@@ -44,12 +44,12 @@
     "@totemsdk/storage": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
+    "@types/ws": "^8.5.0",
     "ws": "^8.21.1"
   },
   "devDependencies": {
-    "@types/node": "^20.19.43",
-    "@types/ws": "^8.5.0",
     "@totemsdk/txpow": "workspace:^",
+    "@types/node": "^20.19.43",
     "typescript": "5.9.3"
   },
   "engines": {

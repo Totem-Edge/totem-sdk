@@ -6,11 +6,11 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
-import type { InvokePluginOptions } from '@qvac/sdk';
+import type { InvokePluginOptions } from '../vendor/qvac-sdk.js';
 
 export const pluginsDomain = 'plugins' as const;
 
-export type { InvokePluginOptions } from '@qvac/sdk';
+export type { InvokePluginOptions } from '../vendor/qvac-sdk.js';
 
 export interface QvacPluginsOps {
   invokePlugin: QvacOp<InvokePluginOptions, unknown>;
