@@ -49,7 +49,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/omnia-host` | 0.13.3 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
-| `@totemsdk/proof` | 1.0.2 | v1 | 2 | `packages/proof` |
+| `@totemsdk/proof` | 1.0.3 | v1 | 2 | `packages/proof` |
 | `@totemsdk/agent-policy` | 0.4.0 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
 | `@totemsdk/chain-provider` | 0.3.2 | rc | 2 | `packages/chain-provider` |
@@ -72,11 +72,11 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/edge-can` | 0.3.0 | v1 | outside | `packages/edge-can` |
 | `@totemsdk/edge-coap` | 0.3.0 | v1 | outside | `packages/edge-coap` |
 | `@totemsdk/edge-lorawan` | 0.2.3 | v1 | outside | `packages/edge-lorawan` |
-| `@totemsdk/location-proof` | 1.0.1 | v1 | outside | `packages/location-proof` |
-| `@totemsdk/proof-integritas` | 1.0.1 | v1 | outside | `packages/proof-integritas` |
-| `@totemsdk/proofgraph` | 1.1.0 | v1 | outside | `packages/proofgraph` |
-| `@totemsdk/raster-proof` | 1.0.1 | v1 | outside | `packages/raster-proof` |
-| `@totemsdk/spatial-proof` | 1.0.1 | v1 | outside | `packages/spatial-proof` |
+| `@totemsdk/location-proof` | 1.0.2 | v1 | outside | `packages/location-proof` |
+| `@totemsdk/proof-integritas` | 1.0.2 | v1 | outside | `packages/proof-integritas` |
+| `@totemsdk/proofgraph` | 1.1.1 | v1 | outside | `packages/proofgraph` |
+| `@totemsdk/raster-proof` | 1.0.2 | v1 | outside | `packages/raster-proof` |
+| `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
 | `@totemsdk/act-mavlink` | 0.1.0 | rc | outside | `packages/act-mavlink` |
 | `@totemsdk/act-ocpp` | 0.1.0 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
