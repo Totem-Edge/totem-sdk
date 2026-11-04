@@ -125,8 +125,39 @@ Current v1 scope is limited to packages with runnable evidence:
 - `@totemsdk/edge-can` — classic CAN over Linux vcan: frame/ID/DLC validation,
   filtering, sidecar request validation, crash/restart recovery and packed
   consumer. Its support tier remains outside the first-line production surface.
-- `core`/`core-wasm` declare a reviewed recovery N/A: stateless crypto libraries
-  whose host owns process recovery.
+- `@totemsdk/proof` — deterministic proof IDs, WOTS signature/expiry/tamper
+  conformance, anchor-commitment vectors, oracle-policy quorum/freshness/
+  deviation vectors, proofgraph integration and packed consumer. **Tier 2.**
+- `@totemsdk/proofgraph` — content-address determinism and idempotence,
+  CAS-backed durable store with restart recovery and concurrent-save safety,
+  signed-proof integration and packed consumer.
+- `@totemsdk/proof-integritas` — response-normalization conformance,
+  injected-transport stamp/check/verify/anchor integration and structured
+  failure handling (no live network in CI).
+- `@totemsdk/location-proof` — claim scoring and movement conformance,
+  claim → proof → proofgraph integration and packed consumer.
+- `@totemsdk/spatial-proof` — geometry/relation conformance, claim → proof →
+  proofgraph integration and packed consumer.
+- `@totemsdk/raster-proof` — Merkle/window conformance, evidence → proof →
+  proofgraph integration and packed consumer.
+- `core`/`core-wasm`, the three geo proof packages and `proof-integritas`
+  declare a reviewed recovery N/A: stateless primitives whose host owns process
+  recovery. `proofgraph` owns real recovery because it has durable state.
+
+### Proof family v1 evidence
+
+The six proof packages are promoted together. Each runs
+`test:integration` and `test:conformance` (proofgraph also `test:recovery`),
+plus the shared packed-consumer probe. The family is layered
+(`raster-proof` → `spatial-proof` → `location-proof` → `proofgraph` → `proof`)
+and the integration gates assert the documented chain end to end:
+claim/manifest → signed proof → graph → query/verify. `proof` is Tier 2 because
+`act-core`, `edge-mqtt`, `authority`, `governance` and the rest of the family
+depend on it.
+
+`edge-gnss` remains wire-only; `edge-adapters` bridges a receiver fix into a
+`location-proof` claim via `gnssFixToLocationClaim`, preserving raw/NMEA hashes
+as evidence.
 
 The other 12 previously-labelled v1 packages remain **RC** until they have
 dedicated conformance/recovery/integration evidence. Their support tiers and

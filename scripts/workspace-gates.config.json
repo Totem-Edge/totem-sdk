@@ -359,33 +359,54 @@
     },
     "packages/location-proof": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 location claims: scoring/trail conformance, signed-proof and proofgraph integration, packed consumer; stateless (recovery N/A)",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence",
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless proof primitive; no durable state to recover. Storage/lifecycle is caller-owned."
+        }
+      }
     },
     "packages/spatial-proof": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 spatial relations: geometry/relation conformance, signed-proof integration, packed consumer; stateless (recovery N/A)",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence",
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless proof primitive; no durable state to recover. Storage/lifecycle is caller-owned."
+        }
+      }
     },
     "packages/raster-proof": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 raster evidence: Merkle/window conformance, proof and proofgraph integration, packed consumer; stateless (recovery N/A)",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence",
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless proof primitive; no durable state to recover. Storage/lifecycle is caller-owned."
+        }
+      }
     },
     "packages/lookup-client": {
       "status": "publishable",
@@ -554,33 +575,48 @@
     },
     "packages/proof": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 proof-envelope core: signed proof conformance vectors, proofgraph integration, canonical anchor commitments, packed consumer",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence",
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless proof primitive; no durable state to recover. Storage/lifecycle is caller-owned."
+        }
+      }
     },
     "packages/proof-integritas": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 hosted anchoring adapter: normalization conformance, injected-transport integration, structured failure handling, packed consumer",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence",
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless proof primitive; no durable state to recover. Storage/lifecycle is caller-owned."
+        }
+      }
     },
     "packages/proofgraph": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
       },
-      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
+      "supportReason": "v1 relationship graph: deterministic content addressing, CAS-backed durable store with restart recovery, signed-proof integration, packed consumer",
+      "evidence": "docs/VERIFICATION_GATES.md#proof-family-v1-evidence"
     },
     "packages/provider-bond": {
       "status": "publishable",

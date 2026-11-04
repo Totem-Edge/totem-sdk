@@ -365,7 +365,7 @@
     },
     {
       "name": "@totemsdk/edge-adapters",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "description": "Reference adapters bridging SDK packages to @totemsdk/edge port interfaces",
       "domain": "edge-computing",
       "keywords": [
@@ -378,6 +378,7 @@
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/location-proof": "^1.0.1",
         "@totemsdk/lookup-client": "^0.4.0",

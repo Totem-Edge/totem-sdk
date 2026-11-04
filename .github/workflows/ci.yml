@@ -276,9 +276,8 @@ jobs:
           go-version: '1.21'
           cache: true
           cache-dependency-path: packages/edge-modbus/go/go.sum
-      - name: Build MQTT WASM artifacts for v1 evidence
-        working-directory: packages/edge-mqtt
-        run: npm run build:wasm
+      - name: Build v1 WASM artifacts (edge-mqtt, proof, proofgraph)
+        run: node scripts/build-declared-wasm.mjs --filter @totemsdk/edge-mqtt,@totemsdk/proof,@totemsdk/proofgraph
       - name: Rebuild native sqlite bindings for v1 replay recovery
         run: pnpm rebuild -r better-sqlite3
       - name: Install CAN utilities

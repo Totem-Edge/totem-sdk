@@ -16,8 +16,8 @@
 
 | Level | Packages |
 |---|---:|
-| v1 | 7 |
-| rc | 59 |
+| v1 | 13 |
+| rc | 53 |
 | beta | 3 |
 | alpha | 5 |
 | excluded | 6 |
@@ -49,6 +49,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/omnia-host` | 0.13.3 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
+| `@totemsdk/proof` | 1.0.2 | v1 | 2 | `packages/proof` |
 | `@totemsdk/agent-policy` | 0.4.0 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
 | `@totemsdk/chain-provider` | 0.3.2 | rc | 2 | `packages/chain-provider` |
@@ -62,7 +63,6 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/omnia-router` | 0.4.1 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.1 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.8.1 | rc | 2 | `packages/omnia-vtxo` |
-| `@totemsdk/proof` | 1.0.2 | rc | 2 | `packages/proof` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.11 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
@@ -72,10 +72,15 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/edge-can` | 0.3.0 | v1 | outside | `packages/edge-can` |
 | `@totemsdk/edge-coap` | 0.3.0 | v1 | outside | `packages/edge-coap` |
 | `@totemsdk/edge-lorawan` | 0.2.3 | v1 | outside | `packages/edge-lorawan` |
+| `@totemsdk/location-proof` | 1.0.1 | v1 | outside | `packages/location-proof` |
+| `@totemsdk/proof-integritas` | 1.0.1 | v1 | outside | `packages/proof-integritas` |
+| `@totemsdk/proofgraph` | 1.1.0 | v1 | outside | `packages/proofgraph` |
+| `@totemsdk/raster-proof` | 1.0.1 | v1 | outside | `packages/raster-proof` |
+| `@totemsdk/spatial-proof` | 1.0.1 | v1 | outside | `packages/spatial-proof` |
 | `@totemsdk/act-mavlink` | 0.1.0 | rc | outside | `packages/act-mavlink` |
 | `@totemsdk/act-ocpp` | 0.1.0 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
-| `@totemsdk/edge-adapters` | 0.3.2 | rc | outside | `packages/edge-adapters` |
+| `@totemsdk/edge-adapters` | 0.4.0 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.2.2 | rc | outside | `packages/edge-ble` |
 | `@totemsdk/edge-email` | 0.2.2 | rc | outside | `packages/edge-email` |
@@ -89,18 +94,13 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/edge-ros2` | 0.2.2 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.1 | rc | outside | `packages/eefi` |
 | `@totemsdk/governance` | 0.3.0 | rc | outside | `packages/governance` |
-| `@totemsdk/location-proof` | 1.0.1 | rc | outside | `packages/location-proof` |
 | `@totemsdk/mcp-server` | 0.5.1 | rc | outside | `packages/mcp-server` |
 | `@totemsdk/pear` | 0.3.0 | rc | outside | `packages/pear` |
-| `@totemsdk/proof-integritas` | 1.0.1 | rc | outside | `packages/proof-integritas` |
-| `@totemsdk/proofgraph` | 1.1.0 | rc | outside | `packages/proofgraph` |
 | `@totemsdk/provider-bond` | 0.2.2 | rc | outside | `packages/provider-bond` |
-| `@totemsdk/raster-proof` | 1.0.1 | rc | outside | `packages/raster-proof` |
 | `@totemsdk/realtime` | 0.2.1 | rc | outside | `packages/realtime` |
 | `@totemsdk/recursive-mast` | 0.3.2 | rc | outside | `packages/recursive-mast` |
 | `@totemsdk/se-server` | 0.5.2 | rc | outside | `packages/se-server` |
 | `@totemsdk/server` | 1.0.4 | rc | outside | `packages/server` |
-| `@totemsdk/spatial-proof` | 1.0.1 | rc | outside | `packages/spatial-proof` |
 | `@totemsdk/statechain` | 0.3.1 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.1 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
