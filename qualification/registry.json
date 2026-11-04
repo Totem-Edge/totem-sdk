@@ -206,7 +206,7 @@
       "limitations": []
     },
     "@totemsdk/location-proof": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "claims": {
@@ -310,7 +310,7 @@
       "limitations": []
     },
     "@totemsdk/proof": {
-      "version": "1.0.2",
+      "version": "1.0.3",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "envelope": {
@@ -324,7 +324,7 @@
       ]
     },
     "@totemsdk/proof-integritas": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "anchoring": {
@@ -339,7 +339,7 @@
       ]
     },
     "@totemsdk/proofgraph": {
-      "version": "1.1.0",
+      "version": "1.1.1",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "graph": {
@@ -352,7 +352,7 @@
       "limitations": []
     },
     "@totemsdk/raster-proof": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "raster": {
@@ -386,7 +386,7 @@
       "limitations": []
     },
     "@totemsdk/spatial-proof": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "relations": {

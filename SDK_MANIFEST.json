@@ -144,7 +144,7 @@
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/intelligence": "^0.1.2",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -170,7 +170,7 @@
       ],
       "dependencies": {
         "@totemsdk/identity": "^1.1.0",
-        "@totemsdk/proof": "^1.0.2"
+        "@totemsdk/proof": "^1.0.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -380,11 +380,11 @@
         "@totemsdk/edge": "^1.5.1",
         "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.0",
-        "@totemsdk/location-proof": "^1.0.1",
+        "@totemsdk/location-proof": "^1.0.2",
         "@totemsdk/lookup-client": "^0.4.0",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/omnia-router": "^0.4.1",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/root-identity": "^1.0.11",
         "@totemsdk/storage": "^0.2.2",
@@ -650,7 +650,7 @@
         "@totemsdk/edge": "^1.5.1",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -773,7 +773,7 @@
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.0",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0"
       },
       "exports": {
@@ -852,7 +852,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1175,7 +1175,7 @@
     },
     {
       "name": "@totemsdk/proof",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1200,7 +1200,7 @@
     },
     {
       "name": "@totemsdk/proof-integritas",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Integritas v2 proof provider — hash stamping, checking, on-chain verification on Minima",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1210,7 +1210,7 @@
         "anchoring"
       ],
       "dependencies": {
-        "@totemsdk/proof": "^1.0.2"
+        "@totemsdk/proof": "^1.0.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1223,7 +1223,7 @@
     },
     {
       "name": "@totemsdk/proofgraph",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Local deterministic proof relationship graph — indexes proofs, identities, manifests into a content-addressed DAG",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1237,7 +1237,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -1264,7 +1264,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -1689,7 +1689,7 @@
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/edge": "^1.5.1",
-        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -1821,7 +1821,7 @@
     },
     {
       "name": "@totemsdk/location-proof",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Generic location and movement proof primitives — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1838,8 +1838,8 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/proof": "^1.0.2",
-        "@totemsdk/proofgraph": "^1.1.0"
+        "@totemsdk/proof": "^1.0.3",
+        "@totemsdk/proofgraph": "^1.1.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1852,7 +1852,7 @@
     },
     {
       "name": "@totemsdk/spatial-proof",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Generic spatial relationship proof primitives — geometry hashes, geofence relations, route checks, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1868,9 +1868,9 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/location-proof": "^1.0.1",
-        "@totemsdk/proof": "^1.0.2",
-        "@totemsdk/proofgraph": "^1.1.0"
+        "@totemsdk/location-proof": "^1.0.2",
+        "@totemsdk/proof": "^1.0.3",
+        "@totemsdk/proofgraph": "^1.1.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1883,7 +1883,7 @@
     },
     {
       "name": "@totemsdk/raster-proof",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Edge-capable raster and visual evidence proof primitives — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1903,9 +1903,9 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/proof": "^1.0.2",
-        "@totemsdk/proofgraph": "^1.1.0",
-        "@totemsdk/spatial-proof": "^1.0.1"
+        "@totemsdk/proof": "^1.0.3",
+        "@totemsdk/proofgraph": "^1.1.1",
+        "@totemsdk/spatial-proof": "^1.0.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
