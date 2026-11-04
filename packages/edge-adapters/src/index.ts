@@ -27,6 +27,9 @@ export {
 export { createLocationPortAdapter } from './location.js';
 export type { LocationPortConfig } from './location.js';
 
+export { gnssFixToLocationClaim } from './gnss-location.js';
+export type { GnssLocationClaimOptions } from './gnss-location.js';
+
 export { createPolicyPortAdapter } from './policy.js';
 
 export { createIdentityPortAdapter } from './identity.js';
