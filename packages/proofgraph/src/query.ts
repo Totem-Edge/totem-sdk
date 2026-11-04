@@ -20,7 +20,7 @@ export function findNode(graph: ProofGraph, id: string): ProofGraphNode | undefi
 export function getEdgesFrom(graph: ProofGraph, nodeIdOrRefId: string): ProofGraphEdge[] {
   const node = findNode(graph, nodeIdOrRefId);
   if (!node) return [];
-  return graph.edges.filter((e) => e.from === node.refId);
+  return graph.edges.filter((e) => e.from === node.refId || e.from === node.id);
 }
 
 /**
@@ -29,7 +29,7 @@ export function getEdgesFrom(graph: ProofGraph, nodeIdOrRefId: string): ProofGra
 export function getEdgesTo(graph: ProofGraph, nodeIdOrRefId: string): ProofGraphEdge[] {
   const node = findNode(graph, nodeIdOrRefId);
   if (!node) return [];
-  return graph.edges.filter((e) => e.to === node.refId);
+  return graph.edges.filter((e) => e.to === node.refId || e.to === node.id);
 }
 
 /**

@@ -20,7 +20,9 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest --config ../../tests/jest/proof-integritas.cjs"
+    "test": "jest --config ../../tests/jest/proof-integritas.cjs",
+    "test:integration": "node --test ../../tests/qualification/proof-integritas/integration.test.mjs",
+    "test:conformance": "jest --config ../../tests/jest/proof-integritas.cjs --testPathPatterns \"integritas\" --runInBand"
   },
   "files": [
     "dist",

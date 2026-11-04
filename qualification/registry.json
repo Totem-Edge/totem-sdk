@@ -1,21 +1,15 @@
 {
   "schemaVersion": 1,
   "packages": {
-    "@totemsdk/edge-lorawan": {
-      "version": "0.2.3",
+    "@totemsdk/authority": {
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
-        "simulator": {
-          "unit": "packages/edge-lorawan:test",
-          "conformance": "packages/edge-lorawan:test:conformance",
-          "integration": "packages/edge-lorawan:test:integration",
-          "recovery": "packages/edge-lorawan:test:recovery",
-          "consumer": "packages/edge-lorawan:test:consumer"
+        "unit": {
+          "suite": "packages/authority:test"
         }
       },
-      "limitations": [
-        "ChirpStack/network-server and radio hardware profiles are not yet qualified"
-      ]
+      "limitations": []
     },
     "@totemsdk/core": {
       "version": "1.4.2",
@@ -44,66 +38,6 @@
       "limitations": [
         "Recovery not applicable (stateless WASM crypto library)"
       ]
-    },
-    "@totemsdk/storage": {
-      "version": "0.2.2",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/storage:test"
-        }
-      },
-      "limitations": []
-    },
-    "@totemsdk/replication": {
-      "version": "0.2.0",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/replication:test"
-        }
-      },
-      "limitations": []
-    },
-    "@totemsdk/manifest": {
-      "version": "2.1.0",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/manifest:test"
-        }
-      },
-      "limitations": []
-    },
-    "@totemsdk/identity": {
-      "version": "1.1.0",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/identity:test"
-        }
-      },
-      "limitations": []
-    },
-    "@totemsdk/proof": {
-      "version": "1.0.2",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/proof:test"
-        }
-      },
-      "limitations": []
-    },
-    "@totemsdk/authority": {
-      "version": "1.0.2",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/authority:test"
-        }
-      },
-      "limitations": []
     },
     "@totemsdk/edge": {
       "version": "1.5.1",
@@ -185,6 +119,22 @@
       },
       "limitations": []
     },
+    "@totemsdk/edge-lorawan": {
+      "version": "0.2.3",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "simulator": {
+          "unit": "packages/edge-lorawan:test",
+          "conformance": "packages/edge-lorawan:test:conformance",
+          "integration": "packages/edge-lorawan:test:integration",
+          "recovery": "packages/edge-lorawan:test:recovery",
+          "consumer": "packages/edge-lorawan:test:consumer"
+        }
+      },
+      "limitations": [
+        "ChirpStack/network-server and radio hardware profiles are not yet qualified"
+      ]
+    },
     "@totemsdk/edge-matter": {
       "version": "0.2.1",
       "owner": "Totem SDK maintainers",
@@ -245,6 +195,40 @@
       },
       "limitations": []
     },
+    "@totemsdk/identity": {
+      "version": "1.1.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/identity:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/location-proof": {
+      "version": "1.0.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "claims": {
+          "unit": "packages/location-proof:test",
+          "integration": "packages/location-proof:test:integration",
+          "conformance": "packages/location-proof:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless proof primitive)"
+      ]
+    },
+    "@totemsdk/manifest": {
+      "version": "2.1.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/manifest:test"
+        }
+      },
+      "limitations": []
+    },
     "@totemsdk/omnia": {
       "version": "2.4.0",
       "owner": "Totem SDK maintainers",
@@ -255,22 +239,52 @@
       },
       "limitations": []
     },
-    "@totemsdk/omnia-router": {
-      "version": "0.4.1",
-      "owner": "Totem SDK maintainers",
-      "profiles": {
-        "unit": {
-          "suite": "packages/omnia-router:test"
-        }
-      },
-      "limitations": []
-    },
     "@totemsdk/omnia-factory": {
       "version": "0.7.1",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "unit": {
           "suite": "packages/omnia-factory:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-host": {
+      "version": "0.13.3",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-host:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-pool": {
+      "version": "0.5.4",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-pool:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-relay": {
+      "version": "0.7.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-relay:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-router": {
+      "version": "0.4.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-router:test"
         }
       },
       "limitations": []
@@ -295,35 +309,95 @@
       },
       "limitations": []
     },
-    "@totemsdk/omnia-pool": {
-      "version": "0.5.4",
+    "@totemsdk/proof": {
+      "version": "1.0.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
-        "unit": {
-          "suite": "packages/omnia-pool:test"
+        "envelope": {
+          "unit": "packages/proof:test",
+          "integration": "packages/proof:test:integration",
+          "conformance": "packages/proof:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless proof primitive)"
+      ]
+    },
+    "@totemsdk/proof-integritas": {
+      "version": "1.0.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "anchoring": {
+          "unit": "packages/proof-integritas:test",
+          "integration": "packages/proof-integritas:test:integration",
+          "conformance": "packages/proof-integritas:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless adapter)",
+        "Live network not exercised in CI; transport is injected"
+      ]
+    },
+    "@totemsdk/proofgraph": {
+      "version": "1.1.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "graph": {
+          "unit": "packages/proofgraph:test",
+          "integration": "packages/proofgraph:test:integration",
+          "conformance": "packages/proofgraph:test:conformance",
+          "recovery": "packages/proofgraph:test:recovery"
         }
       },
       "limitations": []
     },
-    "@totemsdk/omnia-host": {
-      "version": "0.13.3",
+    "@totemsdk/raster-proof": {
+      "version": "1.0.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "raster": {
+          "unit": "packages/raster-proof:test",
+          "integration": "packages/raster-proof:test:integration",
+          "conformance": "packages/raster-proof:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless proof primitive)"
+      ]
+    },
+    "@totemsdk/replication": {
+      "version": "0.2.0",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "unit": {
-          "suite": "packages/omnia-host:test"
+          "suite": "packages/replication:test"
         }
       },
       "limitations": []
     },
-    "@totemsdk/omnia-relay": {
-      "version": "0.7.0",
+    "@totemsdk/se-server": {
+      "version": "0.5.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "unit": {
-          "suite": "packages/omnia-relay:test"
+          "suite": "packages/se-server:test"
         }
       },
       "limitations": []
+    },
+    "@totemsdk/spatial-proof": {
+      "version": "1.0.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "relations": {
+          "unit": "packages/spatial-proof:test",
+          "integration": "packages/spatial-proof:test:integration",
+          "conformance": "packages/spatial-proof:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless proof primitive)"
+      ]
     },
     "@totemsdk/statechain": {
       "version": "0.3.1",
@@ -335,12 +409,12 @@
       },
       "limitations": []
     },
-    "@totemsdk/se-server": {
-      "version": "0.5.2",
+    "@totemsdk/storage": {
+      "version": "0.2.2",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "unit": {
-          "suite": "packages/se-server:test"
+          "suite": "packages/storage:test"
         }
       },
       "limitations": []

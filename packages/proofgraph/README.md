@@ -2,7 +2,7 @@
 
 Local deterministic proof relationship graph for Totem Edge — indexes proofs, identities, manifests, anchors, and subjects into a queryable, content-addressed DAG.
 
-No network. No storage. Pure in-memory immutable graph with SHA3-256 content addressing.
+No network. The graph is in-memory by default; a CAS-backed durable store and a replicated evidence adapter ship with the package. SHA3-256 content addressing throughout.
 
 ## Installation
 
@@ -19,7 +19,8 @@ Key properties:
 - **Immutable** — every add/mutation returns a new `ProofGraph`; originals are never modified
 - **Idempotent** — adding the same node or edge twice has no effect (deduplication by content ID)
 - **Content-deterministic** — `graphId` excludes `createdAt` timestamps so identical content always hashes identically
-- **Interface-only storage** — `ProofGraphStoragePort` is an interface; no concrete adapter ships in this package
+- **Optional durability** — `createDurableProofGraphStore` persists graphs over any CAS-capable adapter, with restart recovery and concurrent-save serialization
+- **Replicated evidence** — `createReplicatedProofGraphEvidenceStore` binds evidence nodes to content-addressed artifacts
 
 ## All exports
 
@@ -221,18 +222,33 @@ console.assert(restored.graphId === graph.graphId);
 
 Every function that modifies a graph (`addProof`, `addEdge`, etc.) returns a new `ProofGraph` with a recomputed `graphId`. Calling the same add function twice with the same arguments returns a graph identical to calling it once — duplicate nodes and edges are silently ignored.
 
-### `ProofGraphStoragePort`
+### Durable storage
 
-This package exports a `ProofGraphStoragePort` interface only. If you need persistent storage, implement the interface in your own adapter:
+`createDurableProofGraphStore(adapter)` persists graphs over a CAS-capable
+storage adapter (`@totemsdk/storage`). It maintains a head pointer and a
+per-node reverse index, serializes concurrent saves per adapter, and refuses an
+adapter that does not acknowledge durable, atomic, conditional writes — there is
+no silent downgrade.
 
 ```typescript
-import type { ProofGraphStoragePort, ProofGraph } from '@totemsdk/proofgraph';
+import { createDurableProofGraphStore } from '@totemsdk/proofgraph';
+import { SqliteStore } from '@totemsdk/storage/sqlite';
 
-class MyStorage implements ProofGraphStoragePort {
-  async save(graph: ProofGraph): Promise<void> { /* ... */ }
-  async load(graphId: string): Promise<ProofGraph | null> { /* ... */ }
-}
+const store = createDurableProofGraphStore(new SqliteStore('./proofgraph.sqlite'));
+await store.save(graph);
+const latest = await store.latest();      // most recently saved graph
+const report = await store.recover();     // reconcile head + index after a crash
 ```
+
+`ProofGraphStoragePort` remains available if a deployment wants its own adapter
+(`save`/`load` only).
+
+### Replicated evidence
+
+`createReplicatedProofGraphEvidenceStore({ artifacts, index })` writes evidence
+nodes to an `ArtifactStore` and indexes their content-addressed refs. Reads
+distinguish `ok`, `not-found`, `corrupt` and `unavailable`, and a claim
+commitment that does not match the stored bytes is rejected before indexing.
 
 ## Related packages
 

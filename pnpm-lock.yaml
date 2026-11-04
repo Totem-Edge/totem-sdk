@@ -756,6 +756,9 @@ importers:
       '@totemsdk/edge':
         specifier: workspace:^
         version: link:../edge
+      '@totemsdk/edge-gnss':
+        specifier: workspace:^
+        version: link:../edge-gnss
       '@totemsdk/identity':
         specifier: workspace:^
         version: link:../identity
