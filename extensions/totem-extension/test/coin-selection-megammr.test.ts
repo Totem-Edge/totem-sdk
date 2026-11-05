@@ -56,4 +56,26 @@ describe('CoinSelectionService node lookup', () => {
     expect(body.megammr).toBeUndefined();
     expect(body.relevant).toBeUndefined();
   });
+
+  test('matches the selected Mx address against hex coin addresses', () => {
+    const result = coinSelectionService.selectCoins(
+      [
+        {
+          coinId: '0x' + '11'.repeat(32),
+          address: '0x0DCA5F58F3EE4B8777A6F52A1F90E2B0D6EE2DDFB019367573E1CD916200AD04',
+          amount: '1',
+          tokenid: '0x00',
+          created: 1,
+        },
+      ],
+      {
+        mode: 'focused',
+        focusedAddress: ADDRESS,
+        targetAmount: '0.5',
+      },
+    );
+
+    expect(result.selectedCoins).toHaveLength(1);
+    expect(result.insufficientFunds).toBe(false);
+  });
 });
