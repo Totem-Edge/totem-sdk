@@ -24,7 +24,13 @@
 
 import type { EdgeCapability } from './capabilities.js';
 import type { EdgeOperationResult } from './types.js';
-import type { StepEffects } from '@totemsdk/agent-policy';
+import type {
+  ActualConsumptionV1,
+  DispatchState,
+  NonterminalPhase,
+  StepEffects,
+  TerminalOutcome,
+} from '@totemsdk/agent-policy';
 import type { DecisionRefRecord } from '@totemsdk/decision';
 
 export type EdgeActionEffect = 'read' | 'write' | 'sign' | 'spend' | 'publish' | 'admin';
@@ -65,17 +71,37 @@ export interface EdgeActionInput {
   decisionRef?: DecisionRefRecord;
 }
 
+/**
+ * The governed execution result. `ok` says whether the request was handled;
+ * `dispatchState`, `phase` and `terminalOutcome` say what happened to the
+ * operation and therefore how the authorization reservation must be settled.
+ */
+export interface EdgeExecutionResult<T = unknown> extends EdgeOperationResult<T> {
+  dispatchState?: DispatchState;
+  phase?: NonterminalPhase;
+  terminalOutcome?: TerminalOutcome;
+  operationId?: string;
+  settlementId?: string;
+  actualConsumption?: ActualConsumptionV1;
+}
+
 export interface EdgeActionDefinition {
   /** Runtime capability the action requires (support check, not authorization). */
   capability: EdgeCapability;
   /** Effect class — used for capability gating and audit. */
   effect: EdgeActionEffect;
+  /**
+   * Declares whether the action may return a non-terminal result. Legacy
+   * definitions default to synchronous; async definitions MUST opt in so a
+   * missing lifecycle field fails closed rather than aborting an accepted job.
+   */
+  executionMode?: 'synchronous' | 'asynchronous';
   /** Build the real operation from the request (wallet builds/simulates first). */
   prepare(input: EdgeActionInput): unknown | Promise<unknown>;
   /** Extract canonical security facts from the PREPARED operation. */
   deriveEffects(prepared: unknown): StepEffects;
   /** Execute the prepared operation through the private port. */
-  execute(prepared: unknown): Promise<EdgeOperationResult>;
+  execute(prepared: unknown): Promise<EdgeExecutionResult>;
   /**
    * RFC-019 P1: classify an execution failure. Return `'definitely-not-executed'`
    * only when the operation provably did not take effect (the reservation may be
@@ -84,6 +110,11 @@ export interface EdgeActionDefinition {
    * held for reconciliation rather than released.
    */
   classifyFailure?(error: unknown, prepared: unknown): 'definitely-not-executed' | 'unknown';
+  /**
+   * RFC-022 Amendment A: classify a returned failure. This runs for `ok:false`
+   * results as well as throws; it cannot override explicit dispatch evidence.
+   */
+  classifyResult?(result: EdgeExecutionResult, prepared: unknown): 'definitely-not-executed' | 'unknown' | undefined;
 }
 
 export interface EdgeActionRegistry {
