@@ -9,7 +9,11 @@ import type {
   IndustrialActionDefinition,
   PreparedDeviceOp,
 } from '../edge-adapter.js';
-import { createDurableDeviceOperationStore } from '../operation-store.js';
+import {
+  createDurableDeviceOperationStore,
+  isReconcilableOperationStatus,
+  isTerminalOperationStatus,
+} from '../operation-store.js';
 import { createIndustrialOperationLifecycle } from '../operation-lifecycle.js';
 import type { ActionSchema } from '../types.js';
 
@@ -72,6 +76,9 @@ describe('RFC-022 asynchronous operation lifecycle', () => {
     const result = await f.edgeDef.execute(op);
     expect(result.ok).toBe(true);
     expect(result.outcome).toBe('accepted');
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.phase).toBe('accepted');
+    expect(result.terminalOutcome).toBeUndefined();
     expect((await f.store.getOperation(op.operationId))?.status).toBe('accepted');
   });
 
@@ -83,6 +90,9 @@ describe('RFC-022 asynchronous operation lifecycle', () => {
     expect(replay.ok).toBe(false);
     expect(replay.errorCode).toBe('OPERATION_PENDING');
     expect(replay.outcome).toBe('accepted');
+    expect(replay.dispatchState).toBe('dispatched');
+    expect(replay.phase).toBe('accepted');
+    expect(replay.terminalOutcome).toBeUndefined();
     expect(replay.deduplicated).toBe(true);
     expect(f.reconcile).not.toHaveBeenCalled();
   });
@@ -144,8 +154,19 @@ describe('RFC-022 asynchronous operation lifecycle', () => {
     const def = makeDefinition();
     const edgeDef = toEdgeActionDefinition(def, { operationStore: store });
     const op = (await edgeDef.prepare(INPUT)) as PreparedDeviceOp;
-    expect((await edgeDef.execute(op)).outcome).toBe('confirmed');
+    const result = await edgeDef.execute(op);
+    expect(result.outcome).toBe('confirmed');
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.terminalOutcome).toBe('confirmed');
     expect((await store.getOperation(op.operationId))?.status).toBe('confirmed');
     expect((await runWithPolicy(def, op)).outcome).toBe('confirmed');
+  });
+
+  it('treats unknown as reconcilable, not terminal', () => {
+    expect(isTerminalOperationStatus('unknown')).toBe(false);
+    expect(isReconcilableOperationStatus('unknown')).toBe(true);
+    expect(isReconcilableOperationStatus('reconciling')).toBe(true);
+    expect(isTerminalOperationStatus('confirmed')).toBe(true);
+    expect(isTerminalOperationStatus('failed')).toBe(true);
   });
 });

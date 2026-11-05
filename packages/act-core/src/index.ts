@@ -82,7 +82,7 @@ export type {
   ToEdgeActionOptions,
 } from './edge-adapter.js'
 
-export { createDurableDeviceOperationStore, isTerminalOperationStatus } from './operation-store.js'
+export { createDurableDeviceOperationStore, isTerminalOperationStatus, isReconcilableOperationStatus } from './operation-store.js'
 export type {
   DeviceOperationStore,
   DeviceOperationRecord,

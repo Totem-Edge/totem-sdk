@@ -5,9 +5,12 @@
 import {
   createInterlockRegistry,
   runProfileConformance,
+  toEdgeActionDefinition,
   type IndustrialActionDefinition,
   type PreparedDeviceOp,
 } from '@totemsdk/act-core';
+import { createAgentEdgeRuntime, createCapabilitySet, createEdgeActionRegistry } from '@totemsdk/edge';
+import type { GrantBoundAutonomyPolicy } from '@totemsdk/agent-policy';
 
 import { createOcppDefinitions } from '../adapter.js';
 import { negotiateOcppCapabilities, supportsOcppProfile } from '../capabilities.js';
@@ -165,6 +168,83 @@ describe('charging effects (RFC-024 §5.5)', () => {
 });
 
 describe('governed operations (RFC-024 §5.3/§5.6)', () => {
+  it('reports an accepted session start as dispatched and non-terminal', async () => {
+    const transport = new SimulatedCharger();
+    const defs = createOcppDefinitions({ transport, site: 'site-1', connectors: [connector] });
+    const start = defs.find((def) => def.kind === 'charging:startSession')!;
+    const edge = toEdgeActionDefinition(start);
+
+    expect(edge.executionMode).toBe('asynchronous');
+    const op = await edge.prepare({
+      action: 'charging:startSession',
+      subject: 'site-1/charging/EVSE-1/connector',
+      payload: {
+        connectorId: 1,
+        idTag: 'TAG-1',
+        maxPowerWatts: { value: 11000, unit: 'W' },
+      },
+      context: {},
+    });
+    const result = await edge.execute(op);
+
+    expect(result.ok).toBe(true);
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.phase).toBe('accepted');
+    expect(result.terminalOutcome).toBeUndefined();
+  });
+
+  it('holds the accepted session start in AgentEdgeRuntime', async () => {
+    const transport = new SimulatedCharger();
+    const defs = createOcppDefinitions({ transport, site: 'site-1', connectors: [connector] });
+    const start = defs.find((def) => def.kind === 'charging:startSession')!;
+
+    const commit = jest.fn();
+    const abort = jest.fn();
+    const policy = {
+      authorizeAndReserve: async () => ({
+        outcome: 'approved' as const,
+        reservationId: 'res-1',
+        actionDigest: 'digest-1',
+        decisionIds: [],
+        mandateIds: ['mandate-1'],
+        usageDeltas: [],
+        reservedAt: 1000,
+        expiresAt: 2000,
+      }),
+      commit,
+      abort,
+    } as unknown as GrantBoundAutonomyPolicy;
+
+    const registry = createEdgeActionRegistry();
+    registry.register(toEdgeActionDefinition(start), 'charging:startSession');
+    const runtime = createAgentEdgeRuntime({
+      deviceId: 'dev-1',
+      capabilities: createCapabilitySet(['industrial:action']),
+      registry,
+      policy,
+      runId: 'run-1',
+      principal: 'principal-1',
+      agentId: 'agent-1',
+    });
+
+    const result = await runtime.executeAction({
+      action: 'charging:startSession',
+      subject: 'site-1/charging/EVSE-1/connector',
+      payload: {
+        connectorId: 1,
+        idTag: 'TAG-1',
+        maxPowerWatts: { value: 11000, unit: 'W' },
+      },
+      context: {},
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.phase).toBe('accepted');
+    expect(commit).not.toHaveBeenCalled();
+    expect(abort).not.toHaveBeenCalled();
+  });
+
   it('prepares a canonical start command and confirms only from the charger', async () => {
     const transport = new SimulatedCharger();
     const defs = createOcppDefinitions({ transport, site: 'site-1', connectors: [connector] });

@@ -66,8 +66,15 @@ export interface DeviceOperationStore {
 
 export function isTerminalOperationStatus(status: OperationStatus): boolean {
   return status === 'confirmed' || status === 'failed' || status === 'aborted' ||
-    status === 'safe-stated' || status === 'suppressed' || status === 'requires-reset' ||
-    status === 'unknown';
+    status === 'safe-stated' || status === 'suppressed' || status === 'requires-reset';
+}
+
+/**
+ * `unknown` is an observation, not an irreversible terminal state: an
+ * unresolved operation must remain reconcilable (RFC-022 Amendment A §5).
+ */
+export function isReconcilableOperationStatus(status: OperationStatus): boolean {
+  return status === 'unknown' || status === 'accepted' || status === 'running' || status === 'reconciling';
 }
 
 export interface DurableDeviceOperationStoreOptions {

@@ -24,7 +24,13 @@ import type {
   EdgeOperationResult,
   EdgeReceipt,
 } from '@totemsdk/edge';
-import type { StepEffects } from '@totemsdk/agent-policy';
+import type {
+  ActualConsumptionV1,
+  DispatchState,
+  NonterminalPhase,
+  StepEffects,
+  TerminalOutcome,
+} from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
 import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError, ActionScheduleError, ActionApprovalError, ActionCommitmentError } from './errors.js';
@@ -157,6 +163,13 @@ export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperat
   deduplicated?: boolean;
   /** Authority-bound evidence (RFC-010 §6.7). */
   receipt?: EdgeReceipt;
+  /** RFC-022 Amendment A: did the operation reach the device? */
+  dispatchState?: DispatchState;
+  /** Non-terminal phase when the controller accepted but has not finished. */
+  phase?: NonterminalPhase;
+  terminalOutcome?: TerminalOutcome;
+  actualConsumption?: ActualConsumptionV1;
+  operationId?: string;
 }
 
 /**
@@ -295,6 +308,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
   return {
     capability: def.capability,
     effect: def.effect,
+    executionMode: def.async ? 'asynchronous' : 'synchronous',
 
     async prepare(input: EdgeActionInput): Promise<PreparedDeviceOp> {
       const params = (input.payload ?? {}) as Record<string, unknown>;
@@ -460,7 +474,15 @@ function resolveExisting<TResult>(
   record: DeviceOperationRecord,
 ): IndustrialExecutionResult<TResult> {
   const mode = effectiveFailureMode(def) ?? 'abort';
-  if (record.status === 'accepted' || record.status === 'running' || record.status === 'reconciling') {
+  if (
+    record.status === 'accepted'
+    || record.status === 'running'
+    || record.status === 'reconciling'
+    || record.status === 'unknown'
+  ) {
+    const phase = record.status === 'unknown'
+      ? 'reconciling'
+      : record.status;
     return {
       ok: false,
       error: 'operation is not terminal; reconcile it before treating it as complete',
@@ -469,6 +491,10 @@ function resolveExisting<TResult>(
       failureMode: mode,
       attempts: record.attempts,
       deduplicated: true,
+      dispatchState: record.status === 'unknown' ? 'unknown' : 'dispatched',
+      phase,
+      ...(record.status === 'unknown' ? { terminalOutcome: 'unknown' as const } : {}),
+      operationId: record.operationId,
     };
   }
   if (record.status === 'in-flight') {
@@ -481,6 +507,8 @@ function resolveExisting<TResult>(
       failureMode: mode,
       attempts: record.attempts,
       deduplicated: true,
+      dispatchState: 'unknown',
+      operationId: record.operationId,
     };
   }
   return {
@@ -490,6 +518,11 @@ function resolveExisting<TResult>(
     failureMode: mode,
     attempts: record.attempts,
     deduplicated: true,
+    dispatchState: 'dispatched',
+    terminalOutcome: record.status === 'confirmed'
+      ? 'confirmed'
+      : record.status === 'aborted' ? 'aborted' : 'failed',
+    operationId: record.operationId,
   };
 }
 
@@ -520,11 +553,17 @@ export async function runWithPolicy<TResult = unknown>(
     last = await withTimeout(() => def.actuate(op), timeoutMs);
     if (last.ok) {
       // RFC-022 §5.5: an accepted command is not a completed physical effect.
+      const accepted = def.async?.confirmation === 'accepted';
       return {
         ...last,
-        outcome: def.async?.confirmation === 'accepted' ? 'accepted' : 'confirmed',
+        outcome: accepted ? 'accepted' : 'confirmed',
         failureMode: mode,
         attempts,
+        dispatchState: 'dispatched',
+        ...(accepted
+          ? { phase: 'accepted' as const }
+          : { terminalOutcome: 'confirmed' as const }),
+        operationId: op.operationId,
       };
     }
     if (attempts >= maxAttempts || !retryable(toActionError(last))) break;
@@ -581,6 +620,9 @@ async function applySafetyStop<TResult>(
     failureMode: mode,
     attempts,
     safeStateApplied: applied,
+    dispatchState: def.async ? 'unknown' : 'not-dispatched',
+    terminalOutcome: 'failed',
+    operationId: op.operationId,
   };
 }
 
@@ -598,6 +640,9 @@ async function applyFailureMode<TResult>(
     outcome,
     failureMode: mode,
     attempts,
+    dispatchState: def.async ? 'unknown' : 'not-dispatched',
+    terminalOutcome: outcome === 'aborted' ? 'aborted' : 'failed',
+    operationId: op.operationId,
   });
 
   switch (mode) {
@@ -627,6 +672,9 @@ async function applyFailureMode<TResult>(
           outcome: result.ok ? 'confirmed' : 'failed',
           failureMode: mode,
           attempts,
+          dispatchState: 'dispatched',
+          terminalOutcome: result.ok ? 'confirmed' : 'failed',
+          operationId: op.operationId,
         };
       }
       return failure('failed');
