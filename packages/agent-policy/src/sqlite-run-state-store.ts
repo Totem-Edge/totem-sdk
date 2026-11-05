@@ -21,7 +21,20 @@ import { SqliteStore, type SqliteTx } from '@totemsdk/storage/sqlite';
 import type { UsageLimit } from '@totemsdk/authority';
 import type { StepAuthorization, StepReceipt } from './run.js';
 import { GrantUsageLimitExceededError, type GrantUsageStore } from './grant-usage.js';
-import { accumulate, type RunReservation, type RunStateSnapshot, type RunStateStore, type RunStepReceipt } from './run-state-store.js';
+import {
+  accumulate,
+  type RunMandateUsage,
+  type RunReservation,
+  type RunStateSnapshot,
+  type RunStateStore,
+  type RunStepReceipt,
+} from './run-state-store.js';
+import {
+  assertSettlementInstruction,
+  releasedUsage,
+  sumReservedUsage,
+  type SettlementInstructionV1,
+} from './settlement.js';
 
 type ReservationKind = 'run' | 'grant';
 type ReservationStatus = 'reserved' | 'committed' | 'aborted' | 'unknown';
@@ -403,6 +416,231 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
       this.setMandateUsageStatus(tx, reservationId, 'committed');
       if (current.kind === 'run') this.foldReceiptIntoRun(tx, current.run_id, receipt as RunStepReceipt);
     });
+  }
+
+  async settleReservation(instruction: SettlementInstructionV1): Promise<RunStepReceipt> {
+    let result: RunStepReceipt | undefined;
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, instruction.reservationId);
+      if (!row) throw new Error(`reservation ${instruction.reservationId} not found`);
+
+      if (row.receipt_json) {
+        const existing = JSON.parse(row.receipt_json) as RunStepReceipt;
+        if (existing.settlementId === instruction.settlementId) {
+          result = existing;
+          return;
+        }
+      }
+      if (row.status === 'committed' || row.status === 'aborted') {
+        throw new Error(
+          `reservation ${instruction.reservationId} is already settled; conflicting settlement ${instruction.settlementId}`,
+        );
+      }
+
+      const record = JSON.parse(row.record_json) as RunReservation;
+      if (row.status === 'reserved' && this.now() > row.expires_at) {
+        this.setReservationStatus(tx, instruction.reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, instruction.reservationId, 'unknown');
+      }
+
+      assertSettlementInstruction(instruction, record.effects, record.usageDeltas);
+
+      const reserved = sumReservedUsage(record.usageDeltas);
+      const actualUsage = instruction.actual
+        ? sumReservedUsage(instruction.actual.mandateUsage.map((u) => ({
+          mandateId: u.mandateId,
+          delta: { count: u.count, ...(u.amount !== undefined ? { amount: u.amount } : {}) },
+        })))
+        : undefined;
+      const released = instruction.disposition === 'commit-reserved'
+        ? (reserved.amount !== undefined ? { count: 0, amount: '0' } : { count: 0 })
+        : releasedUsage(reserved, actualUsage);
+      const effects = instruction.disposition === 'release-nonexecution'
+        ? { spends: [], fees: [], channels: [] }
+        : instruction.disposition === 'commit-reserved'
+          ? record.effects
+          : {
+            spends: instruction.actual?.spends ?? [],
+            ...(instruction.actual?.fees !== undefined ? { fees: instruction.actual.fees } : {}),
+            channels: [],
+          };
+      const receipt: RunStepReceipt = {
+        reservationId: record.reservationId,
+        runId: record.runId,
+        stepId: record.stepId,
+        actionDigest: record.actionDigest,
+        committedAt: this.now(),
+        mandateIds: record.mandateIds ?? [],
+        decisionIds: record.decisionIds ?? [],
+        effects,
+        ...(record.evidence !== undefined ? { evidence: record.evidence } : {}),
+        settlementId: instruction.settlementId,
+        dispatchState: instruction.dispatchState,
+        terminalOutcome: instruction.terminalOutcome,
+        ...(instruction.actual !== undefined ? { actualConsumption: instruction.actual } : {}),
+        reservedUsage: reserved,
+        releasedUsage: released,
+      };
+
+      if (instruction.disposition === 'release-nonexecution') {
+        this.setReservationStatus(
+          tx,
+          instruction.reservationId,
+          'aborted',
+          receipt,
+          `settled: ${instruction.terminalOutcome} (not dispatched)`,
+        );
+        this.setMandateUsageStatus(tx, instruction.reservationId, 'aborted');
+        this.bumpRunTotal(tx, row.run_id, 'abortedSteps', 1);
+        this.bumpRunTotal(tx, row.run_id, 'reservedSteps', -1);
+      } else {
+        this.setReservationStatus(tx, instruction.reservationId, 'committed', receipt, undefined);
+        const usageRows = tx.all<MandateUsageRow>(
+          'SELECT * FROM autonomy_mandate_usage WHERE reservation_id = ?',
+          instruction.reservationId,
+        );
+        const actualByMandate = new Map((instruction.actual?.mandateUsage ?? []).map((u) => [u.mandateId, u]));
+        for (const u of usageRows) {
+          const actual = actualByMandate.get(u.mandate_id);
+          const count = instruction.disposition === 'commit-reserved' ? u.count : (actual?.count ?? 0);
+          const amount = instruction.disposition === 'commit-reserved' ? u.amount : (actual?.amount ?? null);
+          tx.run(
+            `UPDATE autonomy_mandate_usage SET count = ?, amount = ?, status = 'committed'
+             WHERE reservation_id = ? AND mandate_id = ?`,
+            count, amount, instruction.reservationId, u.mandate_id,
+          );
+        }
+        this.foldReceiptIntoRun(tx, row.run_id, receipt);
+      }
+
+      result = receipt;
+    });
+    if (!result) throw new Error(`reservation ${instruction.reservationId} settlement produced no receipt`);
+    return result;
+  }
+
+  async settleActual(instruction: SettlementInstructionV1): Promise<StepReceipt> {
+    let result: StepReceipt | undefined;
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, instruction.reservationId);
+      if (!row) throw new Error(`reservation ${instruction.reservationId} not found`);
+
+      if (row.receipt_json) {
+        const existing = JSON.parse(row.receipt_json) as StepReceipt;
+        if (existing.settlementId === instruction.settlementId) {
+          result = existing;
+          return;
+        }
+      }
+      if (row.status === 'committed' || row.status === 'aborted') {
+        throw new Error(
+          `reservation ${instruction.reservationId} is already settled; conflicting settlement ${instruction.settlementId}`,
+        );
+      }
+
+      const authorization = JSON.parse(row.record_json) as StepAuthorization;
+      if (row.status === 'reserved' && this.now() > row.expires_at) {
+        this.setReservationStatus(tx, instruction.reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, instruction.reservationId, 'unknown');
+      }
+
+      assertSettlementInstruction(
+        instruction,
+        undefined,
+        [{ mandateId: authorization.mandateId, delta: authorization.usageDelta }],
+      );
+
+      const reserved = sumReservedUsage([{
+        mandateId: authorization.mandateId,
+        delta: authorization.usageDelta,
+      }]);
+      const actualUsage = instruction.actual
+        ? sumReservedUsage(instruction.actual.mandateUsage.map((u) => ({
+          mandateId: u.mandateId,
+          delta: { count: u.count, ...(u.amount !== undefined ? { amount: u.amount } : {}) },
+        })))
+        : undefined;
+      const released = instruction.disposition === 'commit-reserved'
+        ? (reserved.amount !== undefined ? { count: 0, amount: '0' } : { count: 0 })
+        : releasedUsage(reserved, actualUsage);
+      const receipt: StepReceipt = {
+        reservationId: authorization.reservationId,
+        runId: authorization.runId,
+        stepId: authorization.stepId,
+        mandateId: authorization.mandateId,
+        actionDigest: authorization.actionDigest,
+        committedAt: this.now(),
+        usageDelta: reserved,
+        settlementId: instruction.settlementId,
+        dispatchState: instruction.dispatchState,
+        terminalOutcome: instruction.terminalOutcome,
+        ...(instruction.actual !== undefined ? { actualConsumption: instruction.actual } : {}),
+        reservedUsage: reserved,
+        releasedUsage: released,
+      };
+
+      if (instruction.disposition === 'release-nonexecution') {
+        this.setReservationStatus(
+          tx,
+          instruction.reservationId,
+          'aborted',
+          receipt,
+          `settled: ${instruction.terminalOutcome} (not dispatched)`,
+        );
+        this.setMandateUsageStatus(tx, instruction.reservationId, 'aborted');
+      } else {
+        this.setReservationStatus(tx, instruction.reservationId, 'committed', receipt, undefined);
+        const count = instruction.disposition === 'commit-reserved'
+          ? authorization.usageDelta.count
+          : (actualUsage?.count ?? 0);
+        const amount = instruction.disposition === 'commit-reserved'
+          ? authorization.usageDelta.amount ?? null
+          : actualUsage?.amount ?? null;
+        tx.run(
+          `UPDATE autonomy_mandate_usage SET count = ?, amount = ?, status = 'committed'
+           WHERE reservation_id = ? AND mandate_id = ?`,
+          count, amount, instruction.reservationId, authorization.mandateId,
+        );
+      }
+
+      result = receipt;
+    });
+    if (!result) throw new Error(`reservation ${instruction.reservationId} settlement produced no receipt`);
+    return result;
+  }
+
+  async renewReservation(reservationId: string, extendsTo: number, now: number = this.now()): Promise<void> {
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
+      if (!row) throw new Error(`reservation ${reservationId} not found`);
+      if (row.status !== 'reserved') {
+        throw new Error(`reservation ${reservationId} is in status '${row.status}' — only reserved leases renew`);
+      }
+      if (now > row.expires_at) {
+        this.setReservationStatus(tx, reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, reservationId, 'unknown');
+        throw new Error(`reservation ${reservationId} has expired and requires reconciliation, not renewal`);
+      }
+      if (!Number.isFinite(extendsTo) || extendsTo <= row.expires_at) {
+        throw new Error(`reservation ${reservationId} renewal must extend past ${row.expires_at}`);
+      }
+      tx.run('UPDATE autonomy_reservations SET expires_at = ? WHERE reservation_id = ?', extendsTo, reservationId);
+      const record = JSON.parse(row.record_json) as { expiresAt?: number };
+      record.expiresAt = extendsTo;
+      tx.run('UPDATE autonomy_reservations SET record_json = ? WHERE reservation_id = ?', JSON.stringify(record), reservationId);
+    });
+  }
+
+  async getMandateUsage(reservationId: string): Promise<RunMandateUsage[]> {
+    const rows = this.store.transactionalSync((tx) =>
+      tx.all<MandateUsageRow>('SELECT * FROM autonomy_mandate_usage WHERE reservation_id = ?', reservationId),
+    );
+    return rows.map((row) => ({
+      mandateId: row.mandate_id,
+      count: row.count,
+      ...(row.amount !== null ? { amount: row.amount } : {}),
+      status: row.status,
+    }));
   }
 
   /** Enforce a mandate usage limit against committed + outstanding reserved usage. */

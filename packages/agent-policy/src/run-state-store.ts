@@ -9,6 +9,16 @@
  */
 
 import type { CanonicalAgentAction } from './run.js';
+import {
+  assertSettlementInstruction,
+  releasedUsage,
+  sumReservedUsage,
+  type ActualConsumptionV1,
+  type DispatchState,
+  type SettlementInstructionV1,
+  type SettlementReceiptFields,
+  type TerminalOutcome,
+} from './settlement.js';
 
 export interface RunSessionTotals {
   committedSteps: number;
@@ -86,9 +96,14 @@ export interface RunReservation {
   decisionIds?: string[];
   /** Per-mandate usage reserved atomically with the run-state reservation. */
   usageDeltas?: Array<{ mandateId: string; delta: { count: number; amount?: string } }>;
+  /** RFC-022 Amendment A: the settlement that closed this reservation. */
+  settlementId?: string;
+  dispatchState?: DispatchState;
+  terminalOutcome?: TerminalOutcome;
+  actualConsumption?: ActualConsumptionV1;
 }
 
-export interface RunStepReceipt {
+export interface RunStepReceipt extends SettlementReceiptFields {
   reservationId: string;
   runId: string;
   stepId: string;
@@ -103,6 +118,13 @@ export interface RunStepReceipt {
   effects?: import('./run.js').StepEffects;
   /** RFC-017: preparation/execution evidence recorded with this step. */
   evidence?: RunStepEvidence;
+}
+
+export interface RunMandateUsage {
+  mandateId: string;
+  count: number;
+  amount?: string;
+  status: 'reserved' | 'committed' | 'aborted' | 'unknown';
 }
 
 export interface RunStateStore {
@@ -132,6 +154,20 @@ export interface RunStateStore {
     outcome: ReservationSettlementOutcome,
     opts?: { receipt?: RunStepReceipt; reason?: string },
   ): Promise<void>;
+  /**
+   * RFC-022 Amendment A: settle by verified dispatch, terminal outcome and
+   * actual consumption. Idempotent by `settlementId`; conflicting settlement
+   * of an already-closed reservation fails closed.
+   */
+  settleReservation(instruction: SettlementInstructionV1): Promise<RunStepReceipt>;
+  /**
+   * Extend a still-reserved lease before expiry. This is a trusted
+   * coordinator operation; a renewal never extends an already-expired
+   * reservation or an absolute policy ceiling.
+   */
+  renewReservation(reservationId: string, extendsTo: number, now?: number): Promise<void>;
+  /** Per-mandate reserved/actual usage rows for ledger assertions. */
+  getMandateUsage(reservationId: string): Promise<RunMandateUsage[]>;
 }
 
 export type ReservationSettlementOutcome = 'completed' | 'definitely-not-executed';
@@ -154,6 +190,7 @@ export class MemoryRunStateStore implements RunStateStore {
   private readonly runs = new Map<string, RunStateSnapshot>();
   private readonly reservations = new Map<string, RunReservation>();
   private readonly receipts = new Map<string, RunStepReceipt>();
+  private readonly mandateUsage = new Map<string, RunMandateUsage[]>();
   private readonly now: () => number;
 
   constructor(options?: MemoryRunStateStoreOptions) {
@@ -175,6 +212,15 @@ export class MemoryRunStateStore implements RunStateStore {
     const existing = this.reservations.get(reservation.reservationId);
     if (existing && existing.status === 'reserved') return;
     this.reservations.set(reservation.reservationId, reservation);
+    this.mandateUsage.set(
+      reservation.reservationId,
+      (reservation.usageDeltas ?? []).map((u) => ({
+        mandateId: u.mandateId,
+        count: u.delta.count,
+        ...(u.delta.amount !== undefined ? { amount: u.delta.amount } : {}),
+        status: 'reserved' as const,
+      })),
+    );
     const run = this.runs.get(reservation.runId);
     if (run) {
       run.totals.reservedSteps += 1;
@@ -318,6 +364,136 @@ export class MemoryRunStateStore implements RunStateStore {
         run.totals.outstandingByToken[c.channelId] = accumulate(run.totals.outstandingByToken[c.channelId], '0');
       }
     }
+  }
+
+  async settleReservation(instruction: SettlementInstructionV1): Promise<RunStepReceipt> {
+    const res = this.reservations.get(instruction.reservationId);
+    if (!res) throw new Error(`reservation ${instruction.reservationId} not found`);
+
+    // Idempotent replay: the same settlement id returns the persisted receipt.
+    if (res.receipt?.settlementId === instruction.settlementId) return res.receipt;
+    if (res.status === 'committed' || res.status === 'aborted') {
+      throw new Error(
+        `reservation ${instruction.reservationId} is already settled; conflicting settlement ${instruction.settlementId}`,
+      );
+    }
+
+    // A terminal event after TTL is still settleable through this recovery path.
+    if (res.status === 'reserved' && this.now() > res.expiresAt) {
+      res.status = 'unknown';
+      res.abortReason = 'reservation expired';
+    }
+
+    assertSettlementInstruction(instruction, res.effects, res.usageDeltas);
+
+    const reserved = sumReservedUsage(res.usageDeltas);
+    const actualUsage = instruction.actual
+      ? sumReservedUsage(instruction.actual.mandateUsage.map((u) => ({
+        mandateId: u.mandateId,
+        delta: { count: u.count, ...(u.amount !== undefined ? { amount: u.amount } : {}) },
+      })))
+      : undefined;
+    const released = instruction.disposition === 'commit-reserved'
+      ? (reserved.amount !== undefined ? { count: 0, amount: '0' } : { count: 0 })
+      : releasedUsage(reserved, actualUsage);
+
+    const effects = instruction.disposition === 'release-nonexecution'
+      ? { spends: [], fees: [], channels: [] }
+      : instruction.disposition === 'commit-reserved'
+        ? res.effects
+        : {
+          spends: instruction.actual?.spends ?? [],
+          ...(instruction.actual?.fees !== undefined ? { fees: instruction.actual.fees } : {}),
+          channels: [],
+        };
+
+    const receipt: RunStepReceipt = {
+      reservationId: res.reservationId,
+      runId: res.runId,
+      stepId: res.stepId,
+      actionDigest: res.actionDigest,
+      committedAt: this.now(),
+      mandateIds: res.mandateIds ?? [],
+      decisionIds: res.decisionIds ?? [],
+      effects,
+      ...(res.evidence !== undefined ? { evidence: res.evidence } : {}),
+      settlementId: instruction.settlementId,
+      dispatchState: instruction.dispatchState,
+      terminalOutcome: instruction.terminalOutcome,
+      ...(instruction.actual !== undefined ? { actualConsumption: instruction.actual } : {}),
+      reservedUsage: reserved,
+      releasedUsage: released,
+    };
+
+    res.receipt = receipt;
+    res.settlementId = instruction.settlementId;
+    res.dispatchState = instruction.dispatchState;
+    res.terminalOutcome = instruction.terminalOutcome;
+    if (instruction.actual !== undefined) res.actualConsumption = instruction.actual;
+    this.receipts.set(res.reservationId, receipt);
+
+    const run = this.runs.get(res.runId);
+    if (instruction.disposition === 'release-nonexecution') {
+      res.status = 'aborted';
+      res.abortReason = `settled: ${instruction.terminalOutcome} (not dispatched)`;
+      if (run) {
+        run.totals.abortedSteps += 1;
+        run.totals.reservedSteps = Math.max(0, run.totals.reservedSteps - 1);
+      }
+      this.mandateUsage.set(res.reservationId, (this.mandateUsage.get(res.reservationId) ?? [])
+        .map((u) => ({ ...u, status: 'aborted' as const })));
+    } else {
+      res.status = 'committed';
+      if (run) {
+        run.totals.committedSteps += 1;
+        run.totals.reservedSteps = Math.max(0, run.totals.reservedSteps - 1);
+        for (const s of receipt.effects?.spends ?? []) {
+          run.totals.spentByToken[s.tokenId] = accumulate(run.totals.spentByToken[s.tokenId], s.amount);
+        }
+        for (const f of receipt.effects?.fees ?? []) {
+          run.totals.feesByToken[f.tokenId] = accumulate(run.totals.feesByToken[f.tokenId], f.amount);
+        }
+        for (const c of receipt.effects?.channels ?? []) {
+          run.totals.outstandingByToken[c.channelId] = accumulate(run.totals.outstandingByToken[c.channelId], '0');
+        }
+      }
+      const actualByMandate = new Map((instruction.actual?.mandateUsage ?? []).map((u) => [u.mandateId, u]));
+      this.mandateUsage.set(res.reservationId, (this.mandateUsage.get(res.reservationId) ?? [])
+        .map((u) => {
+          if (instruction.disposition === 'commit-reserved') {
+            return { ...u, status: 'committed' as const };
+          }
+          const actual = actualByMandate.get(u.mandateId);
+          return {
+            mandateId: u.mandateId,
+            count: actual?.count ?? 0,
+            ...(actual?.amount !== undefined ? { amount: actual.amount } : {}),
+            status: 'committed' as const,
+          };
+        }));
+    }
+
+    return receipt;
+  }
+
+  async renewReservation(reservationId: string, extendsTo: number, now: number = this.now()): Promise<void> {
+    const res = this.reservations.get(reservationId);
+    if (!res) throw new Error(`reservation ${reservationId} not found`);
+    if (res.status !== 'reserved') {
+      throw new Error(`reservation ${reservationId} is in status '${res.status}' — only reserved leases renew`);
+    }
+    if (now > res.expiresAt) {
+      res.status = 'unknown';
+      throw new Error(`reservation ${reservationId} has expired and requires reconciliation, not renewal`);
+    }
+    if (!Number.isFinite(extendsTo) || extendsTo <= res.expiresAt) {
+      throw new Error(`reservation ${reservationId} renewal must extend past ${res.expiresAt}`);
+    }
+    res.expiresAt = extendsTo;
+  }
+
+  async getMandateUsage(reservationId: string): Promise<RunMandateUsage[]> {
+    return (this.mandateUsage.get(reservationId) ?? []).map((u) => ({ ...u }));
   }
 }
 

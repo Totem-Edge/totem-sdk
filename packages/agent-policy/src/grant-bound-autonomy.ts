@@ -7,12 +7,21 @@
 
 import { evaluateAuthority, snapshotFromUsage, type AuthorityIdentityResolver, type MandateStatusSnapshot } from '@totemsdk/authority';
 import type { SignedProof } from '@totemsdk/proof';
-import type { AutonomyProfile, CanonicalAgentAction, GrantRequirement, RunObligations, StepEffects } from './run.js';
+import {
+  canonicalAgentActionDigest,
+  type AutonomyProfile,
+  type CanonicalAgentAction,
+  type GrantRequirement,
+  type RunObligations,
+  type StepEffects,
+} from './run.js';
 import { checkObligations, checkRunLimits, checkTransition, evaluateGrantRequirement, type BoundaryFailure } from './autonomy.js';
+import type { SettlementInstructionV1 } from './settlement.js';
 import {
   MemoryRunStateStore,
   type OutOfBandReservation,
   type ReservationSettlementOutcome,
+  type RunMandateUsage,
   type RunReservation,
   type RunStateSnapshot,
   type RunStateStore,
@@ -251,6 +260,10 @@ export class GrantBoundAutonomyPolicy {
     }
 
     // 5. Reserve atomically: mandate usage + concurrency slot + nonce (already consumed).
+    // The reservation commits to the canonical action/effects digest, not the
+    // nonce. The nonce is anti-replay identity; it is not a prepared-command
+    // commitment (RFC-022 Amendment A §6).
+    const actionDigest = canonicalAgentActionDigest(params.action);
     const reservedAt = now;
     const expiresAt = reservedAt + DEFAULT_RESERVATION_TTL_MS;
     const reservation: RunReservation = {
@@ -258,7 +271,7 @@ export class GrantBoundAutonomyPolicy {
       runId: run.runId,
       stepId: params.stepId,
       stepAction: params.action.action,
-      actionDigest: params.action.nonce ?? params.nonce,
+      actionDigest,
       effects: params.action.effects,
       reservedAt,
       expiresAt,
@@ -273,7 +286,7 @@ export class GrantBoundAutonomyPolicy {
     return {
       outcome: 'approved',
       reservationId: reservation.reservationId,
-      actionDigest: params.action.nonce ?? params.nonce,
+      actionDigest,
       decisionIds,
       mandateIds: authorizedGrantIds,
       usageDeltas,
@@ -321,6 +334,21 @@ export class GrantBoundAutonomyPolicy {
     opts?: { receipt?: RunStepReceipt; reason?: string },
   ): Promise<void> {
     return this.stateStore.reconcileReservation(reservationId, outcome, opts);
+  }
+
+  /** RFC-022 Amendment A: settle by verified dispatch, outcome and actual use. */
+  async settleActual(instruction: SettlementInstructionV1): Promise<RunStepReceipt> {
+    return this.stateStore.settleReservation(instruction);
+  }
+
+  /** Extend a still-reserved lease before expiry. */
+  async renewReservation(reservationId: string, extendsTo: number, now?: number): Promise<void> {
+    return this.stateStore.renewReservation(reservationId, extendsTo, now);
+  }
+
+  /** Per-mandate reserved/actual rows for ledger assertions and reconciliation. */
+  async getMandateUsage(reservationId: string): Promise<RunMandateUsage[]> {
+    return this.stateStore.getMandateUsage(reservationId);
   }
 
   async getRunReceiptGraph(runId: string): Promise<RunReceiptGraph | undefined> {
