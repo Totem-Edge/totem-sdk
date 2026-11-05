@@ -85,5 +85,6 @@
 | [RFC-073-HAWK-NODE-COMMAND-MAPPING.md](RFC-073-HAWK-NODE-COMMAND-MAPPING.md) | RFC-073 — Hawk Node Command Mapping and Provider Contract | Draft — documents the implemented Hawk-node 1.0.100.0 command surface (132 commands) and the `ChainStateProvider` mapping; the provider-boundary migration remains under RFC-062 Amendment A. |
 | [RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md](RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md) | RFC-074 — Edge Transport Qualification and Fail-Closed Release Gates | Draft — implementation in progress on `rfc-074/edge-gates`, concurrently with non-edge publications. No edge-family v1 promotion is authorised until Phase 0 and Phase 1 exit criteria pass. |
 | [RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md](RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md) | RFC-076: SunSpec observations and governed inverter controls | Draft — approved design direction; implementation and qualification remain to be completed. |
+| [RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md](RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md) | RFC-077 — Verifiable Adaptive Intelligence Lifecycle | Draft for architectural review — not implemented; no releaseability claim |
 
-Total: **81** RFC documents.
+Total: **82** RFC documents.
