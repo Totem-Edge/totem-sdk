@@ -49,6 +49,7 @@ module.exports = {
     '^@totemsdk/txpow$':           '<rootDir>/packages/txpow/src/index.ts',
     '^@totemsdk/chain-provider$':  '<rootDir>/packages/chain-provider/src/types.ts',
     '^@totemsdk/agent-policy$':    '<rootDir>/packages/agent-policy/src/types.ts',
+    '^@totemsdk/agent-policy/settlement$': '<rootDir>/packages/agent-policy/src/settlement.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/packages/lookup-protocol/src/index.ts',
     '^@totemsdk/storage$':         '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/snapshot$':'<rootDir>/packages/storage/src/snapshot.ts',

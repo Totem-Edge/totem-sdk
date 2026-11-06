@@ -7,6 +7,12 @@
 
 import type { ManifestIdentityBinding } from '@totemsdk/identity';
 import type { SignedManifest, EdgeServiceManifest } from '@totemsdk/manifest';
+import type {
+  ActualConsumptionV1,
+  DispatchState,
+  NonterminalPhase,
+  TerminalOutcome,
+} from '@totemsdk/agent-policy';
 
 export type EdgeDeviceKind =
   | 'device'
@@ -69,6 +75,18 @@ export interface EdgeActionResult {
   ok: boolean;
   action: string;
   data?: unknown;
+  /**
+   * RFC-022 Amendment A lifecycle. `ok` reports whether the call was handled;
+   * settlement is decided by `dispatchState`/`phase`/`terminalOutcome`, not by
+   * `ok` alone.
+   */
+  dispatchState?: DispatchState;
+  phase?: NonterminalPhase;
+  terminalOutcome?: TerminalOutcome;
+  operationId?: string;
+  reservationId?: string;
+  settlementId?: string;
+  actualConsumption?: ActualConsumptionV1;
   policyResult?: {
     allowed: boolean;
     reason?: string;

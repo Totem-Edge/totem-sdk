@@ -149,9 +149,10 @@
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./settlement": "dist/settlement.{js,d.ts}"
       },
-      "exportsDescription": "AgentPolicy, PaymentIntent (incl. inference intents), PolicyEvaluation, InferenceReceiptLike, signAgentPolicy, verifyAgentPolicy",
+      "exportsDescription": "AgentPolicy, PaymentIntent (incl. inference intents), PolicyEvaluation, InferenceReceiptLike, signAgentPolicy, verifyAgentPolicy; ./settlement — RFC-022 Amendment A actual-consumption and settlement contracts",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"

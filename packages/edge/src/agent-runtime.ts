@@ -23,9 +23,19 @@ import type { EdgeActionRegistry } from './action-registry.js';
 import { isUngrantableAction } from './action-registry.js';
 import type { EdgeCapabilitySet } from './capabilities.js';
 import { hasCapability } from './capabilities.js';
-import type { EdgeActionInput } from './action-registry.js';
+import type { EdgeActionInput, EdgeExecutionResult } from './action-registry.js';
 import type { EdgeActionResult } from './types.js';
-import type { GrantBoundAutonomyPolicy, CanonicalAgentAction } from '@totemsdk/agent-policy';
+import { computeSettlementId } from '@totemsdk/agent-policy/settlement';
+import type {
+  ActualConsumptionV1,
+  CanonicalAgentAction,
+  DispatchState,
+  GrantBoundAutonomyPolicy,
+  NonterminalPhase,
+  SettlementDisposition,
+  SettlementInstructionV1,
+  TerminalOutcome,
+} from '@totemsdk/agent-policy';
 
 export interface AgentEdgeRuntimeOptions {
   deviceId: string;
@@ -45,6 +55,22 @@ export interface AgentEdgeRuntime {
   readonly deviceId: string;
   /** Execute a single governed action. The agent has no other entry point. */
   executeAction(input: EdgeActionInput): Promise<EdgeActionResult>;
+}
+
+function preparedDigestOf(prepared: unknown): string | undefined {
+  if (!prepared || typeof prepared !== 'object') return undefined;
+  const value = prepared as { preparedCommandHash?: unknown; preparedCommandDigest?: unknown };
+  if (typeof value.preparedCommandHash === 'string') return value.preparedCommandHash;
+  if (typeof value.preparedCommandDigest === 'string') return value.preparedCommandDigest;
+  return undefined;
+}
+
+function operationIdOf(prepared: unknown): string | undefined {
+  if (!prepared || typeof prepared !== 'object') return undefined;
+  const value = prepared as { operationId?: unknown; id?: unknown };
+  if (typeof value.operationId === 'string') return value.operationId;
+  if (typeof value.id === 'string') return value.id;
+  return undefined;
 }
 
 export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentEdgeRuntime {
@@ -145,41 +171,55 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
       };
     }
 
-    // 6. Execute through the private port.
+    const reservationId = authorization.reservationId;
+
+    // 6. Execute through the private port. Settlement is decided by the
+    //    lifecycle facts, never by `ok` alone (RFC-022 Amendment A).
     try {
       const result = await def.execute(prepared);
-      if (!result.ok) {
-        // RFC-019 P1: a port that reports failure without dispatching did not
-        // take effect — release the reservation rather than consuming budget.
-        await policy.abort(authorization.reservationId, result.error ?? 'execution reported failure');
-        return {
-          ok: false,
-          action,
-          error: result.error,
-          errorCode: result.errorCode ?? 'EXECUTION_FAILED',
-          policyResult: { allowed: true },
-        };
-      }
-      // 7. Commit the reservation (execution proof = the port result).
-      await policy.commit({
-        reservationId: authorization.reservationId,
-        executionProof: result.data ?? { ok: result.ok },
+      const dispatchState: DispatchState = result.dispatchState
+        ?? (def.executionMode === 'asynchronous'
+          ? 'unknown'
+          : result.ok ? 'dispatched' : 'not-dispatched');
+      const phase = result.phase;
+      const terminalOutcome = result.terminalOutcome;
+
+      const settled = await settleResult({
+        result,
+        dispatchState,
+        phase,
+        terminalOutcome,
+        reservationId: reservationId,
+        stepId,
+        prepared,
       });
+      if (settled) return settled;
+
+      // A non-terminal accepted/running/reconciling operation keeps the
+      // reservation held. `ok: true` means the request was handled, not that
+      // the physical operation completed.
       return {
         ok: true,
         action,
         data: result.data,
-        policyResult: { allowed: true },
+        dispatchState,
+        ...(phase !== undefined ? { phase } : {}),
+        ...(terminalOutcome !== undefined ? { terminalOutcome } : {}),
+        ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+        reservationId: reservationId,
+        ...(result.settlementId !== undefined ? { settlementId: result.settlementId } : {}),
+        policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
       };
     } catch (error) {
-      // 8. Classify the failure. Definitions with genuinely ambiguous dispatch
+      // 7. Classify the failure. Definitions with genuinely ambiguous dispatch
       //    (e.g. commerce after payment) override `classifyFailure` to return
-      //    `'unknown'`, which HELDS the reservation (never auto-releases) so a
-      //    retry cannot double-spend. The default preserves the historic
-      //    release-on-failure semantics for non-dispatching port actions.
-      const outcome = def.classifyFailure?.(error, prepared) ?? 'definitely-not-executed';
+      //    `'unknown'`, which HELDS the reservation. Async actions default to
+      //    `'unknown'`; only an explicitly synchronous definition defaults to
+      //    the historic release-on-failure behaviour.
+      const outcome = def.classifyFailure?.(error, prepared)
+        ?? (def.executionMode === 'asynchronous' ? 'unknown' : 'definitely-not-executed');
       if (outcome === 'definitely-not-executed') {
-        await policy.abort(authorization.reservationId, error);
+        await policy.abort(reservationId, error);
         return { ok: false, action, error: error instanceof Error ? error.message : String(error), errorCode: 'EXECUTION_FAILED' };
       }
       return {
@@ -187,8 +227,178 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
         action,
         error: error instanceof Error ? error.message : String(error),
         errorCode: 'EXECUTION_UNCERTAIN',
+        dispatchState: 'unknown',
+        reservationId: reservationId,
         policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
       };
+    }
+
+    /**
+     * Settle a terminal result or return `undefined` when the operation is
+     * non-terminal and must remain held.
+     */
+    async function settleResult(input: {
+      result: EdgeExecutionResult;
+      dispatchState: DispatchState;
+      phase?: NonterminalPhase;
+      terminalOutcome?: TerminalOutcome;
+      reservationId: string;
+      stepId: string;
+      prepared: unknown;
+    }): Promise<EdgeActionResult | undefined> {
+      const { result, dispatchState, phase, terminalOutcome, reservationId, stepId, prepared: preparedOp } = input;
+
+      // An explicitly unknown dispatch/outcome is a held, non-terminal result.
+      if (terminalOutcome === 'unknown' || dispatchState === 'unknown') {
+        return {
+          ok: false,
+          action,
+          error: result.error ?? 'execution outcome unknown',
+          errorCode: 'EXECUTION_UNCERTAIN',
+          dispatchState: 'unknown',
+          ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+          reservationId,
+          policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
+        };
+      }
+
+      // Accepted/running/cancelling/reconciling is non-terminal: hold.
+      if (phase !== undefined) return undefined;
+
+      // A dispatched failure with no terminal outcome is ambiguous; do not
+      // release budget and do not claim failure.
+      if (dispatchState === 'dispatched' && !result.ok && terminalOutcome === undefined) {
+        return {
+          ok: false,
+          action,
+          error: result.error ?? 'execution outcome unknown',
+          errorCode: 'EXECUTION_UNCERTAIN',
+          dispatchState,
+          reservationId,
+          policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
+        };
+      }
+
+      const succeeded = terminalOutcome === 'confirmed' || (terminalOutcome === undefined && result.ok);
+      if (succeeded && dispatchState === 'dispatched') {
+        if (result.actualConsumption) {
+          const receipt = await policy.settleActual(
+            buildInstruction('settle-actual', 'confirmed', result.actualConsumption, result.settlementId),
+          );
+          return {
+            ok: true,
+            action,
+            data: result.data,
+            dispatchState,
+            terminalOutcome: 'confirmed',
+            ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+            reservationId,
+            settlementId: receipt.settlementId,
+            actualConsumption: result.actualConsumption,
+            policyResult: { allowed: true, reason: 'settled actual usage' },
+          };
+        }
+        await policy.commit({
+          reservationId,
+          executionProof: result.data ?? { ok: result.ok },
+        });
+        return {
+          ok: true,
+          action,
+          data: result.data,
+          dispatchState,
+          terminalOutcome: 'confirmed',
+          ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+          reservationId,
+          policyResult: { allowed: true },
+        };
+      }
+
+      if (terminalOutcome === 'failed' || terminalOutcome === 'cancelled' || terminalOutcome === 'aborted') {
+        if (dispatchState === 'dispatched') {
+          if (result.actualConsumption) {
+            const receipt = await policy.settleActual(
+              buildInstruction('settle-actual', terminalOutcome, result.actualConsumption, result.settlementId),
+            );
+            return {
+              ok: false,
+              action,
+              error: result.error ?? `operation ${terminalOutcome}`,
+              errorCode: result.errorCode ?? 'EXECUTION_FAILED',
+              dispatchState,
+              terminalOutcome,
+              ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+              reservationId,
+              settlementId: receipt.settlementId,
+              actualConsumption: result.actualConsumption,
+              policyResult: { allowed: true, reason: 'settled actual usage' },
+            };
+          }
+          // Executed but unmetered: conservatively charge the full reservation
+          // rather than releasing budget that may have been consumed.
+          await policy.commit({ reservationId, executionProof: result.data });
+          return {
+            ok: false,
+            action,
+            error: result.error ?? `operation ${terminalOutcome}`,
+            errorCode: result.errorCode ?? 'EXECUTION_FAILED',
+            dispatchState,
+            terminalOutcome,
+            ...(result.operationId !== undefined ? { operationId: result.operationId } : {}),
+            reservationId,
+            policyResult: { allowed: true, reason: 'conservative full-reservation charge' },
+          };
+        }
+      }
+
+      // Returned failure with no dispatch evidence, or not-dispatched terminal
+      // outcome: release the reservation.
+      const classified = def?.classifyResult?.(result, preparedOp);
+      if (classified === 'unknown') {
+        return {
+          ok: false,
+          action,
+          error: result.error ?? 'execution outcome unknown',
+          errorCode: 'EXECUTION_UNCERTAIN',
+          dispatchState: 'unknown',
+          reservationId,
+          policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
+        };
+      }
+      await policy.abort(
+        reservationId,
+        result.error ?? `operation ${terminalOutcome ?? 'failed'} (not dispatched)`,
+      );
+      return {
+        ok: false,
+        action,
+        error: result.error,
+        errorCode: result.errorCode ?? 'EXECUTION_FAILED',
+        dispatchState: dispatchState === 'not-dispatched' ? 'not-dispatched' : dispatchState,
+        ...(terminalOutcome !== undefined ? { terminalOutcome } : {}),
+        reservationId,
+        policyResult: { allowed: true },
+      };
+    }
+
+    function buildInstruction(
+      disposition: SettlementDisposition,
+      terminalOutcome: Exclude<TerminalOutcome, 'unknown'>,
+      actual: ActualConsumptionV1 | undefined,
+      settlementId: string | undefined,
+    ): SettlementInstructionV1 {
+      const body = {
+        schema: 'totem:act:settlement/v1' as const,
+        reservationId: reservationId,
+        operationId: operationIdOf(prepared) ?? stepId,
+        preparedCommandDigest: preparedDigestOf(prepared) ?? stepId,
+        dispatchState: 'dispatched' as const,
+        terminalOutcome,
+        disposition,
+        ...(actual !== undefined ? { actual } : {}),
+        evidenceRefs: [] as string[],
+      };
+      return { ...body, settlementId: settlementId ?? computeSettlementId(body) };
     }
   }
 

@@ -2,7 +2,9 @@
  * RFC-025 — governed MAVLink mission profile.
  */
 
-import { runProfileConformance, type IndustrialActionDefinition, type PreparedDeviceOp } from '@totemsdk/act-core';
+import { runProfileConformance, toEdgeActionDefinition, type IndustrialActionDefinition, type PreparedDeviceOp } from '@totemsdk/act-core';
+import { createAgentEdgeRuntime, createCapabilitySet, createEdgeActionRegistry } from '@totemsdk/edge';
+import type { GrantBoundAutonomyPolicy } from '@totemsdk/agent-policy';
 
 import { createMavlinkDefinitions } from '../adapter.js';
 import { runMavlinkConformance } from '../conformance.js';
@@ -195,6 +197,101 @@ describe('governed operations (RFC-025 §5.3/§5.6)', () => {
         {},
       ),
     ).rejects.toThrow(MavlinkTransportError);
+  });
+
+  it('reports an accepted flight start as dispatched and non-terminal', async () => {
+    const transport = new SimulatedAutopilot();
+    const defs = definitions(transport);
+    const upload = defs.find((def) => def.kind === 'flight:uploadMission')!;
+    const start = defs.find((def) => def.kind === 'flight:startMission')!;
+    const uploadEdge = toEdgeActionDefinition(upload);
+    const startEdge = toEdgeActionDefinition(start);
+
+    expect(startEdge.executionMode).toBe('asynchronous');
+    const uploadOp = await uploadEdge.prepare({
+      action: 'flight:uploadMission',
+      subject: 'DRONE-1',
+      payload: paramsFor(envelope),
+      context: {},
+    });
+    await uploadEdge.execute(uploadOp);
+
+    const startOp = await startEdge.prepare({
+      action: 'flight:startMission',
+      subject: 'DRONE-1',
+      payload: {
+        ...paramsFor(envelope),
+        missionId: 'mission-1',
+        envelopeDigest: envelopeDigest(envelope),
+      },
+      context: {},
+    });
+    const result = await startEdge.execute(startOp);
+    expect(result.ok).toBe(true);
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.phase).toBe('accepted');
+    expect(result.terminalOutcome).toBeUndefined();
+  });
+
+  it('holds the accepted flight start in AgentEdgeRuntime', async () => {
+    const transport = new SimulatedAutopilot();
+    const defs = definitions(transport);
+    const upload = defs.find((def) => def.kind === 'flight:uploadMission')!;
+    const start = defs.find((def) => def.kind === 'flight:startMission')!;
+
+    const uploadEdge = toEdgeActionDefinition(upload);
+    await uploadEdge.execute(await uploadEdge.prepare({
+      action: 'flight:uploadMission',
+      subject: 'DRONE-1',
+      payload: paramsFor(envelope),
+      context: {},
+    }));
+
+    const commit = jest.fn();
+    const abort = jest.fn();
+    const policy = {
+      authorizeAndReserve: async () => ({
+        outcome: 'approved' as const,
+        reservationId: 'res-1',
+        actionDigest: 'digest-1',
+        decisionIds: [],
+        mandateIds: ['mandate-1'],
+        usageDeltas: [],
+        reservedAt: 1000,
+        expiresAt: 2000,
+      }),
+      commit,
+      abort,
+    } as unknown as GrantBoundAutonomyPolicy;
+
+    const registry = createEdgeActionRegistry();
+    registry.register(toEdgeActionDefinition(start), 'flight:startMission');
+    const runtime = createAgentEdgeRuntime({
+      deviceId: 'dev-1',
+      capabilities: createCapabilitySet(['industrial:action']),
+      registry,
+      policy,
+      runId: 'run-1',
+      principal: 'principal-1',
+      agentId: 'agent-1',
+    });
+
+    const result = await runtime.executeAction({
+      action: 'flight:startMission',
+      subject: 'DRONE-1',
+      payload: {
+        ...paramsFor(envelope),
+        missionId: 'mission-1',
+        envelopeDigest: envelopeDigest(envelope),
+      },
+      context: {},
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.dispatchState).toBe('dispatched');
+    expect(result.phase).toBe('accepted');
+    expect(commit).not.toHaveBeenCalled();
+    expect(abort).not.toHaveBeenCalled();
   });
 
   it('does not treat acceptance as completion', async () => {

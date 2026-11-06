@@ -28,6 +28,7 @@ module.exports = {
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/packages/core/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/packages/agent-policy/src/index.ts',
+    '^@totemsdk/agent-policy/settlement$': '<rootDir>/packages/agent-policy/src/settlement.ts',
     '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/fs$': '<rootDir>/packages/storage/src/adapters/file-store.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/packages/storage/src/adapters/sqlite-store.ts',

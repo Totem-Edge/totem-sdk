@@ -11,6 +11,7 @@
  */
 
 import type { PaymentIntent } from './types.js';
+import type { SettlementReceiptFields } from './settlement.js';
 import { sha3_256 } from '@noble/hashes/sha3.js';
 
 export type RunMode = 'dynamic' | 'plan_locked';
@@ -254,7 +255,7 @@ export interface StepAuthorization {
   expiresAt: number;
 }
 
-export interface StepReceipt {
+export interface StepReceipt extends SettlementReceiptFields {
   reservationId: string;
   runId: string;
   stepId: string;

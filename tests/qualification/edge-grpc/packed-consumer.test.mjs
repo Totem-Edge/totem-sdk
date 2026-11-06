@@ -22,7 +22,7 @@ test('packed gRPC consumer loads ESM/CJS, runs a gateway, and typechecks', { tim
     }
   };
   const dependencies = {};
-  for (const slug of ['edge', 'edge-grpc']) {
+  for (const slug of ['agent-policy', 'edge', 'edge-grpc']) {
     const output = join(work, `pack-${slug}`);
     mkdirSync(output);
     run('pnpm', ['--config.ignore-scripts=true', 'pack', '--pack-destination', output], join(repository, 'packages', slug));
@@ -34,7 +34,7 @@ test('packed gRPC consumer loads ESM/CJS, runs a gateway, and typechecks', { tim
     private: true, type: 'module', dependencies, devDependencies: { '@types/node': '^22.0.0' },
   }));
   run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false']);
-  for (const slug of ['edge', 'edge-grpc']) {
+  for (const slug of ['agent-policy', 'edge', 'edge-grpc']) {
     assert.equal(lstatSync(join(work, 'node_modules', '@totemsdk', slug)).isSymbolicLink(), false);
   }
 

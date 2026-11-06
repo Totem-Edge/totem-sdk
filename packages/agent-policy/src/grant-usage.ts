@@ -11,6 +11,14 @@
 import type { UsageLimit } from '@totemsdk/authority';
 import type { StepAuthorization, StepReceipt } from './run.js';
 import type { OutOfBandReservation, ReservationSettlementOutcome } from './run-state-store.js';
+import {
+  assertSettlementInstruction,
+  releasedUsage,
+  sumReservedUsage,
+  type ActualConsumptionV1,
+  type SettlementInstructionV1,
+  type TerminalOutcome,
+} from './settlement.js';
 
 /**
  * Thrown by `authorizeAndReserve` when the requested delta would exceed the
@@ -72,6 +80,10 @@ export interface GrantUsageStore {
     outcome: ReservationSettlementOutcome,
     opts?: { receipt?: StepReceipt; reason?: string },
   ): Promise<void>;
+  /** RFC-022 Amendment A: settle a grant reservation by verified actual use. */
+  settleActual(instruction: SettlementInstructionV1): Promise<StepReceipt>;
+  /** Extend a still-reserved grant lease before expiry. */
+  renewReservation(reservationId: string, extendsTo: number, now?: number): Promise<void>;
 }
 
 export interface MemoryGrantUsageStoreOptions {
@@ -86,6 +98,11 @@ interface ReservationRecord {
   status: 'reserved' | 'committed' | 'aborted' | 'unknown';
   abortReason?: string;
   receipt?: StepReceipt;
+  /** Actual usage charged on settlement; reserved usage remains on the authorization. */
+  actualUsageDelta?: { count: number; amount?: string };
+  settlementId?: string;
+  terminalOutcome?: TerminalOutcome;
+  actualConsumption?: ActualConsumptionV1;
 }
 
 /**
@@ -195,6 +212,7 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     }
     rec.status = 'committed';
     rec.receipt = receipt;
+    rec.actualUsageDelta = rec.authorization.usageDelta;
   }
 
   async abort(reservationId: string, reason: string): Promise<void> {
@@ -260,6 +278,7 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     }
 
     rec.status = 'committed';
+    rec.actualUsageDelta = rec.authorization.usageDelta;
     rec.receipt = opts?.receipt ?? {
       reservationId: rec.authorization.reservationId,
       runId: rec.authorization.runId,
@@ -269,6 +288,92 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
       committedAt: this.now(),
       usageDelta: rec.authorization.usageDelta,
     };
+  }
+
+  async settleActual(instruction: SettlementInstructionV1): Promise<StepReceipt> {
+    const rec = this.reservations.get(instruction.reservationId);
+    if (!rec) throw new Error(`reservation ${instruction.reservationId} not found`);
+
+    if (rec.receipt?.settlementId === instruction.settlementId) return rec.receipt;
+    if (rec.status === 'committed' || rec.status === 'aborted') {
+      throw new Error(
+        `reservation ${instruction.reservationId} is already settled; conflicting settlement ${instruction.settlementId}`,
+      );
+    }
+
+    if (rec.status === 'reserved' && this.now() > rec.authorization.expiresAt) {
+      rec.status = 'unknown';
+      rec.abortReason = 'reservation expired';
+    }
+
+    assertSettlementInstruction(
+      instruction,
+      undefined,
+      [{ mandateId: rec.authorization.mandateId, delta: rec.authorization.usageDelta }],
+    );
+
+    const reserved = sumReservedUsage([{
+      mandateId: rec.authorization.mandateId,
+      delta: rec.authorization.usageDelta,
+    }]);
+    const actualUsage = instruction.actual
+      ? sumReservedUsage(instruction.actual.mandateUsage.map((u) => ({
+        mandateId: u.mandateId,
+        delta: { count: u.count, ...(u.amount !== undefined ? { amount: u.amount } : {}) },
+      })))
+      : undefined;
+    const released = instruction.disposition === 'commit-reserved'
+      ? (reserved.amount !== undefined ? { count: 0, amount: '0' } : { count: 0 })
+      : releasedUsage(reserved, actualUsage);
+
+    const receipt: StepReceipt = {
+      reservationId: rec.authorization.reservationId,
+      runId: rec.authorization.runId,
+      stepId: rec.authorization.stepId,
+      mandateId: rec.authorization.mandateId,
+      actionDigest: rec.authorization.actionDigest,
+      committedAt: this.now(),
+      usageDelta: reserved,
+      settlementId: instruction.settlementId,
+      dispatchState: instruction.dispatchState,
+      terminalOutcome: instruction.terminalOutcome,
+      ...(instruction.actual !== undefined ? { actualConsumption: instruction.actual } : {}),
+      reservedUsage: reserved,
+      releasedUsage: released,
+    };
+
+    rec.receipt = receipt;
+    rec.settlementId = instruction.settlementId;
+    rec.terminalOutcome = instruction.terminalOutcome;
+    if (instruction.actual !== undefined) rec.actualConsumption = instruction.actual;
+
+    if (instruction.disposition === 'release-nonexecution') {
+      rec.status = 'aborted';
+      rec.abortReason = `settled: ${instruction.terminalOutcome} (not dispatched)`;
+    } else {
+      rec.status = 'committed';
+      rec.actualUsageDelta = instruction.disposition === 'commit-reserved'
+        ? rec.authorization.usageDelta
+        : actualUsage;
+    }
+
+    return receipt;
+  }
+
+  async renewReservation(reservationId: string, extendsTo: number, now: number = this.now()): Promise<void> {
+    const rec = this.reservations.get(reservationId);
+    if (!rec) throw new Error(`reservation ${reservationId} not found`);
+    if (rec.status !== 'reserved') {
+      throw new Error(`reservation ${reservationId} is in status '${rec.status}' — only reserved leases renew`);
+    }
+    if (now > rec.authorization.expiresAt) {
+      rec.status = 'unknown';
+      throw new Error(`reservation ${reservationId} has expired and requires reconciliation, not renewal`);
+    }
+    if (!Number.isFinite(extendsTo) || extendsTo <= rec.authorization.expiresAt) {
+      throw new Error(`reservation ${reservationId} renewal must extend past ${rec.authorization.expiresAt}`);
+    }
+    rec.authorization.expiresAt = extendsTo;
   }
 
   async listCommittedReceipts(mandateId: string): Promise<StepReceipt[]> {
@@ -305,9 +410,12 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
       if (rec.authorization.mandateId !== mandateId) continue;
       if (rec.status !== 'committed' && rec.status !== 'reserved') continue;
       if (windowStart !== undefined && rec.authorization.reservedAt < windowStart) continue;
-      count += rec.authorization.usageDelta.count;
-      if (rec.authorization.usageDelta.amount !== undefined) {
-        amount += BigInt(rec.authorization.usageDelta.amount);
+      const charged = rec.status === 'committed'
+        ? (rec.actualUsageDelta ?? rec.authorization.usageDelta)
+        : rec.authorization.usageDelta;
+      count += charged.count;
+      if (charged.amount !== undefined) {
+        amount += BigInt(charged.amount);
       }
     }
     return { count, amount };

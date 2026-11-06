@@ -94,7 +94,28 @@ export type {
   RunSessionTotals,
   OutOfBandReservation,
   ReservationSettlementOutcome,
+  RunMandateUsage,
 } from './run-state-store.js';
+
+export {
+  computeSettlementId,
+  assertSettlementInstruction,
+  sumReservedUsage,
+  releasedUsage,
+} from './settlement.js';
+export type {
+  DispatchState,
+  TerminalOutcome,
+  NonterminalPhase,
+  SettlementDisposition,
+  ActualSpend,
+  ActualComputeConsumption,
+  ActualMandateUsage,
+  ActualConsumptionV1,
+  SettlementInstructionV1,
+  SettlementReceiptFields,
+  ReservedUsageDelta,
+} from './settlement.js';
 
 export { SqliteRunStateStore } from './sqlite-run-state-store.js';
 export type { SqliteRunStateStoreOptions } from './sqlite-run-state-store.js';

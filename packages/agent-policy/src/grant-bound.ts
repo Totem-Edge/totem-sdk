@@ -236,6 +236,16 @@ export class GrantBoundPolicy {
     await this.usageStore.abort(reservationId, reason);
   }
 
+  /** RFC-022 Amendment A: settle by verified dispatch, outcome and actual use. */
+  async settleActual(instruction: import('./settlement.js').SettlementInstructionV1): Promise<StepReceipt> {
+    return this.usageStore.settleActual(instruction);
+  }
+
+  /** Extend a still-reserved grant lease before expiry. */
+  async renewReservation(reservationId: string, extendsTo: number, now?: number): Promise<void> {
+    return this.usageStore.renewReservation(reservationId, extendsTo, now);
+  }
+
   private async checkLocalBounds(
     run: AutonomousRun,
     step: AgentStep,
