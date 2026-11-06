@@ -202,6 +202,37 @@ export function checkRunLimits(
     }
   }
 
+  // RFC-077 §8: compute envelopes are enforced from the PREPARED operation,
+  // never from agent-supplied hints. A missing section is unconstrained.
+  const compute = action.effects.compute;
+  const Lc = L.compute;
+  if (compute && Lc) {
+    for (const c of compute) {
+      if (Lc.allowedResources && !Lc.allowedResources.includes(c.resourceId)) {
+        return { kind: 'boundary_exceeded', reason: 'computeResourceNotAllowed', boundary: 'run.compute.allowedResources' };
+      }
+      if (Lc.maxWallSeconds && gt(c.maxWallSeconds, Lc.maxWallSeconds)) {
+        return { kind: 'boundary_exceeded', reason: 'maxWallSeconds', boundary: 'run.compute.maxWallSeconds' };
+      }
+      if (Lc.maxCpuSeconds && gt(c.maxCpuSeconds, Lc.maxCpuSeconds)) {
+        return { kind: 'boundary_exceeded', reason: 'maxCpuSeconds', boundary: 'run.compute.maxCpuSeconds' };
+      }
+      if (Lc.maxAcceleratorSeconds && c.maxAcceleratorSeconds !== undefined
+        && gt(c.maxAcceleratorSeconds, Lc.maxAcceleratorSeconds)) {
+        return { kind: 'boundary_exceeded', reason: 'maxAcceleratorSeconds', boundary: 'run.compute.maxAcceleratorSeconds' };
+      }
+      if (Lc.maxMemoryBytes && gt(c.maxMemoryBytes, Lc.maxMemoryBytes)) {
+        return { kind: 'boundary_exceeded', reason: 'maxMemoryBytes', boundary: 'run.compute.maxMemoryBytes' };
+      }
+      if (Lc.maxDiskBytes && gt(c.maxDiskBytes, Lc.maxDiskBytes)) {
+        return { kind: 'boundary_exceeded', reason: 'maxDiskBytes', boundary: 'run.compute.maxDiskBytes' };
+      }
+      if (Lc.maxNetworkBytes && gt(c.maxNetworkBytes, Lc.maxNetworkBytes)) {
+        return { kind: 'boundary_exceeded', reason: 'maxNetworkBytes', boundary: 'run.compute.maxNetworkBytes' };
+      }
+    }
+  }
+
   return undefined;
 }
 

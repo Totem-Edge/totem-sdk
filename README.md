@@ -253,7 +253,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **74 packages across 9 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **75 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -564,7 +564,7 @@ docs/                       # SDK documentation
 | [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 74 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 75 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

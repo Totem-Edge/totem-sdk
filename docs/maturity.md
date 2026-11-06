@@ -17,7 +17,7 @@
 | Level | Packages |
 |---|---:|
 | v1 | 13 |
-| rc | 53 |
+| rc | 54 |
 | beta | 3 |
 | alpha | 5 |
 | excluded | 6 |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 41 |
+| Outside production surface | 42 |
 | Excluded | 6 |
 
-Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
+Total: **75** publishable packages + **6** excluded entries = **81** workspace entries.
 
 ## Matrix
 
@@ -79,6 +79,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
 | `@totemsdk/act-mavlink` | 0.1.0 | rc | outside | `packages/act-mavlink` |
 | `@totemsdk/act-ocpp` | 0.1.0 | rc | outside | `packages/act-ocpp` |
+| `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.0 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |

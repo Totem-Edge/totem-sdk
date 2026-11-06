@@ -140,6 +140,8 @@ export type {
   StepEffect,
   ChannelEffect,
   PhysicalEffects,
+  ComputeEffect,
+  ComputeLimits,
   PowerEffect,
   EnergyEffect,
   SpeedEffect,
