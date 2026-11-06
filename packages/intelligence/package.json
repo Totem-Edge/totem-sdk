@@ -44,6 +44,16 @@
         "types": "./dist/cjs/constants.d.ts",
         "default": "./dist/cjs/constants.js"
       }
+    },
+    "./training": {
+      "import": {
+        "types": "./dist/training/index.d.ts",
+        "default": "./dist/training/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/training/index.d.ts",
+        "default": "./dist/cjs/training/index.js"
+      }
     }
   },
   "scripts": {
