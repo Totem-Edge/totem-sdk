@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/act-mavlink",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Governed MAVLink autonomous-flight profile for Totem — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

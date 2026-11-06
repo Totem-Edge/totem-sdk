@@ -130,7 +130,7 @@
   "packages": [
     {
       "name": "@totemsdk/agent-policy",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "description": "Protobuf-based interface contracts for AI agent ↔ wallet communication",
       "domain": "verifiable-claims",
       "keywords": [
@@ -144,7 +144,7 @@
         "@protobuf-ts/runtime": "^2.11.1",
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/intelligence": "^0.1.2",
+        "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
@@ -220,7 +220,7 @@
         "dapp"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/kissvm": "^1.3.1",
         "@totemsdk/lookup-client": "^0.4.0",
@@ -335,7 +335,7 @@
     },
     {
       "name": "@totemsdk/edge",
-      "version": "1.5.1",
+      "version": "1.6.0",
       "description": "Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
       "domain": "edge-computing",
       "keywords": [
@@ -345,12 +345,12 @@
         "ports"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/connect": "^3.1.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/decision": "^0.3.0",
         "@totemsdk/identity": "^1.1.0",
-        "@totemsdk/intelligence": "^0.1.2",
+        "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2",
@@ -376,10 +376,10 @@
         "ports"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge": "^1.6.0",
         "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/location-proof": "^1.0.2",
@@ -412,7 +412,7 @@
         "hvac"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -435,7 +435,7 @@
         "beacons"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -458,7 +458,7 @@
         "socketcan"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -481,7 +481,7 @@
         "rfc7252"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -503,7 +503,7 @@
         "cloud-edge"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge": "^1.6.0",
         "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
@@ -528,7 +528,7 @@
         "location"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -551,7 +551,7 @@
         "asset-tracking"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge": "^1.6.0",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -576,7 +576,7 @@
         "commands"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -598,7 +598,7 @@
         "fabric"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -622,7 +622,7 @@
         "serial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -647,9 +647,9 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge": "^1.6.0",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.3",
@@ -679,7 +679,7 @@
         "hce"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -703,7 +703,7 @@
         "metering"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -726,7 +726,7 @@
         "industrial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -748,7 +748,7 @@
         "dds"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -986,7 +986,7 @@
         "state-machine"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/kissvm": "^1.3.1",
@@ -1662,7 +1662,7 @@
         "transport"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1675,7 +1675,7 @@
     },
     {
       "name": "@totemsdk/act-core",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
       "keywords": [
@@ -1687,10 +1687,10 @@
         "opcua"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge": "^1.6.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
@@ -1706,7 +1706,7 @@
     },
     {
       "name": "@totemsdk/act-ocpp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Governed OCPP EV-charging profile — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
       "domain": "edge-computing",
       "keywords": [
@@ -1717,9 +1717,9 @@
         "act-core"
       ],
       "dependencies": {
-        "@totemsdk/act-core": "^0.5.0",
-        "@totemsdk/agent-policy": "^0.4.0",
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.0",
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1732,7 +1732,7 @@
     },
     {
       "name": "@totemsdk/act-mavlink",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Governed MAVLink autonomous-flight profile — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
       "domain": "edge-computing",
       "keywords": [
@@ -1745,9 +1745,9 @@
         "act-core"
       ],
       "dependencies": {
-        "@totemsdk/act-core": "^0.5.0",
-        "@totemsdk/agent-policy": "^0.4.0",
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.0",
+        "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1771,10 +1771,10 @@
         "lora"
       ],
       "dependencies": {
-        "@totemsdk/act-core": "^0.5.0",
-        "@totemsdk/agent-policy": "^0.4.0",
-        "@totemsdk/edge": "^1.5.1",
-        "@totemsdk/intelligence": "^0.1.2"
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.0",
+        "@totemsdk/edge": "^1.6.0",
+        "@totemsdk/intelligence": "^0.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1960,7 +1960,7 @@
         "minima"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/liquidity-bond": "^0.3.2",
@@ -2036,7 +2036,7 @@
     },
     {
       "name": "@totemsdk/intelligence",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "description": "Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference",
       "domain": "intelligence",
       "keywords": [
@@ -2060,8 +2060,8 @@
         ".": "dist/index.{js,d.ts}",
         "./constants": "dist/constants.{js,d.ts}",
         "./errors": "dist/errors.{js,d.ts}",
-        "./types": "dist/types.{js,d.ts}",
-        "./training": "dist/training/index.{js,d.ts}"
+        "./training": "dist/training/index.{js,d.ts}",
+        "./types": "dist/types.{js,d.ts}"
       },
       "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes; ./training — RFC-077 Slice 0 TrainingExample/Collection/Run/Evaluation/Release contracts",
       "custody": {
@@ -2087,7 +2087,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/intelligence": "^0.1.2",
+        "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication": "^0.2.0"
       },
       "exports": {
@@ -2160,7 +2160,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/intelligence": "^0.1.2",
+        "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
       },

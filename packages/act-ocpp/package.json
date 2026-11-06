@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/act-ocpp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Governed OCPP EV-charging profile for Totem — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

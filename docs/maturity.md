@@ -41,7 +41,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/kissvm` | 1.3.1 | rc | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.3.1 | v1 | 1 | `packages/edge-mqtt` |
-| `@totemsdk/act-core` | 0.5.0 | rc | 1 | `packages/act-core` |
+| `@totemsdk/act-core` | 0.6.0 | rc | 1 | `packages/act-core` |
 | `@totemsdk/lookup-client` | 0.4.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
@@ -50,10 +50,10 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.3 | v1 | 2 | `packages/proof` |
-| `@totemsdk/agent-policy` | 0.4.0 | rc | 2 | `packages/agent-policy` |
+| `@totemsdk/agent-policy` | 0.5.0 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
 | `@totemsdk/chain-provider` | 0.3.2 | rc | 2 | `packages/chain-provider` |
-| `@totemsdk/edge` | 1.5.1 | rc | 2 | `packages/edge` |
+| `@totemsdk/edge` | 1.6.0 | rc | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.1.0 | rc | 2 | `packages/identity` |
 | `@totemsdk/liquidity-bond` | 0.3.2 | rc | 2 | `packages/liquidity-bond` |
 | `@totemsdk/manifest` | 2.1.0 | rc | 2 | `packages/manifest` |
@@ -77,8 +77,8 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/proofgraph` | 1.1.1 | v1 | outside | `packages/proofgraph` |
 | `@totemsdk/raster-proof` | 1.0.2 | v1 | outside | `packages/raster-proof` |
 | `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
-| `@totemsdk/act-mavlink` | 0.1.0 | rc | outside | `packages/act-mavlink` |
-| `@totemsdk/act-ocpp` | 0.1.0 | rc | outside | `packages/act-ocpp` |
+| `@totemsdk/act-mavlink` | 0.1.1 | rc | outside | `packages/act-mavlink` |
+| `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.0 | rc | outside | `packages/edge-adapters` |
@@ -105,7 +105,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/statechain` | 0.3.1 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.1 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
-| `@totemsdk/intelligence` | 0.1.2 | beta | outside | `packages/intelligence` |
+| `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.0 | beta | outside | `packages/qvac` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/omnia-relay` | 0.7.0 | alpha | outside | `packages/omnia-relay` |
