@@ -22,7 +22,7 @@ test('packed MQTT root and SQLite subpath operate across ESM/CJS and strict type
     }
   };
   const dependencies = {};
-  for (const slug of ['edge', 'edge-mqtt']) {
+  for (const slug of ['agent-policy', 'edge', 'edge-mqtt']) {
     const directory = join(repository, 'packages', slug);
     const output = join(work, `pack-${slug}`);
     mkdirSync(output);

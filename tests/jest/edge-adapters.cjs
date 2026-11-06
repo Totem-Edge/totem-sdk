@@ -28,6 +28,7 @@ module.exports = {
     '^@totemsdk/core$': '<rootDir>/packages/core/src/index.ts',
     '^@totemsdk/edge$': '<rootDir>/packages/edge/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/packages/agent-policy/src/index.ts',
+    '^@totemsdk/agent-policy/settlement$': '<rootDir>/packages/agent-policy/src/settlement.ts',
     '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/journal$': '<rootDir>/packages/storage/src/journal.ts',
     '^@totemsdk/storage/fs$': '<rootDir>/packages/storage/src/adapters/file-store.ts',

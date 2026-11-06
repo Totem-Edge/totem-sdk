@@ -46,6 +46,7 @@ module.exports = {
     '^@totemsdk/wots-lease$': '<rootDir>/packages/wots-lease/src/index.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/packages/chain-provider/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/packages/agent-policy/src/index.ts',
+    '^@totemsdk/agent-policy/settlement$': '<rootDir>/packages/agent-policy/src/settlement.ts',
     '^@totemsdk/stream-transport$': '<rootDir>/packages/stream-transport/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/packages/lookup-protocol/src/index.ts',
     '^@totemsdk/omnia$': '<rootDir>/packages/omnia/src/index.ts',

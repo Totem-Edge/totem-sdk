@@ -45,6 +45,7 @@ module.exports = {
     '^@totemsdk/edge$': '<rootDir>/packages/edge/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/packages/proof/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/packages/agent-policy/src/index.ts',
+    '^@totemsdk/agent-policy/settlement$': '<rootDir>/packages/agent-policy/src/settlement.ts',
     '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/journal$': '<rootDir>/packages/storage/src/journal.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/packages/storage/src/adapters/sqlite-store.ts',

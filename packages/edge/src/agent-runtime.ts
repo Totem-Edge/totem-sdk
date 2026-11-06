@@ -25,16 +25,16 @@ import type { EdgeCapabilitySet } from './capabilities.js';
 import { hasCapability } from './capabilities.js';
 import type { EdgeActionInput, EdgeExecutionResult } from './action-registry.js';
 import type { EdgeActionResult } from './types.js';
-import {
-  computeSettlementId,
-  type ActualConsumptionV1,
-  type CanonicalAgentAction,
-  type DispatchState,
-  type GrantBoundAutonomyPolicy,
-  type NonterminalPhase,
-  type SettlementDisposition,
-  type SettlementInstructionV1,
-  type TerminalOutcome,
+import { computeSettlementId } from '@totemsdk/agent-policy/settlement';
+import type {
+  ActualConsumptionV1,
+  CanonicalAgentAction,
+  DispatchState,
+  GrantBoundAutonomyPolicy,
+  NonterminalPhase,
+  SettlementDisposition,
+  SettlementInstructionV1,
+  TerminalOutcome,
 } from '@totemsdk/agent-policy';
 
 export interface AgentEdgeRuntimeOptions {

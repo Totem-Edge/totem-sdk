@@ -4,7 +4,13 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist/cjs",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@totemsdk/agent-policy/settlement": [
+        "../agent-policy/dist/cjs/settlement.d.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*"

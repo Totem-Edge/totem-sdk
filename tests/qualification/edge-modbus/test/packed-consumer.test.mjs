@@ -22,7 +22,7 @@ test('packed Modbus consumer loads ESM/CJS, calls the gateway, and typechecks', 
     }
   };
   const dependencies = {};
-  for (const slug of ['edge', 'edge-modbus']) {
+  for (const slug of ['agent-policy', 'edge', 'edge-modbus']) {
     const output = join(work, `pack-${slug}`);
     mkdirSync(output);
     run('pnpm', ['--config.ignore-scripts=true', 'pack', '--pack-destination', output], join(repository, 'packages', slug));
@@ -32,7 +32,7 @@ test('packed Modbus consumer loads ESM/CJS, calls the gateway, and typechecks', 
   }
   writeFileSync(join(work, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies }));
   run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false']);
-  for (const slug of ['edge', 'edge-modbus']) {
+  for (const slug of ['agent-policy', 'edge', 'edge-modbus']) {
     assert.equal(lstatSync(join(work, 'node_modules', '@totemsdk', slug)).isSymbolicLink(), false);
   }
 

@@ -1288,7 +1288,7 @@
         },
         "RunStepReceipt": {
           "kind": "interface",
-          "signature": "export interface RunStepReceipt"
+          "signature": "export interface RunStepReceipt extends SettlementReceiptFields"
         },
         "RunStepEvidence": {
           "kind": "interface",
@@ -1478,7 +1478,7 @@
         },
         "StepReceipt": {
           "kind": "interface",
-          "signature": "export interface StepReceipt"
+          "signature": "export interface StepReceipt extends SettlementReceiptFields"
         },
         "RunMode": {
           "kind": "type",
