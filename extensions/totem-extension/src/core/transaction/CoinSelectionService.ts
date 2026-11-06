@@ -1,4 +1,5 @@
 import { resolveActiveChainProvider } from '../config/activeChainProvider';
+import { mxToHex } from '@totemsdk/core';
 
 export class CoinSelectionError extends Error {
   constructor(
@@ -126,7 +127,21 @@ function isPositive(value: string): boolean {
   return parseDecimalToBigInt(value) > 0n;
 }
 
-function normAddr(a: string): string { return (a || '').toLowerCase(); }
+function normAddr(a: string): string {
+  const value = (a || '').trim();
+  if (!value) return '';
+  try {
+    // Chain providers return coin addresses as 0x hex while wallet addresses
+    // are Mx. Compare one canonical form so focused sends do not select zero
+    // coins (and then report "insufficient funds") for a funded address.
+    const hex = value.startsWith('Mx') || value.startsWith('mx')
+      ? mxToHex(value)
+      : value;
+    return hex.replace(/^0x/i, '').toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
+}
 function normToken(t: string): string { return (t || '').toLowerCase(); }
 
 /** Map a chain-provider coin to the wallet's SpendableCoin shape. */
