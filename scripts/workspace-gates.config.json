@@ -303,6 +303,18 @@
         "reason": "library — holds no on-chain value"
       }
     },
+    "packages/act-training": {
+      "status": "publishable",
+      "maturity": "rc",
+      "supportTier": "outside",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      },
+      "supportReason": "G1 governed training adapter over act-core and a provider-neutral TrainingPort; zero-GPU Slice 0 evidence; no QVAC or hardware qualification yet",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md"
+    },
     "packages/act-ocpp": {
       "status": "publishable",
       "maturity": "rc",

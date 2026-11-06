@@ -78,6 +78,28 @@ export interface PhysicalEffects {
   envelopes?: EnvelopeRef[];
 }
 
+export interface ComputeEffect {
+  /** Approved named host/resource pool. */
+  resourceId: string;
+  maxWallSeconds: string;
+  maxCpuSeconds: string;
+  maxAcceleratorSeconds?: string;
+  acceleratorClass?: string;
+  maxMemoryBytes: string;
+  maxDiskBytes: string;
+  maxNetworkBytes: string;
+}
+
+export interface ComputeLimits {
+  allowedResources?: string[];
+  maxWallSeconds?: string;
+  maxCpuSeconds?: string;
+  maxAcceleratorSeconds?: string;
+  maxMemoryBytes?: string;
+  maxDiskBytes?: string;
+  maxNetworkBytes?: string;
+}
+
 export interface StepEffects {
   spends: StepEffect[];
   fees?: StepEffect[];
@@ -85,6 +107,8 @@ export interface StepEffects {
   stateChanges?: Record<string, unknown>;
   /** RFC-023: typed physical effects derived from the prepared command. */
   physical?: PhysicalEffects;
+  /** RFC-077 §8: compute resources (not financial cost). */
+  compute?: ComputeEffect[];
 }
 
 /**
@@ -128,6 +152,8 @@ export interface RunLimits {
     maxDurationSeconds?: { seconds: string };
     allowedEnvelopes?: string[];
   };
+  /** RFC-077 §8 compute ceilings. */
+  compute?: ComputeLimits;
 }
 
 export interface StepTransitionRule {

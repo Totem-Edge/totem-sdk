@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 74,
+  "total": 75,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -102,7 +102,8 @@
       "description": "Provider-neutral intelligence contracts and the QVAC in-situ inference adapter — capabilities, operations, usage receipts for local self-hosted AI",
       "packages": [
         "@totemsdk/intelligence",
-        "@totemsdk/qvac"
+        "@totemsdk/qvac",
+        "@totemsdk/act-training"
       ]
     },
     "decision": {
@@ -1752,6 +1753,33 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createMavlinkDefinitions, createMavlinkProfile, envelopeDigest, validateMissionEnvelope, runMavlinkConformance, deriveFlightEffects, vehicleInterlocks, mavlinkErrorTaxonomy",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/act-training",
+      "version": "0.1.0",
+      "description": "Governed training action — binds a frozen TrainingRunDescriptor to the act-core lifecycle and a provider-neutral TrainingPort",
+      "domain": "intelligence",
+      "keywords": [
+        "training",
+        "adaptive-intelligence",
+        "governed-action",
+        "act-core",
+        "lora"
+      ],
+      "dependencies": {
+        "@totemsdk/act-core": "^0.5.0",
+        "@totemsdk/agent-policy": "^0.4.0",
+        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/intelligence": "^0.1.2"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createTrainingActionDefinitions, TrainingPlan, sealTrainingPlan, computeTrainingPlanDigest, TRAINING_ACTION, TRAINING_CAPABILITY",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
