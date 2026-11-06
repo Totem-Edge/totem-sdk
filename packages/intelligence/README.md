@@ -67,6 +67,21 @@ Edge routes two verbs to this port: `intelligence:invoke` (capability-gated:
 fails with `CAPABILITY_MISSING` if `intelligence:<domain>` is not in the
 runtime's `EdgeCapabilitySet`) and `intelligence:cancel`.
 
+## Training contracts (RFC-077 Slice 0)
+
+`@totemsdk/intelligence/training` defines the provider-neutral records for
+verifiable adaptive learning: `TrainingExampleV1`, `TrainingCollectionV1`,
+`TrainingRunDescriptorV1`, `EvaluationTaskV1`/`EvaluationReportV1`,
+`ModelReleaseDescriptorV1` and the `TrainingPort` / `TrainingExampleSource`
+seams. Canonical digests are injected, so the package keeps zero runtime
+dependencies.
+
+Slice 0 also ships deterministic fakes (`createFakeTrainer`,
+`createFakeEvaluator`, `createInMemoryReleasePointer`) and
+`runFakeTrainingSlice` for a no-GPU walking skeleton. These are test harnesses,
+not production training or certification. Real QVAC training remains gated on
+its own evidence.
+
 ## License
 
 Apache-2.0 — Totem SDK Contributors. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

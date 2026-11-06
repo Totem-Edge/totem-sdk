@@ -2032,9 +2032,10 @@
         ".": "dist/index.{js,d.ts}",
         "./constants": "dist/constants.{js,d.ts}",
         "./errors": "dist/errors.{js,d.ts}",
-        "./types": "dist/types.{js,d.ts}"
+        "./types": "dist/types.{js,d.ts}",
+        "./training": "dist/training/index.{js,d.ts}"
       },
-      "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes",
+      "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes; ./training — RFC-077 Slice 0 TrainingExample/Collection/Run/Evaluation/Release contracts",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
