@@ -80,7 +80,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/act-mavlink` | 0.1.1 | rc | outside | `packages/act-mavlink` |
 | `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
-| `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.1.3 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.0 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.2.2 | rc | outside | `packages/edge-ble` |
