@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/act-core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Deterministic industrial action lifecycle for Totem Edge \u2014 converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
