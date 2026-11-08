@@ -44,7 +44,7 @@ import { LocalLeaseProvider } from '@totemsdk/wots-lease';
 import { allocateDeviceRange, deviceSlotForAddressIndex } from '@totemsdk/wots-lease';
 import type { WotsLeaseProvider, ReserveParams, LeaseReservation, LocalWatermark, SyncResult, LeaseCertificate } from '@totemsdk/wots-lease';
 import type { ChannelSigner } from '@totemsdk/omnia';
-import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { SigningIndices } from '@totemsdk/wots-lease';
 import type { OmniaHostConfig } from './config.js';
 
 export interface HostSigning {
