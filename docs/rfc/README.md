@@ -86,5 +86,6 @@
 | [RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md](RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md) | RFC-074 — Edge Transport Qualification and Fail-Closed Release Gates | Draft — implementation in progress on `rfc-074/edge-gates`, concurrently with non-edge publications. No edge-family v1 promotion is authorised until Phase 0 and Phase 1 exit criteria pass. |
 | [RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md](RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md) | RFC-076: SunSpec observations and governed inverter controls | Draft — approved design direction; implementation and qualification remain to be completed. |
 | [RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md](RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md) | RFC-077 — Verifiable Adaptive Intelligence Lifecycle | Draft for architectural review — not implemented; no releaseability claim |
+| [RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md](RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md) | RFC-078 — Omnia Authorization and One-Time-Key Hardening | Draft — security and correctness remediation; no application-specific code |
 
-Total: **82** RFC documents.
+Total: **83** RFC documents.
