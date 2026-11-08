@@ -176,6 +176,13 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     }, ownerSignature)) {
       return res.status(403).json({ error: 'Owner signature invalid' });
     }
+    // RFC-020 H3 follow-up: authenticate is not enough; the signed nonce must
+    // be consumed so a valid create request cannot be replayed into more
+    // statechain records and SE resource use.
+    const nonceChainId = await consumeNonce(pool, nonce);
+    if (!nonceChainId) {
+      return res.status(401).json({ error: 'Invalid or expired nonce' });
+    }
     const projectId = resolveProjectId(req);
     // Bind the SE root identity in the locking script; the claim co-signature
     // is a leased root-leaf signature verified against this key (RFC-008).

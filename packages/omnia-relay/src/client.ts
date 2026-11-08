@@ -25,6 +25,7 @@ import {
 import { addHTLC, fulfillHTLC, type OmniaChannel, type ChannelSigner, type OmniaSwarm } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import { createCleartextRoutingCodec } from '@totemsdk/omnia-router';
 import {
   createFactory,
   type FactoryParticipant,
@@ -293,15 +294,25 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     base.channels.set(result.channel.channelId, result.channel);
 
     const peer = await base.swarm.connectToPeer(firstHop.to, firstHop.channelId);
+    const onward = route.hops.slice(1);
+    const forward = onward.length > 0
+      ? { hashlock, envelope: createCleartextRoutingCodec().build(onward as never) }
+      : undefined;
     await peer.sendMessage({
       type: 'STATE_UPDATE',
       channelId: result.channel.channelId,
       nonce: Date.now(),
-      payload: result.partialState,
+      payload: {
+        ...result.partialState,
+        ...(forward ? { forward } : {}),
+      },
     });
 
     return {
-      success: true,
+      success: false,
+      status: 'first-hop-accepted' as const,
+      settled: false,
+      terminal: false,
       ...(preimage ? { preimage } : {}),
       route: serializeRoute(route),
       firstHopChannelId: result.channel.channelId,

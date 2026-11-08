@@ -4,12 +4,14 @@ import {
   type StateVariable as CoreStateVariable,
 } from '@totemsdk/core';
 import type { OmniaChannel } from '@totemsdk/omnia';
-import { COINID_ELTOO } from '@totemsdk/omnia';
+import { COINID_ELTOO, computeStateCommitmentV2 } from '@totemsdk/omnia';
+import { bytesToHex } from '@totemsdk/core';
 import type { SpliceParams, SpliceTxDraft, SpliceTxInput, SpliceTxOutput } from './types.js';
 import { SpliceBalanceConservationError, SpliceInsufficientFundsError } from './errors.js';
 
 const STATE_SETTLEMENT_PORT = 100;
 const STATE_SEQUENCE_PORT = 101;
+const STATE_COMMITMENT_V2_PORT = 102;
 
 /**
  * Build a validated SpliceTxDraft from channel + splice params.
@@ -79,6 +81,23 @@ export function buildSpliceTx(
     });
   }
 
+  // A splice spends the old channel coin and creates a successor at the same
+  // script. The channel script requires STATE(101) GT PREVSTATE(101) for a
+  // non-settlement update, so the successor must advance the sequence. Resetting
+  // to zero is not a WOTS-capacity reset and is rejected by the script.
+  const nextSequence = channel.currentSequence + 1;
+  const postSpliceChannel: OmniaChannel = {
+    ...channel,
+    totalValue: params.newTotalValue,
+    balances: { ...params.newBalances },
+  };
+  const stateCommitment = bytesToHex(computeStateCommitmentV2(
+    postSpliceChannel,
+    nextSequence,
+    params.newBalances,
+    [],
+    { settlement: false },
+  ));
   const outputs: SpliceTxOutput[] = [
     {
       address: channel.fundingAddress,
@@ -86,7 +105,8 @@ export function buildSpliceTx(
       tokenId,
       storeState: true,
       stateVarSettlement: false,
-      stateVarSequence: 0,
+      stateVarSequence: nextSequence,
+      stateVarCommitment: stateCommitment,
     },
   ];
 
@@ -116,6 +136,7 @@ export function buildSpliceTx(
     inputs,
     outputs,
     channelId: channel.channelId,
+    nextSequence,
     params,
   };
 }
@@ -180,13 +201,16 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
       ? [
           svToJson(STATE_SETTLEMENT_PORT, out.stateVarSettlement, 'bool'),
           svToJson(STATE_SEQUENCE_PORT, out.stateVarSequence, 'number'),
+          ...(out.stateVarCommitment !== undefined
+            ? [svToJson(STATE_COMMITMENT_V2_PORT, out.stateVarCommitment, 'hex')]
+            : []),
         ]
       : [],
   }));
 
   const state = [
     svToJson(STATE_SETTLEMENT_PORT, false, 'bool'),
-    svToJson(STATE_SEQUENCE_PORT, 0n, 'number'),
+    svToJson(STATE_SEQUENCE_PORT, BigInt(draft.nextSequence), 'number'),
   ];
 
   return serializeTransaction(JSON.stringify({ inputs, outputs, state, linkhash: '0x00' }));
@@ -197,37 +221,7 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
  * This is the canonical message both parties sign to authorize the splice.
  */
 export function computeSpliceTxDigest(draft: SpliceTxDraft): Uint8Array {
-  const canonical = JSON.stringify(
-    {
-      channelId: draft.channelId,
-      inputs: draft.inputs.map(i => ({
-        coinId: i.coinId,
-        address: i.address,
-        amount: i.amount.toString(),
-        tokenId: i.tokenId,
-      })),
-      outputs: draft.outputs.map(o => ({
-        address: o.address,
-        amount: o.amount.toString(),
-        tokenId: o.tokenId,
-        storeState: o.storeState,
-        stateVarSettlement: o.storeState ? o.stateVarSettlement : undefined,
-        stateVarSequence: o.storeState ? o.stateVarSequence : undefined,
-      })),
-      params: {
-        type: draft.params.type,
-        newTotalValue: draft.params.newTotalValue.toString(),
-        /**
-         * newBalances is sorted by partyId for determinism and included in the
-         * digest so that signatures cryptographically bind to the exact per-party
-         * balance split. Different allocations with the same sum produce different
-         * digests and therefore require new signatures.
-         */
-        newBalances: Object.entries(draft.params.newBalances)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([k, v]) => [k, v.toString()]),
-      },
-    },
-  );
-  return sha3_256(new TextEncoder().encode(canonical));
+  // Sign the same canonical Minima bytes the chain will execute. A JSON draft
+  // digest is not the transaction digest and cannot be verified on-chain.
+  return sha3_256(spliceDraftToMinimaBytes(draft));
 }

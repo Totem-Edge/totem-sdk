@@ -32,6 +32,7 @@ interface MockPool {
 
 function makePool(): MockPool {
   const pool: MockPool = { query: jest.fn(), connect: jest.fn() };
+  const consumedNonces = new Set<string>();
 
   // Default canned responses per query shape.
   pool.query.mockImplementation(async (sql: string, params?: unknown[]) => {
@@ -45,7 +46,10 @@ function makePool(): MockPool {
 
     if (text.includes('DELETE FROM statechain_nonces')) {
       const nonce = params?.[0];
-      if (nonce === 'valid-nonce') return { rows: [{ chain_id: 'sc_test' }], rowCount: 1 };
+      if (nonce === 'valid-nonce' && !consumedNonces.has(nonce)) {
+        consumedNonces.add(nonce);
+        return { rows: [{ chain_id: 'sc_test' }], rowCount: 1 };
+      }
       return { rows: [], rowCount: 0 };
     }
 
@@ -196,7 +200,7 @@ describe('se-server router', () => {
     const coinId = '0x' + '11'.repeat(32);
     const reclaimTxHex = '0x' + 'ab'.repeat(100);
     const body = { coinId, tokenId: '0x00', ownerPartyId: 'owner-1', reclaimTxHex };
-    const nonce = 'n1';
+    const nonce = 'valid-nonce';
     const res = await httpRequest(app, 'POST', '/statechain/create', {
       coinId,
       ownerPublicKeyDigest: '0x' + OWNER_PKD,
@@ -211,6 +215,17 @@ describe('se-server router', () => {
     expect(res.json.sePublicKey).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(res.json.lockingAddress).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(pool.query).toHaveBeenCalled();
+
+    const replay = await httpRequest(app, 'POST', '/statechain/create', {
+      coinId,
+      ownerPublicKeyDigest: '0x' + OWNER_PKD,
+      ownerPartyId: 'owner-1',
+      reclaimTxHex,
+      tokenId: '0x00',
+      nonce,
+      ownerSignature: signOwner(seRequestMessage(coinId, 'create', nonce, body)),
+    });
+    expect(replay.status).toBe(401);
   });
 
   it('POST /create rejects an unauthenticated request (RFC-020 H3)', async () => {
@@ -373,8 +388,8 @@ describe('se-server router', () => {
       ownerPartyId: 'owner-1',
       reclaimTxHex: '0x' + 'ab'.repeat(100),
       tokenId: '0x00',
-      nonce: 'n1',
-      ownerSignature: signOwner(seRequestMessage('0x' + '11'.repeat(32), 'create', 'n1', {
+      nonce: 'valid-nonce',
+      ownerSignature: signOwner(seRequestMessage('0x' + '11'.repeat(32), 'create', 'valid-nonce', {
         coinId: '0x' + '11'.repeat(32), tokenId: '0x00', ownerPartyId: 'owner-1', reclaimTxHex: '0x' + 'ab'.repeat(100),
       })),
     });

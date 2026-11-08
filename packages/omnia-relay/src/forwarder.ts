@@ -26,6 +26,17 @@ import {
 } from '@totemsdk/omnia-router';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 
+/**
+ * Durable link journal. The forwarder records the incoming→outgoing HTLC
+ * association before sending the outgoing state update, so a restart can
+ * reconcile a pending outgoing lock instead of losing it.
+ */
+export interface HtlcLinkJournal {
+  get(hashlock: string): Promise<HtlcLink | undefined> | HtlcLink | undefined;
+  record(link: HtlcLink): Promise<void> | void;
+  remove(hashlock: string): Promise<void> | void;
+}
+
 export interface MultiHopForwarderOptions {
   /** This wallet's channels (updated in place). */
   channels: Map<string, OmniaChannel>;
@@ -38,6 +49,8 @@ export interface MultiHopForwarderOptions {
   codec?: RoutingEnvelopeCodec;
   onForward?: (info: { hashlock: string; via: string; outChannelId: string; outHtlcId: string }) => void;
   onSettled?: (info: { hashlock: string; inChannelId: string; inHtlcId: string }) => void;
+  /** Durable link journal; defaults to an in-memory map for tests. */
+  linkJournal?: HtlcLinkJournal;
 }
 
 export interface ForwardIncomingParams {
@@ -91,6 +104,17 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
   };
 
   const forwardIncoming = async (params: ForwardIncomingParams): Promise<ForwardIncomingResult> => {
+    const inChannel = options.channels.get(params.inChannelId);
+    if (!inChannel) throw new Error(`incoming channel ${params.inChannelId} not found`);
+    if (inChannel.status !== 'active') throw new Error(`incoming channel ${params.inChannelId} is ${inChannel.status}`);
+    const inHtlc = inChannel.pendingHTLCs.find(h => h.htlcId === params.inHtlcId);
+    if (!inHtlc) throw new Error(`incoming HTLC ${params.inHtlcId} not found`);
+    if (inHtlc.status !== 'pending') throw new Error(`incoming HTLC ${params.inHtlcId} is ${inHtlc.status}`);
+    if (inHtlc.direction !== 'received') throw new Error(`incoming HTLC ${params.inHtlcId} is not a received lock`);
+    if (inHtlc.hashlock.toLowerCase() !== params.hashlock.toLowerCase()) {
+      throw new Error(`incoming HTLC ${params.inHtlcId} hashlock does not match the forward`);
+    }
+
     const peel = codec.peel(params.envelope, self);
     if (peel.kind === 'final') return { status: 'final' };
 
@@ -99,6 +123,18 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     if (!outChannel) throw new Error(`no channel to next hop ${next.via}`);
 
     const timeoutBlock = next.timeoutBlock ?? params.timeoutBlock ?? 0n;
+    if (timeoutBlock >= inHtlc.timeoutBlock) {
+      throw new Error(
+        `outgoing timeout ${timeoutBlock} must be earlier than incoming timeout ${inHtlc.timeoutBlock}`,
+      );
+    }
+    if (next.amount > inHtlc.amount) {
+      throw new Error(`outgoing amount ${next.amount} exceeds incoming amount ${inHtlc.amount}`);
+    }
+    if (links.has(params.hashlock) || await options.linkJournal?.get(params.hashlock)) {
+      throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
+    }
+
     const result = await addHTLC(
       outChannel,
       {
@@ -113,13 +149,15 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     );
     options.channels.set(result.channel.channelId, result.channel);
 
-    links.set(params.hashlock, {
+    const link: HtlcLink = {
       inChannelId: params.inChannelId,
       inHtlcId: params.inHtlcId,
       outChannelId: result.channel.channelId,
       outHtlcId: result.htlcId,
       via: next.via,
-    });
+    };
+    links.set(params.hashlock, link);
+    await options.linkJournal?.record(link);
 
     const peer = await options.swarm.connectToPeer(next.via, result.channel.channelId);
     await peer.sendMessage({
@@ -143,7 +181,7 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
   };
 
   const revealPreimage = async (hashlock: string, preimage: string): Promise<RevealPreimageResult> => {
-    const link = links.get(hashlock);
+    const link = links.get(hashlock) ?? await options.linkJournal?.get(hashlock);
     if (!link) return { status: 'unknown' };
     const channel = options.channels.get(link.inChannelId);
     if (!channel) return { status: 'unknown' };
@@ -151,6 +189,7 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     const result = await fulfillHTLC(channel, link.inHtlcId, preimage, options.leaseProvider, options.chainProvider, options.signer);
     options.channels.set(result.channel.channelId, result.channel);
     links.delete(hashlock);
+    await options.linkJournal?.remove(hashlock);
 
     options.onSettled?.({ hashlock, inChannelId: link.inChannelId, inHtlcId: link.inHtlcId });
     return { status: 'settled', inChannelId: link.inChannelId };

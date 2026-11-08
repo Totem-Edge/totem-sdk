@@ -287,8 +287,9 @@ describe('createOmniaRelayClient — payMultiHop (RFC-035 B4)', () => {
       tokenId: '0x00',
       hashlock: '0x' + '11'.repeat(32),
       expiryBlock: 100n,
-    })) as { success: boolean; htlcId: string; firstHopChannelId: string };
-    expect(result.success).toBe(true);
+    })) as { status: string; settled: boolean; htlcId: string; firstHopChannelId: string };
+    expect(result.status).toBe('first-hop-accepted');
+    expect(result.settled).toBe(false);
     expect(result.htlcId).toBeTruthy();
     expect(result.firstHopChannelId).toBe(channel.channelId);
 
@@ -330,9 +331,10 @@ describe('createOmniaRelayClient — payMultiHop (RFC-035 B4)', () => {
           { channelId: channel.channelId, from: ALICE, to: BOB, amount: '100', tokenId: '0x00' },
         ],
       },
-    })) as { success: boolean; firstHopChannelId: string; preimage?: string };
+    })) as { status: string; settled: boolean; firstHopChannelId: string; preimage?: string };
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe('first-hop-accepted');
+    expect(result.settled).toBe(false);
     expect(result.firstHopChannelId).toBe(channel.channelId);
     expect(result.preimage).toBe('0x' + '22'.repeat(32));
     await client.close();

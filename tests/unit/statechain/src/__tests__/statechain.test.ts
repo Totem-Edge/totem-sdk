@@ -109,8 +109,8 @@ describe('@totemsdk/statechain — createStateChain', () => {
     expect(chain.chainId).toMatch(/^[0-9A-Fa-f]{64}$/);
   });
 
-  it('lockingScript uses STATE(0) for owner key (not hardcoded PKD)', () => {
-    expect(chain.lockingScript).toContain('STATE(0)');
+  it('lockingScript uses PREVSTATE(0) for owner key (not hardcoded PKD)', () => {
+    expect(chain.lockingScript).toContain('PREVSTATE(0)');
     expect(chain.lockingScript.toUpperCase()).not.toContain(ownerA.publicKeyDigest.toUpperCase());
   });
 
@@ -256,7 +256,7 @@ describe('@totemsdk/statechain — transferOwnership (A → B)', () => {
     expect(transferred.coinId.length).toBeGreaterThan(0);
   });
 
-  it('lockingAddress stays the same (STATE(0) design)', () => {
+  it('lockingAddress stays the same (PREVSTATE(0) design)', () => {
     expect(transferred.lockingAddress).toBe(initial.lockingAddress);
   });
 
@@ -772,10 +772,10 @@ describe('@totemsdk/statechain — reclaimAbandoned', () => {
 // ─── buildStatechainScript ───────────────────────────────────────────────
 
 describe('@totemsdk/statechain — buildStatechainScript', () => {
-  it('uses STATE(0) for owner; SE root is hardcoded (owner root is not)', () => {
+  it('uses PREVSTATE(0) for owner; SE root is hardcoded (owner root is not)', () => {
     const ownerPkd = fakePkd('arbitrary-owner');
     const script   = buildStatechainScript(SE_ROOT);
-    expect(script).toContain('STATE(0)');
+    expect(script).toContain('PREVSTATE(0)');
     expect(script.toUpperCase()).toContain(SE_ROOT.toUpperCase());
     expect(script.toUpperCase()).not.toContain(ownerPkd.toUpperCase());
   });
@@ -814,7 +814,7 @@ describe('@totemsdk/statechain — full lifecycle A → B → C → verify → c
     const created = await createChain(se, makeAlice());
     expect(created.status).toBe('active');
     expect(created.coinId).not.toBe(COIN_ID);          // lock TX output coinId
-    expect(created.lockingScript).toContain('STATE(0)');
+    expect(created.lockingScript).toContain('PREVSTATE(0)');
     expect(created.reclaimTx.length).toBeGreaterThan(100);
     expect(created.reclaimAddress).not.toBe(created.lockingAddress);
     expect(se.registeredChains).toContain(created.chainId);

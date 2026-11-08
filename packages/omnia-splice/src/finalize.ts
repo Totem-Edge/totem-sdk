@@ -207,7 +207,7 @@ function bindFinalizeParamsToDraft(
  *  - `status: 'active'`          — ready for new payments immediately
  *  - `totalValue`                 — updated to `proposal.params.newTotalValue`
  *  - `balances`                   — updated to `proposal.params.newBalances`
- *  - `currentSequence: 0`         — fresh WOTS budget
+ *  - `currentSequence: nextSequence` — successor state (must exceed the old channel)
  *  - `latestState: null`          — no cosigned state yet
  *  - `splicedFrom`                — old channel's `channelId`
  *  - `spliceFundingTxId`          — mined (or broadcast) TX ID
@@ -322,13 +322,13 @@ export async function finalizeSplice(
     fundingCoinId: spliceFundingCoinId,
     totalValue: params.newTotalValue,
     balances: params.newBalances,
-    currentSequence: 0,
+    currentSequence: proposal.spliceTxDraft.nextSequence,
     latestState: null,
     pendingHTLCs: [],
     stateLog: [
       ...channel.stateLog,
       {
-        sequence: 0,
+        sequence: proposal.spliceTxDraft.nextSequence,
         timestamp: Date.now(),
         balances: { ...params.newBalances },
         htlcCount: 0,

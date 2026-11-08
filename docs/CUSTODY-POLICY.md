@@ -31,7 +31,7 @@ package carries a real label.
 timer-escaped owner path, with authorization expressed **in the script**:
 
 ```
-LET OWNER=STATE(0)
+LET OWNER=PREVSTATE(0)
 IF @COINAGE GTE RECLAIM_TIMELOCK THEN
   RETURN SIGNEDBY(OWNER)          // unilateral escape — no SE signature
 ENDIF

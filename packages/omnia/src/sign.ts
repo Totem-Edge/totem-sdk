@@ -408,6 +408,74 @@ function validateBalanceShape(
   }
 }
 
+const HTLC_HASHLOCK = /^(0x)?[0-9a-fA-F]{64}$/;
+
+/**
+ * Structural and lifecycle validation for peer-supplied pending HTLCs.
+ *
+ * Conservation alone is insufficient: a malformed HTLC can preserve the sum
+ * while moving value, and a peer-supplied status change can remove a local
+ * lock without proof. This is separate from the economic `CoSignPolicy`.
+ */
+function validateHtlcSet(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+  errors: string[],
+): void {
+  const partyDigests = new Set(channel.parties.map(p => p.publicKeyDigest));
+  const seen = new Set<string>();
+  const previous = new Map(channel.pendingHTLCs.map(h => [h.htlcId, h]));
+
+  for (const h of state.pendingHTLCs) {
+    if (!h.htlcId || seen.has(h.htlcId)) {
+      errors.push(`duplicate or empty HTLC id '${String(h.htlcId)}'`);
+    }
+    seen.add(h.htlcId);
+    if (!(h.amount > 0n)) errors.push(`HTLC ${h.htlcId} amount must be positive`);
+    if (!HTLC_HASHLOCK.test(h.hashlock)) errors.push(`HTLC ${h.htlcId} hashlock is not 32-byte hex`);
+    if (!(h.timeoutBlock > 0n)) errors.push(`HTLC ${h.htlcId} timeoutBlock must be positive`);
+    if (h.direction !== 'offered' && h.direction !== 'received') {
+      errors.push(`HTLC ${h.htlcId} has invalid direction`);
+    }
+    if (!['pending', 'fulfilled', 'timed_out'].includes(h.status)) {
+      errors.push(`HTLC ${h.htlcId} has invalid status '${String(h.status)}'`);
+    }
+    if (!partyDigests.has(h.senderPublicKeyDigest) || !partyDigests.has(h.recipientPublicKeyDigest)) {
+      errors.push(`HTLC ${h.htlcId} sender/recipient is not a channel party`);
+    }
+    if (h.senderPublicKeyDigest === h.recipientPublicKeyDigest) {
+      errors.push(`HTLC ${h.htlcId} sender and recipient are the same party`);
+    }
+
+    const prior = previous.get(h.htlcId);
+    if (prior) {
+      if (prior.status !== 'pending' && h.status === 'pending') {
+        errors.push(`HTLC ${h.htlcId} cannot be revived from '${prior.status}'`);
+      }
+      if (prior.status === 'pending' && h.status === 'pending') {
+        if (
+          prior.amount !== h.amount
+          || prior.hashlock.toLowerCase() !== h.hashlock.toLowerCase()
+          || prior.timeoutBlock !== h.timeoutBlock
+          || prior.direction !== h.direction
+          || prior.senderPublicKeyDigest !== h.senderPublicKeyDigest
+          || prior.recipientPublicKeyDigest !== h.recipientPublicKeyDigest
+        ) {
+          errors.push(`HTLC ${h.htlcId} terms changed while still pending`);
+        }
+      }
+    } else if (h.status !== 'pending') {
+      errors.push(`new HTLC ${h.htlcId} cannot appear already '${h.status}'`);
+    }
+  }
+
+  for (const prior of channel.pendingHTLCs) {
+    if (prior.status === 'pending' && !seen.has(prior.htlcId)) {
+      errors.push(`pending HTLC ${prior.htlcId} was removed without a terminal transition`);
+    }
+  }
+}
+
 export async function verifyState(
   channel: OmniaChannel,
   state: SignedChannelState,
@@ -428,6 +496,7 @@ export async function verifyState(
   }
 
   validateBalanceShape(channel, state, errors);
+  validateHtlcSet(channel, state, errors);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');
@@ -530,6 +599,7 @@ export function validateStateForCoSign(
   }
 
   validateBalanceShape(channel, state, errors);
+  validateHtlcSet(channel, state, errors);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');

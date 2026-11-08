@@ -34,12 +34,16 @@ export interface SpliceTxOutput {
   storeState: boolean;
   stateVarSettlement: boolean;
   stateVarSequence: number;
+  /** Optional V2 state commitment (binds off-chain balances to the splice TX). */
+  stateVarCommitment?: string;
 }
 
 export interface SpliceTxDraft {
   inputs: SpliceTxInput[];
   outputs: SpliceTxOutput[];
   channelId: string;
+  /** Sequence the new channel coin commits to (must exceed the old channel). */
+  nextSequence: number;
   params: SpliceParams;
 }
 

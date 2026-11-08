@@ -248,7 +248,7 @@ describe('buildSpliceTx', () => {
     expect(draft.outputs[0].amount).toBe(1500n);
     expect(draft.outputs[0].storeState).toBe(true);
     expect(draft.outputs[0].stateVarSettlement).toBe(false);
-    expect(draft.outputs[0].stateVarSequence).toBe(0);
+    expect(draft.outputs[0].stateVarSequence).toBe(6);
   });
 
   it('channel input always uses COINID_ELTOO regardless of latestCoinId', () => {
@@ -269,7 +269,7 @@ describe('buildSpliceTx', () => {
     expect(draft.outputs).toHaveLength(2);
     expect(draft.outputs[0].amount).toBe(800n);
     expect(draft.outputs[0].storeState).toBe(true);
-    expect(draft.outputs[0].stateVarSequence).toBe(0);
+    expect(draft.outputs[0].stateVarSequence).toBe(6);
     expect(draft.outputs[1].address).toBe(EXTRA_ADDRESS);
     expect(draft.outputs[1].amount).toBe(200n);
     expect(draft.outputs[1].storeState).toBe(false);
@@ -617,12 +617,12 @@ describe('finalizeSplice', () => {
     return { ch, q, proposal, acceptance, aliceLp, bobLp, MINE_OPTS };
   }
 
-  it('splice-in: SplicedChannel status active, correct totalValue, sequence 0', async () => {
+  it('splice-in: SplicedChannel status active, correct totalValue, next sequence', async () => {
     const { ch, q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
     const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
     expect(spliced.status).toBe('active');
     expect(spliced.totalValue).toBe(1500n);
-    expect(spliced.currentSequence).toBe(0);
+    expect(spliced.currentSequence).toBe(7);
     expect(spliced.spliceType).toBe('splice_in');
     expect(spliced.splicedFrom).toBe(ch.channelId);
   });
@@ -632,7 +632,7 @@ describe('finalizeSplice', () => {
     const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
     expect(spliced.status).toBe('active');
     expect(spliced.totalValue).toBe(800n);
-    expect(spliced.currentSequence).toBe(0);
+    expect(spliced.currentSequence).toBe(7);
     expect(spliced.spliceType).toBe('splice_out');
   });
 
@@ -666,12 +666,12 @@ describe('finalizeSplice', () => {
     expect(spliced.pendingHTLCs).toHaveLength(0);
   });
 
-  it('stateLog gains a new entry at sequence 0', async () => {
+  it('stateLog gains a new entry at the successor sequence', async () => {
     const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn();
     const prevLen = q.stateLog.length;
     const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
     expect(spliced.stateLog.length).toBeGreaterThan(prevLen);
-    expect(spliced.stateLog[spliced.stateLog.length - 1].sequence).toBe(0);
+    expect(spliced.stateLog[spliced.stateLog.length - 1].sequence).toBe(7);
   });
 
   it('marks the quiesced channel as status spliced and returns active new channel', async () => {
@@ -806,7 +806,7 @@ describe('Full splice lifecycle', () => {
 
     expect(spliced.totalValue).toBe(1500n);
     expect(spliced.balances).toEqual({ alice: 900n, bob: 600n });
-    expect(spliced.currentSequence).toBe(0);
+    expect(spliced.currentSequence).toBe(7);
     expect(spliced.status).toBe('active');
     expect(spliced.splicedFrom).toBe(ch.channelId);
     expect((q as unknown as OmniaChannel).status).toBe('spliced');

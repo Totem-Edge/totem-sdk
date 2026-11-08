@@ -40,10 +40,50 @@ export type WotsLeaseProviderLike = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type MinimalChainProvider = any;
 
+export interface CoSignRequest {
+  readonly channel: OmniaChannel;
+  readonly state: SignedChannelState;
+  readonly localPartyId: string;
+  readonly peerPubkey?: string;
+  readonly localBalanceBefore: bigint;
+  readonly localBalanceAfter: bigint;
+  readonly addedHtlcIds: readonly string[];
+  readonly removedHtlcIds: readonly string[];
+}
+
+export interface CoSignDecision {
+  readonly allowed: boolean;
+  readonly reason?: string;
+}
+
+/** Application-supplied consent decision for an inbound peer state. */
+export interface CoSignPolicy {
+  authorize(request: CoSignRequest): Promise<CoSignDecision> | CoSignDecision;
+}
+
+/**
+ * Safe default: never co-sign a local balance decrease or the removal of a
+ * local pending HTLC. Applications may install a narrower policy that approves
+ * specific receive/forward/refund effects.
+ */
+export const defaultCoSignPolicy: CoSignPolicy = {
+  authorize(request) {
+    if (request.localBalanceAfter < request.localBalanceBefore) {
+      return { allowed: false, reason: 'local balance would decrease' };
+    }
+    if (request.removedHtlcIds.length > 0) {
+      return { allowed: false, reason: 'a pending HTLC would be removed' };
+    }
+    return { allowed: true };
+  },
+};
+
 export interface OmniaIntegrationConfig {
   leaseProvider?: WotsLeaseProviderLike;
   signer?: ChannelSigner;
   chainProvider?: MinimalChainProvider;
+  /** Consent policy for inbound peer states. Defaults to defaultCoSignPolicy. */
+  coSignPolicy?: CoSignPolicy;
   onChannelAccepted?: (channel: OmniaChannel, peer: OmniaPeer) => void;
   onStateUpdated?: (channel: OmniaChannel, peer: OmniaPeer) => void;
   onSettlementProposed?: (payload: unknown, peer: OmniaPeer) => void;
@@ -254,6 +294,31 @@ async function _handleStateUpdate(
       `STATE_UPDATE verification failed: ${result.errors.join('; ')}`,
     );
     return;
+  }
+
+  const localDigest = config.signer?.publicKeyDigest ?? channel.localSigner?.publicKeyDigest;
+  const localParty = localDigest
+    ? channel.parties.find(p => p.publicKeyDigest === localDigest)
+    : undefined;
+  if (config.leaseProvider && localParty) {
+    const previousIds = new Set(channel.pendingHTLCs.map(h => h.htlcId));
+    const nextIds = new Set(signedState.pendingHTLCs.map(h => h.htlcId));
+    const addedHtlcIds = [...nextIds].filter(id => !previousIds.has(id));
+    const removedHtlcIds = [...previousIds].filter(id => !nextIds.has(id));
+    const decision = await (config.coSignPolicy ?? defaultCoSignPolicy).authorize({
+      channel,
+      state: signedState,
+      localPartyId: localParty.partyId,
+      peerPubkey: peer.pubkey,
+      localBalanceBefore: channel.balances[localParty.partyId] ?? 0n,
+      localBalanceAfter: signedState.balances[localParty.partyId] ?? 0n,
+      addedHtlcIds,
+      removedHtlcIds,
+    });
+    if (!decision.allowed) {
+      _sendError(peer, msg.channelId, msg.nonce, `co-sign denied: ${decision.reason ?? 'policy'}`);
+      return;
+    }
   }
 
   if (config.leaseProvider) {

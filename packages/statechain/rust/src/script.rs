@@ -11,7 +11,7 @@ fn kiss_hex(h: &str) -> String {
 
 pub fn build_statechain_script(se_pkd: &str) -> String {
     let lines = vec![
-        "LET OWNER=STATE(0)".to_string(),
+        "LET OWNER=PREVSTATE(0)".to_string(),
         format!("IF @COINAGE GTE {} THEN", RECLAIM_TIMELOCK),
         "  RETURN SIGNEDBY(OWNER)".to_string(),
         "ENDIF".to_string(),

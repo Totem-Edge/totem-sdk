@@ -42,8 +42,9 @@ import type { StorageAdapter } from '@totemsdk/core';
 import { FileStore } from '@totemsdk/storage/fs';
 import { LocalLeaseProvider } from '@totemsdk/wots-lease';
 import { allocateDeviceRange, deviceSlotForAddressIndex } from '@totemsdk/wots-lease';
+import type { WotsLeaseProvider, ReserveParams, LeaseReservation, LocalWatermark, SyncResult, LeaseCertificate } from '@totemsdk/wots-lease';
 import type { ChannelSigner } from '@totemsdk/omnia';
-import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { SigningIndices } from '@totemsdk/wots-lease';
 import type { OmniaHostConfig } from './config.js';
 
 export interface HostSigning {
@@ -226,6 +227,43 @@ export class JsonFileStorageAdapter implements StorageAdapter {
   }
 }
 
+
+/**
+ * Collapse every caller-supplied tree label onto ONE physical signing tree.
+ *
+ * The host signs with a single derived child TreeKey. The lease provider's
+ * per-tree cursors are only safe when each cursor corresponds to a distinct
+ * physical key tree; `omnia-channel-<id>` labels are not distinct keys. This
+ * wrapper makes allocation global across channels, factory funding, manifest
+ * signing and sign requests, so the same leaf cannot be issued twice.
+ */
+export function createGlobalLeaseProvider(
+  base: WotsLeaseProvider,
+  treeId: string,
+  expectedAddressIndex: number,
+): WotsLeaseProvider {
+  const check = (indices: { addressIndex: number }): void => {
+    if (indices.addressIndex !== expectedAddressIndex) {
+      throw new Error(
+        `host signer address ${expectedAddressIndex} cannot sign reserved address ${indices.addressIndex}`,
+      );
+    }
+  };
+  return {
+    async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
+      const reservation = await base.reserveKeyUse({ ...params, treeId });
+      check(reservation.indices);
+      return reservation;
+    },
+    commitKeyUse: (reservationId: string, txId: string) => base.commitKeyUse(reservationId, txId),
+    burnReservation: (reservationId: string, reason: string) => base.burnReservation(reservationId, reason),
+    getLocalWatermark: (_treeId?: string): Promise<LocalWatermark> => base.getLocalWatermark(treeId),
+    publishWatermark: (_treeId?: string): Promise<void> => base.publishWatermark(treeId),
+    syncLeaseJournal: (): Promise<SyncResult> => base.syncLeaseJournal(),
+    verifyLeaseCertificate: (cert?: LeaseCertificate): Promise<boolean> => base.verifyLeaseCertificate(cert),
+  };
+}
+
 /** Directory holding the lease journal/watermark next to the channel DB. */
 export function leaseStorageDir(dbPath: string): string {
   return `${dbPath}.lease`;
@@ -263,7 +301,13 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
   const address = scriptToAddress(scriptFromWotsPk(publicKey));
 
   const storage = new JsonFileStorageAdapter(leaseStorageDir(config.dbPath));
-  const leaseProvider = new LocalLeaseProvider(storage, undefined, deviceId);
+  // One physical tree, one global leaf cursor. Per-channel tree labels are not
+  // distinct key trees and must never create independent cursors on this key.
+  const leaseProvider = createGlobalLeaseProvider(
+    new LocalLeaseProvider(storage, undefined, deviceId),
+    `omnia-host:${publicKeyDigest}`,
+    addressIndex,
+  );
 
   const signer: ChannelSigner = {
     publicKeyDigest,
