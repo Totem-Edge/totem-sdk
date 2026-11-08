@@ -38,7 +38,7 @@ function ctx(overrides: Partial<TxContext> = {}): TxContext {
     inputs: [COIN],
     outputs: [],
     state: { 0: '0x' + ownerRoot },
-    prevState: {},
+    prevState: { 0: '0x' + ownerRoot },
     txDigest: TX_DIGEST,
     ...overrides,
   };
@@ -70,6 +70,19 @@ describe('statechain on-chain witness (RFC-009 / RFC-008)', () => {
     const wrongDigest = sha3_256(new TextEncoder().encode('different'));
     const witness = buildWitness([owner.sign(TX_DIGEST), se.sign(TX_DIGEST)]);
     const res = await simulateSpend(script, COIN, ctx({ txDigest: wrongDigest }), witness);
+    expect(res.passed).toBe(false);
+  });
+
+  it('rejects an outsider who substitutes STATE(0) after the timelock', async () => {
+    const outsider = new TreeKey(new Uint8Array(32).fill(0x99), 4, 2);
+    const outsiderRoot = bytesToHex(outsider.getPublicKey()).toLowerCase();
+    const witness = buildWitness([outsider.sign(TX_DIGEST)]);
+    const res = await simulateSpend(
+      script,
+      COIN,
+      ctx({ block: 1000, state: { 0: '0x' + outsiderRoot }, prevState: { 0: '0x' + ownerRoot } }),
+      witness,
+    );
     expect(res.passed).toBe(false);
   });
 

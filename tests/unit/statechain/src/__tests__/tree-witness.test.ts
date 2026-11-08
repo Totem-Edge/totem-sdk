@@ -71,7 +71,7 @@ describe('Minima-faithful witness serialization (RFC-009 Phase 3)', () => {
       inputs: [COIN],
       outputs: [],
       state: { 0: '0x' + ownerRoot },
-      prevState: {},
+      prevState: { 0: '0x' + ownerRoot },
       txDigest: DIGEST,
     };
     const res = await simulateSpend(

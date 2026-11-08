@@ -82,12 +82,25 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     const sendMessage = jest.fn(async (_m: unknown) => {});
     const swarm = swarmWithPeer(sendMessage);
     const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
-    const channels = new Map([[outChannel.channelId, outChannel]]);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
 
     const forwarder = createMultiHopForwarder({
       channels,
-      leaseProvider: lease(),
-      signer: signer(I),
+      leaseProvider: lp,
+      signer: sg,
       swarm,
       codec: createCleartextRoutingCodec(),
       chainProvider: chainProviderAt(10n),
@@ -95,9 +108,9 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
 
     const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
     const result = await forwarder.forwardIncoming({
-      inChannelId: 'in-chan',
-      inHtlcId: 'in-htlc-1',
-      hashlock: '0x' + '22'.repeat(32),
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
       envelope,
       timeoutBlock: 100n,
     });
@@ -108,6 +121,28 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     expect(swarm.connectToPeer).toHaveBeenCalledWith(B, outChannel.channelId);
     expect(sendMessage).toHaveBeenCalled();
     expect(forwarder.links().size).toBe(1);
+  });
+
+  it('rejects a nonexistent incoming HTLC before locking outgoing liquidity', async () => {
+    const swarm = swarmWithPeer(jest.fn(async () => {}));
+    const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
+    const channels = new Map([[outChannel.channelId, outChannel]]);
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lease(),
+      signer: signer(I),
+      swarm,
+      chainProvider: chainProviderAt(10n),
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    await expect(forwarder.forwardIncoming({
+      inChannelId: 'missing-in-channel',
+      inHtlcId: 'missing-in-htlc',
+      hashlock: '0x' + '22'.repeat(32),
+      envelope,
+      timeoutBlock: 100n,
+    })).rejects.toThrow(/incoming channel/);
+    expect(outChannel.pendingHTLCs).toHaveLength(0);
   });
 
   it('reveals the preimage on the incoming HTLC to propagate settlement', async () => {
@@ -122,7 +157,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     // The incoming HTLC (offered by A) is present on the channel.
     const incoming = await addHTLC(
       inChannel,
-      { amount: 90n, hashlock, timeoutBlock: 100n, direction: 'received', counterpartPublicKeyDigest: A },
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
       lp,
       sg,
     );
