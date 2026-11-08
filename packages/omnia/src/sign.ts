@@ -20,7 +20,7 @@ import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage
 import { validateChannelStateWithKissvm } from './kissvm.js';
 import { buildProgramUpdateTx, computeProgramUpdateDigestHex, resolveChannelProgram } from './program.js';
 import { canonicalizeProgramTransition } from './transition.js';
-import { verifyChannelSignature } from './wots.js';
+import { deriveSignatureLeafBinding, verifyChannelSignature } from './wots.js';
 import { makeSelfCustody, type SignRequest, type SignerPort } from './custody.js';
 
 function resolveSignerOrThrow(channel: OmniaChannel, signer?: ChannelSigner): ChannelSigner {
@@ -362,7 +362,20 @@ export function verifyStateSignature(
     // stateVariables/transactionHex and the signature would still verify.
     if (!stateVariablesEqual(state.stateVariables, draft.stateVariables)) return false;
     if (state.transactionHex !== serializeTxDraft(draft)) return false;
-    return verifyChannelSignature(sig, digest, publicKeyDigest);
+    if (!verifyChannelSignature(sig, digest, publicKeyDigest)) return false;
+
+    // The signature proof itself encodes the signing leaf. Bind it to the
+    // claimed indices so a peer cannot record a safe index while actually
+    // spending a different (e.g. already-reused) WOTS leaf. Non-tree signature
+    // encodings carry no recoverable path and are governed by verification
+    // alone.
+    const indices = state.signingIndices?.[partyId];
+    if (!indices) return false;
+    const binding = deriveSignatureLeafBinding(sig);
+    if (binding && (binding.high !== 0 || binding.l1 !== indices.l1 || binding.l2 !== indices.l2)) {
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }

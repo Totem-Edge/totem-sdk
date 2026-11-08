@@ -13,6 +13,16 @@ export {
 } from './splice.js';
 export type { UnsignedSpliceProposal } from './splice.js';
 export { finalizeSplice, type FinalizeSpliceOptions } from './finalize.js';
+export {
+  observeSpliceSuccessor,
+  recoverInterruptedSplices,
+  type SpliceChainObserver,
+  type SpliceSuccessorOptions,
+  type ObservedSuccessor,
+  type PendingSpliceRecord,
+  type PendingSpliceStore,
+  type SpliceRecoveryResult,
+} from './successor.js';
 
 export type {
   SpliceType,

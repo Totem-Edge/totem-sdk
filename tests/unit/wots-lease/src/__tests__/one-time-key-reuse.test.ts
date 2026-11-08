@@ -64,6 +64,37 @@ describe('WOTS one-time-key reuse (AUD-004/005)', () => {
     }
   });
 
+  it('AUD-004: an explicit CAS store coordinates providers with separate file backends', async () => {
+    // The host keeps its journal/watermark in JSON files but shares one
+    // transactional claim store. Two providers over distinct file directories
+    // must still take different leaves.
+    const dirs = await Promise.all([
+      mkdtemp(join(tmpdir(), 'wots-lease-a-')),
+      mkdtemp(join(tmpdir(), 'wots-lease-b-')),
+    ]);
+    const claims = new Map<string, unknown>();
+    const cas = {
+      async conditionalUpdate<T>(key: string, update: (current: T | null) => { next: T } | { abort: string }) {
+        const decision = update((claims.get(key) as T | undefined) ?? null);
+        if ('abort' in decision) return { applied: false, value: null, revision: 0 };
+        claims.set(key, decision.next);
+        return { applied: true, value: decision.next, revision: 1 };
+      },
+    };
+    try {
+      const first = new LocalLeaseProvider(new FileStore(dirs[0]), undefined, 'a', cas);
+      const second = new LocalLeaseProvider(new FileStore(dirs[1]), undefined, 'b', cas);
+      await Promise.all([first.initialize(), second.initialize()]);
+      const [a, b] = await Promise.all([
+        first.reserveKeyUse({ treeId: 'shared-tree' }),
+        second.reserveKeyUse({ treeId: 'shared-tree' }),
+      ]);
+      expect(b.indices).not.toEqual(a.indices);
+    } finally {
+      await Promise.all(dirs.map((dir) => rm(dir, { recursive: true, force: true })));
+    }
+  });
+
   it('AUD-005: rejects a specific reservation below the synchronized watermark cursor', async () => {
     const store = makeSharedStore();
     const provider = new LocalLeaseProvider(store);

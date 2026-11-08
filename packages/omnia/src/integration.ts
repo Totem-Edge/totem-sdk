@@ -34,6 +34,7 @@ import type {
   Unsubscribe,
 } from './messaging-types.js';
 import { canonicalizeProgramTransition } from './transition.js';
+import { bytesToHex, hexToBytes, sha3_256 } from '@totemsdk/core';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type WotsLeaseProviderLike = any;
@@ -86,6 +87,19 @@ export interface OmniaIntegrationConfig {
   coSignPolicy?: CoSignPolicy;
   onChannelAccepted?: (channel: OmniaChannel, peer: OmniaPeer) => void;
   onStateUpdated?: (channel: OmniaChannel, peer: OmniaPeer) => void;
+  /**
+   * A peer revealed an HTLC preimage in a STATE_UPDATE. Relay wallets use this
+   * to fulfil the matching upstream HTLC and continue the backward settlement
+   * walk. The callback is observational; the signature already proved the
+   * fulfilment.
+   */
+  onPreimageRevealed?: (event: {
+    preimage: string;
+    hashlock: string;
+    channel: OmniaChannel;
+    htlcId?: string;
+    peerPubkey: string;
+  }) => void | Promise<void>;
   onSettlementProposed?: (payload: unknown, peer: OmniaPeer) => void;
   /**
    * Factory coordination messages (FACTORY_PROPOSAL/ACCEPT, FACTORY_CLOSE_*).
@@ -99,6 +113,12 @@ export interface OmniaIntegrationConfig {
   onSpliceMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
   /** Observe every inbound peer message, before lifecycle dispatch. */
   onPeerMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void;
+  /**
+   * Test/dev escape hatch: allow a CHANNEL_PROPOSAL whose local/remote parties
+   * are not bound to this signer and the authenticated peer. Never enable on a
+   * network-facing host.
+   */
+  allowUnverifiedChannelProposal?: boolean;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -243,7 +263,25 @@ async function _handleChannelProposal(
 ): Promise<void> {
   try {
     const proposal = msg.payload as ChannelProposal;
-    const channel = await acceptChannel(proposal, config.chainProvider);
+    const enforcing = Boolean(config.signer || config.leaseProvider)
+      && config.allowUnverifiedChannelProposal !== true;
+    let remoteTransportPubkey: string | undefined;
+    if (enforcing) {
+      // The remote party must be the connection we authenticated. A signed
+      // proposal cannot introduce an unrelated counterparty.
+      remoteTransportPubkey = proposal.remoteParty?.transportPubkey;
+      if (!remoteTransportPubkey) {
+        throw new Error('Proposal remote party is not bound to an authenticated transport identity');
+      }
+      if (!proposal.localParty || !config.signer?.publicKeyDigest) {
+        throw new Error('Proposal cannot be bound: local signing identity is missing');
+      }
+    }
+    const channel = await acceptChannel(proposal, config.chainProvider, 1, {
+      localPublicKeyDigest: enforcing ? config.signer?.publicKeyDigest : undefined,
+      remoteTransportPubkey: enforcing ? remoteTransportPubkey : undefined,
+      requireChainProvider: enforcing,
+    });
     store.set(channel.channelId, channel);
 
     if (bindPeer) {
@@ -364,6 +402,21 @@ async function _handleStateUpdate(
         if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE merged', msg.channelId, mergedChannel.currentSequence, mergedChannel.pendingHTLCs.length);
         store.set(msg.channelId, mergedChannel);
         config.onStateUpdated?.(mergedChannel, peer);
+        const revealed = (signedState as unknown as { preimage?: unknown }).preimage;
+        if (typeof revealed === 'string' && /^(0x)?[0-9a-fA-F]{64}$/.test(revealed)) {
+          const normalized = '0x' + revealed.replace(/^0x/i, '').toLowerCase();
+          const hashlock = '0x' + bytesToHex(sha3_256(hexToBytes(normalized)));
+          const htlc = mergedChannel.pendingHTLCs.find(
+            (h) => h.hashlock.toLowerCase() === hashlock && h.status === 'pending',
+          );
+          void config.onPreimageRevealed?.({
+            preimage: normalized,
+            hashlock,
+            channel: mergedChannel,
+            ...(htlc ? { htlcId: htlc.htlcId } : {}),
+            peerPubkey: peer.pubkey,
+          });
+        }
         return;
       }
     } catch (err) {

@@ -47,4 +47,35 @@ describe('omnia-host lease scope', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('coordinates two host processes sharing one lease directory', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'omnia-lease-cas-'));
+    const dbPath = path.join(dir, 'host.db');
+    try {
+      const first = createHostSigning(loadConfigFromEnv({
+        OMNIA_HOST_SEED: HEX_SEED,
+        OMNIA_HOST_DB: dbPath,
+      }));
+      const second = createHostSigning(loadConfigFromEnv({
+        OMNIA_HOST_SEED: HEX_SEED,
+        OMNIA_HOST_DB: dbPath,
+      }));
+
+      const [a, b] = await Promise.all([
+        first.leaseProvider.reserveKeyUse({
+          treeId: 'omnia-channel-a', purpose: 'channel-update', payloadHash: 'a',
+        }),
+        second.leaseProvider.reserveKeyUse({
+          treeId: 'omnia-channel-b', purpose: 'channel-update', payloadHash: 'b',
+        }),
+      ]);
+      expect(`${a.indices.addressIndex}:${a.indices.l1}:${a.indices.l2}`)
+        .not.toBe(`${b.indices.addressIndex}:${b.indices.l1}:${b.indices.l2}`);
+
+      await first.leaseProvider.burnReservation(a.reservationId, 'test');
+      await second.leaseProvider.burnReservation(b.reservationId, 'test');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

@@ -15,7 +15,7 @@ import {
   STATE_COMMITMENT_V2_PORT,
 } from './transactions.js';
 import { resolveChannelProgram } from './program.js';
-import { verifyChannelSignature } from './wots.js';
+import { deriveSignatureLeafBinding, verifyChannelSignature } from './wots.js';
 
 function digestHex(digest: Uint8Array): string {
   return Buffer.from(digest).toString('hex');
@@ -88,6 +88,15 @@ export function buildUnsignedClosePackage(
       signingIndices: {},
     },
   };
+}
+
+
+function boundToIndices(
+  signature: Uint8Array,
+  indices: { l1: number; l2: number },
+): boolean {
+  const binding = deriveSignatureLeafBinding(signature);
+  return !binding || (binding.high === 0 && binding.l1 === indices.l1 && binding.l2 === indices.l2);
 }
 
 export function addClosePackageSignature(
@@ -174,9 +183,13 @@ export function verifyClosePackage(
     try {
       if (updateSig && !verifyChannelSignature(updateSig, hexToBytes(closePackage.update.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid update close artifact signature for ${party.partyId}`);
+      } else if (updateSig && updateIndices && !boundToIndices(updateSig, updateIndices)) {
+        errors.push(`update close artifact leaf mismatch for ${party.partyId}`);
       }
       if (settlementSig && !verifyChannelSignature(settlementSig, hexToBytes(closePackage.settlement.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid settlement close artifact signature for ${party.partyId}`);
+      } else if (settlementSig && settlementIndices && !boundToIndices(settlementSig, settlementIndices)) {
+        errors.push(`settlement close artifact leaf mismatch for ${party.partyId}`);
       }
     } catch {
       errors.push(`close artifact signature verification error for ${party.partyId}`);
@@ -229,9 +242,13 @@ export function verifyPartialClosePackage(
     try {
       if (updateSig && !verifyChannelSignature(updateSig, hexToBytes(closePackage.update.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid update close artifact signature for ${party.partyId}`);
+      } else if (updateSig && updateIndices && !boundToIndices(updateSig, updateIndices)) {
+        errors.push(`update close artifact leaf mismatch for ${party.partyId}`);
       }
       if (settlementSig && !verifyChannelSignature(settlementSig, hexToBytes(closePackage.settlement.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid settlement close artifact signature for ${party.partyId}`);
+      } else if (settlementSig && settlementIndices && !boundToIndices(settlementSig, settlementIndices)) {
+        errors.push(`settlement close artifact leaf mismatch for ${party.partyId}`);
       }
     } catch {
       errors.push(`close artifact signature verification error for ${party.partyId}`);

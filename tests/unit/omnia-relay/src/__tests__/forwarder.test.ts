@@ -9,6 +9,20 @@ import { createCleartextRoutingCodec, type RoutingHop } from '@totemsdk/omnia-ro
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { createMultiHopForwarder } from '../forwarder.js';
+import { createDurableHtlcLinkJournal } from '../link-journal.js';
+
+function memoryJournal() {
+  const values = new Map<string, unknown>();
+  const storage = {
+    get: async <T>(key: string) => (values.has(key) ? values.get(key) as T : null),
+    set: async <T>(key: string, value: T) => { values.set(key, value); },
+    remove: async (key: string) => values.delete(key),
+    clear: async () => { values.clear(); },
+    keys: async () => [...values.keys()],
+    has: async (key: string) => values.has(key),
+  };
+  return createDurableHtlcLinkJournal(storage);
+}
 
 const A = '0x' + 'aa'.repeat(32);
 const I = '0x' + '11'.repeat(32);
@@ -104,6 +118,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
       swarm,
       codec: createCleartextRoutingCodec(),
       chainProvider: chainProviderAt(10n),
+      linkJournal: memoryJournal(),
     });
 
     const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
@@ -133,6 +148,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
       signer: signer(I),
       swarm,
       chainProvider: chainProviderAt(10n),
+      linkJournal: memoryJournal(),
     });
     const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
     await expect(forwarder.forwardIncoming({
@@ -143,6 +159,178 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
       timeoutBlock: 100n,
     })).rejects.toThrow(/incoming channel/);
     expect(outChannel.pendingHTLCs).toHaveLength(0);
+  });
+
+  it('recovers a durable link after a restart and clears it on settlement', async () => {
+    const sendMessage = jest.fn(async (_m: OmniaMessage) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
+    const channels = new Map([
+      [inChannel.channelId, inChannel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const lp = lease();
+    const sg = signer(I);
+    const { preimage, hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    channels.set(inChannel.channelId, incoming.channel);
+
+    const values = new Map<string, unknown>();
+    const storage = {
+      get: async <T>(key: string) => (values.has(key) ? values.get(key) as T : null),
+      set: async <T>(key: string, value: T) => { values.set(key, value); },
+      remove: async (key: string) => values.delete(key),
+      clear: async () => { values.clear(); },
+      keys: async () => [...values.keys()],
+      has: async (key: string) => values.has(key),
+    };
+    const journal = createDurableHtlcLinkJournal(storage);
+
+    const first = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    await first.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    });
+    expect((await journal.list()).map((l) => l.hashlock)).toEqual([hashlock]);
+
+    // New process: the in-memory link map is empty, only the journal survives.
+    const second = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    expect(second.links().size).toBe(0);
+    const revealed = await second.revealPreimage(hashlock, preimage);
+    expect(revealed.status).toBe('settled');
+    expect(await journal.get(hashlock)).toBeUndefined();
+    expect(await journal.list()).toEqual([]);
+  });
+
+  it('settles the final hop when the recipient resolves the preimage', async () => {
+    const sendMessage = jest.fn(async (_m: OmniaMessage) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const channels = new Map([[inChannel.channelId, inChannel]]);
+    const lp = lease();
+    const sg = signer(I);
+    const { preimage, hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    channels.set(inChannel.channelId, incoming.channel);
+
+    const forwarder = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n),
+      linkJournal: memoryJournal(),
+      resolvePreimage: async (hash) => (hash === hashlock ? preimage : undefined),
+    });
+
+    const result = await forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope: '[]',
+      timeoutBlock: 100n,
+    });
+    expect(result.status).toBe('settled');
+    const sent = sendMessage.mock.calls[0][0] as { payload: { preimage?: string } };
+    expect(sent.payload.preimage).toBe(preimage);
+    const updated = channels.get(inChannel.channelId);
+    expect(updated?.pendingHTLCs.find((h) => h.htlcId === incoming.htlcId)?.status).toBe('fulfilled');
+  });
+
+  it('leaves the final hop pending when the recipient has no preimage', async () => {
+    const swarm = swarmWithPeer(jest.fn(async () => {}));
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const channels = new Map([[inChannel.channelId, inChannel]]);
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    channels.set(inChannel.channelId, incoming.channel);
+    const journal = memoryJournal();
+    const forwarder = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    const result = await forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope: '[]',
+      timeoutBlock: 100n,
+    });
+    expect(result.status).toBe('final');
+    expect((await journal.list())).toEqual([]);
+  });
+
+  it('reconciles journaled links after a restart', async () => {
+    const sendMessage = jest.fn(async (_m: OmniaMessage) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
+    const channels = new Map([
+      [inChannel.channelId, inChannel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    channels.set(inChannel.channelId, incoming.channel);
+    const journal = memoryJournal();
+    const first = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    await first.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    });
+
+    // Mark the outgoing HTLC terminal (as if the next hop settled it).
+    const out = channels.get(outChannel.channelId)!;
+    channels.set(outChannel.channelId, {
+      ...out,
+      pendingHTLCs: out.pendingHTLCs.map((h) => ({ ...h, status: 'fulfilled' as const })),
+    });
+
+    const second = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    expect(await second.recover()).toEqual([]);
+    expect(await journal.list()).toEqual([]);
   });
 
   it('reveals the preimage on the incoming HTLC to propagate settlement', async () => {
@@ -163,7 +351,7 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     );
     channels.set(inChannel.channelId, incoming.channel);
 
-    const forwarder = createMultiHopForwarder({ channels, leaseProvider: lp, signer: sg, swarm, chainProvider: chainProviderAt(10n) });
+    const forwarder = createMultiHopForwarder({ channels, leaseProvider: lp, signer: sg, swarm, chainProvider: chainProviderAt(10n), linkJournal: memoryJournal() });
     // Register a link as forwardIncoming would (via a one-hop forward to B).
     const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
     channels.set(outChannel.channelId, outChannel);

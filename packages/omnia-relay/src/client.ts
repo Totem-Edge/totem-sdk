@@ -310,6 +310,7 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
 
     return {
       success: false,
+      state: 'first-hop-accepted' as const,
       status: 'first-hop-accepted' as const,
       settled: false,
       terminal: false,
@@ -383,7 +384,7 @@ export async function fulfillMultiHop(params: {
       type: 'STATE_UPDATE',
       channelId: channel.channelId,
       nonce: Date.now(),
-      payload: result.partialState,
+      payload: { ...result.partialState, preimage },
     });
   }
   return { success: true, channel: result.channel, htlcId };

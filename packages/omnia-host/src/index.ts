@@ -47,6 +47,13 @@ export type { HostApiContext } from './api/methods.js';
 export type { OperationStoreLike } from './api/methods.js';
 export { DisabledAnalyticsStore, DuckDbAnalyticsStore, initializeDuckDb } from './stores/analytics.js';
 export type { AnalyticsEvent, AnalyticsStore, DuckDbConnection } from './stores/analytics.js';
+export { createChannelWatchService } from './watch.js';
+export type {
+  ChannelWatchService,
+  ChannelWatchOptions,
+  WatchChainView,
+  WatchFinding,
+} from './watch.js';
 export { createLocalSignerPort, createPolicySignerPort } from './signer-port.js';
 export type { SignerAuditRecord, SignerPolicy } from './signer-port.js';
 

@@ -121,6 +121,35 @@ describe('@totemsdk/omnia — state signatures (real WOTS)', () => {
     // Bob's key must not satisfy Alice's party binding.
     expect(verifyStateSignature(channel, signedState as any, 'alice', bobPkd)).toBe(false);
   });
+
+  it('rejects a signature whose leaf does not match the claimed signing indices', async () => {
+    // Sign with a leaf the lease did not allocate. The signature is
+    // cryptographically valid, but the recorded index is a lie.
+    const key = new TreeKey(new Uint8Array(32).fill(0xc3), 4, 3);
+    const pkd = publicKey(key);
+    const channel = makeChannel();
+    channel.parties = [
+      { partyId: 'alice', publicKeyDigest: pkd, addressIndex: 0 },
+      channel.parties[1],
+    ];
+
+    const signer: ChannelSigner = {
+      publicKeyDigest: pkd,
+      sign: async (digest: Uint8Array) => {
+        key.setUses(5);
+        return serializeTreeSignature(key.sign(digest));
+      },
+    };
+    const partial = await signState(
+      channel,
+      { newSequence: 1, newBalances: { alice: 500n, bob: 500n } },
+      makeLeaseProvider(),
+      signer,
+    );
+
+    expect(partial.signingIndices?.alice).toEqual({ addressIndex: 0, l1: 0, l2: 0 });
+    expect(verifyStateSignature(channel, partial as any, 'alice', pkd)).toBe(false);
+  });
 });
 
 

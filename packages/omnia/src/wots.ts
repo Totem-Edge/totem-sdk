@@ -16,6 +16,47 @@ import { deserializeTreeSignature, hexToBytes, verifyTreeSignature } from '@tote
 import type { ChannelSignature } from './types.js';
 
 /**
+ * Leaf path recovered from a hierarchical signature.
+ *
+ * `l1`/`l2` are the two least-significant path digits (the ones Omnia leases
+ * and records); `high` is nonzero if the signature used a deeper path than the
+ * lease model permits.
+ */
+export interface SignatureLeafBinding {
+  l1: number;
+  l2: number;
+  high: number;
+}
+
+/**
+ * Recover the signing leaf from the MMR proof carried by a TreeSignature.
+ *
+ * Each proof's chunks encode the leaf index in their `isLeft` flags, so the
+ * claimed `signingIndices` can be checked against the signature itself rather
+ * than trusted from the state payload.
+ */
+export function deriveSignatureLeafBinding(signature: ChannelSignature): SignatureLeafBinding | null {
+  if (!signature || !(signature instanceof Uint8Array) || signature.length === 0) return null;
+  try {
+    const { proofs } = deserializeTreeSignature(signature);
+    if (proofs.length === 0) return null;
+    const path = proofs.map((proof) => {
+      let index = 0;
+      proof.mmrProof.chunks.forEach((chunk, row) => {
+        if (chunk.isLeft) index += 2 ** row;
+      });
+      return index;
+    });
+    if (path.length === 1) return { l1: 0, l2: path[0], high: 0 };
+    let high = 0;
+    for (let i = 0; i < path.length - 2; i++) high = high * 64 + path[i];
+    return { l1: path[path.length - 2], l2: path[path.length - 1], high };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Verify a channel signature over `digest` for the party whose WOTS
  * `publicKeyDigest` (64 hex chars, tree-root public key) is given. Fails closed
  * on any error.

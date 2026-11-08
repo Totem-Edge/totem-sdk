@@ -223,6 +223,21 @@ export interface RouterFeeProof {
 
 export interface PaymentResult {
   success: boolean;
+  /**
+   * Explicit lifecycle state. `success` is only true for the terminal
+   * `recipient-settled` state; intermediate states are reported separately.
+   */
+  state?:
+    | 'initiated'
+    | 'first-hop-accepted'
+    | 'forwarded'
+    | 'recipient-settled'
+    | 'reconciled'
+    | 'failed'
+    | 'recovering'
+    | 'cancelled';
+  /** True only when the payment is in a terminal state. */
+  terminal?: boolean;
   /** Hex preimage revealed during settlement (present on success) */
   preimage?: string;
   error?: string;

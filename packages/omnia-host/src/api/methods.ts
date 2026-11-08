@@ -72,6 +72,7 @@ import {
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
+  createCleartextRoutingCodec,
   executeCrossTokenPayment,
   executeMultiHopPayment,
   type ChannelOps,
@@ -3216,6 +3217,67 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       if ('outboundChannelId' in hop && hop.outboundChannelId) leaseProviders.set(hop.outboundChannelId, context.leaseProvider);
     }
 
+    const allHopsLocal = parsedRoute.hops.every((hop) => {
+      const channelId = (hop as { channelId?: string }).channelId;
+      return typeof channelId === 'string' && context.channels.has(channelId);
+    });
+    if (!allHopsLocal) {
+      if (isCrossToken) {
+        throw new Error('Distributed cross-token payments are not supported; all swap hops must be local');
+      }
+      // Distributed route: this host only controls the first channel. Lock it,
+      // hand the routing envelope to the next hop and report the explicit
+      // non-terminal state instead of pretending the recipient settled.
+      const firstHop = parsedRoute.hops[0] as {
+        channelId: string;
+        to: string;
+        amount: bigint;
+        tokenId: string;
+      };
+      if (!context.swarm) throw new Error('Multi-hop payment requires a swarm transport for the next hop');
+      if (!context.leaseProvider) throw new Error('Multi-hop payment requires a lease provider');
+      if (!context.signer) throw new Error('Multi-hop payment requires a channel signer');
+      const firstChannel = context.channels.get(firstHop.channelId) as OmniaChannel | undefined;
+      if (!firstChannel) throw new Error(`Channel ${firstHop.channelId} not found`);
+      const locked = await addHTLC(
+        firstChannel,
+        {
+          amount: firstHop.amount,
+          hashlock: parsedRequest.hashlock,
+          timeoutBlock: parsedRequest.expiryBlock,
+          direction: 'offered',
+          counterpartPublicKeyDigest: firstHop.to,
+        },
+        context.leaseProvider,
+        context.signer,
+      );
+      context.channels.set(locked.channel.channelId, locked.channel);
+      const onward = parsedRoute.hops.slice(1);
+      const envelope = onward.length > 0
+        ? createCleartextRoutingCodec().build(onward as never)
+        : undefined;
+      const peer = await context.swarm.connectToPeer(firstHop.to, firstHop.channelId);
+      await peer.sendMessage({
+        type: 'STATE_UPDATE',
+        channelId: locked.channel.channelId,
+        nonce: Date.now(),
+        payload: {
+          ...locked.partialState,
+          ...(envelope ? { forward: { hashlock: parsedRequest.hashlock, envelope } } : {}),
+        },
+      });
+      return {
+        success: false,
+        state: 'first-hop-accepted',
+        status: 'first-hop-accepted',
+        settled: false,
+        terminal: false,
+        firstHopChannelId: locked.channel.channelId,
+        htlcId: locked.htlcId,
+        route: serializeWireRoute(parsedRoute),
+      };
+    }
+
     return withOperation(context, params, async () => {
       const result = isCrossToken
         ? await executeCrossTokenPayment(
@@ -3247,6 +3309,9 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       });
       return {
         success: true,
+        state: 'recipient-settled',
+        terminal: true,
+        settled: true,
         preimage: result.preimage,
         settledHops: result.settledHops,
         route: serializeWireRoute(parsedRoute),

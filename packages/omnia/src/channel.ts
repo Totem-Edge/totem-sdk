@@ -332,6 +332,10 @@ export async function createChannel(
  * @param provider  - Optional chain provider for on-chain funding TX validation.
  * @param minConfirmations - Minimum confirmations required (default 1).
  */
+function normalizeDigest(value: string): string {
+  return value.replace(/^0x/i, '').toLowerCase();
+}
+
 export interface AcceptChannelOptions {
   /**
    * Accept a contest delay below the default floor. Test/dev channels only: a
@@ -340,6 +344,18 @@ export interface AcceptChannelOptions {
   allowShortContestDelay?: boolean;
   /** Minimum accepted contest delay. Default: `ELTOO_CONTEST_DELAY_BLOCKS` (256). */
   minContestDelayBlocks?: number;
+  /**
+   * WOTS public key digest of the accepting host. When set, the proposal's
+   * local party must match it.
+   */
+  localPublicKeyDigest?: string;
+  /**
+   * Authenticated transport identity of the proposing peer. When set (and the
+   * proposal carries `remoteParty.transportPubkey`), the two must match.
+   */
+  remoteTransportPubkey?: string;
+  /** Reject network proposals when no chain provider is available. */
+  requireChainProvider?: boolean;
 }
 
 export async function acceptChannel(
@@ -348,6 +364,17 @@ export async function acceptChannel(
   minConfirmations: number = 1,
   options?: AcceptChannelOptions,
 ): Promise<OmniaChannel> {
+  if (options?.localPublicKeyDigest
+    && normalizeDigest(proposal.localParty.publicKeyDigest) !== normalizeDigest(options.localPublicKeyDigest)) {
+    throw new Error('Proposal local party does not match this host signing identity');
+  }
+  if (options?.remoteTransportPubkey && proposal.remoteParty.transportPubkey
+    && normalizeDigest(proposal.remoteParty.transportPubkey) !== normalizeDigest(options.remoteTransportPubkey)) {
+    throw new Error('Proposal remote party does not match the authenticated peer');
+  }
+  if (options?.requireChainProvider && !provider) {
+    throw new Error('Accepting a network channel proposal requires a chain provider');
+  }
   const parties = [proposal.localParty, proposal.remoteParty];
   const proposedDelay = proposal.contestDelayBlocks;
   if (!options?.allowShortContestDelay && proposedDelay !== undefined) {
