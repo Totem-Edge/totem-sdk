@@ -39,6 +39,7 @@ import {
   type TreeKey,
 } from '@totemsdk/core';
 import type { StorageAdapter } from '@totemsdk/core';
+import type { CasStore, ConditionalUpdater, ConditionalResult } from '@totemsdk/storage';
 import { FileStore } from '@totemsdk/storage/fs';
 import { LocalLeaseProvider } from '@totemsdk/wots-lease';
 import { allocateDeviceRange, deviceSlotForAddressIndex } from '@totemsdk/wots-lease';
@@ -195,7 +196,7 @@ function resolveBaseSeed(config: OmniaHostConfig): Uint8Array {
  * fsync; corrupt records surface as `StorageError` (`corrupt`) rather than
  * silently returning JSON `null`. The directory is created on first write.
  */
-export class JsonFileStorageAdapter implements StorageAdapter {
+export class JsonFileStorageAdapter implements StorageAdapter, CasStore {
   private readonly store: FileStore;
 
   constructor(dir: string) {
@@ -224,6 +225,15 @@ export class JsonFileStorageAdapter implements StorageAdapter {
 
   async has(key: string): Promise<boolean> {
     return this.store.has(key);
+  }
+
+  /**
+   * Delegate CAS to `FileStore`'s per-key advisory lock + temp/rename write.
+   * This makes slot claims atomic across processes sharing the lease
+   * directory, without requiring the native SQLite binding.
+   */
+  conditionalUpdate<T>(key: string, update: ConditionalUpdater<T>): Promise<ConditionalResult<T>> {
+    return this.store.conditionalUpdate(key, update);
   }
 }
 
@@ -301,8 +311,9 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
   const address = scriptToAddress(scriptFromWotsPk(publicKey));
 
   const storage = new JsonFileStorageAdapter(leaseStorageDir(config.dbPath));
-  // One physical tree, one global leaf cursor. Per-channel tree labels are not
-  // distinct key trees and must never create independent cursors on this key.
+  // A single physical tree and a global leaf cursor. `JsonFileStorageAdapter`
+  // exposes the FileStore CAS primitive, so the claim is atomic across host
+  // processes sharing this directory as well as within one process.
   const leaseProvider = createGlobalLeaseProvider(
     new LocalLeaseProvider(storage, undefined, deviceId),
     `omnia-host:${publicKeyDigest}`,

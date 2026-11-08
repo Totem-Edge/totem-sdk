@@ -14,6 +14,8 @@ module.exports = {
           '@totemsdk/storage': ['../storage/src/index.ts'],
           '@totemsdk/storage/errors': ['../storage/src/errors.ts'],
           '@totemsdk/storage/fs': ['../storage/src/adapters/file-store.ts'],
+          '@totemsdk/storage/codec': ['../storage/src/codec.ts'],
+          '@totemsdk/storage/memory': ['../storage/src/adapters/memory-store.ts'],
         },
       },
       diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
@@ -25,6 +27,8 @@ module.exports = {
     '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/errors$': '<rootDir>/packages/storage/src/errors.ts',
     '^@totemsdk/storage/fs$': '<rootDir>/packages/storage/src/adapters/file-store.ts',
+    '^@totemsdk/storage/codec$': '<rootDir>/packages/storage/src/codec.ts',
+    '^@totemsdk/storage/memory$': '<rootDir>/packages/storage/src/adapters/memory-store.ts',
     '^@totemsdk/txpow$': '<rootDir>/packages/txpow/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

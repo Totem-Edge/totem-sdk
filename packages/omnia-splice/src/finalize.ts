@@ -11,6 +11,12 @@ import type {
 } from './types.js';
 import { buildSpliceTx, computeSpliceTxDigest, spliceDraftToMinimaBytes } from './splice-tx.js';
 import {
+  observeSpliceSuccessor,
+  type PendingSpliceRecord,
+  type PendingSpliceStore,
+  type SpliceChainObserver,
+} from './successor.js';
+import {
   SpliceSignatureMismatchError,
   SpliceMissingPartyError,
   SpliceChannelStatusError,
@@ -58,6 +64,20 @@ export interface FinalizeSpliceOptions {
   ) => boolean;
   proposerLeaseProvider?: WotsLeaseProvider;
   acceptorLeaseProvider?: WotsLeaseProvider;
+  /**
+   * Chain surface used to observe the successor coin. When supplied the
+   * returned channel is only `active` after the successor is visible with the
+   * required confirmation depth; otherwise it is `funding_pending`.
+   */
+  chainProvider?: SpliceChainObserver;
+  /** Confirmations required before activation. Default 1. */
+  confirmations?: number;
+  /** Successor observation timeout. Default 30s. */
+  successorTimeoutMs?: number;
+  /** Observation poll interval. Default 1s. */
+  successorPollMs?: number;
+  /** Durable journal written before broadcast, cleared after confirmation. */
+  pendingSpliceStore?: PendingSpliceStore;
 }
 
 function defaultWotsVerify(sig: Uint8Array, digest: Uint8Array, pkd: string): boolean {
@@ -276,9 +296,18 @@ export async function finalizeSplice(
     spliceFundingTxId = Buffer.from(mined.txpowId).toString('hex');
 
     if (options?.broadcast) {
+      const record: PendingSpliceRecord = {
+        spliceId: proposal.spliceId,
+        channelId: channel.channelId,
+        txHex,
+        txpowId: spliceFundingTxId,
+        broadcastAt: Date.now(),
+      };
+      await options.pendingSpliceStore?.save(record);
       const result = await options.broadcast(txHex);
       if (result.txpowid) {
         spliceFundingTxId = result.txpowid;
+        await options.pendingSpliceStore?.save({ ...record, txpowId: result.txpowid });
       } else if (result.success === false) {
         throw new Error(
           'Splice TX broadcast rejected by the network — channel state not advanced',
@@ -308,12 +337,37 @@ export async function finalizeSplice(
     throw err;
   }
 
-  const spliceFundingCoinId = `${spliceFundingTxId}-0`;
   const params = proposal.params;
+
+  // Observe the actual successor. The old channel coin is spent by the splice,
+  // so `txid-0` is only a placeholder; the live coin id comes from the funding
+  // address. Until it is confirmed the channel must not be reported active.
+  let spliceFundingCoinId = `${spliceFundingTxId}-0`;
+  let successorStatus: 'active' | 'funding_pending' = 'active';
+  if (options?.chainProvider) {
+    const observed = await observeSpliceSuccessor(options.chainProvider, {
+      address: (channel as unknown as OmniaChannel).fundingAddress,
+      tokenId: (channel as unknown as OmniaChannel).tokenId,
+      amount: params.newTotalValue,
+      confirmations: options.confirmations ?? 1,
+      timeoutMs: options.successorTimeoutMs ?? 30_000,
+      pollIntervalMs: options.successorPollMs ?? 1_000,
+    });
+    if (observed) {
+      spliceFundingCoinId = observed.coinId;
+      successorStatus = observed.confirmed ? 'active' : 'funding_pending';
+    } else {
+      successorStatus = 'funding_pending';
+    }
+  }
+
+  if (successorStatus === 'active') {
+    await options?.pendingSpliceStore?.clear(proposal.spliceId);
+  }
 
   const splicedChannel: SplicedChannel = {
     ...(channel as unknown as OmniaChannel),
-    status: 'active',
+    status: successorStatus,
     splicedFrom: channel.channelId,
     spliceType: params.type,
     spliceFundingTxId,

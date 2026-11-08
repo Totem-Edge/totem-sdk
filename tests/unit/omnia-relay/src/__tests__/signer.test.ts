@@ -43,6 +43,12 @@ describe('createWalletChannelSigningMaterial (RFC-037 Phase 2)', () => {
     expect(verifyChannelSignature(sig, digest, participant.publicKeyDigest)).toBe(true);
   });
 
+  it('rejects a lease reserved for another address index', async () => {
+    await expect(
+      signer.sign(digestOf(9), { addressIndex: 1, l1: 0, l2: 0 } as SigningIndices),
+    ).rejects.toThrow(/cannot sign reserved address/);
+  });
+
   it('rejects a signature over a different digest', async () => {
     const sig = await signer.sign(digestOf(3), indices(0, 1));
     expect(verifyChannelSignature(sig, digestOf(4), participant.publicKeyDigest)).toBe(false);

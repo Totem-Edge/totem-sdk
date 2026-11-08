@@ -107,7 +107,7 @@ export {
   validateStateForCoSign,
 } from './sign.js';
 
-export { verifyChannelSignature } from './wots.js';
+export { verifyChannelSignature, deriveSignatureLeafBinding, type SignatureLeafBinding } from './wots.js';
 
 export {
   validateChannelStateWithKissvm,

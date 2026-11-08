@@ -82,7 +82,7 @@ export async function executeMultiHopPayment(
 ): Promise<PaymentResult> {
   const preimage = paymentRequest.preimage;
   if (!preimage) {
-    return { success: false, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
+    return { success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
   }
 
   const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
@@ -201,7 +201,14 @@ export async function executeMultiHopPayment(
     }
   }
 
-  return { success: true, preimage, settledHops: settled, feeProofs };
+  return {
+    success: true,
+    state: 'recipient-settled',
+    terminal: true,
+    preimage,
+    settledHops: settled,
+    feeProofs,
+  };
 }
 
 export const ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v1';
@@ -294,7 +301,7 @@ export async function executeCrossTokenPayment(
 ): Promise<PaymentResult> {
   const preimage = paymentRequest.preimage;
   if (!preimage) {
-    return { success: false, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
+    return { success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
   }
 
   const routeValidation = validateRoute(channels, route);

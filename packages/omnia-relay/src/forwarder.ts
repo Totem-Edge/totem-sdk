@@ -35,6 +35,13 @@ export interface HtlcLinkJournal {
   get(hashlock: string): Promise<HtlcLink | undefined> | HtlcLink | undefined;
   record(link: HtlcLink): Promise<void> | void;
   remove(hashlock: string): Promise<void> | void;
+  /** Optional durable lookup by the incoming HTLC (replay detection). */
+  getByIncoming?(params: {
+    inChannelId: string;
+    inHtlcId: string;
+  }): Promise<HtlcLink | undefined> | HtlcLink | undefined;
+  /** Optional recovery listing of every unresolved link. */
+  list?(): Promise<HtlcLink[]> | HtlcLink[];
 }
 
 export interface MultiHopForwarderOptions {
@@ -49,8 +56,17 @@ export interface MultiHopForwarderOptions {
   codec?: RoutingEnvelopeCodec;
   onForward?: (info: { hashlock: string; via: string; outChannelId: string; outHtlcId: string }) => void;
   onSettled?: (info: { hashlock: string; inChannelId: string; inHtlcId: string }) => void;
-  /** Durable link journal; defaults to an in-memory map for tests. */
-  linkJournal?: HtlcLinkJournal;
+  /**
+   * Durable link journal. Required: a volatile default would lose the
+   * incoming→outgoing association on restart and strand locked liquidity.
+   */
+  linkJournal: HtlcLinkJournal;
+  /**
+   * Recipient-side preimage resolver. When the peeled envelope is the final
+   * hop, a value here fulfils the incoming HTLC immediately and propagates the
+   * preimage back to the previous hop.
+   */
+  resolvePreimage?: (hashlock: string) => Promise<string | undefined> | string | undefined;
 }
 
 export interface ForwardIncomingParams {
@@ -65,13 +81,16 @@ export interface ForwardIncomingParams {
 
 export type ForwardIncomingResult =
   | { status: 'final' }
-  | { status: 'forwarded'; outChannelId: string; outHtlcId: string };
+  | { status: 'forwarded'; outChannelId: string; outHtlcId: string }
+  | { status: 'settled'; inChannelId: string; inHtlcId: string };
 
 export type RevealPreimageResult =
   | { status: 'settled'; inChannelId: string }
   | { status: 'unknown' };
 
 export interface HtlcLink {
+  /** Hashlock shared by the incoming and outgoing HTLCs. */
+  hashlock: string;
   inChannelId: string;
   inHtlcId: string;
   outChannelId: string;
@@ -82,6 +101,12 @@ export interface HtlcLink {
 export interface MultiHopForwarder {
   forwardIncoming(params: ForwardIncomingParams): Promise<ForwardIncomingResult>;
   revealPreimage(hashlock: string, preimage: string): Promise<RevealPreimageResult>;
+  /**
+   * Reconcile journaled links after a restart. Links whose incoming or
+   * outgoing HTLC is no longer pending are cleared; unresolved links are
+   * returned for the caller to reveal or time out.
+   */
+  recover(): Promise<HtlcLink[]>;
   links(): ReadonlyMap<string, HtlcLink>;
 }
 
@@ -116,7 +141,39 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     }
 
     const peel = codec.peel(params.envelope, self);
-    if (peel.kind === 'final') return { status: 'final' };
+    if (peel.kind === 'final') {
+      // Recipient hop: settle only when the application can supply the
+      // preimage. Otherwise the HTLC stays pending and the caller sees an
+      // explicit non-terminal `final` result.
+      const preimage = await options.resolvePreimage?.(params.hashlock);
+      if (!preimage) return { status: 'final' };
+      const fulfilled = await fulfillHTLC(
+        inChannel,
+        params.inHtlcId,
+        preimage,
+        options.leaseProvider,
+        options.chainProvider,
+        options.signer,
+      );
+      options.channels.set(fulfilled.channel.channelId, fulfilled.channel);
+      const previousHop = inChannel.parties.find(
+        (p) => p.publicKeyDigest !== self.publicKeyDigest,
+      );
+      if (!previousHop) throw new Error(`incoming channel ${params.inChannelId} has no counterparty`);
+      const peer = await options.swarm.connectToPeer(previousHop.publicKeyDigest, inChannel.channelId);
+      await peer.sendMessage({
+        type: 'STATE_UPDATE',
+        channelId: fulfilled.channel.channelId,
+        nonce: Date.now(),
+        payload: { ...fulfilled.partialState, preimage },
+      });
+      options.onSettled?.({
+        hashlock: params.hashlock,
+        inChannelId: params.inChannelId,
+        inHtlcId: params.inHtlcId,
+      });
+      return { status: 'settled', inChannelId: params.inChannelId, inHtlcId: params.inHtlcId };
+    }
 
     const next = peel.next;
     const outChannel = findChannelTo(next.via, next.channelId);
@@ -131,7 +188,13 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     if (next.amount > inHtlc.amount) {
       throw new Error(`outgoing amount ${next.amount} exceeds incoming amount ${inHtlc.amount}`);
     }
-    if (links.has(params.hashlock) || await options.linkJournal?.get(params.hashlock)) {
+    const duplicate = links.has(params.hashlock)
+      || Boolean(await options.linkJournal.get(params.hashlock))
+      || Boolean(await options.linkJournal.getByIncoming?.({
+        inChannelId: params.inChannelId,
+        inHtlcId: params.inHtlcId,
+      }));
+    if (duplicate) {
       throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
     }
 
@@ -150,6 +213,7 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     options.channels.set(result.channel.channelId, result.channel);
 
     const link: HtlcLink = {
+      hashlock: params.hashlock,
       inChannelId: params.inChannelId,
       inHtlcId: params.inHtlcId,
       outChannelId: result.channel.channelId,
@@ -157,7 +221,7 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       via: next.via,
     };
     links.set(params.hashlock, link);
-    await options.linkJournal?.record(link);
+    await options.linkJournal.record(link);
 
     const peer = await options.swarm.connectToPeer(next.via, result.channel.channelId);
     await peer.sendMessage({
@@ -181,19 +245,56 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
   };
 
   const revealPreimage = async (hashlock: string, preimage: string): Promise<RevealPreimageResult> => {
-    const link = links.get(hashlock) ?? await options.linkJournal?.get(hashlock);
+    const link = links.get(hashlock) ?? await options.linkJournal.get(hashlock);
     if (!link) return { status: 'unknown' };
     const channel = options.channels.get(link.inChannelId);
     if (!channel) return { status: 'unknown' };
 
     const result = await fulfillHTLC(channel, link.inHtlcId, preimage, options.leaseProvider, options.chainProvider, options.signer);
     options.channels.set(result.channel.channelId, result.channel);
+
+    // Propagate the fulfilment (and the preimage) to the previous hop so the
+    // backward settlement walk can continue to the payer.
+    const previousHop = channel.parties.find(
+      (p) => p.publicKeyDigest !== self.publicKeyDigest,
+    );
+    if (previousHop) {
+      const peer = await options.swarm.connectToPeer(previousHop.publicKeyDigest, channel.channelId);
+      await peer.sendMessage({
+        type: 'STATE_UPDATE',
+        channelId: result.channel.channelId,
+        nonce: Date.now(),
+        payload: { ...result.partialState, preimage },
+      });
+    }
+
     links.delete(hashlock);
-    await options.linkJournal?.remove(hashlock);
+    await options.linkJournal.remove(hashlock);
 
     options.onSettled?.({ hashlock, inChannelId: link.inChannelId, inHtlcId: link.inHtlcId });
     return { status: 'settled', inChannelId: link.inChannelId };
   };
 
-  return { forwardIncoming, revealPreimage, links: () => links };
+  const recover = async (): Promise<HtlcLink[]> => {
+    const journaled: HtlcLink[] = typeof options.linkJournal.list === 'function'
+      ? await options.linkJournal.list()
+      : [...links.values()];
+    const unresolved: HtlcLink[] = [];
+    for (const link of journaled) {
+      const inChannel = options.channels.get(link.inChannelId);
+      const outChannel = options.channels.get(link.outChannelId);
+      const inHtlc = inChannel?.pendingHTLCs.find((h) => h.htlcId === link.inHtlcId);
+      const outHtlc = outChannel?.pendingHTLCs.find((h) => h.htlcId === link.outHtlcId);
+      const terminal = (h: typeof inHtlc) => !h || h.status !== 'pending';
+      if (terminal(inHtlc) || terminal(outHtlc)) {
+        links.delete(link.hashlock);
+        await options.linkJournal.remove(link.hashlock);
+        continue;
+      }
+      unresolved.push(link);
+    }
+    return unresolved;
+  };
+
+  return { forwardIncoming, revealPreimage, recover, links: () => links };
 }

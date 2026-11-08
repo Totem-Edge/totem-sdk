@@ -49,6 +49,14 @@ export function createWalletChannelSigningMaterial(
   const signer: ChannelSigner = {
     publicKeyDigest,
     async sign(payload: Uint8Array, indices: SigningIndices): Promise<ChannelSignature> {
+      // The tree belongs to exactly one address slot. A lease from another
+      // address must fail closed at the signer boundary rather than produce an
+      // invalid or cross-tree signature.
+      if (indices.addressIndex !== addressIndex) {
+        throw new Error(
+          `wallet signer address ${addressIndex} cannot sign reserved address ${indices.addressIndex}`,
+        );
+      }
       const flat = indices.l1 * KEYS_PER_LEVEL + indices.l2;
       treeKey.setUses(flat);
       return serializeTreeSignature(treeKey.sign(payload)) as Uint8Array;

@@ -627,6 +627,49 @@ describe('finalizeSplice', () => {
     expect(spliced.splicedFrom).toBe(ch.channelId);
   });
 
+  it('observes the real successor coin and requires confirmations', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const successor = {
+      coinid: '0x' + '77'.repeat(32),
+      amount: '1500',
+      address: q.fundingAddress,
+      tokenid: '0x00',
+      spent: false,
+      created: '5',
+    };
+    const confirmed = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: {
+        getCoins: async () => [successor],
+        getTip: async () => ({ block: 10 }),
+      },
+      confirmations: 2,
+      successorTimeoutMs: 0,
+    });
+    expect(confirmed.status).toBe('active');
+    expect(confirmed.spliceFundingCoinId).toBe(successor.coinid);
+
+    const ch = makeChannel();
+    const fresh = await quiesce(ch);
+    const aliceLp = makeLeaseProvider(PKD_ALICE);
+    const bobLp = makeLeaseProvider(PKD_BOB);
+    const proposal2 = await proposeSpliceIn(fresh, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
+    const acceptance2 = await acceptSplice(fresh, proposal2, bobLp);
+    const pending = await finalizeSplice(fresh, proposal2, acceptance2, {
+      ...TEST_MINE_OPTS,
+      proposerLeaseProvider: aliceLp.wotsLease,
+      acceptorLeaseProvider: bobLp.wotsLease,
+      chainProvider: {
+        getCoins: async () => [{ ...successor, created: '10' }],
+        getTip: async () => ({ block: 10 }),
+      },
+      confirmations: 3,
+      successorTimeoutMs: 0,
+    });
+    expect(pending.status).toBe('funding_pending');
+    expect(pending.spliceFundingCoinId).toBe(successor.coinid);
+  });
+
   it('splice-out: SplicedChannel status active and reduced totalValue', async () => {
     const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceOut(200n);
     const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);

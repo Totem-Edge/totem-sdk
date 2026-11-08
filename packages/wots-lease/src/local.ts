@@ -64,12 +64,16 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     storage: StorageAdapter,
     private readonly logger: LoggerAdapter = new NoopLogger(),
     deviceId = 'local',
+    cas?: CasStore,
   ) {
     this.watermark = new WotsWatermarkStore(storage, logger);
     this.leaseStore = new LeaseStore(storage, logger);
     this.journal = new LeaseJournal(storage, logger);
     this.deviceId = deviceId;
-    this.cas = LocalLeaseProvider.detectCas(storage);
+    // Prefer an explicitly-supplied CAS medium. The host keeps the journal and
+    // watermark in their existing files while the slot claims live in a
+    // transactional store shared by every process on the machine.
+    this.cas = cas ?? LocalLeaseProvider.detectCas(storage);
   }
 
   private static detectCas(storage: StorageAdapter): CasStore | undefined {
@@ -240,10 +244,22 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     return this.withMutationLock(async () => {
       if (!this._initialized) await this.initialize();
       // Pick up any allocation made by another provider over the same storage
-      // before choosing a slot (AUD-004).
-      await this.watermark.refresh();
-      const indices = this.watermark.getNextIndices(params.treeId);
-      return this.reserveSpecificKeyUseUnlocked(params, indices);
+      // before choosing a slot (AUD-004). If a peer wins the CAS claim for the
+      // slot we chose, refresh and take the next free slot rather than failing
+      // the caller; exhaustion still surfaces after the bounded retries.
+      for (let attempt = 0; ; attempt++) {
+        await this.watermark.refresh();
+        const indices = this.watermark.getNextIndices(params.treeId);
+        try {
+          return await this.reserveSpecificKeyUseUnlocked(params, indices);
+        } catch (error) {
+          if (!(error instanceof IndicesUnavailableError) || attempt >= 31) throw error;
+          // Another process owns this leaf. Its journal/watermark may live on a
+          // different backend, so record the loss locally before taking the
+          // next free slot.
+          await this.watermark.markUnavailable(params.treeId, indices, 'reserved');
+        }
+      }
     });
   }
 

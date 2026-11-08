@@ -39,7 +39,10 @@ export type {
   ForwardIncomingResult,
   RevealPreimageResult,
   HtlcLink,
+  HtlcLinkJournal,
 } from './forwarder.js';
+export { createDurableHtlcLinkJournal } from './link-journal.js';
+export type { DurableHtlcLinkJournal } from './link-journal.js';
 
 // Routing seam + helpers.
 export {
