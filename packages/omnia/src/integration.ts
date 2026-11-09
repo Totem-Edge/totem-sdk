@@ -119,6 +119,11 @@ export interface OmniaIntegrationConfig {
    * network-facing host.
    */
   allowUnverifiedChannelProposal?: boolean;
+  /**
+   * Test/dev: accept a contest delay below the default floor. The script embeds
+   * the proposed delay, so settlement is only fast when this is set deliberately.
+   */
+  allowShortContestDelay?: boolean;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -265,22 +270,16 @@ async function _handleChannelProposal(
     const proposal = msg.payload as ChannelProposal;
     const enforcing = Boolean(config.signer || config.leaseProvider)
       && config.allowUnverifiedChannelProposal !== true;
-    let remoteTransportPubkey: string | undefined;
-    if (enforcing) {
-      // The remote party must be the connection we authenticated. A signed
-      // proposal cannot introduce an unrelated counterparty.
-      remoteTransportPubkey = proposal.remoteParty?.transportPubkey;
-      if (!remoteTransportPubkey) {
-        throw new Error('Proposal remote party is not bound to an authenticated transport identity');
-      }
-      if (!proposal.localParty || !config.signer?.publicKeyDigest) {
-        throw new Error('Proposal cannot be bound: local signing identity is missing');
-      }
+    if (enforcing && (!proposal.localParty || !proposal.remoteParty || !config.signer?.publicKeyDigest)) {
+      throw new Error('Proposal cannot be bound: local signing identity is missing');
     }
     const channel = await acceptChannel(proposal, config.chainProvider, 1, {
       localPublicKeyDigest: enforcing ? config.signer?.publicKeyDigest : undefined,
-      remoteTransportPubkey: enforcing ? remoteTransportPubkey : undefined,
+      // `peer.pubkey` is the authenticated transport identity of the proposer.
+      remoteTransportPubkey: enforcing ? peer.pubkey : undefined,
       requireChainProvider: enforcing,
+      allowShortContestDelay: config.allowShortContestDelay
+        ?? process.env.OMNIA_ALLOW_SHORT_CONTEST_DELAY === '1',
     });
     store.set(channel.channelId, channel);
 

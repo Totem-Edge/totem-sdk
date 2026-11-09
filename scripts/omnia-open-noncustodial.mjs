@@ -89,7 +89,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     remoteAmount: REMOTE_AMOUNT,
     fundingCoinId: FUNDING_COIN_ID,
     fundingScript: walletInfo.fundingScript,
-    contestDelayBlocks: 2,
+    contestDelayBlocks: Number(process.env.CONTEST_DELAY_BLOCKS ?? 256),
   });
 
   const intent = { ...prepared.requests.intent, digest: digestBytes(prepared.requests.intent.digest) };
