@@ -27,7 +27,8 @@ import {
   type TransactionBuildResult,
   type SpendableCoinInput,
   type BuildTransactionParams,
-  parseDecimalToBaseUnits
+  parseDecimalToBaseUnits,
+  formatBaseUnitsToDecimal
 } from './MinimaTransactionBuilder';
 import {
   buildEnhancedTransaction,
@@ -90,6 +91,45 @@ function parseAmountToBaseUnits(amount: string): string {
   }
   
   return (BigInt(intPart) * SCALE + BigInt(fracPart)).toString();
+}
+
+/**
+ * Convert a display token amount to its Minima backing decimal using the
+ * token scale (44 - token.decimals). Example: 9 porq (scale 36) → 0.000…009.
+ */
+function displayAmountToMinimaDecimal(displayAmount: string, scale: number): string {
+  const displayBU = BigInt(parseAmountToBaseUnits(displayAmount));
+  const backingBU = displayBU / (BigInt(10) ** BigInt(scale));
+  return formatBaseUnitsToDecimal(backingBU);
+}
+
+/**
+ * Derive the token scale from the selected token's display balance and the
+ * total backing of the selected coins. The coin selection for a custom token
+ * returns all matching coins, so totalSelected is the token's backing balance.
+ * Returns undefined unless the ratio is an exact power of ten.
+ */
+function deriveTokenScale(displayBalance?: string, backingTotal?: string): number | undefined {
+  if (!displayBalance || !backingTotal) return undefined;
+  try {
+    const displayBU = BigInt(parseAmountToBaseUnits(displayBalance));
+    const backingBU = BigInt(parseAmountToBaseUnits(backingTotal));
+    if (displayBU <= 0n || backingBU <= 0n) return undefined;
+    const ratio = displayBU / backingBU;
+    let r = ratio;
+    let scale = 0;
+    while (r > 1n && scale <= 44) { r /= 10n; scale++; }
+    return r === 1n && scale > 0 && scale <= 44 ? scale : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function subtractBacking(total: string, part: string): string {
+  const totalBU = BigInt(parseAmountToBaseUnits(total));
+  const partBU = BigInt(parseAmountToBaseUnits(part));
+  const changeBU = totalBU - partBU;
+  return changeBU > 0n ? formatBaseUnitsToDecimal(changeBU) : '0';
 }
 
 export class TransactionAssembler {
@@ -272,16 +312,23 @@ export class TransactionAssembler {
     
     // For custom tokens, coin inputs carry Minima backing amounts (e.g. "0.000...888")
     // while request.amount is the user's display amount (e.g. "888").
-    // Comparing them directly in the builder always fails (different unit scales).
-    // coinSelection.totalSelected is the sum of actual coin backing amounts —
-    // use that as the builder amount so both sides of the balance check are
-    // in the same Minima-backing unit.
-    // For native Minima, display == backing, so request.amount is correct.
+    // Convert the display amount to the token's Minima backing using its scale.
+    // Never use coinSelection.totalSelected as the recipient output: that is the
+    // whole selected input and would send the entire coin instead of the requested
+    // amount, leaving the recipient with the total input and no change.
     const isCustomToken = !!(request.tokenId && request.tokenId !== '0x00');
+    const tokenScale = isCustomToken
+      ? deriveTokenScale(request.tokenDisplayBalance, coinSelection.totalSelected)
+      : undefined;
+    const sendAmount = isCustomToken
+      ? (tokenScale !== undefined
+          ? displayAmountToMinimaDecimal(request.amount, tokenScale)
+          : coinSelection.totalSelected)
+      : request.amount;
     const buildParams: BuildTransactionParams = {
       inputs,
       recipientAddress: request.recipient,
-      amount: isCustomToken ? coinSelection.totalSelected : request.amount,
+      amount: sendAmount,
       tokenId: request.tokenId,
       changeAddress: coinSelection.fromAddresses[0]
     };
@@ -341,19 +388,36 @@ export class TransactionAssembler {
       scriptDescriptor
     }));
     
-    // For custom tokens use the total coin backing (same unit as the inputs)
-    // rather than the user's display amount.
+    // For custom tokens, convert the user's display amount to the token's
+    // Minima backing. Using coinSelection.totalSelected here would send the
+    // whole selected coin to the recipient instead of the requested amount.
     const isCustomTokenEnh = !!(request.tokenId && request.tokenId !== '0x00');
+    const tokenScaleEnh = isCustomTokenEnh
+      ? deriveTokenScale(request.tokenDisplayBalance, coinSelection.totalSelected)
+      : undefined;
+    const recipientAmount = isCustomTokenEnh
+      ? (tokenScaleEnh !== undefined
+          ? displayAmountToMinimaDecimal(request.amount, tokenScaleEnh)
+          : coinSelection.totalSelected)
+      : request.amount;
     const enhancedOutputs: EnhancedCoinOutput[] = [
       {
         address: request.recipient,
-        amount: isCustomTokenEnh ? coinSelection.totalSelected : request.amount,
+        amount: recipientAmount,
         tokenId: request.tokenId
       }
     ];
-    
-    // Calculate change in base units, then convert back to decimal for output
-    if (BigInt(changeBaseUnits) > 0n && coinSelection.fromAddresses.length > 0) {
+
+    if (isCustomTokenEnh && tokenScaleEnh !== undefined && coinSelection.fromAddresses.length > 0) {
+      const changeBacking = subtractBacking(coinSelection.totalSelected, recipientAmount);
+      if (changeBacking !== '0') {
+        enhancedOutputs.push({
+          address: coinSelection.fromAddresses[0],
+          amount: changeBacking,
+          tokenId: request.tokenId
+        });
+      }
+    } else if (BigInt(changeBaseUnits) > 0n && coinSelection.fromAddresses.length > 0) {
       enhancedOutputs.push({
         address: coinSelection.fromAddresses[0],
         amount: coinSelection.change,  // Decimal string from coin selection

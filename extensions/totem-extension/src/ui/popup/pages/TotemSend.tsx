@@ -128,7 +128,7 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
           sendable:    t.confirmed ?? '0',
           unconfirmed: t.unconfirmed ?? '0',
           icon:        parseTokenImageUrl(t.url) || parseTokenImageUrl(t.icon) || parseTokenImageUrl(t.artimage),
-          type:        t.decimals === 0 ? 'nft' : (t.kind ?? 'token'),
+          type:        t.kind ?? (t.decimals === 0 ? 'nft' : 'token'),
           decimals:    t.decimals,
         })),
     ];
@@ -286,6 +286,7 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
         amount,
         tokenId,
         tokenSymbol: selectedAsset,
+        tokenDisplayBalance: tokenId !== '0x00' ? balance : undefined,
         sourceMode: 'focused',
         sourceAddress,
         excludedAddresses: [],
@@ -443,39 +444,40 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     const isSending = txStatus === 'signing' || txStatus === 'submitting';
     
     // Token display scale: a Minima token with `decimals` D uses scale 44-D.
-    // Prefer the token metadata; deriving from transaction.totalOut is wrong
-    // because totalOut includes change (9 sent from 999 would look like 999).
+    // Prefer the recipient outputs; the node's token metadata can be missing
+    // or wrong (it can report decimals:0 for a fungible token). Never derive
+    // from totalOut because that includes change.
     let tokenScale: number | undefined;
     const reviewTokenId = pendingParams.tokenid || '0x00';
-    // 'amount' is the React state — the user's original typed value ("888").
-    // pendingParams.amount has already been converted to base units and must NOT be used here.
     if (reviewTokenId !== '0x00') {
-      const reviewToken = walletTokens.find(
-        t => t.tokenId.toLowerCase() === reviewTokenId.toLowerCase()
-      );
-      const decimals = reviewToken?.decimals != null ? Number(reviewToken.decimals) : NaN;
-      if (Number.isFinite(decimals) && decimals >= 0 && decimals <= 44) {
-        tokenScale = 44 - decimals;
-      }
-
-      // Fallback only when metadata is missing: derive from the recipient
-      // output, never from totalOut (which includes change).
-      if (tokenScale === undefined && transactionArtifact && amount) {
-        const recipientOut = transactionArtifact.outputs.find(
+      if (transactionArtifact && amount) {
+        const recipientOuts = transactionArtifact.outputs.filter(
           o => !o.isChange && o.tokenId.toLowerCase() === reviewTokenId.toLowerCase()
         );
-        if (recipientOut) {
-          try {
-            const displayBU = parseDecimalToBaseUnits(amount);   // "888" → 888×10^44
-            const backingBU = parseDecimalToBaseUnits(recipientOut.amount);
-            if (backingBU > 0n && displayBU > 0n) {
-              const ratio = displayBU / backingBU;
-              let scale = 0;
-              let r = ratio;
-              while (r > 1n && scale <= 44) { r /= 10n; scale++; }
-              if (r === 1n && scale > 0 && scale <= 44) tokenScale = scale;
-            }
-          } catch { /* leave tokenScale undefined */ }
+        let backingBU = 0n;
+        for (const out of recipientOuts) {
+          try { backingBU += parseDecimalToBaseUnits(out.amount); } catch { /* ignore */ }
+        }
+        try {
+          const displayBU = parseDecimalToBaseUnits(amount);   // "9" → 9×10^44
+          if (backingBU > 0n && displayBU > 0n) {
+            const ratio = displayBU / backingBU;
+            let scale = 0;
+            let r = ratio;
+            while (r > 1n && scale <= 44) { r /= 10n; scale++; }
+            if (r === 1n && scale > 0 && scale <= 44) tokenScale = scale;
+          }
+        } catch { /* leave tokenScale undefined */ }
+      }
+
+      // Fallback only when the recipient-output derivation is unavailable.
+      if (tokenScale === undefined) {
+        const reviewToken = walletTokens.find(
+          t => t.tokenId.toLowerCase() === reviewTokenId.toLowerCase()
+        );
+        const decimals = reviewToken?.decimals != null ? Number(reviewToken.decimals) : NaN;
+        if (Number.isFinite(decimals) && decimals >= 0 && decimals <= 44) {
+          tokenScale = 44 - decimals;
         }
       }
     }

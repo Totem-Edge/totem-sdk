@@ -94,6 +94,11 @@ export interface TransactionAssemblyRequest {
   amount: string;
   tokenId: string;
   tokenSymbol: string;
+  /**
+   * Display balance of the selected token for the source address. Used to
+   * derive the token scale when the node's token metadata omits decimals.
+   */
+  tokenDisplayBalance?: string;
   
   sourceMode: SendMode;
   sourceAddress?: string;
