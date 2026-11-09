@@ -100,6 +100,10 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
     startStream,
   } = usePortfolio();
   const isLoading = status === 'loading';
+  // Entries can come from the persistent PortfolioCache before/without a live
+  // fetch. If we have them, show them with the Offline badge instead of the
+  // hard error card.
+  const hasPortfolioEntries = entries.length > 0;
 
   // The transport is plain HTTP polling, so `connectionState` stays
   // "fallback" even when every poll succeeds. Prefer the data status for the
@@ -188,17 +192,17 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
   useEffect(() => {
     if (isLoading) {
       setBalanceState('loading');
-    } else if (connectionState === 'error' && !hasValidBalanceRef.current) {
-      // Only show error state if we have never successfully displayed a balance.
-      // Once a valid balance has been shown, keep it visible through WS reconnects.
+    } else if (connectionState === 'error' && !hasValidBalanceRef.current && !hasPortfolioEntries) {
+      // Only show the hard error state when we have never displayed a balance
+      // and there is no cached portfolio to fall back to.
       setBalanceState('error');
       setBalanceError(portfolioError || 'Balance service unavailable');
     } else {
-      // Stream is ready — exit any stuck loading/error state.
-      // BalanceCard will show a spinner placeholder until portfolio entries arrive via the stream.
+      // Stream is ready (or we have cached entries) — exit any stuck
+      // loading/error state.
       setBalanceState(prev => (prev === 'loading' || prev === 'error' ? 'idle' : prev));
     }
-  }, [isLoading, connectionState, portfolioError]);
+  }, [isLoading, connectionState, portfolioError, hasPortfolioEntries]);
 
   useEffect(() => {
     if (currentAddress && entries.length === 0) {
@@ -284,7 +288,7 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
       gap: 'var(--space-2)',
     }}>
       {/* Balance Card with USD Value and 24h % Change */}
-      {balanceState === 'loading' && (
+      {balanceState === 'loading' && !hasPortfolioEntries && (
         <Card padding="md" shadow>
           <div style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
             <Typography variant="body" uppercase bold>
@@ -294,7 +298,7 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
         </Card>
       )}
 
-      {balanceState === 'error' && (
+      {balanceState === 'error' && !hasPortfolioEntries && (
         <Card padding="md" shadow>
           <div style={{ textAlign: 'center', padding: 'var(--space-2)' }}>
             <Typography variant="body" uppercase bold color="danger">
@@ -315,7 +319,7 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
         </Card>
       )}
 
-      {(balanceState === 'success' || balanceState === 'idle') && (
+      {(balanceState === 'success' || balanceState === 'idle' || hasPortfolioEntries) && (
         <BalanceCard
           confirmed={balanceDetails.confirmed}
           unconfirmed={balanceDetails.unconfirmed}
@@ -326,11 +330,11 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
           streamingStatus={streamingStatus}
           onRefresh={handleRefreshBalance}
           isRefreshing={isRefreshing}
-          isBalancePending={balanceState === 'idle'}
+          isBalancePending={balanceState === 'idle' || (hasPortfolioEntries && !hasValidBalanceRef.current)}
         />
       )}
 
-      {connectionState === 'error' && balanceState === 'success' && (
+      {connectionState === 'error' && (balanceState === 'success' || hasPortfolioEntries) && (
         <div style={{
           border: '1px solid var(--color-danger)',
           padding: 'var(--space-1-5) var(--space-2)',

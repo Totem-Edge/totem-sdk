@@ -2919,13 +2919,13 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         });
         
         // Step 5: Finalize (submit via txnimport + txnpost)
-        // Send hex directly - we use bypass URL (api2.axia.to) to avoid Cloudflare WAF
+        // Send hex directly on the standard API origin.
         txLog.info('Step 5: Submitting transaction for broadcast...');
         txLog.debug(`Transaction hex length: ${txnImportHex.length}`);
         
         const finalizeResult = await walletManager.finalizeTransaction({
           leaseToken: prepareResult.leaseToken,
-          signedHex: txnImportHex,  // Send as hex - bypass URL avoids Cloudflare WAF issues
+          signedHex: txnImportHex,  // Send as hex
           importId  // Pass importId so backend uses matching ID
         });
         
