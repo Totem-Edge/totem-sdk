@@ -4,7 +4,7 @@
  */
 
 import { acceptChannel } from '../channel.js';
-import { buildEltooScript } from '../script.js';
+import { buildEltooScript, scriptAddress } from '../script.js';
 import type { ChannelProposal, ChannelParticipant } from '../types.js';
 
 const pk = (fill: string) => '0x' + fill.repeat(32);
@@ -37,8 +37,10 @@ function proposal(): ChannelProposal {
   };
 }
 
-const accept = (options: Parameters<typeof acceptChannel>[3]) =>
-  acceptChannel(proposal(), undefined, 0, { allowShortContestDelay: true, ...options });
+const accept = (
+  options: Parameters<typeof acceptChannel>[3],
+  provider?: Parameters<typeof acceptChannel>[1],
+) => acceptChannel(proposal(), provider, 1, { allowShortContestDelay: true, ...options });
 
 describe('channel proposal identity binding', () => {
   it('accepts a proposal bound to the local signer and authenticated peer', async () => {
@@ -58,6 +60,24 @@ describe('channel proposal identity binding', () => {
       localPublicKeyDigest: bob.publicKeyDigest,
       remoteTransportPubkey: pk('cc'),
     })).rejects.toThrow(/authenticated peer/i);
+  });
+
+  it('accepts a funding coin whose address differs only by hex case', async () => {
+    const p = proposal();
+    const address = scriptAddress(p.fundingScript);
+    const provider = {
+      getCoin: async () => ({
+        coinid: p.fundingCoinId,
+        address: address.toUpperCase(),
+        amount: 1000n,
+        tokenid: '0x00',
+        spent: false,
+        created: '5',
+      }),
+      getTip: async () => ({ block: 10 }),
+    } as unknown as Parameters<typeof acceptChannel>[1];
+    const channel = await accept(undefined, provider);
+    expect(channel.fundingAddress).toBe(address);
   });
 
   it('requires a chain provider for network acceptance', async () => {

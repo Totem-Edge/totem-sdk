@@ -1,4 +1,5 @@
 import {
+  activateChannel,
   addHTLC,
   createChannel,
   buildChannelOpening,
@@ -9,6 +10,7 @@ import {
   incrementCounter,
   markChannelClosed,
   markChannelClosing,
+  confirmationsAt,
   proposeSettlement,
   buildSettlementSigningRequest,
   recordMeterReading,
@@ -2015,6 +2017,22 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     methods.set(alias, handler);
   };
 
+  // Channel mutations are read-modify-write over the in-memory channel map.
+  // Serialize them per channel so two concurrent RPC calls cannot both read the
+  // same sequence and silently apply only one transition while both report
+  // success.
+  const channelMutationTails = new Map<string, Promise<unknown>>();
+  const withChannelLock = <T>(channelId: string, fn: () => Promise<T>): Promise<T> => {
+    const previous = channelMutationTails.get(channelId) ?? Promise.resolve();
+    const tail = previous.then(fn, fn);
+    const tracked = tail.catch(() => undefined);
+    channelMutationTails.set(channelId, tracked);
+    void tracked.finally(() => {
+      if (channelMutationTails.get(channelId) === tracked) channelMutationTails.delete(channelId);
+    });
+    return tail;
+  };
+
   const observeMethods = (map: Map<string, JsonRpcHandler>): Map<string, JsonRpcHandler> => {
     const emitter = context.observe;
     if (!emitter) return map;
@@ -2095,11 +2113,26 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaGetFundingCoins', getFundingCoins, 'omnia/getFundingCoins');
 
-  const getChannelState: JsonRpcHandler = (raw) => {
+  const getChannelState: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     const channelId = requiredString(params, 'channelId');
-    const channel = context.channels.get(channelId);
+    let channel = context.channels.get(channelId);
     if (!channel) throw new Error(`Channel ${channelId} not found`);
+    // The acceptor does not see the funding confirmation event. Re-check on
+    // read so a channel becomes active once its funding coin is buried enough.
+    if (channel.status === 'funding_pending' && context.chainProvider) {
+      try {
+        const coin = await context.chainProvider.getCoin(channel.fundingCoinId);
+        const tip = await context.chainProvider.getTip();
+        const depth = confirmationsAt(coin, tip.block);
+        if (coin && !coin.spent && depth !== null && depth >= 1) {
+          channel = activateChannel(channel);
+          context.channels.set(channelId, channel);
+        }
+      } catch {
+        // Leave the channel pending; a later read retries.
+      }
+    }
     return channelStateView(channel);
   };
   register('totem_omniaGetChannelState', getChannelState, 'omnia/getChannelState');
@@ -2372,7 +2405,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     requireMutationContext(context);
     const channelId = requiredString(params, 'channelId');
     const amount = requiredBigInt(params, 'amount');
-    return withOperation(context, params, async () => {
+    return withChannelLock(channelId, () => withOperation(context, params, async () => {
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
       const localPartyId = context.localParticipant.partyId;
@@ -2408,7 +2441,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       ) : undefined;
       if (peer) await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
       return { success: true, channelId, sequence: result.channel.currentSequence, localBalance: result.channel.balances[localPartyId]!.toString(), remoteBalance: result.channel.balances[remotePartyId]!.toString() };
-    });
+    }));
   };
   register('totem_omniaPay', pay, 'omnia/pay');
 

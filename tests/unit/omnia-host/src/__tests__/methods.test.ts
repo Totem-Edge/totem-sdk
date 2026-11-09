@@ -45,7 +45,7 @@ describe('omnia-host JSON-RPC methods', () => {
     expect(result.limitations.join(' ')).toContain('wallet-relevant');
   });
 
-  it('exposes a fully serializable channel state (CAN-006)', () => {
+  it('exposes a fully serializable channel state (CAN-006)', async () => {
     const channels = new Map<string, any>([['channel-1', {
       channelId: 'channel-1',
       status: 'active',
@@ -77,7 +77,7 @@ describe('omnia-host JSON-RPC methods', () => {
       updatedAt: 2,
     }]]);
     const methods = createHostMethods({ channels, routing: new InProcessRoutingProvider() });
-    const view = methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, any>;
+    const view = await methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, any>;
 
     expect(() => JSON.stringify(view)).not.toThrow();
     expect(view.totalValue).toBe('10');
@@ -85,6 +85,6 @@ describe('omnia-host JSON-RPC methods', () => {
     expect(view.currentSequence).toBe(4);
     expect(view.latestState.signatures).toEqual(['alice']);
     expect(view.latestState.stateVariables[0].value).toBe('4');
-    expect(() => methods.get('totem_omniaGetChannelState')!({ channelId: 'missing' })).toThrow(/not found/);
+    await expect(methods.get('totem_omniaGetChannelState')!({ channelId: 'missing' })).rejects.toThrow(/not found/);
   });
 });

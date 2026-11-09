@@ -364,13 +364,28 @@ export async function acceptChannel(
   minConfirmations: number = 1,
   options?: AcceptChannelOptions,
 ): Promise<OmniaChannel> {
-  if (options?.localPublicKeyDigest
-    && normalizeDigest(proposal.localParty.publicKeyDigest) !== normalizeDigest(options.localPublicKeyDigest)) {
-    throw new Error('Proposal local party does not match this host signing identity');
-  }
-  if (options?.remoteTransportPubkey && proposal.remoteParty.transportPubkey
-    && normalizeDigest(proposal.remoteParty.transportPubkey) !== normalizeDigest(options.remoteTransportPubkey)) {
-    throw new Error('Proposal remote party does not match the authenticated peer');
+  if (options?.localPublicKeyDigest) {
+    // Proposals are proposer-relative: `localParty` is the initiator's party and
+    // `remoteParty` is the acceptor's. The acceptor's signer is therefore one of
+    // the two, not necessarily `localParty`.
+    const local = normalizeDigest(options.localPublicKeyDigest);
+    const isLocal = normalizeDigest(proposal.localParty.publicKeyDigest) === local;
+    const isRemote = normalizeDigest(proposal.remoteParty.publicKeyDigest) === local;
+    if (!isLocal && !isRemote) {
+      throw new Error('Proposal local party does not match this host signing identity');
+    }
+    if (isLocal && isRemote) {
+      throw new Error('Proposal local and remote parties are the same key');
+    }
+    if (options.remoteTransportPubkey) {
+      const peerParty = isLocal ? proposal.remoteParty : proposal.localParty;
+      if (!peerParty.transportPubkey) {
+        throw new Error('Proposal remote party is not bound to an authenticated transport identity');
+      }
+      if (normalizeDigest(peerParty.transportPubkey) !== normalizeDigest(options.remoteTransportPubkey)) {
+        throw new Error('Proposal remote party does not match the authenticated peer');
+      }
+    }
   }
   if (options?.requireChainProvider && !provider) {
     throw new Error('Accepting a network channel proposal requires a chain provider');
@@ -416,7 +431,7 @@ export async function acceptChannel(
     if (coin.spent) {
       throw new Error(`Funding coin ${proposal.fundingCoinId} is already spent`);
     }
-    if (coin.address !== address) {
+    if (normalizeDigest(coin.address) !== normalizeDigest(address)) {
       throw new Error(
         `Funding coin address ${coin.address} is not the channel script address ${address}`,
       );
@@ -425,7 +440,7 @@ export async function acceptChannel(
     if (BigInt(coin.amount) !== expectedAmount) {
       throw new Error(`Funding coin amount ${coin.amount} does not match proposal total ${expectedAmount}`);
     }
-    if (coin.tokenid !== (proposal.tokenId ?? '0x00')) {
+    if (normalizeDigest(coin.tokenid) !== normalizeDigest(proposal.tokenId ?? '0x00')) {
       throw new Error(`Funding coin token ${coin.tokenid} does not match proposal token ${proposal.tokenId}`);
     }
     // Confirmation depth: `mmrentry` is an MMR leaf index, not a block height.
