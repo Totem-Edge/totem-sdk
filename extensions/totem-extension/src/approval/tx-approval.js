@@ -264,12 +264,29 @@ chrome.runtime.sendMessage({
     }, (balanceResponse) => {
       if (lastErrorMsg('getBalance')) return;
       if (balanceResponse && balanceResponse.result) {
-        const balance = parseFloat(balanceResponse.result.confirmed || '0');
-        // Token creation spends only the optional burn; `amount` is the token supply.
-        const spend = isTokenCreate
+        const confirmed = parseFloat(balanceResponse.result.confirmed || '0') || 0;
+        const burn = isTokenCreate
           ? parseFloat(tokenCreate && typeof tokenCreate.burn === 'string' ? tokenCreate.burn : '0') || 0
-          : parseFloat(amount) || 0;
-        hasBalance = balance >= (spend + 0.001);
+          : 0;
+
+        if (isTokenCreate) {
+          // tokencreate spends the coloured-coin backing plus the optional burn.
+          // Backing = 10^-44 * 10^decimals * totalSupply.
+          const decimalsRaw = tokenCreate && tokenCreate.decimals != null ? tokenCreate.decimals : 0;
+          const decimals = Math.max(0, Math.min(44, parseInt(String(decimalsRaw), 10) || 0));
+          const supplyRaw = tokenCreate && tokenCreate.totalSupply != null ? tokenCreate.totalSupply : '0';
+          const supply = parseFloat(String(supplyRaw)) || 0;
+          const backing = supply * Math.pow(10, decimals - 44);
+          hasBalance = confirmed >= (backing + burn);
+        } else if (tokenId === '0x00') {
+          // Native send. Minima has no protocol fee; only the optional burn is extra.
+          hasBalance = confirmed >= ((parseFloat(amount) || 0) + burn);
+        } else {
+          // getBalance reports native MINIMA only. Do not compare a token amount
+          // against MINIMA; the transaction builder/coin selection validates the
+          // token balance.
+          hasBalance = true;
+        }
         updateUI();
       }
     });
