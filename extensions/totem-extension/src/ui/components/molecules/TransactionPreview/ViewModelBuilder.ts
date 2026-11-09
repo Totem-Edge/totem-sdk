@@ -151,11 +151,16 @@ export function buildTransactionPreviewViewModel(
     for (let i = 0; i < transaction.inputs.length; i++) {
       const input = transaction.inputs[i];
       const descriptor = scriptDescriptors[i];
+      const tokenHex = bytesToHex(input.tokenId);
       inputs.push({
         coinId: bytesToHex(input.coinId),
         address: bytesToHex(input.address),
         amount: input.amount.toString(),
-        tokenId: bytesToHex(input.tokenId),
+        tokenId: tokenHex,
+        displayAmount: tokenHex !== '0x00' && tokenScale
+          ? scaleBackingToDisplay(input.amount, tokenScale)
+          : undefined,
+        symbol: tokenHex === '0x00' ? 'MINIMA' : tokenSymbol,
         scriptType: descriptor?.scriptType || 'signedby',
         scriptDescription: descriptor?.script
       });
@@ -188,6 +193,7 @@ export function buildTransactionPreviewViewModel(
     
     for (const output of transaction.outputs) {
       const outputAddr = bytesToHex(output.address).toLowerCase();
+      const tokenHex = bytesToHex(output.tokenId);
       const isChange = walletAddressSet.has(outputAddr) && 
                        outputAddr !== recipientHex;
       
@@ -195,7 +201,11 @@ export function buildTransactionPreviewViewModel(
       outputs.push({
         address: displayAddr,
         amount: output.amount.toString(),
-        tokenId: bytesToHex(output.tokenId),
+        tokenId: tokenHex,
+        displayAmount: tokenHex !== '0x00' && tokenScale
+          ? scaleBackingToDisplay(output.amount, tokenScale)
+          : undefined,
+        symbol: tokenHex === '0x00' ? 'MINIMA' : tokenSymbol,
         isChange,
         stateVariables: output.state.map(s => ({
           port: s.port,
@@ -208,10 +218,12 @@ export function buildTransactionPreviewViewModel(
       });
 
       if (isChange) {
-        const tokenHex = bytesToHex(output.tokenId);
+        const displayChange = tokenHex !== '0x00' && tokenScale
+          ? scaleBackingToDisplay(output.amount, tokenScale)
+          : output.amount;
         changeAmount = tokenAmountFromDecimalString(
-          output.amount, 
-          tokenHex, 
+          displayChange,
+          tokenHex,
           tokenHex === '0x00' ? 'MINIMA' : tokenSymbol
         );
       }
@@ -239,7 +251,12 @@ export function buildTransactionPreviewViewModel(
 
   const totalInArray: TokenAmount[] = [];
   for (const [token, amt] of totalInByToken) {
-    totalInArray.push(tokenAmountFromBigInt(amt, token, token === '0x00' ? 'MINIMA' : tokenSymbol));
+    // For custom tokens, amt is backing in base-unit precision (10^44).
+    // Apply the token scale so the display matches the wallet/token units.
+    const displayAmt = (token !== '0x00' && tokenScale)
+      ? amt * (BigInt(10) ** BigInt(tokenScale))
+      : amt;
+    totalInArray.push(tokenAmountFromBigInt(displayAmt, token, token === '0x00' ? 'MINIMA' : tokenSymbol));
   }
   
   const totalOutArray: TokenAmount[] = [];

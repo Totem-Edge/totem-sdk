@@ -26,6 +26,10 @@ export interface TransactionInput {
   address: string;
   amount: string;
   tokenId: string;
+  /** Token-aware display amount (e.g. "9" porq) when tokenScale is known. */
+  displayAmount?: string;
+  /** MINIMA or the custom token symbol. */
+  symbol?: string;
   scriptType: string;
   scriptDescription?: string;
 }
@@ -34,6 +38,10 @@ export interface TransactionOutput {
   address: string;
   amount: string;
   tokenId: string;
+  /** Token-aware display amount (e.g. "9" porq) when tokenScale is known. */
+  displayAmount?: string;
+  /** MINIMA or the custom token symbol. */
+  symbol?: string;
   isChange: boolean;
   stateVariables?: { port: number; value: string }[];
 }

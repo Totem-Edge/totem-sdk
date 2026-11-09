@@ -122,7 +122,7 @@ export function AdvancedDetails({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Amount:</span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{formatAmount(input.amount, 8)}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>{formatAmount(input.displayAmount ?? input.amount, 8)}{input.symbol ? ` ${input.symbol}` : ''}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Type:</span>
@@ -168,7 +168,7 @@ export function AdvancedDetails({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Amount:</span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{formatAmount(output.amount, 8)}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)' }}>{formatAmount(output.displayAmount ?? output.amount, 8)}{output.symbol ? ` ${output.symbol}` : ''}</span>
                       </div>
                       {output.stateVariables && output.stateVariables.length > 0 && (
                         <div style={{ marginTop: 'var(--space-0-5)', paddingTop: 'var(--space-0-5)', borderTop: '1px dashed var(--border-subtle)' }}>
