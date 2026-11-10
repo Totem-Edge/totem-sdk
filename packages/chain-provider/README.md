@@ -74,7 +74,7 @@ import { LookupClientProvider } from '@totemsdk/chain-provider';
 import { connectLookupNode } from '@totemsdk/lookup-client';
 
 // Connect to your personal lookup node
-const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...' });
+const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...', identitySeed: seed });
 
 const provider = new LookupClientProvider(client);
 
@@ -99,7 +99,7 @@ Fan out across providers: try sovereign first, fall back to hosted on any error.
 import { CompositeProvider, HostedProvider, LookupClientProvider } from '@totemsdk/chain-provider';
 import { connectLookupNode } from '@totemsdk/lookup-client';
 
-const client  = await connectLookupNode({ hyperswarmTopic: 'deadbeef...' });
+const client  = await connectLookupNode({ hyperswarmTopic: 'deadbeef...', identitySeed: seed });
 const hosted  = new HostedProvider({ baseUrl: 'https://api.axia.to', projectId: '...' });
 
 const provider = new CompositeProvider(

@@ -260,7 +260,8 @@ export abstract class TotemWalletAdapter {
   private readonly _config: WalletAdapterConfig;
   private readonly _connectedOrigins = new Set<string>();
   private readonly _eventListeners = new Map<string, Set<(...args: unknown[]) => void>>();
-  private readonly _usedVerifyNonces = new Set<string>();
+  /** nonce -> expiry; entries are pruned only after their challenge expires. */
+  private readonly _usedVerifyNonces = new Map<string, number>();
   private _currentProviderType: 'hosted' | 'pure_rpc' | 'hybrid' = 'hosted';
   private _announceListener?: () => void;
   private _injected = false;
@@ -688,15 +689,23 @@ export abstract class TotemWalletAdapter {
     }
 
     const statement = String(challenge.statement ?? `Sign in to ${origin}`);
-    const nonce = String(challenge.nonce ?? this._randomHex(8));
-    if (this._usedVerifyNonces.has(nonce)) {
-      return { success: false, error: 'Challenge nonce has already been used', errorCode: 'NONCE_REPLAY' };
-    }
     const expiryMs = Number(challenge.expiryMs ?? 300_000);
     if (!Number.isSafeInteger(expiryMs) || expiryMs <= 0) {
       return { success: false, error: 'Challenge expiryMs must be a positive integer', errorCode: 'INVALID_CHALLENGE' };
     }
     const expiresAt = Date.now() + expiryMs;
+    const nonce = String(challenge.nonce ?? this._randomHex(8));
+
+    // Reserve the nonce before any await. Otherwise two concurrent requests
+    // both pass the check and reach the signer with the same challenge.
+    const now = Date.now();
+    for (const [used, expiry] of this._usedVerifyNonces) {
+      if (expiry <= now) this._usedVerifyNonces.delete(used);
+    }
+    if (this._usedVerifyNonces.has(nonce)) {
+      return { success: false, error: 'Challenge nonce has already been used', errorCode: 'NONCE_REPLAY' };
+    }
+    this._usedVerifyNonces.set(nonce, expiresAt);
 
     const message = [
       `${origin} wants you to sign in with your Minima wallet.`,
@@ -739,9 +748,6 @@ export abstract class TotemWalletAdapter {
         errorCode: signResult.errorCode ?? 'SIGN_FAILED',
       };
     }
-
-    this._usedVerifyNonces.add(nonce);
-    if (this._usedVerifyNonces.size > 1024) this._usedVerifyNonces.clear();
 
     return {
       verified: true,

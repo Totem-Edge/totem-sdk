@@ -53,7 +53,7 @@ export type BackendUnsubscribe = () => void;
  * import { LookupBackend } from '@totemsdk/realtime';
  * import { connectLookupNode } from '@totemsdk/lookup-client';
  *
- * const client = await connectLookupNode({ hyperswarmTopic: 'abc...' });
+ * const client = await connectLookupNode({ hyperswarmTopic: 'abc...', identitySeed: seed });
  * const manager = createPortfolioStreamManager(deps, {
  *   backend: new LookupBackend(client),
  * });

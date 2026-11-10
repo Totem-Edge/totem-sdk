@@ -260,6 +260,26 @@ describe('PortfolioStreamManager — backend mode (no WS)', () => {
   });
 });
 
+describe('PortfolioStreamManager — address updates', () => {
+  it('re-subscribes a push backend when the watched addresses change', async () => {
+    const unsub = vi.fn();
+    const backend: PortfolioBackend = {
+      supportsPush: true,
+      getPortfolio: vi.fn().mockResolvedValue([]),
+      subscribe: vi.fn().mockResolvedValue(unsub),
+    };
+    const { mgr } = makeManager({ backend });
+
+    await mgr.start(['MxOLD']);
+    expect(backend.subscribe).toHaveBeenCalledWith(['MxOLD'], expect.any(Function));
+
+    await mgr.updateAddresses(['MxNEW']);
+    expect(unsub).toHaveBeenCalledTimes(1);
+    expect(backend.subscribe).toHaveBeenLastCalledWith(['MxNEW'], expect.any(Function));
+    expect(backend.getPortfolio).toHaveBeenCalledWith('MxNEW');
+  });
+});
+
 describe('PortfolioStreamManager — getSnapshot', () => {
   it('returns cached portfolios and connectionState', async () => {
     const { mgr, cache } = makeManager();

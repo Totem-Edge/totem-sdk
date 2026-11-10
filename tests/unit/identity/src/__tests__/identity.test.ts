@@ -42,6 +42,7 @@ function testSeed(n: number): Uint8Array {
 
 const SEED_A = testSeed(1);
 const SEED_B = testSeed(2);
+const SEED_C = testSeed(3);
 
 /** Derive the Minima address from a seed + keyIndex without signing */
 function deriveAddress(seed: Uint8Array, keyIndex: number): string {
@@ -834,6 +835,51 @@ describe('RFC-020 C3: identity claim scopes', () => {
     ));
     const result = resolveIdentityGraph(graph);
     expect(result.resolved?.paymentRecipients).toHaveLength(1);
+  }, 30000);
+
+  it('a data:read delegate cannot delegate broader scopes to a second key', async () => {
+    const graph = await graphWithDelegate(['data:read']);
+    const attackerAddr = deriveAddress(SEED_C, 0);
+    graph.claims.push(await signIdentityClaim(
+      createDelegationClaim({
+        issuer: delegateAddr,
+        subject: graph.document.id,
+        delegatedAddress: attackerAddr,
+        scopes: ['*'],
+        issuedAt: 2000,
+      }),
+      SEED_B,
+      0,
+    ));
+
+    const result = resolveIdentityGraph(graph);
+    expect(result.resolved?.delegates.map((d) => d.delegatedAddress)).toEqual([delegateAddr]);
+    expect(result.resolved?.authorizedAddresses).not.toContain(attackerAddr);
+    expect(result.resolved?.controlledAddresses).not.toContain(attackerAddr);
+  }, 30000);
+
+  it('a second key delegated by a data:read delegate cannot bind its own manifest', async () => {
+    const attackerWasm = manifestAddress(SEED_C);
+    const doc = createIdentityDocument({ kind: 'person', rootAddress: rootAddr, controllerAddress: rootAddr });
+    const first = await signIdentityClaim(
+      createDelegationClaim({ issuer: rootAddr, subject: doc.id, delegatedAddress: delegateAddr, scopes: ['data:read'], issuedAt: 1000 }),
+      SEED_A,
+      0,
+    );
+    const second = await signIdentityClaim(
+      createDelegationClaim({ issuer: delegateAddr, subject: doc.id, delegatedAddress: attackerWasm, scopes: ['*'], issuedAt: 2000 }),
+      SEED_B,
+      0,
+    );
+    const graph: IdentityGraph = { document: doc, claims: [first, second] };
+    const signed = await signManifest(
+      { type: 'app' as const, appId: 'a', name: 'n', version: '1', authorAddress: attackerWasm, pearTopicKey: 'p', price: '0', category: ['utility'], permissions: [], description: 'd', minTotemVersion: '1' },
+      manifestTree(SEED_C),
+      0,
+    );
+    const binding = await verifyManifestIdentity(signed, graph);
+    expect(binding.valid).toBe(false);
+    expect(binding.reason).toMatch(/not authorized/);
   }, 30000);
 
   it('a data:read delegate is not a valid manifest signer', async () => {

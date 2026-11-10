@@ -227,7 +227,7 @@ async function makeConnectedClient(): Promise<{
 }> {
   const [clientTransport, serverTransport] = createInMemoryPair();
   const server = new MockLookupServer(serverTransport);
-  const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000 });
+  const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000, allowEphemeralIdentity: true });
   await client._connect(clientTransport);
   return { client, server, serverTransport };
 }
@@ -256,7 +256,7 @@ describe('Post-quantum auth (RFC-032)', () => {
         }
       }
     });
-    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000 });
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000, allowEphemeralIdentity: true });
     await client._connect(clientTransport);
     await client.getCoins({ address: '0xADDR1' });
 
@@ -295,10 +295,64 @@ describe('Post-quantum auth (RFC-032)', () => {
     client.disconnect();
   });
 
+  it('requires an explicit lookup identity outside tests', () => {
+    const [transport] = createInMemoryPair();
+    expect(() => new LookupClient({ _transport: transport })).toThrow(/requires identity/);
+    expect(() => new LookupClient({ _transport: transport, allowEphemeralIdentity: true })).not.toThrow();
+  });
+
+  it('clears a rejected ticket even when the ERROR carries a request id', async () => {
+    const [clientTransport, serverTransport] = createInMemoryPair();
+    const parser = new FrameParser();
+    const opens: string[] = [];
+    serverTransport.onData((chunk) => {
+      for (const msg of parser.push(chunk)) {
+        if (msg.type === 'SESSION_OPEN') {
+          opens.push(msg.id ?? '');
+          serverTransport.send(encodeMessage({
+            type: 'SESSION_TICKET',
+            version: 2,
+            id: msg.id,
+            payload: {
+              ticketId: `tkt-${opens.length}`,
+              subject: msg.auth?.rootPublicKey ?? '',
+              nodeId: 'mock-node',
+              issuedAt: Date.now(),
+              expiresAt: Date.now() + 60_000,
+              maxRequests: 100,
+              signature: '00'.repeat(64),
+            },
+          }));
+        } else if (msg.type === 'GET_COINS') {
+          serverTransport.send(encodeMessage({
+            type: 'ERROR',
+            version: 2,
+            id: msg.id,
+            payload: { code: 'SESSION_EXPIRED', message: 'expired', requestId: msg.id },
+          }));
+        }
+      }
+    });
+
+    const client = new LookupClient({
+      _transport: clientTransport,
+      timeoutMs: 5_000,
+      useSessionTickets: true,
+      identitySeed: new Uint8Array(32).fill(0x33),
+    });
+    await client._connect(clientTransport);
+    await expect(client.getCoins({ address: '0xADDR1' })).rejects.toThrow(/expired/);
+    // The expired ticket must be dropped and a fresh session opened before the
+    // next request can reuse it.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(opens).toHaveLength(2);
+    client.disconnect();
+  });
+
   it('uses per-message WOTS when tickets are disabled (default)', async () => {
     const [clientTransport, serverTransport] = createInMemoryPair();
     const server = new MockLookupServer(serverTransport);
-    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000 });
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000, allowEphemeralIdentity: true });
     await client._connect(clientTransport);
     await client.getCoins({ address: '0xADDR1' });
 
@@ -528,6 +582,7 @@ describe('Reconnect behaviour', () => {
       timeoutMs: 2_000,
       reconnectBaseMs: 50,
       reconnectMaxMs: 200,
+      allowEphemeralIdentity: true,
     });
 
     // Initial connect using ct1 (the factory's first transport)
@@ -574,7 +629,7 @@ describe('RPC timeout', () => {
       // All messages (including HELLO) are silently dropped — causes timeout.
     });
 
-    const client = new LookupClient({ _transport: ctr, timeoutMs: 5_000 });
+    const client = new LookupClient({ _transport: ctr, timeoutMs: 5_000, allowEphemeralIdentity: true });
     await client._connect(ctr);
 
     // Use the internal RPC layer directly with a very short timeout (100ms)
@@ -600,7 +655,7 @@ describe('Disconnect lifecycle', () => {
     const server = new MockLookupServer(serverTransport);
     void server;
 
-    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 2_000 });
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 2_000, allowEphemeralIdentity: true });
     await client._connect(clientTransport);
 
     // After disconnect, the transport should be marked as closed (sending throws)

@@ -9,7 +9,7 @@
  * import { CompositeProvider } from '@totemsdk/chain-provider';
  * import { connectLookupNode, LookupClientProvider } from '@totemsdk/lookup-client';
  *
- * const lookupClient = await connectLookupNode({ hyperswarmTopic: 'abc...' });
+ * const lookupClient = await connectLookupNode({ hyperswarmTopic: 'abc...', identitySeed: seed });
  * const axia = new HostedProvider({ baseUrl: 'https://api.axia.to' });
  *
  * const provider = new CompositeProvider(

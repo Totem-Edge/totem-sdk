@@ -28,8 +28,13 @@ npm install @totemsdk/lookup-client
 ```typescript
 import { connectLookupNode } from '@totemsdk/lookup-client';
 
+import { getLookupIdentitySeed } from './your-wallet'; // derive from @totemsdk/root-identity
+
 const client = await connectLookupNode({
-  publicKey: '...your-lookup-node-public-key...',  // the node's Hyperswarm identity
+  hyperswarmTopic: '...your-lookup-node-topic...',
+  // Required: a persistent per-user WOTS identity. Do not share this seed
+  // between users or processes; the nonce is the WOTS use counter.
+  identitySeed: getLookupIdentitySeed(),
 });
 
 const coins = await client.getCoins({ address: 'Mx...' });
