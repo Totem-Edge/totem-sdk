@@ -46,7 +46,28 @@ export default {
     if (url.pathname.startsWith(`${PWA_PREFIX}/`)) {
       const assetUrl = new URL(request.url);
       assetUrl.pathname = url.pathname.slice(PWA_PREFIX.length) || "/";
-      return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+      const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+
+      // Cloudflare Pages' pretty URLs redirect `*.html` to the extensionless
+      // path. That Location is root-relative, so without the /web prefix the
+      // browser would leave the wallet surface and hit the portfolio.
+      const location = response.headers.get("location");
+      if (
+        location &&
+        location.startsWith("/") &&
+        location !== PWA_PREFIX &&
+        !location.startsWith(`${PWA_PREFIX}/`)
+      ) {
+        const headers = new Headers(response.headers);
+        headers.set("location", `${PWA_PREFIX}${location}`);
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      }
+
+      return response;
     }
 
     // Retire the pre-/web service worker and repoint its manifest.
