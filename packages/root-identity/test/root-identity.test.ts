@@ -21,8 +21,8 @@ const SEED = new Uint8Array([
   0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0xa1, 0xb2,
 ]);
 
-const sharedWallet = new UnifiedIdentityWallet(SEED, 10);
-const sharedWallet5 = new UnifiedIdentityWallet(SEED, 5);
+const sharedWallet = new UnifiedIdentityWallet(SEED, 10, { allowInMemorySigning: true });
+const sharedWallet5 = new UnifiedIdentityWallet(SEED, 5, { allowInMemorySigning: true });
 
 // ─── Constructor tests ───────────────────────────────────────────────────────
 
@@ -36,26 +36,26 @@ describe('UnifiedIdentityWallet — construction', () => {
   });
 
   test('default childCount is MAX_CHILD_COUNT (64)', () => {
-    const w = new UnifiedIdentityWallet(SEED);
+    const w = new UnifiedIdentityWallet(SEED, undefined, { allowInMemorySigning: true });
     expect(w.getChildCount()).toBe(MAX_CHILD_COUNT);
     expect(MAX_CHILD_COUNT).toBe(64);
   });
 
   test('rejects seed shorter than 32 bytes', () => {
-    expect(() => new UnifiedIdentityWallet(new Uint8Array(16))).toThrow('32 bytes');
+    expect(() => new UnifiedIdentityWallet(new Uint8Array(16), undefined, { allowInMemorySigning: true })).toThrow('32 bytes');
   });
 
   test('rejects childCount of 0', () => {
-    expect(() => new UnifiedIdentityWallet(SEED, 0)).toThrow();
+    expect(() => new UnifiedIdentityWallet(SEED, 0, { allowInMemorySigning: true })).toThrow();
   });
 
   test('rejects childCount greater than 64', () => {
-    expect(() => new UnifiedIdentityWallet(SEED, 65)).toThrow();
+    expect(() => new UnifiedIdentityWallet(SEED, 65, { allowInMemorySigning: true })).toThrow();
   });
 
   test('fromPhrase creates wallet from mnemonic', () => {
     const phrase = UnifiedIdentityWallet.generatePhrase();
-    const w = UnifiedIdentityWallet.fromPhrase(phrase, 2);
+    const w = UnifiedIdentityWallet.fromPhrase(phrase, 2, { allowInMemorySigning: true });
     expect(w).toBeInstanceOf(UnifiedIdentityWallet);
   });
 
@@ -108,7 +108,7 @@ describe('UnifiedIdentityWallet — address derivation', () => {
   });
 
   test('child addresses are deterministic across wallet instances', () => {
-    const w2 = new UnifiedIdentityWallet(SEED, 10);
+    const w2 = new UnifiedIdentityWallet(SEED, 10, { allowInMemorySigning: true });
     expect(sharedWallet.getChildAddress(3)).toBe(w2.getChildAddress(3));
   });
 
@@ -134,7 +134,7 @@ describe('UnifiedIdentityWallet — address derivation', () => {
 // ─── Signing tests ───────────────────────────────────────────────────────────
 
 describe('UnifiedIdentityWallet — signing', () => {
-  const sigWallet = new UnifiedIdentityWallet(SEED, 5);
+  const sigWallet = new UnifiedIdentityWallet(SEED, 5, { allowInMemorySigning: true });
 
   test('signFromRoot returns WotsProof with correct shape', () => {
     const proof = sigWallet.signFromRoot('hello root');
@@ -146,7 +146,7 @@ describe('UnifiedIdentityWallet — signing', () => {
   });
 
   test('signFromRoot proof is accepted by verifySignatureDetailed', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     const proof = w.signFromRoot('verify me');
     const result = verifySignatureDetailed(
       proof.address,
@@ -166,7 +166,7 @@ describe('UnifiedIdentityWallet — signing', () => {
   });
 
   test('signFromChild proof is accepted by verifySignatureDetailed', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     const proof = w.signFromChild(0, 'child verify me');
     const result = verifySignatureDetailed(
       proof.address,
@@ -178,7 +178,7 @@ describe('UnifiedIdentityWallet — signing', () => {
   });
 
   test('signFromRoot proof rejected when verified against wrong address', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     const proof = w.signFromRoot('wrong address test');
     const result = verifySignatureDetailed(
       w.getChildAddress(0),
@@ -190,7 +190,7 @@ describe('UnifiedIdentityWallet — signing', () => {
   });
 
   test('signFromRoot increments rootUses', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     expect(w.getRootUses()).toBe(0);
     w.signFromRoot('m1');
     expect(w.getRootUses()).toBe(1);
@@ -199,21 +199,21 @@ describe('UnifiedIdentityWallet — signing', () => {
   });
 
   test('signFromChild increments only that child uses', () => {
-    const w = new UnifiedIdentityWallet(SEED, 5);
+    const w = new UnifiedIdentityWallet(SEED, 5, { allowInMemorySigning: true });
     w.signFromChild(2, 'hi');
     expect(w.getChildUses(2)).toBe(1);
     expect(w.getChildUses(0)).toBe(0);
   });
 
   test('two sequential signatures from same key are different', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     const p1 = w.signFromRoot('same message');
     const p2 = w.signFromRoot('same message');
     expect(p1.signature).not.toBe(p2.signature);
   });
 
   test('root and child sign independently without affecting each other', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     w.signFromRoot('root signs');
     w.signFromChild(0, 'child signs');
     expect(w.getRootUses()).toBe(1);
@@ -229,13 +229,13 @@ describe('UnifiedIdentityWallet — signing', () => {
 
 describe('UnifiedIdentityWallet — watermarks', () => {
   test('setRootUses / getRootUses round-trip', () => {
-    const w = new UnifiedIdentityWallet(SEED, 2);
+    const w = new UnifiedIdentityWallet(SEED, 2, { allowInMemorySigning: true });
     w.setRootUses(42);
     expect(w.getRootUses()).toBe(42);
   });
 
   test('setChildUses / getChildUses round-trip', () => {
-    const w = new UnifiedIdentityWallet(SEED, 5);
+    const w = new UnifiedIdentityWallet(SEED, 5, { allowInMemorySigning: true });
     w.setChildUses(3, 100);
     expect(w.getChildUses(3)).toBe(100);
   });
@@ -252,7 +252,7 @@ describe('UnifiedIdentityWallet — watermarks', () => {
 // ─── Ownership proof tests ───────────────────────────────────────────────────
 
 describe('UnifiedIdentityWallet — proveOwnership / verifyOwnershipProof', () => {
-  const ownWallet = new UnifiedIdentityWallet(SEED, 5);
+  const ownWallet = new UnifiedIdentityWallet(SEED, 5, { allowInMemorySigning: true });
 
   test('proveOwnership returns correct OwnershipProof shape', () => {
     const proof = ownWallet.proveOwnership([0, 1]);
@@ -333,7 +333,7 @@ describe('UnifiedIdentityWallet — proveOwnership / verifyOwnershipProof', () =
 
   test('verifyOwnershipProof rejects proof signed by a different root', () => {
     const seed2 = new Uint8Array(32).fill(0xab);
-    const otherWallet = new UnifiedIdentityWallet(seed2, 3);
+    const otherWallet = new UnifiedIdentityWallet(seed2, 3, { allowInMemorySigning: true });
 
     const legitimateProof = ownWallet.proveOwnership([0]);
     const spoofed: OwnershipProof = {
@@ -385,7 +385,7 @@ describe('UnifiedIdentityWallet — proveOwnership / verifyOwnershipProof', () =
 
   test('two wallets from different seeds produce different root addresses', () => {
     const seed2 = new Uint8Array(32).fill(0xff);
-    const w2 = new UnifiedIdentityWallet(seed2, 2);
+    const w2 = new UnifiedIdentityWallet(seed2, 2, { allowInMemorySigning: true });
     expect(ownWallet.getRootAddress()).not.toBe(w2.getRootAddress());
   });
 });

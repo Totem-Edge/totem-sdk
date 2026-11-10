@@ -15,14 +15,14 @@ const SEED_32 = new Uint8Array(32).fill(0xab);
 
 describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', () => {
   it('initial state has rootUses=0 and empty childUses', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     const state = wallet.getWatermarkState();
     expect(state.rootUses).toBe(0);
     expect(Object.keys(state.childUses)).toHaveLength(0);
   });
 
   it('records root uses after signing', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet.signFromRoot('hello');
     wallet.signFromRoot('world');
     const state = wallet.getWatermarkState();
@@ -30,7 +30,7 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
   });
 
   it('records child uses per index independently', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet.signFromChild(0, 'msg-a');
     wallet.signFromChild(2, 'msg-b');
     wallet.signFromChild(2, 'msg-c');
@@ -42,7 +42,7 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
   });
 
   it('restores watermarks across session boundary', () => {
-    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet1.signFromRoot('r1');
     wallet1.signFromRoot('r2');
     wallet1.signFromChild(1, 'c1');
@@ -50,7 +50,7 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
     wallet1.signFromChild(1, 'c3');
     const snapshot = wallet1.getWatermarkState();
 
-    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet2.restoreWatermarkState(snapshot);
 
     expect(wallet2.getRootUses()).toBe(2);
@@ -59,7 +59,7 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
   });
 
   it('restoreWatermarkState ignores out-of-range child indices', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 2);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 2, { allowInMemorySigning: true });
     wallet.restoreWatermarkState({ rootUses: 5, childUses: { 0: 3, 99: 7, 1: 1 } });
     expect(wallet.getRootUses()).toBe(5);
     expect(wallet.getChildUses(0)).toBe(3);
@@ -67,14 +67,14 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
   });
 
   it('restoreWatermarkState ignores negative values', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 2);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 2, { allowInMemorySigning: true });
     wallet.restoreWatermarkState({ rootUses: -1, childUses: { 0: -5 } });
     expect(wallet.getRootUses()).toBe(0);
     expect(wallet.getChildUses(0)).toBe(0);
   });
 
   it('refuses a backward cursor restore or set (RFC-020 C1)', () => {
-    const wallet = new UnifiedIdentityWallet(SEED_32, 2);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 2, { allowInMemorySigning: true });
     wallet.signFromRoot('a');
     wallet.signFromRoot('b');
     wallet.signFromChild(0, 'x');
@@ -89,12 +89,12 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
   });
 
   it('round-trips through JSON serialization', () => {
-    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet1.signFromRoot('x');
     wallet1.signFromChild(3, 'y');
     const json = JSON.stringify(wallet1.getWatermarkState());
 
-    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet2.restoreWatermarkState(JSON.parse(json));
     expect(wallet2.getRootUses()).toBe(1);
     expect(wallet2.getChildUses(3)).toBe(1);
@@ -106,7 +106,7 @@ describe('UnifiedIdentityWallet — durable watermark snapshot (RFC-007 Phase 4)
     const dir = await mkdtemp(join(tmpdir(), 'totem-wm-'));
     const artifact = join(dir, 'watermark.json');
 
-    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet1.signFromRoot('r1');
     wallet1.signFromRoot('r2');
     wallet1.signFromChild(2, 'c1');
@@ -114,7 +114,7 @@ describe('UnifiedIdentityWallet — durable watermark snapshot (RFC-007 Phase 4)
     wallet1.signFromChild(2, 'c3');
     await writeFile(artifact, JSON.stringify(wallet1.getWatermarkState()));
 
-    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     wallet2.restoreWatermarkState(JSON.parse(await readFile(artifact, 'utf8')));
 
     expect(wallet2.getRootUses()).toBe(2);
@@ -127,8 +127,27 @@ describe('UnifiedIdentityWallet — durable watermark snapshot (RFC-007 Phase 4)
     const artifact = join(dir, 'watermark.json');
     await writeFile(artifact, '{not-valid-json');
 
-    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4, { allowInMemorySigning: true });
     expect(() => wallet.restoreWatermarkState(JSON.parse(await readFile(artifact, 'utf8')))).toThrow();
     expect(wallet.getRootUses()).toBe(0);
+  });
+});
+
+describe('UnifiedIdentityWallet — signing durability guard', () => {
+  it('refuses cursor-based signing unless the caller opts into in-memory mode', () => {
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    expect(() => wallet.signFromRoot('root')).toThrow(/in-memory WOTS watermark/);
+    expect(() => wallet.signFromChild(0, 'child')).toThrow(/in-memory WOTS watermark/);
+    expect(() => wallet.proveOwnership([0])).toThrow(/in-memory WOTS watermark/);
+  });
+
+  it('allows explicitly allocated leaves without the in-memory opt-in', () => {
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    const root = wallet.signFromRootAt('root', 7);
+    const child = wallet.signFromChildAt(0, 'child', 9);
+    expect(root.signature).toMatch(/^[0-9a-fA-F]+$/);
+    expect(child.signature).toMatch(/^[0-9a-fA-F]+$/);
+    expect(wallet.getRootUses()).toBe(8);
+    expect(wallet.getChildUses(0)).toBe(10);
   });
 });

@@ -47,6 +47,17 @@ import type { WotsProof, OwnershipProof } from './types.js';
 
 export const MAX_CHILD_COUNT = 64;
 
+export interface UnifiedIdentityWalletOptions {
+  /**
+   * Test/dev only: allow the cursor-based `signFromRoot` / `signFromChild` /
+   * `proveOwnership` entry points. They keep WOTS counters in memory, so a new
+   * wallet instance from the same seed starts at leaf 0 and can reuse a spent
+   * key. Production callers must restore a persisted watermark and use
+   * `signFromRootAt` / `signFromChildAt`, or allocate leaves through a lease.
+   */
+  allowInMemorySigning?: boolean;
+}
+
 const OWNERSHIP_OP = 'TOTEM_OWNERSHIP_PROOF_V1';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,6 +116,7 @@ export class UnifiedIdentityWallet {
   /** Per-slot watermarks (in-memory; persist via getWatermarkState / restoreWatermarkState). */
   private rootUses: number = 0;
   private readonly childUsesMap: Map<number, number> = new Map();
+  private readonly allowInMemorySigning: boolean;
 
   // ── Construction ────────────────────────────────────────────────────────────
 
@@ -112,7 +124,11 @@ export class UnifiedIdentityWallet {
    * @param baseSeed   - 32-byte raw seed (use `UnifiedIdentityWallet.fromPhrase` for mnemonic input)
    * @param childCount - Number of child addresses (1–64, default 64)
    */
-  constructor(baseSeed: Uint8Array, childCount: number = MAX_CHILD_COUNT) {
+  constructor(
+    baseSeed: Uint8Array,
+    childCount: number = MAX_CHILD_COUNT,
+    options: UnifiedIdentityWalletOptions = {},
+  ) {
     if (baseSeed.length !== 32) {
       throw new Error(`baseSeed must be exactly 32 bytes, got ${baseSeed.length}`);
     }
@@ -121,11 +137,16 @@ export class UnifiedIdentityWallet {
     }
     this.baseSeed = baseSeed;
     this.childCount = childCount;
+    this.allowInMemorySigning = options.allowInMemorySigning === true;
   }
 
   /** Create a wallet from a Minima-compatible BIP39 seed phrase. */
-  static fromPhrase(phrase: string, childCount: number = MAX_CHILD_COUNT): UnifiedIdentityWallet {
-    return new UnifiedIdentityWallet(phraseToSeed(phrase), childCount);
+  static fromPhrase(
+    phrase: string,
+    childCount: number = MAX_CHILD_COUNT,
+    options: UnifiedIdentityWalletOptions = {},
+  ): UnifiedIdentityWallet {
+    return new UnifiedIdentityWallet(phraseToSeed(phrase), childCount, options);
   }
 
   /** Generate a new random Minima-compatible 24-word seed phrase. */
@@ -200,6 +221,7 @@ export class UnifiedIdentityWallet {
    * @throws if root TreeKey is exhausted (262 144 uses)
    */
   signFromRoot(message: string): WotsProof {
+    this.assertInMemorySigningAllowed('signFromRoot');
     const treeKey = this.getRootTreeKey();
     treeKey.setUses(this.rootUses);
     const sig = treeKey.sign(hashMessage(message));
@@ -246,12 +268,38 @@ export class UnifiedIdentityWallet {
    * @throws if child TreeKey is exhausted or index out of range
    */
   signFromChild(index: number, message: string): WotsProof {
+    this.assertInMemorySigningAllowed('signFromChild');
     this.assertChildIndex(index);
     const treeKey = this.getOrCreateChildTreeKey(index);
     const uses = this.childUsesMap.get(index) ?? 0;
     treeKey.setUses(uses);
     const sig = treeKey.sign(hashMessage(message));
     this.childUsesMap.set(index, uses + 1);
+    return {
+      address: this.getChildAddress(index),
+      publicKey: this.getChildPublicKey(index),
+      signature: bytesToHex(serializeTreeSignature(sig)),
+      message,
+    };
+  }
+
+  /**
+   * Sign `message` with child `index` at an explicit leaf index allocated by the
+   * caller (e.g. a WOTS lease). Advances the in-memory cursor past `useIndex`.
+   */
+  signFromChildAt(index: number, message: string, useIndex: number): WotsProof {
+    this.assertChildIndex(index);
+    if (!Number.isSafeInteger(useIndex) || useIndex < 0) {
+      throw new Error(`child useIndex must be a non-negative integer, got ${useIndex}`);
+    }
+    const treeKey = this.getOrCreateChildTreeKey(index);
+    if (useIndex >= treeKey.getMaxUses()) {
+      throw new Error(`child useIndex ${useIndex} exceeds capacity ${treeKey.getMaxUses()}`);
+    }
+    treeKey.setUses(useIndex);
+    const sig = treeKey.sign(hashMessage(message));
+    const current = this.childUsesMap.get(index) ?? 0;
+    if (useIndex >= current) this.childUsesMap.set(index, useIndex + 1);
     return {
       address: this.getChildAddress(index),
       publicKey: this.getChildPublicKey(index),
@@ -468,6 +516,15 @@ export class UnifiedIdentityWallet {
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────
+
+  private assertInMemorySigningAllowed(method: string): void {
+    if (this.allowInMemorySigning) return;
+    throw new Error(
+      `${method} uses an in-memory WOTS watermark and is disabled by default. ` +
+      `Restore a persisted watermark and use signFromRootAt/signFromChildAt, ` +
+      `or pass { allowInMemorySigning: true } only in tests.`,
+    );
+  }
 
   private assertChildIndex(index: number): void {
     if (!Number.isInteger(index) || index < 0 || index >= this.childCount) {
