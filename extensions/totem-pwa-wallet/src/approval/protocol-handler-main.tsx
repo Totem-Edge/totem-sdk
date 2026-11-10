@@ -62,20 +62,23 @@ function ProtocolHandler() {
       return;
     }
 
+    const base = import.meta.env.BASE_URL;
+    const withBase = (p: string) => `${base.replace(/\/$/, '')}${p}`;
+
     // Map method to approval page path
     const methodToPath: Record<string, string> = {
-      TOTEM_CONNECT: '/approval/connect.html',
-      TOTEM_VERIFY: '/approval/verify.html',
-      TOTEM_SEND_TRANSACTION: '/approval/send.html',
-      TOTEM_SIGN_DATA: '/approval/verify.html',
-      TOTEM_SEND_COMPLEX: '/approval/send.html',
-      TOTEM_TOKENCREATE: '/approval/tokencreate.html',
-      TOTEM_PROVE_OWNERSHIP: '/approval/verify.html',
-      TOTEM_BROADCAST_HEX: '/approval/send.html',
-      TOTEM_GET_COINS: '/approval/connect.html',
+      TOTEM_CONNECT: withBase('/approval/connect.html'),
+      TOTEM_VERIFY: withBase('/approval/verify.html'),
+      TOTEM_SEND_TRANSACTION: withBase('/approval/send.html'),
+      TOTEM_SIGN_DATA: withBase('/approval/verify.html'),
+      TOTEM_SEND_COMPLEX: withBase('/approval/send.html'),
+      TOTEM_TOKENCREATE: withBase('/approval/tokencreate.html'),
+      TOTEM_PROVE_OWNERSHIP: withBase('/approval/verify.html'),
+      TOTEM_BROADCAST_HEX: withBase('/approval/send.html'),
+      TOTEM_GET_COINS: withBase('/approval/connect.html'),
     };
 
-    const path = methodToPath[method] ?? '/approval/connect.html';
+    const path = methodToPath[method] ?? withBase('/approval/connect.html');
 
     // Build the redirect URL — pass all original params plus the validated returnUrl
     const target = new URL(path, window.location.origin);

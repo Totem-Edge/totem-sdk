@@ -24,15 +24,24 @@ try {
   }
 }
 
+// Serve the wallet at the origin root today, and at /web/ when the wallet host
+// routes the portfolio at / and the PWA at /web/.
+const BASE_PATH = process.env.VITE_BASE_PATH || '/';
+
 export default defineConfig({
+  base: BASE_PATH,
   plugins: [
     react(),
     VitePWA({
       registerType: 'prompt',
+      scope: BASE_PATH,
       includeAssets: ['icons/*.svg', 'icons/*.png'],
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // The portfolio is a separate app on the wallet host; never serve the
+        // wallet shell for its navigations.
+        navigateFallbackDenylist: [/^\/portfolio(\/|$)/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.axia\.to\//,
@@ -63,6 +72,12 @@ export default defineConfig({
         replacement: `${nobleHashesDir}/$1.js`,
       },
       { find: '@', replacement: resolve(__dirname, 'src') },
+      // The core-wasm root export selects the Node build under some bundlers;
+      // the wallet is browser-only, so pin the web artifact.
+      {
+        find: /^@totemsdk\/core-wasm$/,
+        replacement: resolve(__dirname, '../../packages/core-wasm/pkg-web/totemsdk_core_wasm.js'),
+      },
       // Node-only modules reached through the Omnia closure but never taken by
       // the browser relay path (RFC-034 A4 / RFC-037-A2). See vite.provider.config.ts.
       { find: /^node:.*$/, replacement: resolve(__dirname, 'empty-node-module.js') },

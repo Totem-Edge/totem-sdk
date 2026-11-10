@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 const WALLET_ORIGIN = process.env.VITE_WALLET_ORIGIN ?? 'https://wallet.totem.ing';
+const WALLET_BASE = process.env.VITE_BASE_PATH ?? '/';
 
 // Node-only modules reached through the Omnia closure but never taken by the
 // browser relay path (RFC-034 A4). Rewrite them (and `node:*` builtins) to a
@@ -14,6 +15,7 @@ export default defineConfig({
     // __WALLET_ORIGIN__ is a standard esbuild/Vite identifier injection.
     // provider-entry.ts reads: const WALLET_ORIGIN: string = __WALLET_ORIGIN__;
     __WALLET_ORIGIN__: JSON.stringify(WALLET_ORIGIN),
+    __WALLET_BASE__: JSON.stringify(WALLET_BASE),
   },
   resolve: {
     conditions: ['import', 'require', 'browser', 'default'],

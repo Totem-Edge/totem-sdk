@@ -30,6 +30,8 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
   'use strict';
 
   const WALLET_ORIGIN: string = __WALLET_ORIGIN__;
+  const WALLET_BASE: string = __WALLET_BASE__;
+  const withBase = (path: string): string => `${WALLET_BASE.replace(/\/$/, '')}${path}`;
   const POPUP_W = 400;
   const POPUP_H = 640;
 
@@ -627,7 +629,8 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         return Promise.resolve(ret.result);
       }
 
-      const path = methodToPath(method);
+      const rawPath = methodToPath(method);
+      const path = typeof rawPath === 'string' ? withBase(rawPath) : rawPath;
       if (path === undefined) {
         return Promise.reject(new Error(`Unsupported method: ${method}`));
       }
@@ -733,7 +736,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           info: {
             id: 'totem-pwa',
             name: 'Totem Wallet',
-            icon: `${WALLET_ORIGIN}/icons/totem.svg`,
+            icon: `${WALLET_ORIGIN}${withBase('/icons/totem.svg')}`,
             version: '1.0.0',
           },
           provider: totemProvider,
