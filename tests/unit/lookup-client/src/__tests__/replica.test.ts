@@ -58,6 +58,7 @@ describe('LookupClient replicated methods', () => {
     const { LookupClient } = await import('../client.js');
     const instance = new LookupClient({
       _transport: {} as never,
+      allowEphemeralIdentity: true,
       replica: { get: async (key) => key === 'chain-tip'
         ? { value: tip, complete: true, observedAt: Date.now() }
         : { value: coins, complete: true, observedAt: Date.now() } },

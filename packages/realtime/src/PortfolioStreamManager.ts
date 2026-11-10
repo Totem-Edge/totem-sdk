@@ -372,6 +372,41 @@ export class PortfolioStreamManager {
   async updateAddresses(addresses: string[]): Promise<void> {
     this.subscribedAddresses = addresses;
 
+    // Push backends keep their own server-side watch list. Replacing the
+    // address set without tearing down the old subscription leaves the backend
+    // pushing the previous addresses and never watching the new ones.
+    const backend = this.config.backend;
+    if (backend) {
+      if (this.backendUnsubscribe) {
+        try { this.backendUnsubscribe(); } catch { /* ignore */ }
+        this.backendUnsubscribe = null;
+      }
+      if (backend.supportsPush && typeof backend.subscribe === 'function') {
+        try {
+          this.setConnectionState('connecting');
+          this.backendUnsubscribe = await backend.subscribe(
+            addresses,
+            (address, entries) => this._handleBackendUpdate(address, entries, 'websocket'),
+          );
+          for (const address of addresses) {
+            try {
+              const entries = await backend.getPortfolio(address);
+              this._handleBackendUpdate(address, entries, 'websocket');
+            } catch (error) {
+              this.logger.warn(`[PortfolioStream] Backend snapshot failed for ${address}:`, error);
+            }
+          }
+          this.setConnectionState('connected');
+        } catch (error) {
+          this.logger.error('[PortfolioStream] Backend re-subscribe failed, falling back to polling:', error);
+          this.startHttpFallback();
+        }
+      } else {
+        await this.pollPortfolios();
+      }
+      return;
+    }
+
     if (this.ws && this.ws.readyState === WebSocketReadyState.OPEN && this.connectionState === 'connected') {
       this.ws.send(JSON.stringify({ type: 'unsubscribe' }));
       this.sendSubscribe();

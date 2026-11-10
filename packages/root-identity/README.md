@@ -52,6 +52,10 @@ const wallet = RootIdentityWallet.fromPhrase(phrase);
 
 // Or create from a raw seed directly
 // const wallet = new RootIdentityWallet(baseSeedBytes);
+
+// Cursor-based signFromRoot/signFromChild/proveOwnership are disabled by
+// default. Tests may pass `{ allowInMemorySigning: true }`; production callers
+// should use signFromRootAt/signFromChildAt with lease-allocated leaves.
 ```
 
 ### Get child addresses
@@ -65,8 +69,10 @@ console.log('Address 0:', addr0); // "Mx..."
 ### Prove shared ownership
 
 ```typescript
-// Prove that child addresses 0 and 2 belong to the same root identity
-const proof = wallet.proveOwnership([0, 2]);
+// Prove that child addresses 0 and 2 belong to the same root identity.
+// Allocate the root leaf through a WOTS lease (or restore a persisted
+// watermark) so a restarted wallet cannot re-sign leaf 0.
+const proof = wallet.proveOwnership([0, 2], { rootUseIndex: 0 });
 
 // Anyone can verify this proof without learning the root seed
 const ok = RootIdentityWallet.verifyOwnershipProof(proof);

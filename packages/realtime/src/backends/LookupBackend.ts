@@ -17,7 +17,7 @@
  * import { connectLookupNode } from '@totemsdk/lookup-client';
  * import { LookupBackend, createPortfolioStreamManager } from '@totemsdk/realtime';
  *
- * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...' });
+ * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...', identitySeed: seed });
  * const manager = createPortfolioStreamManager(deps, {
  *   backend: new LookupBackend(client),
  * });

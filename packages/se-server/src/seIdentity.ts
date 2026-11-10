@@ -81,8 +81,10 @@ type Wallet = {
   getChildPublicKey(index: number): string;
   getMaxUsesPerSlot(): number;
   signFromRoot(message: string): { address: string; publicKey: string; signature: string; message: string };
+  signFromRootAt(message: string, useIndex: number): { address: string; publicKey: string; signature: string; message: string };
   signFromChild(index: number, message: string): { address: string; publicKey: string; signature: string; message: string };
-  proveOwnership(indices: number[]): OwnershipProof;
+  signFromChildAt(index: number, message: string, useIndex: number): { address: string; publicKey: string; signature: string; message: string };
+  proveOwnership(indices: number[], options?: { rootUseIndex?: number }): OwnershipProof;
   setChildUses(index: number, uses: number): void;
   setRootUses(uses: number): void;
   getWatermarkState(): unknown;
@@ -141,9 +143,23 @@ export class SeIdentity {
     const lease = await loadLease(opts.storage);
     await lease.initialize();
 
-    const ownershipProof = wallet.proveOwnership([opts.childIndex]);
+    // The ownership proof consumes a root leaf. Allocate it through the lease
+    // so a restarted SE cannot re-sign the same root leaf.
+    const proofReservation = await lease.reserveKeyUse({
+      treeId: `${opts.treeId}:root`,
+      ...(opts.ttlMs !== undefined ? { ttlMs: opts.ttlMs } : {}),
+    });
+    let ownershipProof;
+    try {
+      const proofUse = flatLeafIndex(proofReservation.indices);
+      ownershipProof = wallet.proveOwnership([opts.childIndex], { rootUseIndex: proofUse });
+    } catch (error) {
+      await lease.burnReservation(proofReservation.reservationId, 'ownership-proof-failed').catch(() => undefined);
+      throw error;
+    }
     // Persist the watermark immediately: proving ownership consumes a root leaf.
     await opts.storage.set(WATERMARK_KEY, wallet.getWatermarkState());
+    await lease.commitKeyUse(proofReservation.reservationId, wallet.getRootAddress());
 
     return new SeIdentity(wallet, UnifiedIdentityWallet, lease, opts, ownershipProof);
   }
@@ -195,11 +211,9 @@ export class SeIdentity {
       // Sign exactly at the leased leaf, never below it.
       let proof: { address: string; publicKey: string; signature: string; message: string };
       if (kind === 'root') {
-        this.wallet.setRootUses(use);
-        proof = this.wallet.signFromRoot(message);
+        proof = this.wallet.signFromRootAt(message, use);
       } else {
-        this.wallet.setChildUses(this.opts.childIndex, use);
-        proof = this.wallet.signFromChild(this.opts.childIndex, message);
+        proof = this.wallet.signFromChildAt(this.opts.childIndex, message, use);
       }
       await this.opts.storage.set(WATERMARK_KEY, this.wallet.getWatermarkState());
       await this.lease.commitKeyUse(reservation.reservationId, proof.address);

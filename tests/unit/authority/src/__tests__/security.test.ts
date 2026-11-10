@@ -19,7 +19,7 @@
  * 15. Multiple simultaneous mandates
  */
 
-import { createIdentityDocument } from '@totemsdk/identity';
+import { createDelegationClaim, createIdentityDocument, signIdentityClaim } from '@totemsdk/identity';
 import { evaluateAuthority } from '../evaluate.js';
 import { verifyMandate } from '../mandate.js';
 import type {
@@ -112,6 +112,51 @@ it('rejects mandate from delegate without authority:grant scope', async () => {
   const result = verifyMandate(signed, restrictedResolver, 2000);
   expect(result.valid).toBe(false);
   expect(result.reason).toContain('not authorized');
+}, 30000);
+
+// 3b. A narrow delegate cannot mint a second key with broader scopes and have
+// that key issue a payment:send mandate.
+it('rejects a mandate from a key delegated by a data:read delegate', async () => {
+  const { graph, identityId } = await makeIdentityGraph(SEED_ROOT, SEED_CTRL, [
+    { seed: SEED_DELEGATE, keyIndex: 0, scopes: ['data:read'] },
+  ]);
+  const second = await signIdentityClaim(
+    createDelegationClaim({
+      issuer: ADDR_DELEGATE,
+      subject: identityId,
+      delegatedAddress: ADDR_ATTACKER,
+      scopes: ['*'],
+      issuedAt: 2000,
+    }),
+    SEED_DELEGATE,
+    0,
+  );
+  graph.claims.push(second);
+
+  const map = new Map<string, IdentityGraph>();
+  map.set(identityId, graph);
+  const scopedResolver = makeResolver(map);
+
+  const mandate: MandateBody = {
+    grantor: ADDR_ATTACKER,
+    grantee: ADDR_AGENT,
+    principal: identityId,
+    scope: 'payment:send',
+    issuedAt: 3000,
+  };
+  const signed = makeMandateProof(mandate, SEED_ATTACKER, 0);
+  const result = verifyMandate(signed, scopedResolver, 4000);
+  expect(result.valid).toBe(false);
+  expect(result.reason).toContain('not authorized');
+
+  const { decision } = evaluateAuthority({
+    action: makeSimpleAction({ action: 'payment:send' }),
+    mandate: signed,
+    identityResolver: scopedResolver,
+    usageSnapshot,
+    now: 4000,
+  });
+  expect(decision.allowed).toBe(false);
 }, 30000);
 
 // 4. Expired proof vs valid mandate body

@@ -13,8 +13,8 @@
  * PWA via the protocol handler registration.
  */
 import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom/client';
 import '../theme/axia-tokens.css';
+import { bootstrapApproval } from './bootstrap';
 
 const ALLOWED_RETURN_SCHEMES = ['https', 'http', 'myapp', 'totem'];
 
@@ -110,6 +110,4 @@ function ProtocolHandler() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><ProtocolHandler /></React.StrictMode>
-);
+bootstrapApproval(<ProtocolHandler />);

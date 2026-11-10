@@ -24,7 +24,7 @@ import type { LookupClientConfig } from './types.js';
  * @example
  * ```ts
  * // P2P via Hyperswarm (Pear/Bare/Node)
- * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...' });
+ * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...', identitySeed: seed });
  * const coins = await client.getCoins({ address: '0xMx...' });
  *
  * // Subscribe to real-time coin updates

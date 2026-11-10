@@ -10,7 +10,7 @@ import { computeIdentityId } from '@totemsdk/identity';
 import type { ChannelParticipant } from '@totemsdk/omnia';
 import { verifyChannelParticipantIdentity, WALLET_IDENTITY_KIND } from '../identity.js';
 
-const wallet = new UnifiedIdentityWallet(new Uint8Array(32).fill(11), 64);
+const wallet = new UnifiedIdentityWallet(new Uint8Array(32).fill(11), 64, { allowInMemorySigning: true });
 const rootAddress = wallet.getRootAddress();
 const rootPublicKey = wallet.getRootPublicKey();
 const identityId = computeIdentityId(WALLET_IDENTITY_KIND, rootAddress);
@@ -72,15 +72,15 @@ describe('root-identity explicit leaf allocation (RFC-037-A §8)', () => {
   const seed = new Uint8Array(32).fill(11);
 
   it('proveOwnership({ rootUseIndex }) verifies and advances the cursor', () => {
-    const w = new UnifiedIdentityWallet(seed, 64);
+    const w = new UnifiedIdentityWallet(seed, 64, { allowInMemorySigning: true });
     const proof = w.proveOwnership([0], { rootUseIndex: 4 });
     expect(UnifiedIdentityWallet.verifyOwnershipProof(proof)).toBe(true);
     expect(w.getRootUses()).toBe(5);
   });
 
   it('distinct explicit indices produce distinct, valid root proofs', () => {
-    const a = new UnifiedIdentityWallet(seed, 64).proveOwnership([0], { rootUseIndex: 0 });
-    const b = new UnifiedIdentityWallet(seed, 64).proveOwnership([0], { rootUseIndex: 1 });
+    const a = new UnifiedIdentityWallet(seed, 64, { allowInMemorySigning: true }).proveOwnership([0], { rootUseIndex: 0 });
+    const b = new UnifiedIdentityWallet(seed, 64, { allowInMemorySigning: true }).proveOwnership([0], { rootUseIndex: 1 });
     expect(a.rootProof.signature).not.toBe(b.rootProof.signature);
     expect(UnifiedIdentityWallet.verifyOwnershipProof(a)).toBe(true);
     expect(UnifiedIdentityWallet.verifyOwnershipProof(b)).toBe(true);

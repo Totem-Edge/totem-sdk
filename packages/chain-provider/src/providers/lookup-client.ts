@@ -10,7 +10,7 @@
  * ```ts
  * import { connectLookupNode, LookupClientProvider } from '@totemsdk/lookup-client';
  *
- * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...' });
+ * const client = await connectLookupNode({ hyperswarmTopic: 'deadbeef...', identitySeed: seed });
  * const provider = new LookupClientProvider(client);
  *
  * const tip   = await provider.getTip();
@@ -23,7 +23,7 @@
  * import { CompositeProvider, HostedProvider, LookupClientProvider } from '@totemsdk/chain-provider';
  * import { connectLookupNode } from '@totemsdk/lookup-client';
  *
- * const client   = await connectLookupNode({ hyperswarmTopic: 'abc...' });
+ * const client   = await connectLookupNode({ hyperswarmTopic: 'abc...', identitySeed: seed });
  * const fallback = new HostedProvider({ baseUrl: 'https://api.axia.to', projectId: '...' });
  *
  * const provider = new CompositeProvider(

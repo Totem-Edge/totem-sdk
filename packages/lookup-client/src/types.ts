@@ -24,8 +24,9 @@ export interface LookupClientConfig {
   reconnectMaxMs?: number;
   /**
    * RFC-032: 32-byte seed for the post-quantum (WOTS/TreeKey) lookup identity.
-   * Defaults to an all-zero seed for tests; production callers should derive
-   * this from `@totemsdk/root-identity`. Ignored when `identity` is provided.
+   * Production callers should derive this from `@totemsdk/root-identity`.
+   * Ignored when `identity` is provided. One of `identity`, `identityWallet`
+   * or `identitySeed` is required unless `allowEphemeralIdentity` is set.
    */
   identitySeed?: Uint8Array;
   /** RFC-032: pre-built identity (takes precedence over `identitySeed`). */
@@ -41,6 +42,12 @@ export interface LookupClientConfig {
   identitySlot?: import('./identity.js').IdentitySlot;
   /** RFC-032: identity derivation options (address index, resume uses). */
   identityOptions?: import('./identity.js').LookupIdentityOptions;
+  /**
+   * Test/dev only: allow the all-zero ephemeral identity when none is supplied.
+   * Never enable this in a client that talks to a real lookup node — every such
+   * client would share one WOTS key and start at the same anti-replay nonce.
+   */
+  allowEphemeralIdentity?: boolean;
   /** RFC-032: auth envelope TTL in ms. Default 60_000. */
   authTtlMs?: number;
   /** RFC-032: optional root-identity proof binding (verified by the node). */

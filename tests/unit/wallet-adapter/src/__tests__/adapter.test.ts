@@ -231,6 +231,29 @@ describe('TotemWalletAdapter', () => {
       expect(res.sessionExpiresAt).toBeGreaterThan(Date.now());
     });
 
+    it('reserves a nonce before awaiting the signer (concurrent replay)', async () => {
+      const adapter = makeAdapter();
+      await adapter.handleRequest('TOTEM_CONNECT', { origin: ORIGIN });
+
+      let release!: (value: SignDataResponse) => void;
+      const gate = new Promise<SignDataResponse>((resolve) => { release = resolve; });
+      let signerCalls = 0;
+      (adapter as unknown as { signData: (origin: string, params: unknown) => Promise<SignDataResponse> }).signData =
+        async () => { signerCalls += 1; return gate; };
+
+      const challenge = { nonce: 'concurrent-nonce' };
+      const first = adapter.handleRequest('TOTEM_VERIFY', { origin: ORIGIN, challenge });
+      const second = adapter.handleRequest('TOTEM_VERIFY', { origin: ORIGIN, challenge });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      release({ success: true, signedHex: '0x-signed-data' });
+      const results = await Promise.all([first, second]);
+
+      expect(signerCalls).toBe(1);
+      expect(results.filter((r) => (r as { verified?: boolean }).verified)).toHaveLength(1);
+      expect(results.filter((r) => (r as { errorCode?: string }).errorCode === 'NONCE_REPLAY')).toHaveLength(1);
+    });
+
     it('rejects a challenge bound to a different domain', async () => {
       const adapter = makeAdapter();
       await adapter.handleRequest('TOTEM_CONNECT', { origin: ORIGIN });

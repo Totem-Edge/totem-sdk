@@ -56,6 +56,14 @@ export class LookupClient {
     this._rpc = new RpcLayer(_config.timeoutMs ?? 10_000);
     this._subscriptions = new SubscriptionManager(this._rpc);
 
+    if (!_config.identity && !_config.identityWallet && !_config.identitySeed
+      && !_config.allowEphemeralIdentity) {
+      throw new Error(
+        'LookupClient requires identity, identityWallet or identitySeed. ' +
+        'The all-zero fallback is test-only; pass allowEphemeralIdentity: true only in tests.',
+      );
+    }
+
     const identity = _config.identity
       ?? (_config.identityWallet
         ? LookupIdentity.fromWallet(_config.identityWallet, { slot: _config.identitySlot ?? 'root' })

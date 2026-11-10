@@ -9,7 +9,7 @@ const SEED = new Uint8Array(32).fill(0xab);
 
 describe('root-identity proof verifier (P0-B)', () => {
   it('roundtrips and verifies a real ownership proof', async () => {
-    const wallet = new UnifiedIdentityWallet(SEED, 4);
+    const wallet = new UnifiedIdentityWallet(SEED, 4, { allowInMemorySigning: true });
     const proof = wallet.proveOwnership([0, 1]);
     const encoded = encodeRootIdentityProof(proof);
     expect(decodeRootIdentityProof(encoded)).toEqual(proof);
@@ -28,7 +28,7 @@ describe('root-identity proof verifier (P0-B)', () => {
   });
 
   it('rejects a different expected root', async () => {
-    const wallet = new UnifiedIdentityWallet(SEED, 4);
+    const wallet = new UnifiedIdentityWallet(SEED, 4, { allowInMemorySigning: true });
     const proof = wallet.proveOwnership([0]);
     const verifier = createRootIdentityProofVerifier();
 
@@ -38,7 +38,7 @@ describe('root-identity proof verifier (P0-B)', () => {
   });
 
   it('rejects an address not covered by the proof', async () => {
-    const wallet = new UnifiedIdentityWallet(SEED, 4);
+    const wallet = new UnifiedIdentityWallet(SEED, 4, { allowInMemorySigning: true });
     const proof = wallet.proveOwnership([0]);
     const verifier = createRootIdentityProofVerifier();
 
@@ -51,7 +51,7 @@ describe('root-identity proof verifier (P0-B)', () => {
   });
 
   it('rejects a tampered child address', async () => {
-    const wallet = new UnifiedIdentityWallet(SEED, 4);
+    const wallet = new UnifiedIdentityWallet(SEED, 4, { allowInMemorySigning: true });
     const proof = wallet.proveOwnership([0]);
     const verifier = createRootIdentityProofVerifier();
 

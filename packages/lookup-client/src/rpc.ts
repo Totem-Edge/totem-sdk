@@ -104,6 +104,13 @@ export class RpcLayer {
         message: string;
         requestId?: string;
       };
+      // RFC-032-A: a rejected/expired ticket invalidates the session regardless
+      // of whether the error is correlated to a request id. Clear it before
+      // rejecting the caller so the next request cannot reuse the dead ticket.
+      if (code === 'SESSION_EXPIRED' || code === 'AUTH_REPLAY') {
+        this._authenticator?.clearTicket();
+        this._onSessionExpired?.();
+      }
       if (requestId) {
         const pending = this._pending.get(requestId);
         if (pending) {
@@ -112,12 +119,6 @@ export class RpcLayer {
           pending.reject(new LookupClientError(code, message));
           return;
         }
-      }
-      // RFC-032-A: a rejected/expired ticket invalidates the session; drop it and
-      // let the client re-open. (In-flight callers see SESSION_EXPIRED and may retry.)
-      if (code === 'SESSION_EXPIRED' || code === 'AUTH_REPLAY') {
-        this._authenticator?.clearTicket();
-        this._onSessionExpired?.();
       }
     }
 

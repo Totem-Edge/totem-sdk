@@ -105,12 +105,15 @@ export function resolveIdentityGraph(
   if (isRevoked) status = 'revoked';
   else if (rotationTarget !== undefined) status = 'rotated';
 
-  // Collect all delegation claims from authorized issuers
+  // Collect delegation claims. Delegation is a root/controller-only power:
+  // allowing a delegate to issue `delegates_to` lets a narrow delegate mint a
+  // second key with broader scopes (privilege escalation). Delegates may use
+  // the scopes they were granted, but may not delegate them onward.
   const allDelegationSignedClaims = verifiedClaims.filter(
     (sc) =>
       sc.claim.type === 'delegates_to' &&
       sc.claim.subject === document.id &&
-      allAuthorized.has(sc.claim.issuer) &&
+      isRootOrController(sc.claim.issuer) &&
       isEffective(sc.claim, asOf),
   );
 
@@ -119,7 +122,9 @@ export function resolveIdentityGraph(
     issuer: sc.claim.issuer,
     subject: sc.claim.subject,
     delegatedAddress: sc.claim.object,
-    scopes: Array.isArray(sc.claim.payload.scopes) ? (sc.claim.payload.scopes as string[]) : [],
+    scopes: Array.isArray(sc.claim.payload.scopes)
+      ? (sc.claim.payload.scopes as unknown[]).filter((s): s is string => typeof s === 'string')
+      : [],
     issuedAt: sc.claim.issuedAt,
     expiresAt: sc.claim.expiresAt,
   }));

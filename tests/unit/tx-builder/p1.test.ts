@@ -93,6 +93,24 @@ describe('tx-builder P1', () => {
     ]);
   });
 
+  test('does not duplicate an explicit fee coin that is already a selected input', async () => {
+    const funded = await buildFundedPayment({
+      provider: fromChainProvider(chainProvider()),
+      ownerAddresses: [OWNER],
+      recipient: OTHER,
+      amount: '600',
+      tokenId: '0x00',
+      ownerPublicKey: PUB,
+      feeCoinId: '0x' + 'b1'.repeat(32),
+    });
+    expect(funded.feeCoin).toBeUndefined();
+    expect(funded.buildParams.inputs.map((i) => i.coinId)).toEqual(['0x' + 'b1'.repeat(32)]);
+    expect(funded.buildParams.outputs).toEqual([
+      { address: OTHER, amount: '600', tokenId: '0x00' },
+      { address: OWNER, amount: '400', tokenId: '0x00' },
+    ]);
+  });
+
   test('signAndSerialize produces a TxnRow', async () => {
     const params = {
       inputs: [

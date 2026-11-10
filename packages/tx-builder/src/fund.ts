@@ -121,6 +121,13 @@ export async function buildFundedPayment(params: FundedPaymentParams): Promise<F
     if (!feeCoin) throw new Error('No native fee coin available');
   }
 
+  // An explicit fee coin may already be part of the selected set (for example a
+  // native payment). The fee is then already funded by that input; adding it a
+  // second time duplicates the coin and double-counts its value.
+  if (feeCoin && selectedIds.has(feeCoin.coinId.replace(/^0x/i, '').toLowerCase())) {
+    feeCoin = undefined;
+  }
+
   const descriptorFor = (coin: TxCoin): ScriptDescriptor =>
     params.scriptDescriptorFor?.(coin) ??
     createSignedByDescriptor(coin.address, params.ownerPublicKey);
