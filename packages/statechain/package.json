@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/statechain",
-  "version": "0.3.1",
-  "description": "Mercury-protocol state chain for Minima — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
+  "version": "0.3.2",
+  "description": "Mercury-protocol state chain for Minima \u2014 privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
