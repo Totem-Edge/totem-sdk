@@ -21,7 +21,8 @@
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest --config ../../tests/jest/statechain.cjs"
+    "test": "jest --config ../../tests/jest/statechain.cjs",
+    "test:integration": "node --test ../../tests/qualification/security-train/test/statechain-prevstate.test.mjs"
   },
   "files": [
     "dist",

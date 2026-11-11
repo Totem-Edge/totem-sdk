@@ -30,7 +30,8 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest --config ../../tests/jest/omnia-relay.cjs"
+    "test": "jest --config ../../tests/jest/omnia-relay.cjs",
+    "test:integration": "node --test ../../tests/qualification/security-train/test/omnia-relay-forwarder-auth.test.mjs"
   },
   "files": [
     "dist",
