@@ -47,6 +47,19 @@ interface WalletCtx {
 
 const WalletContext = createContext<WalletCtx | null>(null);
 
+/**
+ * Wallet screens that can be deep-linked, e.g. the portfolio's Send/Receive
+ * buttons open `/web/#send`. The wallet has no URL router, so the hash is the
+ * only way another app (or a bookmark) can land on a specific screen.
+ */
+const DEEP_LINK_ROUTES: AppRoute[] = ['home', 'send', 'receive', 'settings'];
+
+function readHashRoute(): AppRoute | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+  return (DEEP_LINK_ROUTES as string[]).includes(raw) ? (raw as AppRoute) : null;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [route, setRoute]   = useState<AppRoute>('loading');
   const [session, setSession] = useState<SessionState | null>(null);
@@ -54,6 +67,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // The route the user was on before the session expired — used to restore after re-unlock
   const preExpiredRoute = useRef<AppRoute | null>(null);
+  // Requested screen from the URL hash, applied once the wallet is unlocked
+  const requestedRoute = useRef<AppRoute | null>(readHashRoute());
+
+  const takeRequestedRoute = useCallback((): AppRoute | null => {
+    const requested = requestedRoute.current;
+    requestedRoute.current = null;
+    return requested;
+  }, []);
 
   // ── Initial boot ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -66,13 +87,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setSession(s);
         void startPwaOmniaHost();
         const confirmed = await WalletManager.isBackupConfirmed();
-        setRoute(confirmed ? 'home' : 'backup');
+        setRoute(confirmed ? (takeRequestedRoute() ?? 'home') : 'backup');
       } else {
         setRoute('unlock');
       }
     }
     init().catch(e => setError(String(e)));
-  }, []);
+  }, [takeRequestedRoute]);
+
+  // ── Keep the URL hash in step with the visible screen ─────────────────────
+  // Lets `#send` / `#receive` links (portfolio buttons, home-screen shortcuts)
+  // land on the right page, and keeps the address bar honest afterwards.
+  useEffect(() => {
+    if (!DEEP_LINK_ROUTES.includes(route)) return;
+    const desired = `#${route}`;
+    if (window.location.hash === desired) return;
+    history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}${desired}`,
+    );
+  }, [route]);
 
   // ── Session-expired detection via visibilitychange ────────────────────────
   useEffect(() => {
@@ -111,9 +146,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       preExpiredRoute.current = null;
       setRoute(confirmed ? restored : 'backup');
     } else {
-      setRoute(confirmed ? 'home' : 'backup');
+      setRoute(confirmed ? (takeRequestedRoute() ?? 'home') : 'backup');
     }
-  }, [route]);
+  }, [route, takeRequestedRoute]);
 
   const lock = useCallback(() => {
     track('session.locked');
