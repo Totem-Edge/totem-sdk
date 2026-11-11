@@ -3,6 +3,7 @@
  * Signs the digestTx or message from the params using the WOTS key.
  */
 import React, { useState, useEffect, useMemo } from 'react';
+import { sha3_256 } from '@noble/hashes/sha3.js';
 import { WalletManager } from '../core/WalletManager';
 import { signAndSerialize } from '../core/signing';
 import { fromHex } from '../core/utils';
@@ -64,8 +65,9 @@ export function VerifyApproval() {
         const hexStr = (digestTx || unsignedHex).replace(/^0x/, '');
         sigBytes = fromHex(hexStr);
       } else {
-        // Sign the UTF-8 message bytes (verify mode or plain message)
-        sigBytes = new TextEncoder().encode(message);
+        // WOTS signs a 32-byte digest, not arbitrary-length text. Match the
+        // extension: SHA3-256 the UTF-8 message first.
+        sigBytes = sha3_256(new TextEncoder().encode(message));
       }
 
       const signature = await signAndSerialize(treeKey, sigBytes, uses);

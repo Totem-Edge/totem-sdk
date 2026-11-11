@@ -21,6 +21,11 @@ export async function signAndSerialize(
   if (!Number.isInteger(uses) || uses < 0) {
     throw new Error(`Invalid WOTS uses index: ${uses}`);
   }
+  if (data.length !== 32) {
+    throw new Error(
+      `WOTS signing requires a 32-byte digest, got ${data.length} bytes. Hash the message first.`
+    );
+  }
   if (uses >= treeKey.getMaxUses()) {
     throw new Error(`WOTS uses index ${uses} exceeds tree capacity ${treeKey.getMaxUses()}`);
   }
