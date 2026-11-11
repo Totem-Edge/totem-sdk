@@ -32,7 +32,8 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "test": "jest --config ../../tests/jest/omnia.cjs",
-    "test:parity": "npm run build:wasm && jest --config ../../tests/jest/omnia.cjs parity-fixtures omnia-parity-recovery omnia-wasm-parity"
+    "test:parity": "npm run build:wasm && jest --config ../../tests/jest/omnia.cjs parity-fixtures omnia-parity-recovery omnia-wasm-parity",
+    "test:integration": "node --test ../../tests/qualification/security-train/test/omnia-cosign.test.mjs && node --test ../../tests/qualification/security-train/test/omnia-signature-binding.test.mjs"
   },
   "files": [
     "dist",
