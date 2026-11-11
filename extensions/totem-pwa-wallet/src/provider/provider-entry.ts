@@ -51,6 +51,12 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
 
   let connectedAccounts: Array<{ address: string; index: number }> = [];
   let _redirectReturn: { method: string; result: unknown; error?: string } | null = null;
+  /**
+   * The wallet popup opened for this dApp. A TOTEM_CONNECT window is kept open
+   * and reused for the follow-up TOTEM_VERIFY sign-in so the wallet only has to
+   * be unlocked once and the browser does not block a second popup.
+   */
+  let walletWin: Window | null = null;
 
   function emitEvent(name: string, ...args: unknown[]): void {
     const cbs = eventListeners.get(name);
@@ -245,7 +251,8 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       nonce,
       returnUrl,
     }).toString();
-    const url = `${WALLET_ORIGIN}${path}?${query}`;
+    const keepOpen = method === 'TOTEM_CONNECT';
+    const url = `${WALLET_ORIGIN}${path}?${query}${keepOpen ? '&keepOpen=1' : ''}`;
 
     if (isMobile() || isCustomScheme(returnUrl)) {
       // For native app callers with custom scheme returnUrl, skip sessionStorage
@@ -258,15 +265,41 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       return;
     }
 
-    const walletWin = window.open(
-      url, `totem_${id}`,
+    // Follow-up request (sign-in) inside the already-open approval window. The
+    // wallet is still unlocked in that window, so the user is not asked for the
+    // password again and the browser does not need to allow a second popup.
+    if (!keepOpen && walletWin && !walletWin.closed) {
+      try {
+        walletWin.postMessage(
+          { type: 'totem_request', reqId: id, nonce, method, params: qs, origin: callerOrigin, returnUrl },
+          WALLET_ORIGIN,
+        );
+        walletWin.focus();
+        const reusedCheck = setInterval(() => {
+          if (!walletWin || walletWin.closed) {
+            clearInterval(reusedCheck);
+            const p = pendingRequests.get(id);
+            if (p) {
+              pendingRequests.delete(id);
+              p.reject(new Error('User closed wallet'));
+            }
+          }
+        }, 500);
+        return;
+      } catch {
+        // Fall through and open a fresh window.
+      }
+    }
+
+    const win = window.open(
+      url, 'totem_wallet',
       `width=${POPUP_W},height=${POPUP_H},` +
       `top=${Math.max(0, Math.round(window.screenY + (window.outerHeight - POPUP_H) / 2))},` +
       `left=${Math.max(0, Math.round(window.screenX + (window.outerWidth  - POPUP_W) / 2))},` +
       'resizable=no,scrollbars=no,status=no,toolbar=no,menubar=no',
     );
 
-    if (!walletWin) {
+    if (!win) {
       if (!isCustomScheme(returnUrl)) {
         sessionStorage.setItem('totem_redirect_id', id);
         sessionStorage.setItem('totem_redirect_method', method);
@@ -274,13 +307,14 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       window.location.href = url;
       return;
     }
+    walletWin = win;
 
     let bc: BroadcastChannel | null = null;
+    let closedCheck: ReturnType<typeof setInterval> | null = null;
     try {
       bc = new BroadcastChannel(`totem_response_${id}_${nonce}`);
       bc.onmessage = (e: MessageEvent) => {
         bc?.close(); bc = null;
-        clearInterval(closedCheck);
         const msg = e.data as { type?: string; reqId?: string; result?: unknown; error?: string };
         if (msg.type !== 'totem_response') return;
         const p = pendingRequests.get(id);
@@ -295,14 +329,20 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           }
         }
         p.resolve(msg.result);
-        if (!walletWin.closed) walletWin.close();
+        if (keepOpen) {
+          if (closedCheck) clearInterval(closedCheck);
+        } else {
+          if (!win.closed) win.close();
+          walletWin = null;
+        }
       };
     } catch { /* BroadcastChannel not supported */ }
 
-    const closedCheck = setInterval(() => {
-      if (walletWin.closed) {
-        clearInterval(closedCheck);
+    closedCheck = setInterval(() => {
+      if (win.closed) {
+        if (closedCheck) clearInterval(closedCheck);
         bc?.close(); bc = null;
+        if (walletWin === win) walletWin = null;
         const p = pendingRequests.get(id);
         if (p) {
           pendingRequests.delete(id);

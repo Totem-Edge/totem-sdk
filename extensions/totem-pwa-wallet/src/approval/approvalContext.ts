@@ -127,6 +127,7 @@ export function sendApprovalResult(
   ctx: ApprovalContext,
   result: unknown,
   error?: string,
+  options?: { keepOpen?: boolean },
 ): void {
   const payload = { type: 'totem_response', reqId: ctx.reqId, result, error };
 
@@ -148,7 +149,7 @@ export function sendApprovalResult(
   // 3. Popup: never post with '*'; only deliver to a known origin.
   if (window.opener && ctx.targetOrigin) {
     window.opener.postMessage(payload, ctx.targetOrigin);
-    setTimeout(() => window.close(), 100);
+    if (!options?.keepOpen) setTimeout(() => window.close(), 100);
     return;
   }
 
@@ -159,7 +160,7 @@ export function sendApprovalResult(
   }
 
   // 5. No trusted delivery path — close without exposing the payload.
-  if (window.opener) {
+  if (window.opener && !options?.keepOpen) {
     setTimeout(() => window.close(), 100);
   }
 }

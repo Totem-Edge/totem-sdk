@@ -3,9 +3,9 @@
  * Signs the digestTx or message from the params using the WOTS key.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { sha3_256 } from '@noble/hashes/sha3.js';
 import { WalletManager } from '../core/WalletManager';
 import { signAndSerialize } from '../core/signing';
+import { signVerificationMessage } from '../core/signMessage';
 import { fromHex } from '../core/utils';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 
@@ -54,23 +54,19 @@ export function VerifyApproval() {
   async function handleSign() {
     setStep('signing');
     try {
-      const treeKey = await WalletManager.getActiveTreeKey();
       // Reserve a unique WOTS leaf BEFORE signing. Message signing is not driven
       // by a server lease, so without this every popup reused leaf 0 (AUD-001).
-      const uses = await WalletManager.reserveNextUse();
-      let sigBytes: Uint8Array;
+      let signature: string;
 
       if (isHexSigning && (digestTx || unsignedHex)) {
         // Sign the raw hex bytes of the digestTx / transaction hash
         const hexStr = (digestTx || unsignedHex).replace(/^0x/, '');
-        sigBytes = fromHex(hexStr);
+        const treeKey = await WalletManager.getActiveTreeKey();
+        const uses = await WalletManager.reserveNextUse();
+        signature = await signAndSerialize(treeKey, fromHex(hexStr), uses);
       } else {
-        // WOTS signs a 32-byte digest, not arbitrary-length text. Match the
-        // extension: SHA3-256 the UTF-8 message first.
-        sigBytes = sha3_256(new TextEncoder().encode(message));
+        signature = await signVerificationMessage(message);
       }
-
-      const signature = await signAndSerialize(treeKey, sigBytes, uses);
 
       if (isVerifyMode) {
         const account = WalletManager.getActiveAccount();
