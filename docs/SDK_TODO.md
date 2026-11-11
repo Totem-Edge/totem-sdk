@@ -6,6 +6,33 @@ tolerant fallbacks that mask a defect.
 
 ---
 
+## Canary-originated work — start in `docs/findings/`
+
+Findings raised by the Totem Edge Canary arrive as self-contained briefs in
+[`docs/findings/`](findings/README.md): repro, expected vs actual, where to fix,
+constraints, acceptance criteria and verification commands. They are generated
+by
+
+```bash
+# in the canary checkout
+pnpm run findings --sdk <path-to-this-checkout> \
+  --write <path-to-this-checkout>/docs/findings
+```
+
+Take those before inventing new work, and close them by moving the finding's
+status to `fixed` in the canary registry with the fixing commit.
+
+Open today:
+
+- **`CAN-001`** — channel funding draft drops the unspent part of the funding
+  coin (no change output, no conservation check). Brief:
+  [`docs/findings/agent/CAN-001.md`](findings/agent/CAN-001.md).
+- **`sdk-gap:integration-gates`** — 41 publishable packages declare no
+  `test:integration` gate. Brief:
+  [`docs/findings/agent/sdk-gap-integration-gates.md`](findings/agent/sdk-gap-integration-gates.md).
+
+---
+
 ## minima-rpc — cover the full Hawk node command set  *(DONE)*
 
 `@totemsdk/minima-rpc` now ships generated metadata for all **132** node

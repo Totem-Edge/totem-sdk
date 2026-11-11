@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-11-11T17:45:16.008Z",
+  "findings": [
+    {
+      "id": "CAN-001",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Channel funding draft silently drops the unspent part of the funding coin",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-host",
+        "@totemsdk/tx-builder"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "2.4.2",
+        "@totemsdk/omnia-host": "0.13.4",
+        "@totemsdk/tx-builder": "0.3.1"
+      },
+      "source": "artifacts/canary/src/composition/__tests__/CrossPackage.test.ts",
+      "summary": "buildFundingTx takes explicit input amounts but always emits exactly one output (the channel coin). It neither returns change nor checks that inputs cover outputs, and buildChannelOpening passes the whole funding coin. Opening a channel from a coin larger than localAmount + remoteAmount therefore produces a draft whose inputs exceed its outputs by the unspent remainder. tx-builder buildTransaction does not check conservation either, so nothing fails until a node rejects the unbalanced transaction.",
+      "impact": "Reachable from the RPC surface: omnia-host forwards fundingCoinId unchanged, so any wallet that does not pre-select an exactly-sized coin fails to open a channel with an opaque node rejection. No funds are lost (the node refuses the transaction) but the failure is late and misattributed.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm composition",
+        "expected": "The draft either pays the remainder back to the funding coin address (change output) or throws when sum(inputs) > totalValue.",
+        "actual": "The draft contains a single output. inputs sum 1500 while outputs sum 1000, and no layer rejects it. Recorded as a node:test TODO so it stays visible without failing the gate.",
+        "evidence": [
+          "CANARY FINDING: an over-funded funding draft is neither changed nor rejected (TODO)",
+          "packages/omnia/src/transactions.ts: buildFundingTx",
+          "packages/omnia/src/channel.ts: buildChannelOpening passes fundingCoin.amount as the input",
+          "packages/omnia-host/src/api/methods.ts: prepareOpenChannel forwards fundingCoinId",
+          "packages/tx-builder/src/build.ts: buildTransaction has no conservation check"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia/src/transactions.ts",
+          "packages/omnia/src/channel.ts",
+          "packages/tx-builder/src/build.ts"
+        ],
+        "approach": "Add a change output to the input coin address in buildFundingTx when sum(inputs) > totalValue, or reject the draft with a clear error. Do both at the right layers: omnia owns channel funding semantics, tx-builder should refuse to serialise an unbalanced transaction rather than deferring to the node.",
+        "constraints": [
+          "Do not change the funding output state contract: STATE(100)=false, STATE(101)=0.",
+          "Do not change computeOmniaTxDigest / canonical byte semantics.",
+          "Do not mask this in the canary, in omnia-host, or with a coin pre-selection workaround.",
+          "Keep the single-input fast path byte-identical when the input equals totalValue."
+        ],
+        "acceptance": [
+          "buildFundingTx returns a change output to the funding coin address when inputs exceed totalValue.",
+          "buildFundingTx (or buildChannelOpening) throws when inputs are less than totalValue.",
+          "tx-builder buildTransaction rejects a draft whose input sum is below its output sum.",
+          "Unit tests cover over-funded, exact, and under-funded inputs.",
+          "The canary test \"over-funded funding draft is neither changed nor rejected\" is un-TODOed and passes."
+        ],
+        "verification": [
+          "pnpm --config.verify-deps-before-run=false --filter \"@totemsdk/omnia...\" run build",
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia test",
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/tx-builder test",
+          "cd artifacts/canary && pnpm composition"
+        ]
+      },
+      "links": {
+        "canaryCommit": "645ae34",
+        "sdkTodo": "docs/SDK_TODO.md#omnia--channel-funding-draft-currently-open",
+        "test": "artifacts/canary/src/composition/__tests__/CrossPackage.test.ts"
+      }
+    },
+    {
+      "id": "sdk-gap:integration-gates",
+      "kind": "sdk-gap",
+      "status": "open",
+      "severity": "medium",
+      "title": "41 publishable packages declare no test:integration gate",
+      "packages": [
+        "@totemsdk/agent-policy",
+        "@totemsdk/authority",
+        "@totemsdk/chain-provider",
+        "@totemsdk/connect",
+        "@totemsdk/decision",
+        "@totemsdk/edge",
+        "@totemsdk/governance",
+        "@totemsdk/identity",
+        "@totemsdk/intelligence",
+        "@totemsdk/kissvm",
+        "@totemsdk/liquidity-bond",
+        "@totemsdk/lookup-client",
+        "@totemsdk/lookup-node",
+        "@totemsdk/lookup-protocol",
+        "@totemsdk/manifest",
+        "@totemsdk/mcp-server",
+        "@totemsdk/omnia-factory",
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-pool",
+        "@totemsdk/omnia-router",
+        "@totemsdk/omnia-vtxo",
+        "@totemsdk/p2p-hub",
+        "@totemsdk/pear",
+        "@totemsdk/provider-bond",
+        "@totemsdk/minima-rpc",
+        "@totemsdk/pubsub-transport",
+        "@totemsdk/qvac",
+        "@totemsdk/realtime",
+        "@totemsdk/recursive-mast",
+        "@totemsdk/root-identity",
+        "@totemsdk/se-server",
+        "@totemsdk/server",
+        "@totemsdk/storage",
+        "@totemsdk/stream-transport",
+        "@totemsdk/tx-builder",
+        "@totemsdk/txpow",
+        "@totemsdk/wallet-adapter",
+        "@totemsdk/wots-lease",
+        "@totemsdk/entity",
+        "@totemsdk/eefi",
+        "@totemsdk/replication"
+      ],
+      "source": "/Users/peter.cheek/Downloads/CRYSTAL_LABS/TOTEM/totem-sdk-omnia-p0/scripts/workspace-gates.config.json",
+      "summary": "The maturity gate requires test:integration for RC packages, but these declare none and carry no reasoned notApplicable exemption. They are invisible to `verify-workspace --integration`.",
+      "impact": "A behavioural regression in any of these packages reaches a release with no integration evidence; the canary cannot cover them all on its own.",
+      "repro": {
+        "command": "node scripts/verify-workspace.mjs --integration",
+        "expected": "Every RC package either declares test:integration or a reasoned exemption.",
+        "actual": "Missing: @totemsdk/agent-policy (rc), @totemsdk/authority (rc), @totemsdk/chain-provider (rc), @totemsdk/connect (rc), @totemsdk/decision (beta), @totemsdk/edge (rc), @totemsdk/governance (rc), @totemsdk/identity (rc), @totemsdk/intelligence (beta), @totemsdk/kissvm (rc), @totemsdk/liquidity-bond (rc), @totemsdk/lookup-client (rc), @totemsdk/lookup-node (rc), @totemsdk/lookup-protocol (rc), @totemsdk/manifest (rc), @totemsdk/mcp-server (rc), @totemsdk/omnia-factory (rc), @totemsdk/omnia-host (rc), @totemsdk/omnia-pool (rc), @totemsdk/omnia-router (rc), @totemsdk/omnia-vtxo (rc), @totemsdk/p2p-hub (alpha), @totemsdk/pear (rc), @totemsdk/provider-bond (rc), @totemsdk/minima-rpc (rc), @totemsdk/pubsub-transport (rc), @totemsdk/qvac (beta), @totemsdk/realtime (rc), @totemsdk/recursive-mast (rc), @totemsdk/root-identity (rc), @totemsdk/se-server (rc), @totemsdk/server (rc), @totemsdk/storage (rc), @totemsdk/stream-transport (rc), @totemsdk/tx-builder (rc), @totemsdk/txpow (rc), @totemsdk/wallet-adapter (rc), @totemsdk/wots-lease (rc), @totemsdk/entity (alpha), @totemsdk/eefi (rc), @totemsdk/replication (alpha)"
+      },
+      "fix": {
+        "where": [
+          "scripts/workspace-gates.config.json",
+          "the packages listed in this finding"
+        ],
+        "approach": "Add a real test:integration per package (packed-consumer or invariant check), or record a reasoned notApplicable exemption in scripts/workspace-gates.config.json naming an owner.",
+        "constraints": [
+          "Do not add notApplicable entries without an owner and a reason.",
+          "Do not add a script that always exits 0."
+        ],
+        "acceptance": [
+          "node scripts/verify-workspace.mjs --integration reports no missing test:integration for RC packages.",
+          "Each new suite asserts behaviour, not just an import."
+        ],
+        "verification": [
+          "node scripts/verify-workspace.mjs --integration"
+        ]
+      },
+      "links": {
+        "sdkTodo": "docs/SDK_TODO.md"
+      }
+    }
+  ]
+}
