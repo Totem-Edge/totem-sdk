@@ -25,8 +25,8 @@ const bobKey = mk(0xb2);
 const alicePkd = publicKey(aliceKey);
 const bobPkd = publicKey(bobKey);
 
-function makeLeaseProvider() {
-  let l2 = 0;
+function makeLeaseProvider(startL2 = 0) {
+  let l2 = startL2;
   return {
     reserveKeyUse: async () => {
       const index = l2++;
@@ -165,16 +165,21 @@ const wasm = hasWasm ? requireWasm(WASM_PATH) : null;
     const channel = makeChannel();
     const balances = { alice: 500n, bob: 500n };
 
+    // The module-level keys are shared with earlier tests, so their WOTS
+    // cursors are already advanced. Allocate leases at the current cursor so
+    // the claimed signingIndices match the leaf each signature actually uses.
+    const aliceStart = aliceKey.getUses();
+    const bobStart = bobKey.getUses();
     const alicePartial = await signState(
       channel,
       { newSequence: 1, newBalances: balances },
-      makeLeaseProvider(),
+      makeLeaseProvider(aliceStart),
       makeSigner(aliceKey, alicePkd),
     );
     const bobPartial = await signState(
       channel,
       { newSequence: 1, newBalances: balances },
-      makeLeaseProvider(),
+      makeLeaseProvider(bobStart),
       makeSigner(bobKey, bobPkd),
     );
     const { signedState } = attachCounterpartySignature(

@@ -3,6 +3,7 @@
  */
 
 import { defaultCoSignPolicy } from '../../../../../packages/omnia/src/integration.js';
+import * as omniaEntry from '../../../../../packages/omnia/src/index.js';
 import { validateStateForCoSign } from '../../../../../packages/omnia/src/sign.js';
 import type { OmniaChannel, SignedChannelState } from '../../../../../packages/omnia/src/types.js';
 
@@ -52,6 +53,13 @@ function state(overrides: Partial<SignedChannelState> = {}): SignedChannelState 
 }
 
 describe('RFC-078 co-sign hardening', () => {
+  it('exposes the safe co-sign default from the package entry point', () => {
+    // Applications must be able to reference the safe default through the
+    // published entry point; integration.js is internal.
+    expect(omniaEntry.defaultCoSignPolicy).toBe(defaultCoSignPolicy);
+    expect(typeof omniaEntry.defaultCoSignPolicy.authorize).toBe('function');
+  });
+
   it('denies a local balance decrease by default', async () => {
     const decision = await defaultCoSignPolicy.authorize({
       channel: channel(),

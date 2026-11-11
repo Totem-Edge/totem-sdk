@@ -171,7 +171,7 @@
         "edge-computing"
       ],
       "dependencies": {
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/proof": "^1.0.3"
       },
       "exports": {
@@ -223,13 +223,13 @@
         "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/kissvm": "^1.3.1",
-        "@totemsdk/lookup-client": "^0.4.0",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/lookup-client": "^0.4.1",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/omnia-factory": "^0.7.1",
         "@totemsdk/omnia-router": "^0.4.1",
-        "@totemsdk/omnia-splice": "^0.3.1",
+        "@totemsdk/omnia-splice": "^0.3.2",
         "@totemsdk/pear": "^0.3.0",
-        "@totemsdk/statechain": "^0.3.1",
+        "@totemsdk/statechain": "^0.3.2",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -349,7 +349,7 @@
         "@totemsdk/connect": "^3.1.3",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/decision": "^0.3.0",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/replication": "^0.2.0",
@@ -381,14 +381,14 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/edge-gnss": "^0.1.0",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/location-proof": "^1.0.2",
-        "@totemsdk/lookup-client": "^0.4.0",
+        "@totemsdk/lookup-client": "^0.4.1",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/omnia-router": "^0.4.1",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/pubsub-transport": "^0.2.1",
-        "@totemsdk/root-identity": "^1.0.11",
+        "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/stream-transport": "^0.2.2"
       },
@@ -650,7 +650,7 @@
         "@totemsdk/agent-policy": "^0.5.0",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/edge": "^1.6.0",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/pubsub-transport": "^0.2.1",
@@ -774,7 +774,7 @@
       "dependencies": {
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/replication": "^0.2.0"
       },
@@ -789,7 +789,7 @@
     },
     {
       "name": "@totemsdk/identity",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Canonical identity and claims layer — who controls a manifest, device, or agent",
       "domain": "verifiable-claims",
       "keywords": [
@@ -852,7 +852,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2",
@@ -869,7 +869,7 @@
     },
     {
       "name": "@totemsdk/lookup-client",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, TxPoW broadcast",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -883,7 +883,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/root-identity": "^1.0.11",
+        "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
@@ -974,7 +974,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "2.4.0",
+      "version": "2.4.2",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [
@@ -992,7 +992,7 @@
         "@totemsdk/kissvm": "^1.3.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/stream-transport": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1024,9 +1024,9 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1057,7 +1057,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -1071,7 +1071,7 @@
     },
     {
       "name": "@totemsdk/omnia-splice",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "Channel splicing — resize eltoo channels without close+reopen",
       "domain": "payment-network",
       "keywords": [
@@ -1081,9 +1081,9 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1111,7 +1111,7 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
@@ -1188,7 +1188,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0"
       },
       "exports": {
@@ -1237,7 +1237,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2"
@@ -1264,7 +1264,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.3",
         "@totemsdk/storage": "^0.2.2"
@@ -1350,7 +1350,7 @@
     },
     {
       "name": "@totemsdk/realtime",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Real-time balance streaming — WebSocket and HTTP fallback",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1387,7 +1387,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/kissvm": "^1.3.1",
-        "@totemsdk/tx-builder": "^0.3.0"
+        "@totemsdk/tx-builder": "^0.3.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1403,7 +1403,7 @@
     },
     {
       "name": "@totemsdk/root-identity",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "description": "Single root identity controlling up to 64 on-chain addresses — cryptographically linked via 3-level TreeKeys",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1427,7 +1427,7 @@
     },
     {
       "name": "@totemsdk/se-server",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer as Express app",
       "domain": "payment-network",
       "keywords": [
@@ -1443,7 +1443,7 @@
         "zod": "^4.4.3",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/manifest": "^2.1.0",
-        "@totemsdk/root-identity": "^1.0.11",
+        "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1485,7 +1485,7 @@
     },
     {
       "name": "@totemsdk/statechain",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
       "domain": "payment-network",
       "keywords": [
@@ -1499,7 +1499,7 @@
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -1543,7 +1543,7 @@
     },
     {
       "name": "@totemsdk/tx-builder",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Transaction builder for Minima — local transaction/witness assembly, coin selection, fee/change, HTLC, signing, and submission",
       "domain": "payment-network",
       "keywords": [
@@ -1599,7 +1599,7 @@
     },
     {
       "name": "@totemsdk/wallet-adapter",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
       "domain": "edge-computing",
       "keywords": [
@@ -1811,7 +1811,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.13.3",
+      "version": "0.13.4",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1824,19 +1824,19 @@
         "ws": "^8.21.1",
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/liquidity-bond": "^0.3.2",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/minima-rpc": "^0.5.1",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/omnia-factory": "^0.7.1",
         "@totemsdk/omnia-pool": "^0.5.4",
         "@totemsdk/omnia-router": "^0.4.1",
-        "@totemsdk/omnia-splice": "^0.3.1",
+        "@totemsdk/omnia-splice": "^0.3.2",
         "@totemsdk/omnia-vtxo": "^0.8.1",
         "@totemsdk/p2p-hub": "^0.1.1",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "exports": {
@@ -1964,13 +1964,13 @@
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/liquidity-bond": "^0.3.2",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/omnia-factory": "^0.7.1",
         "@totemsdk/omnia-router": "^0.4.1",
-        "@totemsdk/omnia-splice": "^0.3.1",
+        "@totemsdk/omnia-splice": "^0.3.2",
         "@totemsdk/omnia-vtxo": "^0.8.1",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/tx-builder": "^0.3.0",
+        "@totemsdk/tx-builder": "^0.3.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "peerDependencies": {
@@ -1991,7 +1991,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [
@@ -2007,12 +2007,12 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
-        "@totemsdk/omnia": "^2.4.0",
+        "@totemsdk/identity": "^1.1.1",
+        "@totemsdk/omnia": "^2.4.2",
         "@totemsdk/omnia-factory": "^0.7.1",
         "@totemsdk/omnia-router": "^0.4.1",
-        "@totemsdk/omnia-splice": "^0.3.1",
-        "@totemsdk/root-identity": "^1.0.11",
+        "@totemsdk/omnia-splice": "^0.3.2",
+        "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "exports": {
@@ -2268,7 +2268,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/identity": "^1.1.0",
+        "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.1.0"
       },
       "exports": {
