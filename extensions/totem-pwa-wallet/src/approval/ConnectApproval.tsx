@@ -14,11 +14,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import { signVerificationMessage } from '../core/signMessage';
 import { parseApprovalContext, sendApprovalResult, type ApprovalContext } from './approvalContext';
+import { resolveVerifyTtlMs } from './verifyTtl';
 
 interface FollowUpRequest {
   reqId: string;
   nonce: string;
   message: string;
+  /** Caller-requested verification lifetime (`challenge.expiryMs`). */
+  expiryMs?: string;
 }
 
 export function ConnectApproval() {
@@ -83,6 +86,7 @@ export function ConnectApproval() {
         reqId: String(data.reqId ?? ''),
         nonce: String(data.nonce ?? ''),
         message,
+        expiryMs: data.params?.expiryMs,
       });
       setStep(WalletManager.isUnlocked() ? 'sign' : 'password');
     }
@@ -142,7 +146,7 @@ export function ConnectApproval() {
         publicKey: account?.publicKey ?? '',
         signature,
         message: followUp.message,
-        expiresAt: Date.now() + 3600000,
+        expiresAt: Date.now() + resolveVerifyTtlMs(followUp.expiryMs),
       });
       setStep('done');
     } catch (e) {

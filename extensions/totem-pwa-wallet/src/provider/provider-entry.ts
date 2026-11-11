@@ -152,6 +152,12 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     if (method === 'TOTEM_VERIFY') {
       const challenge = params.challenge as Record<string, unknown> | undefined;
       if (challenge?.statement) out.message = encodeURIComponent(String(challenge.statement));
+      // Callers (e.g. a server issuing a 5-minute nonce) can cap how long the
+      // verification may claim to be valid. Without this the approval page had
+      // to guess, and servers rejected the resulting expiry.
+      if (typeof challenge?.expiryMs === 'number' && Number.isFinite(challenge.expiryMs)) {
+        out.expiryMs = String(challenge.expiryMs);
+      }
       out.mode = 'verify';
     }
 

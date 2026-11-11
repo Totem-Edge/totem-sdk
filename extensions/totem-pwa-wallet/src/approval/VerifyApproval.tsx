@@ -8,6 +8,7 @@ import { signAndSerialize } from '../core/signing';
 import { signVerificationMessage } from '../core/signMessage';
 import { fromHex } from '../core/utils';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
+import { resolveVerifyTtlMs } from './verifyTtl';
 
 function getParams() {
   const url = new URL(window.location.href);
@@ -19,6 +20,7 @@ function getParams() {
     digestTx: url.searchParams.get('digestTx') ?? '',
     blobHash: url.searchParams.get('blobHash') ?? '',
     unsignedHex: url.searchParams.get('unsignedHex') ?? '',
+    expiryMs: url.searchParams.get('expiryMs') ?? '',
   };
 }
 
@@ -28,8 +30,9 @@ export function VerifyApproval() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const ctx = useMemo(parseApprovalContext, []);
-  const { mode, message, digestTx, blobHash, unsignedHex } = getParams();
+  const { mode, message, digestTx, blobHash, unsignedHex, expiryMs } = getParams();
   const isVerifyMode = mode === 'verify';
+  const verifyTtlMs = useMemo(() => resolveVerifyTtlMs(expiryMs), [expiryMs]);
 
   const displayContent = digestTx || message || blobHash || '(empty)';
   const isHexSigning = !isVerifyMode && (!!digestTx || !!unsignedHex);
@@ -77,7 +80,7 @@ export function VerifyApproval() {
           publicKey: account?.publicKey ?? '',
           signature,
           message,
-          expiresAt: Date.now() + 3600000,
+          expiresAt: Date.now() + verifyTtlMs,
         });
       } else {
         const account = WalletManager.getActiveAccount();
