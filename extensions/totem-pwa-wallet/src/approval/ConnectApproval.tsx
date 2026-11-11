@@ -41,8 +41,12 @@ export function ConnectApproval() {
   useEffect(() => {
     if (step !== 'waiting') return;
     // If the caller already has a session it never sends the follow-up; do not
-    // leave an empty approval window open indefinitely.
-    const timer = setTimeout(() => window.close(), 90_000);
+    // leave an empty approval window open indefinitely. Keep it well beyond the
+    // challenge TTL: the caller has several round trips (session check, refresh,
+    // challenge) before it can post the sign request, and if this window closes
+    // first the sign request needs a NEW popup — which browsers block after the
+    // original gesture, dropping the user into a full-page approval.
+    const timer = setTimeout(() => window.close(), 5 * 60_000);
     return () => clearTimeout(timer);
   }, [step]);
 
@@ -81,6 +85,11 @@ export function ConnectApproval() {
       const raw = data.params?.message ?? '';
       let message = raw;
       try { message = decodeURIComponent(raw); } catch { /* keep raw */ }
+
+      console.info('[totem-wallet] connect window: follow-up sign request received', {
+        keepOpen,
+        unlocked: WalletManager.isUnlocked(),
+      });
 
       setFollowUp({
         reqId: String(data.reqId ?? ''),

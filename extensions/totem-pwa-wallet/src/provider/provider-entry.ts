@@ -260,7 +260,22 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     const keepOpen = method === 'TOTEM_CONNECT';
     const url = `${WALLET_ORIGIN}${path}?${query}${keepOpen ? '&keepOpen=1' : ''}`;
 
+    // Diagnostic: the sign-in flow makes two requests (connect, then verify).
+    // If the first window is gone the second window.open() is blocked — the
+    // browser only allows a popup while the original click's activation is
+    // fresh — and the user is dropped into a full-page approval that asks for
+    // the password again. These lines say which of those happened.
+    const trace = (event: string, extra?: Record<string, unknown>) =>
+      console.info('[totem-provider]', method, event, {
+        keepOpen,
+        hasWalletWin: !!walletWin,
+        walletWinClosed: walletWin ? walletWin.closed : null,
+        mobile: isMobile(),
+        ...extra,
+      });
+
     if (isMobile() || isCustomScheme(returnUrl)) {
+      trace('navigating-full-page', { reason: 'mobile-or-custom-scheme' });
       // For native app callers with custom scheme returnUrl, skip sessionStorage
       // caching — the approval page will redirect directly to the custom scheme.
       if (!isCustomScheme(returnUrl)) {
@@ -281,6 +296,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           WALLET_ORIGIN,
         );
         walletWin.focus();
+        trace('reused-window');
         const reusedCheck = setInterval(() => {
           if (!walletWin || walletWin.closed) {
             clearInterval(reusedCheck);
@@ -292,7 +308,8 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           }
         }, 500);
         return;
-      } catch {
+      } catch (err) {
+        trace('reuse-failed', { error: err instanceof Error ? err.message : String(err) });
         // Fall through and open a fresh window.
       }
     }
@@ -306,6 +323,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     );
 
     if (!win) {
+      trace('popup-blocked-navigating');
       if (!isCustomScheme(returnUrl)) {
         sessionStorage.setItem('totem_redirect_id', id);
         sessionStorage.setItem('totem_redirect_method', method);
@@ -313,6 +331,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       window.location.href = url;
       return;
     }
+    trace('opened-popup');
     walletWin = win;
 
     let bc: BroadcastChannel | null = null;
