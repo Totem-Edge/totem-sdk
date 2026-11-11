@@ -311,6 +311,7 @@ export {
   buildProgramTransitionStateUpdateMessage,
   bindPeerIntegration,
   createOmniaIntegration,
+  defaultCoSignPolicy,
   sendProgramTransitionStateUpdate,
 } from './integration.js';
 export type {
@@ -319,6 +320,9 @@ export type {
   BindPeerOptions,
   WotsLeaseProviderLike,
   MinimalChainProvider,
+  CoSignDecision,
+  CoSignPolicy,
+  CoSignRequest,
 } from './integration.js';
 
 // RFC-035 Phase B — peer coordination transport (B0).

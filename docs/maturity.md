@@ -45,7 +45,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/lookup-client` | 0.4.1 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
-| `@totemsdk/omnia` | 2.4.1 | rc | 1 | `packages/omnia` |
+| `@totemsdk/omnia` | 2.4.2 | rc | 1 | `packages/omnia` |
 | `@totemsdk/omnia-host` | 0.13.4 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
