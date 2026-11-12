@@ -27,6 +27,10 @@ Open today:
 - **`CAN-001`** — channel funding draft drops the unspent part of the funding
   coin (no change output, no conservation check). Brief:
   [`docs/findings/agent/CAN-001.md`](findings/agent/CAN-001.md).
+- **`CAN-002`** — `verifyManifestProof` does not bind a proof to the manifest
+  it attests: a proof for another manifest, a non-manifest kind, or a foreign
+  issuer all verify. Brief:
+  [`docs/findings/agent/CAN-002.md`](findings/agent/CAN-002.md).
 - **`sdk-gap:integration-gates`** — 41 publishable packages declare no
   `test:integration` gate. Brief:
   [`docs/findings/agent/sdk-gap-integration-gates.md`](findings/agent/sdk-gap-integration-gates.md).
