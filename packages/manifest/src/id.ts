@@ -57,3 +57,14 @@ export function computeManifestEnvelopeId(signedManifest: SignedManifest): strin
   const input = 'TOTEM_MANIFEST_ENVELOPE_V1' + canonicalJson(signedManifest);
   return bytesToHex(sha3_256(new TextEncoder().encode(input)));
 }
+
+/**
+ * Content id of a manifest **revision**: SHA3-256 over the canonical manifest.
+ *
+ * Unlike `computeManifestId` (stable across versions), this changes whenever any
+ * field changes — version included. A proof that attests "this manifest" must
+ * bind to this id, otherwise a proof for one version verifies for another.
+ */
+export function computeManifestContentId(manifest: Manifest): string {
+  return bytesToHex(sha3_256(new TextEncoder().encode(canonicalJson(manifest))));
+}

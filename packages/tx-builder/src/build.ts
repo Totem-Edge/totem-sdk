@@ -113,6 +113,33 @@ export function buildTransaction(params: EnhancedBuildParams): EnhancedBuildResu
   if (!inputs || inputs.length === 0) throw new Error('No input coins provided');
   if (!outputs || outputs.length === 0) throw new Error('No output coins provided');
 
+  // A node rejects an unbalanced transaction, so failing here turns a late,
+  // opaque broadcast error into a build error the caller can fix. Value may
+  // leave as an explicit burn; it may never be created.
+  const sums = (coins: Array<{ amount?: string; tokenId?: string }>) => {
+    const totals = new Map<string, bigint>();
+    for (const coin of coins) {
+      const token = (coin.tokenId ?? '0x00').toLowerCase();
+      let amount: bigint;
+      try {
+        amount = BigInt(coin.amount ?? '0');
+      } catch {
+        throw new Error(`Invalid amount '${String(coin.amount)}' for token ${token}`);
+      }
+      totals.set(token, (totals.get(token) ?? 0n) + amount);
+    }
+    return totals;
+  };
+  const inputTotals = sums(inputs);
+  for (const [token, total] of sums(outputs)) {
+    const available = inputTotals.get(token) ?? 0n;
+    if (total > available) {
+      throw new Error(
+        `Unbalanced transaction: outputs ${total} exceed inputs ${available} for token ${token}`,
+      );
+    }
+  }
+
   const inputCoins: MinimaCoin[] = inputs.map((input) => ({
     coinId: (() => {
       const clean = input.coinId.replace(/^0x/i, '');

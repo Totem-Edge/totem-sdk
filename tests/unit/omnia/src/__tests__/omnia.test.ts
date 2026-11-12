@@ -386,6 +386,33 @@ describe('@totemsdk/omnia — transaction builders', () => {
     expect(sv101?.value).toBe(0n);
   });
 
+  it('buildFundingTx: returns the unspent input as change to the funding coin address', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    const draft = buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1'], [1500n], ['MxFUNDER']);
+    expect(draft.outputs).toHaveLength(2);
+    expect(draft.outputs[0].address).toBe(address);
+    expect(draft.outputs[0].amount).toBe(1000n);
+    expect(draft.outputs[1].address).toBe('MxFUNDER');
+    expect(draft.outputs[1].amount).toBe(500n);
+    expect(draft.outputs[1].storeState).toBe(false);
+    const inputSum = draft.inputs.reduce((sum, input) => sum + input.amount, 0n);
+    const outputSum = draft.outputs.reduce((sum, output) => sum + output.amount, 0n);
+    expect(inputSum).toBe(outputSum);
+  });
+
+  it('buildFundingTx: rejects inputs that do not cover the channel value', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    expect(() => buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1'], [900n], ['MxFUNDER']))
+      .toThrow(/less than totalValue/);
+  });
+
+  it('buildFundingTx: keeps an exact-input draft byte-identical (single output)', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    const draft = buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1'], [1000n], ['MxFUNDER']);
+    expect(draft.outputs).toHaveLength(1);
+    expect(draft.outputs[0].amount).toBe(1000n);
+  });
+
   it('buildUpdateTx: type=update, storeState=true, uses floating eltoo coinId, STATE(100)=false', () => {
     const draft = buildUpdateTx(channel, 3, { alice: 500n, bob: 500n }, []);
     expect(draft.type).toBe('update');

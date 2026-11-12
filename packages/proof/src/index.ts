@@ -55,6 +55,7 @@ export {
 export type { CreateManifestProofParams } from './manifest-proof.js';
 export {
   createManifestProof,
+  createManifestProofFor,
   verifyManifestProof,
 } from './manifest-proof.js';
 

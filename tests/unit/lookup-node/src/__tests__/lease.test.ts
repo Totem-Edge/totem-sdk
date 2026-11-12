@@ -22,6 +22,10 @@ function makeLeaseNode() {
   });
 }
 
+
+// CAN-003: LEASE_RESERVE starts a real node and completes a lease round-trip; inside the full suite it can exceed the 5s default.
+jest.setTimeout(60_000);
+
 describe('Lease coordinator', () => {
   it('LEASE_RESERVE returns a reservation with a LeaseCertificate', async () => {
     const node = makeLeaseNode();

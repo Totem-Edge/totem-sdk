@@ -2,21 +2,43 @@
  * Manifest proof helpers.
  *
  * createManifestProof: build an UnsignedProof with kind='manifest'.
- * verifyManifestProof: verify both the manifest signature and the proof envelope.
+ * verifyManifestProof: verify that a proof actually attests the given manifest.
+ *
+ * Binding matters: verifying the manifest signature and the proof envelope
+ * independently proves nothing about the pair. Without a binding, a proof
+ * issued for one manifest (or for a different kind of claim entirely) verifies
+ * against any correctly signed manifest.
  */
 
-import { verifyManifest } from '@totemsdk/manifest';
-import type { SignedManifest } from '@totemsdk/manifest';
+import { computeManifestContentId, verifyManifest } from '@totemsdk/manifest';
+import type { Manifest, SignedManifest } from '@totemsdk/manifest';
 import { createProof, verifyProof } from './proof.js';
 import type { UnsignedProof, SignedProof, ProofSubject, EvidenceRef, ProofVerifyResult } from './types.js';
 
 export interface CreateManifestProofParams {
   subject: ProofSubject;
   issuer: string;
+  /** Content id of the manifest revision: `computeManifestContentId(signedManifest.manifest)`. */
   manifestId: string;
   issuedAt?: number;
   expiresAt?: number;
   evidence?: EvidenceRef[];
+}
+
+/** Address that must have authored the manifest, per manifest type. */
+function manifestAuthor(manifest: Manifest): string | undefined {
+  switch (manifest.type) {
+    case 'app':
+      return manifest.authorAddress;
+    case 'capability':
+      return manifest.agentAddress;
+    case 'dapp':
+      return manifest.authorAddress;
+    case 'edge-service':
+      return manifest.operatorAddress;
+    default:
+      return undefined;
+  }
 }
 
 export function createManifestProof(params: CreateManifestProofParams): UnsignedProof {
@@ -28,6 +50,23 @@ export function createManifestProof(params: CreateManifestProofParams): Unsigned
     expiresAt: params.expiresAt,
     evidence: params.evidence,
     payload: { manifestId: params.manifestId },
+  });
+}
+
+/**
+ * Build a manifest proof whose id is derived from the manifest itself, so it
+ * cannot be created with a mismatched id by accident.
+ */
+export function createManifestProofFor(
+  signedManifest: SignedManifest<any>,
+  params: Omit<CreateManifestProofParams, 'manifestId' | 'issuer'> & { issuer?: string },
+): UnsignedProof {
+  const author = manifestAuthor(signedManifest.manifest);
+  if (!author) throw new Error('createManifestProofFor: unsupported manifest type');
+  return createManifestProof({
+    ...params,
+    issuer: params.issuer ?? author,
+    manifestId: computeManifestContentId(signedManifest.manifest),
   });
 }
 
@@ -43,5 +82,40 @@ export function verifyManifestProof(
       signerAddress: signedProof.signature?.address,
     };
   }
+
+  if (signedProof.kind !== 'manifest') {
+    return {
+      valid: false,
+      reason: `proof kind '${String(signedProof.kind)}' is not 'manifest'`,
+      signerAddress: signedProof.signature?.address,
+    };
+  }
+
+  const expectedId = computeManifestContentId(signedManifest.manifest);
+  const claimedId = (signedProof.payload as { manifestId?: unknown } | undefined)?.manifestId;
+  if (typeof claimedId !== 'string' || claimedId !== expectedId) {
+    return {
+      valid: false,
+      reason: `manifest id mismatch: proof attests '${String(claimedId)}' but the manifest is '${expectedId}'`,
+      signerAddress: signedProof.signature?.address,
+    };
+  }
+
+  const author = manifestAuthor(signedManifest.manifest);
+  if (!author) {
+    return {
+      valid: false,
+      reason: `unsupported manifest type '${String(signedManifest.manifest.type)}'`,
+      signerAddress: signedProof.signature?.address,
+    };
+  }
+  if (signedProof.issuer !== author) {
+    return {
+      valid: false,
+      reason: `proof issuer '${signedProof.issuer}' is not the manifest author '${author}'`,
+      signerAddress: signedProof.signature?.address,
+    };
+  }
+
   return verifyProof(signedProof);
 }

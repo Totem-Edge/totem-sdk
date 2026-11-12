@@ -12,6 +12,10 @@ import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
 
+
+// CAN-003: Settlement co-signing runs a real signing/verification cycle (~15s on a loaded machine); the 5s default made it flaky.
+jest.setTimeout(60_000);
+
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-prepare-settle-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
 const hex = (u8: Uint8Array) => '0x' + Buffer.from(u8).toString('hex');
