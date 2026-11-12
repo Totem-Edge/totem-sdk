@@ -2,7 +2,9 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 const WALLET_ORIGIN = process.env.VITE_WALLET_ORIGIN ?? 'https://wallet.totem.ing';
-const WALLET_BASE = process.env.VITE_BASE_PATH ?? '/';
+// Keep in step with vite.config.ts: the provider must build its approval URLs
+// under /web, otherwise they resolve against the portfolio (404).
+const WALLET_BASE = process.env.VITE_BASE_PATH ?? '/web/';
 
 // Node-only modules reached through the Omnia closure but never taken by the
 // browser relay path (RFC-034 A4). Rewrite them (and `node:*` builtins) to a

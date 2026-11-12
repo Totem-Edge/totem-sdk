@@ -26,7 +26,10 @@ try {
 
 // Serve the wallet at the origin root today, and at /web/ when the wallet host
 // routes the portfolio at / and the PWA at /web/.
-const BASE_PATH = process.env.VITE_BASE_PATH || '/';
+// Production serves the wallet under /web (wallet.totem.ing/web); the root
+// belongs to the portfolio. Default to /web so a build without the env var
+// cannot silently produce a wallet whose approval URLs 404.
+const BASE_PATH = process.env.VITE_BASE_PATH || '/web/';
 
 export default defineConfig({
   base: BASE_PATH,
