@@ -15,7 +15,7 @@ import { WalletManager } from '../core/WalletManager';
 import { signVerificationMessage } from '../core/signMessage';
 import { parseApprovalContext, sendApprovalResult, type ApprovalContext } from './approvalContext';
 import { resolveVerifyTtlMs } from './verifyTtl';
-import { walletPasswordInputProps } from '../components/passwordManagerOptOut';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 interface FollowUpRequest {
   reqId: string;
@@ -200,8 +200,7 @@ export function ConnectApproval() {
             Unlock your wallet to approve this connection.
           </p>
           <label className="label">Wallet Password</label>
-          <input
-            type="password" {...walletPasswordInputProps}
+          <WalletPasswordInput
             className="input"
             style={{ marginBottom: 'var(--space-2)' }}
             value={password}

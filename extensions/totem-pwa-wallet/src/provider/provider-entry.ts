@@ -323,12 +323,21 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     );
 
     if (!win) {
-      trace('popup-blocked-navigating');
-      if (!isCustomScheme(returnUrl)) {
-        sessionStorage.setItem('totem_redirect_id', id);
-        sessionStorage.setItem('totem_redirect_method', method);
+      // Never take over the dApp's tab to show an approval: it destroys the
+      // caller's state and the wallet looks like it restarted the whole flow.
+      // Tell the page instead so it can retry from a fresh click (a user
+      // gesture is what makes a window allowed).
+      trace('popup-blocked');
+      window.dispatchEvent(new CustomEvent('totem#popup-blocked', {
+        detail: { method, reqId: id },
+      }));
+      const pending = pendingRequests.get(id);
+      if (pending) {
+        pendingRequests.delete(id);
+        pending.reject(new Error(
+          'Your browser blocked the wallet window. Approve again to reopen it.',
+        ));
       }
-      window.location.href = url;
       return;
     }
     trace('opened-popup');

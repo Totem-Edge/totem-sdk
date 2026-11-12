@@ -9,7 +9,7 @@ import { signVerificationMessage } from '../core/signMessage';
 import { fromHex } from '../core/utils';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 import { resolveVerifyTtlMs } from './verifyTtl';
-import { walletPasswordInputProps } from '../components/passwordManagerOptOut';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 function getParams() {
   const url = new URL(window.location.href);
@@ -114,7 +114,7 @@ export function VerifyApproval() {
       {step === 'password' && (
         <div>
           <label className="label">Wallet Password</label>
-          <input type="password" {...walletPasswordInputProps} className="input" style={{ marginBottom: 'var(--space-2)' }}
+          <WalletPasswordInput  className="input" style={{ marginBottom: 'var(--space-2)' }}
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUnlock()} autoFocus />
           {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
