@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T17:45:16.008Z",
+  "generatedAt": "2026-11-12T04:11:02.146Z",
   "findings": [
     {
       "id": "CAN-001",
@@ -55,14 +55,77 @@
         "verification": [
           "pnpm --config.verify-deps-before-run=false --filter \"@totemsdk/omnia...\" run build",
           "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia test",
-          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/tx-builder test",
-          "cd artifacts/canary && pnpm composition"
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/tx-builder test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm composition",
+          "cd artifacts/canary && pnpm run release:preflight"
         ]
       },
       "links": {
         "canaryCommit": "645ae34",
         "sdkTodo": "docs/SDK_TODO.md#omnia--channel-funding-draft-currently-open",
         "test": "artifacts/canary/src/composition/__tests__/CrossPackage.test.ts"
+      }
+    },
+    {
+      "id": "CAN-002",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Manifest proofs are not bound to the manifest they attest",
+      "packages": [
+        "@totemsdk/proof",
+        "@totemsdk/manifest"
+      ],
+      "versions": {
+        "@totemsdk/proof": "1.0.3",
+        "@totemsdk/manifest": "2.1.0"
+      },
+      "source": "artifacts/canary/src/composition/__tests__/ProofAndMoney.test.ts",
+      "summary": "verifyManifestProof verifies the manifest signature and the proof envelope independently and never compares them. A proof whose payload.manifestId names a different manifest, a proof of a different kind (attestation), and a proof issued by an unrelated key all verify as valid against any correctly signed manifest.",
+      "impact": "An attestation issued for one manifest can be presented as attestation for another (for example a later version with the same appId), and a non-manifest proof can be passed off as a manifest attestation. Verifiers that rely on the pairing will over-report assurance.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm composition",
+        "expected": "A proof for manifest A is rejected against manifest B, a non-manifest proof is rejected, and a foreign issuer is rejected.",
+        "actual": "All three return valid: true, because verifyManifestProof never reads proof.payload, proof.kind or the proof issuer relative to the manifest.",
+        "evidence": [
+          "packages/proof/src/manifest-proof.ts: verifyManifestProof = verifyManifest(signedManifest) then verifyProof(signedProof)",
+          "createManifestProof stores payload { manifestId } from the caller, and nothing compares it back",
+          "canary observed: proof for A vs manifest B -> valid; attestation proof vs manifest A -> valid; proof with unrelated manifestId -> valid; proof from a third-party issuer -> valid"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/proof/src/manifest-proof.ts",
+          "packages/manifest/src/id.ts"
+        ],
+        "approach": "Bind the pair explicitly: require proof.kind === 'manifest', require the proof issuer to be the manifest author address, and compare payload.manifestId with the identifier computed from the supplied manifest. Decide and document which identifier that is (content digest via computeManifestId is the strongest; appId is weaker and would still allow version substitution), then make createManifestProof derive it from the SignedManifest rather than trusting a caller string.",
+        "constraints": [
+          "Do not change the manifest signing format or computeManifestId semantics.",
+          "Do not accept a wildcard or \"any\" manifestId to preserve callers.",
+          "Keep verifyManifest false-paths and reasons unchanged."
+        ],
+        "acceptance": [
+          "verifyManifestProof rejects a proof issued for a different manifest (version substitution).",
+          "verifyManifestProof rejects a proof whose kind is not manifest.",
+          "verifyManifestProof rejects a proof whose issuer does not match the manifest author.",
+          "The honest proof/manifest pair still verifies.",
+          "The canary TODO test flips to a normal passing test."
+        ],
+        "verification": [
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/proof test",
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/manifest test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm composition",
+          "cd artifacts/canary && pnpm run release:preflight"
+        ]
+      },
+      "links": {
+        "canaryCommit": "645ae34",
+        "sdkTodo": "docs/findings/agent/CAN-002.md",
+        "test": "artifacts/canary/src/composition/__tests__/ProofAndMoney.test.ts"
       }
     },
     {
