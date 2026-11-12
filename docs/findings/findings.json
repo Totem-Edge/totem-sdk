@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T04:11:02.146Z",
+  "generatedAt": "2026-11-12T06:45:30.867Z",
   "findings": [
     {
       "id": "CAN-001",
@@ -62,6 +62,13 @@
           "cd artifacts/canary && pnpm run release:preflight"
         ]
       },
+      "blocks": [
+        "payments-and-wallets",
+        "proof-to-pay",
+        "machine-as-a-service",
+        "metered-inference-service",
+        "invoice-to-authorised-payment"
+      ],
       "links": {
         "canaryCommit": "645ae34",
         "sdkTodo": "docs/SDK_TODO.md#omnia--channel-funding-draft-currently-open",
@@ -122,6 +129,12 @@
           "cd artifacts/canary && pnpm run release:preflight"
         ]
       },
+      "blocks": [
+        "digital-product-passports",
+        "device-and-software-security",
+        "invoice-to-authorised-payment",
+        "governed-robot-task-market"
+      ],
       "links": {
         "canaryCommit": "645ae34",
         "sdkTodo": "docs/findings/agent/CAN-002.md",
@@ -205,6 +218,56 @@
       },
       "links": {
         "sdkTodo": "docs/SDK_TODO.md"
+      }
+    },
+    {
+      "id": "CAN-003",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "low",
+      "title": "Two unit suites exceed Jest's 5s default timeout under load",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/lookup-node"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.13.4",
+        "@totemsdk/lookup-node": "0.4.0"
+      },
+      "source": "canary core exercise: omnia-host prepare-submit-settle, lookup-node lease",
+      "summary": "The full unit suites fail on a loaded machine because individual tests inherit the 5,000 ms default. omnia-host prepareSettle/submitSettle takes ~15s end to end; lookup-node LEASE_RESERVE passes in 3s alone but exceeds 5s inside the 108s suite. Both pass when given 60s.",
+      "impact": "CI flakiness and false reds: the suites are green on a fast runner and red on a busy one, so a real regression and a slow machine look identical. It also blocks the canary from exercising these packages as part of a full run.",
+      "repro": {
+        "command": "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia-host test",
+        "expected": "Both suites pass deterministically.",
+        "actual": "omnia-host: 1 failed / 125 passed (Exceeded timeout of 5000 ms). lookup-node: 1 failed / 70 passed. Both pass with --testTimeout=60000.",
+        "evidence": [
+          "tests/unit/omnia-host/src/__tests__/prepare-submit-settle.test.ts:20",
+          "tests/unit/lookup-node/src/__tests__/lease.test.ts:26",
+          "rerun with --testTimeout=60000: 1 passed / 125 skipped, and 1 passed / 70 skipped"
+        ]
+      },
+      "fix": {
+        "where": [
+          "tests/jest/omnia-host.cjs",
+          "tests/jest/lookup-node.cjs"
+        ],
+        "approach": "Give the specific long tests an explicit timeout that reflects their work (settlement signing and a real lease round-trip), rather than raising the default for every test in the repo.",
+        "constraints": [
+          "Do not set a repo-wide 60s default; it hides genuine hangs.",
+          "Do not skip or retry the tests."
+        ],
+        "acceptance": [
+          "The full suites pass twice in a row on a loaded machine.",
+          "The timeout is scoped to the tests that need it, with a comment saying why."
+        ],
+        "verification": [
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia-host test",
+          "pnpm --config.verify-deps-before-run=false --filter @totemsdk/lookup-node test"
+        ]
+      },
+      "links": {
+        "canaryCommit": "645ae34"
       }
     }
   ]
