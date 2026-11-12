@@ -351,7 +351,7 @@
         "@totemsdk/decision": "^0.3.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1"
@@ -384,7 +384,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/location-proof": "^1.0.2",
         "@totemsdk/lookup-client": "^0.4.1",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/omnia-router": "^0.4.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
@@ -651,7 +651,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/storage": "^0.2.2"
@@ -799,7 +799,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/manifest": "^2.2.0"
+        "@totemsdk/manifest": "^2.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -853,7 +853,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/wots-lease": "^1.0.2"
@@ -912,7 +912,7 @@
         "@totemsdk/chain-provider": "^0.3.2",
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/lookup-protocol": "^0.3.0",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.2"
@@ -951,7 +951,7 @@
     },
     {
       "name": "@totemsdk/manifest",
-      "version": "2.2.0",
+      "version": "2.1.0",
       "description": "Canonical signed declaration format — apps, agent capabilities, dApps, edge services",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1146,7 +1146,7 @@
         "hypercore": ">=10.0.0",
         "hyperdrive": ">=2.0.0",
         "corestore": ">=6.0.0",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
         "@totemsdk/storage": "^0.2.2",
@@ -1189,7 +1189,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0"
+        "@totemsdk/manifest": "^2.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1238,7 +1238,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -1265,7 +1265,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -1442,7 +1442,7 @@
         "pg": "^8.11.3",
         "zod": "^4.4.3",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/wots-lease": "^1.0.2"
@@ -1826,7 +1826,7 @@
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/liquidity-bond": "^0.3.2",
-        "@totemsdk/manifest": "^2.2.0",
+        "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/omnia": "^2.4.3",
         "@totemsdk/omnia-factory": "^0.7.1",
@@ -2269,7 +2269,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.2",
         "@totemsdk/identity": "^1.1.1",
-        "@totemsdk/manifest": "^2.2.0"
+        "@totemsdk/manifest": "^2.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"

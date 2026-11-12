@@ -10,7 +10,9 @@
  * against any correctly signed manifest.
  */
 
-import { computeManifestContentId, verifyManifest } from '@totemsdk/manifest';
+import { canonicalJson } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core';
+import { verifyManifest } from '@totemsdk/manifest';
 import type { Manifest, SignedManifest } from '@totemsdk/manifest';
 import { createProof, verifyProof } from './proof.js';
 import type { UnsignedProof, SignedProof, ProofSubject, EvidenceRef, ProofVerifyResult } from './types.js';
@@ -23,6 +25,22 @@ export interface CreateManifestProofParams {
   issuedAt?: number;
   expiresAt?: number;
   evidence?: EvidenceRef[];
+}
+
+/**
+ * Content id of a manifest revision: SHA3-256 over the canonical manifest.
+ *
+ * `computeManifestId` is deliberately stable across versions (it identifies the
+ * manifest, not the revision), so it cannot bind a proof to a specific version.
+ * This digest changes with any field, version included. It mirrors the
+ * canonicalisation `signManifest` signs over.
+ */
+export function manifestContentId(manifest: Manifest): string {
+  return bytesToHex(sha3_256(new TextEncoder().encode(canonicalJson(manifest))));
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Address that must have authored the manifest, per manifest type. */
@@ -66,7 +84,7 @@ export function createManifestProofFor(
   return createManifestProof({
     ...params,
     issuer: params.issuer ?? author,
-    manifestId: computeManifestContentId(signedManifest.manifest),
+    manifestId: manifestContentId(signedManifest.manifest),
   });
 }
 
@@ -91,7 +109,7 @@ export function verifyManifestProof(
     };
   }
 
-  const expectedId = computeManifestContentId(signedManifest.manifest);
+  const expectedId = manifestContentId(signedManifest.manifest);
   const claimedId = (signedProof.payload as { manifestId?: unknown } | undefined)?.manifestId;
   if (typeof claimedId !== 'string' || claimedId !== expectedId) {
     return {

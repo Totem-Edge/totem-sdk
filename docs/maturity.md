@@ -56,7 +56,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/edge` | 1.6.0 | rc | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.1.1 | rc | 2 | `packages/identity` |
 | `@totemsdk/liquidity-bond` | 0.3.2 | rc | 2 | `packages/liquidity-bond` |
-| `@totemsdk/manifest` | 2.2.0 | rc | 2 | `packages/manifest` |
+| `@totemsdk/manifest` | 2.1.0 | rc | 2 | `packages/manifest` |
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.7.1 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.5.4 | rc | 2 | `packages/omnia-pool` |

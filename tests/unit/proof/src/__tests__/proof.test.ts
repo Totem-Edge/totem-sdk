@@ -17,13 +17,14 @@ import {
   attachAnchor,
   verifyAnchorRef,
   createManifestProof,
+  manifestContentId,
   verifyManifestProof,
   createIdentityProof,
   verifyIdentityProof,
 } from '../index';
 import type { UnsignedProof, SignedProof, EvidenceRef } from '../index';
 
-import { computeManifestContentId, signManifest } from '@totemsdk/manifest';
+import { signManifest } from '@totemsdk/manifest';
 import {
   signIdentityClaim,
   createDelegationClaim,
@@ -370,7 +371,7 @@ describe('verifyManifestProof', () => {
     const unsignedProof = createManifestProof({
       subject: { id: signedManifest.authorAddress, kind: 'manifest' },
       issuer: signerAddr,
-      manifestId: computeManifestContentId(signedManifest.manifest),
+      manifestId: manifestContentId(signedManifest.manifest),
       issuedAt: 1000,
     });
     const signedProof = signProof(unsignedProof, SEED_A, 1);
@@ -398,7 +399,7 @@ describe('verifyManifestProof', () => {
     const unsignedProof = createManifestProof({
       subject: { id: 'x', kind: 'manifest' },
       issuer: signerAddr,
-      manifestId: computeManifestContentId(signedManifest.manifest),
+      manifestId: manifestContentId(signedManifest.manifest),
     });
     const signedProof = signProof(unsignedProof, SEED_A, 1);
 
@@ -426,13 +427,13 @@ describe('verifyManifestProof binding', () => {
   it('rejects a proof issued for a different manifest', async () => {
     const signedA = await signManifest(manifestFor('1.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 0);
     const signedB = await signManifest(manifestFor('2.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 1);
-    expect(computeManifestContentId(signedA.manifest)).not.toEqual(computeManifestContentId(signedB.manifest));
+    expect(manifestContentId(signedA.manifest)).not.toEqual(manifestContentId(signedB.manifest));
 
     const proofForA = signProof(
       createManifestProof({
         subject: { id: signedA.manifest.serviceId, kind: 'manifest' },
         issuer: signedA.manifest.operatorAddress,
-        manifestId: computeManifestContentId(signedA.manifest),
+        manifestId: manifestContentId(signedA.manifest),
       }),
       SEED_A,
       1,
@@ -466,7 +467,7 @@ describe('verifyManifestProof binding', () => {
       createManifestProof({
         subject: { id: signedManifest.manifest.serviceId, kind: 'manifest' },
         issuer: 'MxFOREIGN',
-        manifestId: computeManifestContentId(signedManifest.manifest),
+        manifestId: manifestContentId(signedManifest.manifest),
       }),
       SEED_A,
       1,
