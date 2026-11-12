@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-12T06:45:30.867Z",
+  "generatedAt": "2026-11-12T11:27:17.503Z",
   "findings": [
     {
       "id": "CAN-001",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Channel funding draft silently drops the unspent part of the funding coin",
       "packages": [
@@ -62,6 +62,11 @@
           "cd artifacts/canary && pnpm run release:preflight"
         ]
       },
+      "breaks": [
+        "payments",
+        "channels",
+        "markets"
+      ],
       "blocks": [
         "payments-and-wallets",
         "proof-to-pay",
@@ -71,6 +76,7 @@
       ],
       "links": {
         "canaryCommit": "645ae34",
+        "fixedIn": "be39edd4",
         "sdkTodo": "docs/SDK_TODO.md#omnia--channel-funding-draft-currently-open",
         "test": "artifacts/canary/src/composition/__tests__/CrossPackage.test.ts"
       }
@@ -78,7 +84,7 @@
     {
       "id": "CAN-002",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Manifest proofs are not bound to the manifest they attest",
       "packages": [
@@ -129,6 +135,9 @@
           "cd artifacts/canary && pnpm run release:preflight"
         ]
       },
+      "breaks": [
+        "evidence"
+      ],
       "blocks": [
         "digital-product-passports",
         "device-and-software-security",
@@ -223,7 +232,7 @@
     {
       "id": "CAN-003",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "low",
       "title": "Two unit suites exceed Jest's 5s default timeout under load",
       "packages": [

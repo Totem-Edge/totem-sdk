@@ -22,19 +22,20 @@ pnpm run findings --sdk <path-to-this-checkout> \
 Take those before inventing new work, and close them by moving the finding's
 status to `fixed` in the canary registry with the fixing commit.
 
-Open today:
+Closed (fixed and published, verified on the tarballs):
 
-- **`CAN-001`** — channel funding draft drops the unspent part of the funding
-  coin (no change output, no conservation check). Brief:
+- **`CAN-001`** — funding draft now returns change and rejects under-funding;
+  `tx-builder` rejects value creation. Released in `omnia 2.4.3` /
+  `tx-builder 0.3.2`. Brief:
   [`docs/findings/agent/CAN-001.md`](findings/agent/CAN-001.md).
-- **`CAN-002`** — `verifyManifestProof` does not bind a proof to the manifest
-  it attests: a proof for another manifest, a non-manifest kind, or a foreign
-  issuer all verify. Brief:
+- **`CAN-002`** — manifest proofs bind to the manifest revision
+  (`kind`, issuer and content id). Released in `proof 1.0.4`. Brief:
   [`docs/findings/agent/CAN-002.md`](findings/agent/CAN-002.md).
-- **`CAN-003`** — `omnia-host` prepareSettle (~15s) and `lookup-node`
-  `LEASE_RESERVE` exceed Jest's 5s default under load; both pass with an
-  explicit timeout. Brief:
+- **`CAN-003`** — scoped 60s timeouts for the two load-sensitive suites. Brief:
   [`docs/findings/agent/CAN-003.md`](findings/agent/CAN-003.md).
+
+Still open:
+
 - **`sdk-gap:integration-gates`** — 41 publishable packages declare no
   `test:integration` gate. Brief:
   [`docs/findings/agent/sdk-gap-integration-gates.md`](findings/agent/sdk-gap-integration-gates.md).
