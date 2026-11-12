@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWallet } from '../core/WalletContext';
+import { walletPasswordInputProps } from '../components/passwordManagerOptOut';
 
 export function Unlock() {
   const { unlock } = useWallet();
@@ -45,7 +46,7 @@ export function Unlock() {
         <label className="label">Password</label>
         <input
           ref={inputRef}
-          type="password"
+          type="password" {...walletPasswordInputProps}
           className="input"
           style={{ marginBottom: 'var(--space-2)' }}
           placeholder="Enter your wallet password"

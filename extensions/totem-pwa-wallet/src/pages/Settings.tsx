@@ -13,6 +13,7 @@ import {
   type LeaseProviderMode,
   type WalletNetworkConfig,
 } from '../core/config/selfHosted';
+import { walletPasswordInputProps } from '../components/passwordManagerOptOut';
 
 const AXIA_BASE = import.meta.env.VITE_AXIA_API_BASE ?? 'https://api.axia.to';
 const AXIA_PROJECT_ID = import.meta.env.VITE_AXIA_PROJECT_ID ?? 'totem-shared';
@@ -221,7 +222,7 @@ export function Settings() {
               />
               <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
                 <input className="input" value={nodeUser} onChange={e => setNodeUser(e.target.value)} placeholder="RPC user (optional)" />
-                <input className="input" type="password" value={nodePass} onChange={e => setNodePass(e.target.value)} placeholder="RPC password" />
+                <input className="input" type="password" {...walletPasswordInputProps} value={nodePass} onChange={e => setNodePass(e.target.value)} placeholder="RPC password" />
               </div>
             </>
           )}
@@ -272,7 +273,7 @@ export function Settings() {
           <div className="card">
             <p className="label" style={{ marginBottom: 'var(--space-2)' }}>Confirm Password to View Phrase</p>
             <input
-              type="password"
+              type="password" {...walletPasswordInputProps}
               className="input"
               style={{ marginBottom: 'var(--space-2)' }}
               value={phrasePassword}

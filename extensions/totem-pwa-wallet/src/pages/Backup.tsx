@@ -11,6 +11,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useWallet } from '../core/WalletContext';
 import { WalletManager } from '../core/WalletManager';
 import { Loading } from '../components/Loading';
+import { walletPasswordInputProps } from '../components/passwordManagerOptOut';
 
 type BackupStep = 'show' | 'quiz' | 'done';
 
@@ -109,7 +110,7 @@ export function Backup() {
           Enter your wallet password to view your seed phrase and complete backup.
         </p>
         <input
-          type="password"
+          type="password" {...walletPasswordInputProps}
           className="input"
           style={{ marginBottom: 'var(--space-2)' }}
           value={recoveryPassword}
