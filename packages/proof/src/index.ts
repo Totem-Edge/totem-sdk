@@ -55,6 +55,8 @@ export {
 export type { CreateManifestProofParams } from './manifest-proof.js';
 export {
   createManifestProof,
+  createManifestProofFor,
+  manifestContentId,
   verifyManifestProof,
 } from './manifest-proof.js';
 

@@ -45,11 +45,11 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/lookup-client` | 0.4.1 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
-| `@totemsdk/omnia` | 2.4.2 | rc | 1 | `packages/omnia` |
+| `@totemsdk/omnia` | 2.4.3 | rc | 1 | `packages/omnia` |
 | `@totemsdk/omnia-host` | 0.13.4 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
-| `@totemsdk/proof` | 1.0.3 | v1 | 2 | `packages/proof` |
+| `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
 | `@totemsdk/agent-policy` | 0.5.0 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
 | `@totemsdk/chain-provider` | 0.3.2 | rc | 2 | `packages/chain-provider` |
@@ -66,7 +66,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
-| `@totemsdk/tx-builder` | 0.3.1 | rc | 2 | `packages/tx-builder` |
+| `@totemsdk/tx-builder` | 0.3.2 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
 | `@totemsdk/edge-can` | 0.3.0 | v1 | outside | `packages/edge-can` |

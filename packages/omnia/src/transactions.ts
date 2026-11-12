@@ -334,6 +334,15 @@ export function buildFundingTx(
   }));
 
   const rawTotal = toRawMinima(totalValue, tokenScale);
+  const rawInputs = inputs.reduce((sum, input) => sum + input.amount, 0n);
+  // A funding transaction is a spend, not a drain: the inputs must cover the
+  // channel coin, and anything left over belongs to the funding coin's owner.
+  if (rawInputs < rawTotal) {
+    throw new Error(
+      `funding inputs (${rawInputs}) are less than totalValue (${rawTotal}); ` +
+      'select inputs that cover the channel value',
+    );
+  }
   const stateVariables = [...channelStateVars(false, 0), ...extraStateVariables];
   const output: TxOutputDraft = {
     address: fundingScriptAddress,
@@ -342,11 +351,26 @@ export function buildFundingTx(
     storeState: true,
     stateVariables,
   };
+  const outputs: TxOutputDraft[] = [output];
+  const change = rawInputs - rawTotal;
+  if (change > 0n) {
+    const changeAddress = inputAddresses[0];
+    if (!changeAddress) {
+      throw new Error('funding inputs exceed totalValue but no input address is available for change');
+    }
+    outputs.push({
+      address: changeAddress,
+      amount: change,
+      tokenId,
+      storeState: false,
+      stateVariables: [],
+    });
+  }
 
   return {
     type: 'funding',
     inputs,
-    outputs: [output],
+    outputs,
     storeState: true,
     stateVariables,
   };

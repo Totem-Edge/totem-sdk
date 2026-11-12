@@ -17,6 +17,7 @@ import {
   attachAnchor,
   verifyAnchorRef,
   createManifestProof,
+  manifestContentId,
   verifyManifestProof,
   createIdentityProof,
   verifyIdentityProof,
@@ -370,7 +371,7 @@ describe('verifyManifestProof', () => {
     const unsignedProof = createManifestProof({
       subject: { id: signedManifest.authorAddress, kind: 'manifest' },
       issuer: signerAddr,
-      manifestId: 'manifest-id-1',
+      manifestId: manifestContentId(signedManifest.manifest),
       issuedAt: 1000,
     });
     const signedProof = signProof(unsignedProof, SEED_A, 1);
@@ -398,13 +399,82 @@ describe('verifyManifestProof', () => {
     const unsignedProof = createManifestProof({
       subject: { id: 'x', kind: 'manifest' },
       issuer: signerAddr,
-      manifestId: 'manifest-id-2',
+      manifestId: manifestContentId(signedManifest.manifest),
     });
     const signedProof = signProof(unsignedProof, SEED_A, 1);
 
     const result = verifyManifestProof(signedProof, tampered);
     expect(result.valid).toBe(false);
     expect(result.reason).toMatch(/manifest signature invalid/);
+  }, 30000);
+});
+
+// ─── 12b. verifyManifestProof binds the pair (CAN-002) ───────────────────────
+
+describe('verifyManifestProof binding', () => {
+  const manifestFor = (version: string) => ({
+    type: 'edge-service' as const,
+    serviceId: 'svc-binding',
+    name: 'Binding Test',
+    version,
+    operatorAddress: deriveWasmAddress(SEED_A, 0),
+    serviceType: 'verifier' as const,
+    description: 'test',
+    capabilities: [],
+    tags: [],
+  });
+
+  it('rejects a proof issued for a different manifest', async () => {
+    const signedA = await signManifest(manifestFor('1.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 0);
+    const signedB = await signManifest(manifestFor('2.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 1);
+    expect(manifestContentId(signedA.manifest)).not.toEqual(manifestContentId(signedB.manifest));
+
+    const proofForA = signProof(
+      createManifestProof({
+        subject: { id: signedA.manifest.serviceId, kind: 'manifest' },
+        issuer: signedA.manifest.operatorAddress,
+        manifestId: manifestContentId(signedA.manifest),
+      }),
+      SEED_A,
+      1,
+    );
+
+    expect(verifyManifestProof(proofForA, signedA).valid).toBe(true);
+    const substituted = verifyManifestProof(proofForA, signedB);
+    expect(substituted.valid).toBe(false);
+    expect(substituted.reason).toMatch(/manifest id mismatch/);
+  }, 30000);
+
+  it('rejects a proof whose kind is not manifest', async () => {
+    const signedManifest = await signManifest(manifestFor('1.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 0);
+    const attestation = signProof(
+      createProof({
+        kind: 'attestation',
+        subject: { id: 'x', kind: 'device' },
+        issuer: signedManifest.manifest.operatorAddress,
+      }),
+      SEED_A,
+      1,
+    );
+    const result = verifyManifestProof(attestation, signedManifest);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/kind/);
+  }, 30000);
+
+  it('rejects a proof whose issuer is not the manifest author', async () => {
+    const signedManifest = await signManifest(manifestFor('1.0.0'), createUnifiedChildTreeKey(SEED_A, 0), 0);
+    const foreign = signProof(
+      createManifestProof({
+        subject: { id: signedManifest.manifest.serviceId, kind: 'manifest' },
+        issuer: 'MxFOREIGN',
+        manifestId: manifestContentId(signedManifest.manifest),
+      }),
+      SEED_A,
+      1,
+    );
+    const result = verifyManifestProof(foreign, signedManifest);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/issuer/);
   }, 30000);
 });
 
