@@ -176,6 +176,13 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       if (params.tokenId) out.tokenId = String(params.tokenId);
     }
 
+    if (method === 'TOTEM_GET_COINS') {
+      for (const key of ['address', 'tokenId', 'allTokens', 'minAmount', 'sendable', 'relevant', 'spent']) {
+        if (params[key] !== undefined) out[key] = String(params[key]);
+      }
+      return out;
+    }
+
     if (method === 'TOTEM_SIGN_DATA') {
       if (params.unsignedHex) out.unsignedHex = String(params.unsignedHex);
       if (params.inputAddresses) {
@@ -701,6 +708,34 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           if (r?.address) emitEvent('accountsChanged', [r.address]);
         }
         return Promise.resolve(ret.result);
+      }
+
+      // Balance reads reuse the approval window that is already unlocked. A
+      // fresh popup per token read would re-prompt for the password and be
+      // blocked outside a user gesture.
+      if (method === 'TOTEM_GET_COINS') {
+        if (!walletWin || walletWin.closed) {
+          return Promise.reject(new Error('Open the Totem web wallet and reconnect to read balances.'));
+        }
+        const coinReqId = genId();
+        const nonceBytes = new Uint8Array(16);
+        crypto.getRandomValues(nonceBytes);
+        const coinNonce = Array.from(nonceBytes, b => b.toString(16).padStart(2, '0')).join('');
+        const coinParams = paramsToQs(method, params);
+        const coinReturnUrl = window.location.href.split('?')[0];
+        return new Promise<unknown>((resolve, reject) => {
+          pendingRequests.set(coinReqId, { method, resolve, reject });
+          try {
+            walletWin!.postMessage(
+              { type: 'totem_request', reqId: coinReqId, nonce: coinNonce, method, params: coinParams, origin, returnUrl: coinReturnUrl },
+              WALLET_ORIGIN,
+            );
+            walletWin!.focus();
+          } catch (err) {
+            pendingRequests.delete(coinReqId);
+            reject(err instanceof Error ? err : new Error(String(err)));
+          }
+        });
       }
 
       const rawPath = methodToPath(method);

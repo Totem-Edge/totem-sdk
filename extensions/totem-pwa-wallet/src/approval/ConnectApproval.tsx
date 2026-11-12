@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { WalletManager } from '../core/WalletManager';
+import { fetchCoins } from '../core/api';
 import { signVerificationMessage } from '../core/signMessage';
 import { parseApprovalContext, sendApprovalResult, type ApprovalContext } from './approvalContext';
 import { resolveVerifyTtlMs } from './verifyTtl';
@@ -20,9 +21,11 @@ import { WalletPasswordInput } from '../components/WalletPasswordInput';
 interface FollowUpRequest {
   reqId: string;
   nonce: string;
+  method: 'TOTEM_VERIFY' | 'TOTEM_GET_COINS';
   message: string;
   /** Caller-requested verification lifetime (`challenge.expiryMs`). */
   expiryMs?: string;
+  params?: Record<string, string>;
 }
 
 export function ConnectApproval() {
@@ -81,24 +84,35 @@ export function ConnectApproval() {
         nonce?: string;
         params?: Record<string, string>;
       } | null;
-      if (!data || data.type !== 'totem_request' || data.method !== 'TOTEM_VERIFY') return;
+      if (!data || data.type !== 'totem_request') return;
+      if (data.method !== 'TOTEM_VERIFY' && data.method !== 'TOTEM_GET_COINS') return;
 
       const raw = data.params?.message ?? '';
       let message = raw;
       try { message = decodeURIComponent(raw); } catch { /* keep raw */ }
 
-      console.info('[totem-wallet] connect window: follow-up sign request received', {
+      const request: FollowUpRequest = {
+        reqId: String(data.reqId ?? ''),
+        nonce: String(data.nonce ?? ''),
+        method: data.method,
+        message,
+        expiryMs: data.params?.expiryMs,
+        params: data.params,
+      };
+
+      console.info('[totem-wallet] connect window: follow-up request received', {
+        method: data.method,
         keepOpen,
         unlocked: WalletManager.isUnlocked(),
       });
 
-      setFollowUp({
-        reqId: String(data.reqId ?? ''),
-        nonce: String(data.nonce ?? ''),
-        message,
-        expiryMs: data.params?.expiryMs,
-      });
-      setStep(WalletManager.isUnlocked() ? 'sign' : 'password');
+      setFollowUp(request);
+      if (data.method === 'TOTEM_GET_COINS') {
+        if (WalletManager.isUnlocked()) void handleGetCoins(request);
+        else setStep('password');
+      } else {
+        setStep(WalletManager.isUnlocked() ? 'sign' : 'password');
+      }
     }
 
     window.addEventListener('message', onMessage);
@@ -110,7 +124,11 @@ export function ConnectApproval() {
     setError('');
     try {
       await WalletManager.unlock(password);
-      setStep(followUp ? 'sign' : 'confirm');
+      if (followUp?.method === 'TOTEM_GET_COINS') {
+        void handleGetCoins(followUp);
+      } else {
+        setStep(followUp ? 'sign' : 'confirm');
+      }
     } catch (e) {
       setError(String(e));
     } finally {
@@ -157,7 +175,7 @@ export function ConnectApproval() {
         signature,
         message: followUp.message,
         expiresAt: Date.now() + resolveVerifyTtlMs(followUp.expiryMs),
-      });
+      }, undefined, { keepOpen: true });
       setStep('done');
     } catch (e) {
       sendApprovalResult(signCtx, undefined, String(e));
@@ -165,6 +183,47 @@ export function ConnectApproval() {
       setStep('done');
     } finally {
       setSigning(false);
+    }
+  }
+
+  const normalizeTokenId = (value: string): string => {
+    const raw = String(value || '').toLowerCase();
+    if (!raw || raw === '0x00' || /^(0x)?0*$/.test(raw)) return '0x00';
+    return raw.startsWith('0x') ? raw : `0x${raw}`;
+  };
+
+  async function handleGetCoins(request: FollowUpRequest) {
+    const readCtx: ApprovalContext = { ...ctx, reqId: request.reqId, nonce: request.nonce };
+    try {
+      const session = WalletManager.getSession();
+      if (!session) throw new Error('Wallet is locked');
+      const account = WalletManager.getActiveAccount();
+      const address = request.params?.address || account?.address || '';
+      if (!address) throw new Error('No active account');
+      const tokenId = normalizeTokenId(request.params?.tokenId ?? '0x00');
+      const allTokens = request.params?.allTokens === 'true';
+      const coins = await fetchCoins(address, session.identityHash);
+      const filtered = allTokens
+        ? coins
+        : coins.filter((coin) => normalizeTokenId(String(coin.tokenid ?? '')) === tokenId);
+      sendApprovalResult(
+        readCtx,
+        {
+          success: true,
+          coins: filtered,
+          tokenId: allTokens ? '*' : tokenId,
+          allTokens,
+        },
+        undefined,
+        { keepOpen: true },
+      );
+      if (step !== 'done') setStep('done');
+    } catch (e) {
+      sendApprovalResult(readCtx, {
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        errorCode: 'CHAIN_READ_FAILED',
+      }, undefined, { keepOpen: true });
     }
   }
 
