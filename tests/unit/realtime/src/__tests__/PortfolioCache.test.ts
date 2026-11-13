@@ -70,6 +70,21 @@ describe('PortfolioCache — set and get', () => {
     expect(await cache.get('MxABC')).toEqual(entries);
   });
 
+  it('returns the fetch timestamp with the cached entries', async () => {
+    const timer = makeTimer(123_456);
+    const cache = new PortfolioCache(
+      { storage: makeMemStorage(), logger: silentLogger, timer },
+      { maxCacheAge: 60_000 }
+    );
+    const entries = [makeEntry('0x00', '100')];
+    await cache.set('MxABC', entries);
+
+    expect(await cache.getWithTimestamp('MxABC')).toEqual({
+      entries,
+      timestamp: 123_456,
+    });
+  });
+
   it('serves the in-memory cache without hitting storage on the second get', async () => {
     const storage = makeMemStorage();
     const getSpy = vi.spyOn(storage, 'get');
