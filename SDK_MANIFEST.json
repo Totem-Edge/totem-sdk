@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 74,
+  "total": 75,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -53,6 +53,7 @@
         "@totemsdk/edge-mqtt",
         "@totemsdk/edge-bacnet",
         "@totemsdk/edge-ble",
+        "@totemsdk/edge-mesh",
         "@totemsdk/edge-can",
         "@totemsdk/edge-coap",
         "@totemsdk/edge-grpc",
@@ -413,6 +414,28 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createBacnetGateway, createBacnetSensorBridge, BacnetGatewayConfig, BacnetTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/edge-mesh",
+      "version": "0.1.0",
+      "description": "Edge mesh framing and relay — fragmentation, store-and-forward and stream framing for constrained links",
+      "domain": "edge-computing",
+      "keywords": [
+        "mesh",
+        "ble",
+        "fragmentation",
+        "store-and-forward",
+        "transport"
+      ],
+      "dependencies": {},
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "Fragmenter, Reassembler, StoreAndForward, StreamFramer, MeshLink, VirtualLink",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
