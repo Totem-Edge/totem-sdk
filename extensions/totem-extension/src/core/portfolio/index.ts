@@ -171,7 +171,7 @@ class ExtWsFactory implements WebSocketFactory {
 // ── Portfolio backend ─────────────────────────────────────────────────────────
 // One source per mode, and no lossy fallback:
 //   • paired/self-hosted node → node `balance address:… megammr:true tokendetails:true`
-//   • Axia mode              → GET /v1/wallet/portfolio/:address
+//   • Axia mode              → GET /v1/portfolio/:address
 //
 // `/v1/wallet/coins` is a UTXO/coin-selection endpoint, not a portfolio. It
 // used to be a silent fallback here and that is exactly how token names and
@@ -218,7 +218,10 @@ function describeApiFailure(status: number, body: string): string {
 
 async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[]> {
   const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
-  const url = `${baseUrl.replace(/\/$/, '')}/v1/wallet/portfolio/${encodeURIComponent(address)}`;
+  // The duplicate /v1/wallet/portfolio route was removed from the Axia API
+  // (it ran a different RPC than the canonical route and could report stale
+  // confirmed/unconfirmed values). Use the canonical portfolio endpoint.
+  const url = `${baseUrl.replace(/\/$/, '')}/v1/portfolio/${encodeURIComponent(address)}`;
 
   let res: Response;
   try {
