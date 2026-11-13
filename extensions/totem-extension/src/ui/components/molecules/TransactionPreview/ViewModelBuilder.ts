@@ -36,13 +36,14 @@ function safeHexToMx(hex: string): string {
 
 interface BuildViewModelParams {
   transaction?: MinimaTransaction;
+  previewInputs?: TransactionInput[];
+  previewOutputs?: TransactionOutput[];
   scriptDescriptors?: ScriptDescriptor[];
   recipient: string;
   amount: string;
   tokenSymbol: string;
   tokenId: string;
-  sourceAddress?: string;
-  sourceMode: 'global' | 'focused';
+  sourceAddress: string;
   burn?: string;
   balance?: string;
   rawTransactionHex?: string;
@@ -121,13 +122,14 @@ export function buildTransactionPreviewViewModel(
 ): TransactionPreviewViewModel {
   const {
     transaction,
+    previewInputs,
+    previewOutputs,
     scriptDescriptors = [],
     recipient,
     amount,
     tokenSymbol,
     tokenId,
     sourceAddress,
-    sourceMode,
     burn,
     rawTransactionHex,
     externalSignatures,
@@ -159,6 +161,15 @@ export function buildTransactionPreviewViewModel(
         scriptType: descriptor?.scriptType || 'signedby',
         scriptDescription: descriptor?.script
       });
+    }
+  } else if (previewInputs && previewInputs.length > 0) {
+    for (const input of previewInputs) {
+      const token = input.tokenId || '0x00';
+      totalInByToken.set(
+        token,
+        (totalInByToken.get(token) || 0n) + parseDecimalToBaseUnits(input.amount),
+      );
+      inputs.push(input);
     }
   } else if (sourceAddress) {
     const amountBigInt = BigInt(amount || '0');
@@ -213,6 +224,22 @@ export function buildTransactionPreviewViewModel(
           output.amount, 
           tokenHex, 
           tokenHex === '0x00' ? 'MINIMA' : tokenSymbol
+        );
+      }
+    }
+  } else if (previewOutputs && previewOutputs.length > 0) {
+    for (const output of previewOutputs) {
+      const token = output.tokenId || '0x00';
+      totalOutByToken.set(
+        token,
+        (totalOutByToken.get(token) || 0n) + parseDecimalToBaseUnits(output.amount),
+      );
+      outputs.push(output);
+      if (output.isChange) {
+        changeAmount = tokenAmountFromDecimalString(
+          output.amount,
+          token,
+          token === '0x00' ? 'MINIMA' : tokenSymbol,
         );
       }
     }
@@ -347,8 +374,7 @@ export function buildTransactionPreviewViewModel(
     isBalanced,
     hasStateVariables,
     hasExternalSignatures,
-    signatureStatus,
-    sourceMode
+    signatureStatus
   };
 
   viewModel.risks = classifyTransactionRisks(viewModel);

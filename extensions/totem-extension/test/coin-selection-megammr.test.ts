@@ -38,6 +38,27 @@ describe('CoinSelectionService node lookup', () => {
     );
   });
 
+  test('matches the selected Mx address against hex coin addresses', () => {
+    const result = coinSelectionService.selectCoins(
+      [
+        {
+          coinId: '0x' + '11'.repeat(32),
+          address: '0x0DCA5F58F3EE4B8777A6F52A1F90E2B0D6EE2DDFB019367573E1CD916200AD04',
+          amount: '1',
+          tokenid: '0x00',
+          created: 1,
+        },
+      ],
+      {
+        sourceAddress: ADDRESS,
+        targetAmount: '0.5',
+      },
+    );
+
+    expect(result.selectedCoins).toHaveLength(1);
+    expect(result.insufficientFunds).toBe(false);
+  });
+
   test('does not send the node-only megammr flag to the Axia REST endpoint', async () => {
     (resolveActiveChainProvider as jest.Mock).mockResolvedValue(null);
     (chrome.storage.local as any).getTyped = jest.fn((_keys, callback) =>

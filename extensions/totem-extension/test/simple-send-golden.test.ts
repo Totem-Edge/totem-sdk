@@ -21,6 +21,7 @@ import {
   serializeForTxnImport,
 } from '@totemsdk/tx-builder';
 import { TransactionAssembler } from '../src/core/transaction/TransactionAssembler';
+import { buildTransaction as buildLegacyTransaction } from '../src/core/transaction/MinimaTransactionBuilder';
 import fixture from './goldens/simple-send.json';
 import './setup';
 
@@ -94,6 +95,27 @@ describe('simple-send golden transaction', () => {
     expect(built.serializedHex.toLowerCase()).toBe(fixture.transactionHex.toLowerCase());
     expect(built.digestTxHex).toBe(fixture.digestTxHex);
   });
+
+  test('native burn reduces the change output instead of being returned', () => {
+    const built = buildLegacyTransaction({
+      inputs: [
+        {
+          coinId: fixture.inputCoinId,
+          address: fixture.inputAddress,
+          amount: '10',
+          tokenId: fixture.tokenId,
+        },
+      ],
+      recipientAddress: fixture.recipient,
+      amount: '9',
+      tokenId: fixture.tokenId,
+      changeAddress: fixture.inputAddress,
+      burn: '0.5',
+    });
+
+    expect(built.transaction.outputs.map(output => output.amount)).toEqual(['9', '0.5']);
+  });
+
 
   test('unsigned TxnRow matches the node txnexport byte-for-byte', () => {
     const built = buildGolden();

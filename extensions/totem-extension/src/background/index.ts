@@ -31,7 +31,7 @@ import type { PortfolioStreamListener } from '@totemsdk/realtime';
 import { transactionReceiptStore } from '../core/stores/TransactionReceiptStore';
 import { watermarkStore } from '../core/stores/WatermarkStore';
 import { leaseStore } from '../core/stores/LeaseStore';
-import { coinSelectionService, CoinSelectionError } from '../core/transaction/CoinSelectionService';
+import { coinSelectionService, CoinSelectionError, addDecimalStrings } from '../core/transaction/CoinSelectionService';
 import { formatMinimaAmount, parseMinimaAmount, MINIMA_DECIMALS, TOTEM_CHAIN_ID } from '../constants';
 import { sha3_256 } from '@noble/hashes/sha3.js';
 import { parseTxInputs } from '../core/transaction/txParser';
@@ -1963,6 +1963,80 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         return { ok: false, error: error.message, id };
       }
     
+    case 'WOTS_PREPARE_SEND': {
+      try {
+        const { prepareSimpleSend } = await import('../core/transaction/preparedSend');
+        const preview = await prepareSimpleSend(params || {});
+        return {
+          ok: true,
+          result: { prepareId: preview.prepareId, preview },
+          id
+        };
+      } catch (error: any) {
+        return {
+          ok: false,
+          error: error?.message || 'Failed to prepare transaction',
+          stage: 'prepare',
+          id
+        };
+      }
+    }
+
+    case 'WOTS_SEND_PREPARED': {
+      const prepareId = params?.prepareId as string | undefined;
+      if (!prepareId) {
+        return { ok: false, error: 'prepareId is required', stage: 'validation', id };
+      }
+      try {
+        const { sendPrepared } = await import('../core/transaction/preparedSend');
+        const result = await sendPrepared(prepareId);
+
+        await transactionReceiptStore.initialize();
+        await transactionReceiptStore.add({
+          txpowid: result.txpowid,
+          timestamp: Date.now(),
+          to: result.to,
+          amount: result.amountBaseUnits,
+          tokenId: result.tokenid,
+          tokenSymbol: result.tokenSymbol || (result.tokenid === '0x00' ? 'MINIMA' : undefined),
+          from: result.sourceAddress,
+          indices: {
+            addressIndex: result.addressIndex,
+            l1: result.l1,
+            l2: result.l2
+          },
+          leaseId: result.leaseId,
+          status: 'pending',
+          lifecycle: 'submitted'
+        });
+
+        pollTransactionConfirmation(result.txpowid);
+        if (portfolioStreamManager.isCurrentlyStreaming()) {
+          setTimeout(() => portfolioStreamManager.forceRefresh().catch((err) => console.warn('[Background] forceRefresh failed:', err)), 5_000);
+          setTimeout(() => portfolioStreamManager.forceRefresh().catch((err) => console.warn('[Background] forceRefresh failed:', err)), 12_000);
+        }
+
+        return {
+          ok: true,
+          txpowid: result.txpowid,
+          leaseId: result.leaseId,
+          addressIndex: result.addressIndex,
+          l1: result.l1,
+          l2: result.l2,
+          miningSource: 'meg' as const,
+          stage: 'complete',
+          id
+        };
+      } catch (error: any) {
+        return {
+          ok: false,
+          error: error?.message || 'Failed to send prepared transaction',
+          stage: 'finalize',
+          id
+        };
+      }
+    }
+
     case 'WOTS_SEND': {
       // Helper: convert a display token amount to its Minima backing decimal string.
       // Every Minima token has a creator-defined scale. The relationship is:
@@ -1997,8 +2071,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           tokenid = '0x00', 
           tokenSymbol, 
           sourceAddress,
-          sendMode = 'global',
-          excludedAddresses,
+          burn,
           state,
           storeState,
           transactionState,
@@ -2013,8 +2086,17 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             id 
           };
         }
+
+        if (!sourceAddress) {
+          return {
+            ok: false,
+            error: 'sourceAddress is required: every send is focused on the selected wallet address',
+            stage: 'validation',
+            id
+          };
+        }
         
-        txLog.info('Starting transaction', { to: to.substring(0, 16), amount, tokenid, sendMode });
+        txLog.info('Starting transaction', { to: to.substring(0, 16), amount, tokenid, sourceAddress });
         
         // Initialize receipt store if needed
         await transactionReceiptStore.initialize();
@@ -2032,27 +2114,54 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           };
         }
         
-        await coinSelectionService.loadExcludedAddresses();
-        
         // Convert base units (44 decimals) to decimal format for coin selection
         // MegaMMR returns amounts in decimal format (e.g., "0.01"), so we need to match
         const amountDecimal = formatMinimaAmount(amount, MINIMA_DECIMALS);
-        txLog.info(' Amount conversion:', { baseUnits: amount, decimal: amountDecimal });
+        const burnBaseUnits = BigInt(burn || '0');
+        if (burnBaseUnits > 0n && tokenid !== '0x00') {
+          return {
+            ok: false,
+            error: 'Burn is only supported for native Minima sends',
+            stage: 'validation',
+            id
+          };
+        }
+        const burnDecimal = burnBaseUnits > 0n
+          ? formatMinimaAmount(burnBaseUnits.toString(), MINIMA_DECIMALS)
+          : '0';
+        const selectionTargetDecimal = burnBaseUnits > 0n
+          ? addDecimalStrings(amountDecimal, burnDecimal)
+          : amountDecimal;
+        txLog.info(' Amount conversion:', {
+          baseUnits: amount,
+          decimal: amountDecimal,
+          burn: burnDecimal,
+          selectionTarget: selectionTargetDecimal
+        });
         
-        const selectionResult = await coinSelectionService.selectCoinsForSend(allAddresses, {
-          mode: sendMode as 'global' | 'focused',
-          targetAmount: amountDecimal,
+        const selectionResult = await coinSelectionService.selectCoinsForSend(sourceAddress, {
+          targetAmount: selectionTargetDecimal,
           tokenId: tokenid,
-          focusedAddress: sendMode === 'focused' ? sourceAddress : undefined,
-          excludedAddresses: excludedAddresses
         });
         
         if (selectionResult.insufficientFunds) {
           return {
             ok: false,
-            error: `Insufficient funds: need ${amountDecimal}, have ${selectionResult.totalSelected}`,
+            error: `Insufficient funds: need ${selectionTargetDecimal}, have ${selectionResult.totalSelected}`,
             stage: 'coin_selection',
             available: selectionResult.totalSelected,
+            id
+          };
+        }
+
+        // WOTS_SEND currently creates one signature for the first input
+        // address. Refuse a selection that spans multiple wallet addresses
+        // instead of producing a witness the node cannot verify.
+        if (selectionResult.fromAddresses.length > 1) {
+          return {
+            ok: false,
+            error: 'Selected coins span multiple wallet addresses. A send must use only the selected address.',
+            stage: 'coin_selection',
             id
           };
         }
@@ -2298,6 +2407,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           amount: sendAmountBaseUnits,  // Integer units with scale=0
           tokenId: tokenid,
           changeAddress: builderInputs[0]?.address,
+          ...(burnBaseUnits > 0n ? { burn: burnDecimal } : {}),
           ...(Array.isArray(state) ? { state } : {}),
           ...(typeof storeState === 'boolean' ? { storeState } : {}),
           ...(Array.isArray(transactionState) ? { transactionState } : {}),
@@ -2919,13 +3029,13 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         });
         
         // Step 5: Finalize (submit via txnimport + txnpost)
-        // Send hex directly - we use bypass URL (api2.axia.to) to avoid Cloudflare WAF
+        // Send hex directly on the standard API origin.
         txLog.info('Step 5: Submitting transaction for broadcast...');
         txLog.debug(`Transaction hex length: ${txnImportHex.length}`);
         
         const finalizeResult = await walletManager.finalizeTransaction({
           leaseToken: prepareResult.leaseToken,
-          signedHex: txnImportHex,  // Send as hex - bypass URL avoids Cloudflare WAF issues
+          signedHex: txnImportHex,  // Send as hex
           importId  // Pass importId so backend uses matching ID
         });
         
@@ -3778,6 +3888,18 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const tokenId = primaryOutput.tokenId || '0x00';
         const amount = primaryOutput.amount;
 
+        // dApp API amounts are display units ("1.5"). WOTS_SEND takes base
+        // units, while tolerating an already-base-unit integer for older dApps.
+        const amountBaseUnits = /^\d{44,}$/.test(amount)
+          ? amount
+          : parseMinimaAmount(amount);
+        const burnBaseUnits = typeof txRequest.burn === 'string' &&
+          txRequest.burn.length > 0 && txRequest.burn !== '0'
+          ? (/^\d{44,}$/.test(txRequest.burn)
+              ? txRequest.burn
+              : parseMinimaAmount(txRequest.burn))
+          : undefined;
+
         // RFC-005 #3: stateful simple send. State is supported on the primary
         // (single) recipient output and as transaction-level state. Multi-output
         // requests with per-output state are not representable by the single-send
@@ -3880,10 +4002,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           method: 'WOTS_SEND',
           params: {
             to: primaryOutput.address,
-            amount: amount,
+            amount: amountBaseUnits,
             tokenid: tokenId,
             sourceAddress: account.address,
-            sendMode: 'single',
+            ...(burnBaseUnits ? { burn: burnBaseUnits } : {}),
             ...(outputState ? { state: outputState } : {}),
             ...(storeState !== undefined ? { storeState } : {}),
             ...(transactionState ? { transactionState } : {})
@@ -4194,7 +4316,6 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             amount: amountBaseUnits,
             tokenid: '0x00',
             sourceAddress: account.address,
-            sendMode: 'single',
             tokenCreate: {
               name: tokenNameJson,
               script: script ?? 'RETURN TRUE',

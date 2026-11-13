@@ -99,7 +99,7 @@ export class TransactionAssembler {
       type: request.type, 
       recipient: request.recipient,
       amount: request.amount,
-      sourceMode: request.sourceMode
+      sourceAddress: request.sourceAddress
     });
     
     try {
@@ -175,7 +175,7 @@ export class TransactionAssembler {
     const totalTargetAmount = fracStr === '0' ? intPart.toString() : `${intPart}.${fracStr}`;
     
     console.log('[TransactionAssembler] Selecting coins', {
-      mode: request.sourceMode,
+      sourceAddress: request.sourceAddress,
       targetAmount: totalTargetAmount,
       targetBaseUnits: totalTargetBaseUnits.toString(),
       sendAmount: request.amount,
@@ -183,22 +183,11 @@ export class TransactionAssembler {
       tokenId: request.tokenId
     });
     
-    await coinSelectionService.loadExcludedAddresses();
-    
-    if (request.excludedAddresses) {
-      for (const addr of request.excludedAddresses) {
-        coinSelectionService.addExcludedAddress(addr);
-      }
-    }
-    
     const result = await coinSelectionService.selectCoinsForSend(
-      request.walletAddresses,
+      request.sourceAddress,
       {
-        mode: request.sourceMode,
         targetAmount: totalTargetAmount,  // Send + burn
         tokenId: request.tokenId === '0x00' ? undefined : request.tokenId,
-        focusedAddress: request.sourceMode === 'focused' ? request.sourceAddress : undefined,
-        excludedAddresses: request.excludedAddresses
       }
     );
     
@@ -487,7 +476,6 @@ export class TransactionAssembler {
       
       coinSelection,
       
-      sourceMode: request.sourceMode,
       sourceAddress: request.sourceAddress,
       walletAddresses: request.walletAddresses,
       

@@ -1486,6 +1486,9 @@ export interface BuildTransactionParams {
   amount: string;  // BASE UNITS as string (NOT decimal)
   tokenId?: string;
   changeAddress?: string;
+  /** Optional native-Minima burn (decimal display units). The difference
+   *  between inputs and outputs is burned by the node. */
+  burn?: string;
   /** Output state variables attached to the recipient coin (RFC-005 #3). */
   state?: StateVariable[];
   /** Whether the recipient output keeps state. Default true (matches Java). */
@@ -1966,16 +1969,22 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
   
   // Sum input amounts - convert each decimal string to base units for arithmetic
   const totalInputBaseUnits = inputCoins.reduce((sum, c) => sum + parseDecimalToBaseUnits(c.amount), 0n);
-  
-  const changeBaseUnits = totalInputBaseUnits - sendAmountBaseUnits;
+
+  const burnBaseUnits = params.burn ? parseDecimalToBaseUnits(params.burn) : 0n;
+  if (burnBaseUnits > 0n && (tokenId || '0x00').toLowerCase() !== '0x00') {
+    throw new Error('Burn is only supported for native Minima');
+  }
+
+  const changeBaseUnits = totalInputBaseUnits - sendAmountBaseUnits - burnBaseUnits;
   TxBuildLogger.trace(' Balance check:', {
     totalInput: formatBaseUnitsToDecimal(totalInputBaseUnits),
     sendAmount: amount,
+    burn: formatBaseUnitsToDecimal(burnBaseUnits),
     change: formatBaseUnitsToDecimal(changeBaseUnits)
   });
   
   if (changeBaseUnits < 0n) {
-    throw new Error(`Insufficient funds: have ${formatBaseUnitsToDecimal(totalInputBaseUnits)}, need ${amount}`);
+    throw new Error(`Insufficient funds: have ${formatBaseUnitsToDecimal(totalInputBaseUnits)}, need ${amount}${burnBaseUnits > 0n ? ` + burn ${formatBaseUnitsToDecimal(burnBaseUnits)}` : ''}`);
   }
   
   // Normalize recipient address from Mx or hex format

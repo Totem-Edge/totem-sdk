@@ -18,8 +18,6 @@ export type { TxRowProps, TxStatus, TxType } from './TxRow';
 export { FormField } from './FormField';
 export type { FormFieldProps } from './FormField';
 
-export { SendModeSelector } from './SendModeSelector';
-export type { SendModeSelectorProps, SendModeOption } from './SendModeSelector';
 
 export { QuotaMeter } from './QuotaMeter';
 export type { QuotaMeterProps } from './QuotaMeter';

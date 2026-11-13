@@ -13,8 +13,7 @@ export interface TransactionReviewProps {
   amount: string;
   tokenSymbol: string;
   tokenId: string;
-  sourceAddress?: string;
-  sourceMode: 'global' | 'focused';
+  sourceAddress: string;
   burn?: string; // Optional voluntary burn amount (base units)
   balance: string;
   onConfirm: () => void;
@@ -28,7 +27,6 @@ export function TransactionReview({
   tokenSymbol,
   tokenId,
   sourceAddress,
-  sourceMode,
   burn,
   balance,
   onConfirm,
@@ -91,12 +89,9 @@ export function TransactionReview({
                 From
               </Typography>
               <Typography variant="body" mono>
-                {sourceMode === 'global' 
-                  ? 'Global (Auto-select)' 
-                  : sourceAddress 
-                    ? `${sourceAddress.slice(0, 8)}...${sourceAddress.slice(-6)}`
-                    : 'Selected Address'
-                }
+                {sourceAddress
+                  ? `${sourceAddress.slice(0, 8)}...${sourceAddress.slice(-6)}`
+                  : 'Selected Address'}
               </Typography>
             </div>
             
