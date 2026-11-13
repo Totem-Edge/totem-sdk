@@ -453,7 +453,8 @@
         "beacons"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/edge-mesh": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
