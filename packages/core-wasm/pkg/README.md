@@ -52,3 +52,14 @@ missing `node:crypto` no longer breaks import.
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package:
+
+- Unit/contract tests: `tests/unit/core-wasm/`
+- Qualification/runtime suites: `tests/qualification/core-wasm/`
+- Registry: `qualification/registry.json`
+
+Package `test:*` scripts are thin repository delegates; tests are not shipped.
