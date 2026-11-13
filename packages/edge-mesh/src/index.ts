@@ -11,8 +11,9 @@ export {
   encodeHeader,
   decodeHeader,
 } from './frame.js';
-export type { PacketHeader } from './frame.js';
+export type { PacketHeader, AssembledFrame } from './frame.js';
 export { StoreAndForward, frameHash } from './store-forward.js';
+export type { RelayedFrame } from './store-forward.js';
 export {
   StreamFramer,
   makeFrame,

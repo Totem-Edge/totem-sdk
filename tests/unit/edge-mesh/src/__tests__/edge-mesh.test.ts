@@ -7,6 +7,7 @@ interface FragVector {
   name: string;
   mtu: number;
   msgId: number;
+  hops: number;
   frameHex: string;
   packetsHex: string[];
 }
@@ -51,28 +52,29 @@ describe('edge-mesh conformance (shared with hawk-node)', () => {
 
   test.each(vectors.fragmentation)('$name fragments identically', (vector) => {
     const fragmenter = new Fragmenter(vector.mtu);
-    const packets = fragmenter.fragment(vector.msgId, unhex(vector.frameHex));
+    const packets = fragmenter.fragment(vector.msgId, unhex(vector.frameHex), vector.hops);
     expect(packets.map(hex)).toEqual(vector.packetsHex);
   });
 
   test.each(vectors.fragmentation)('$name reassembles in order', (vector) => {
     const reassembler = new Reassembler();
-    let frame: Uint8Array | undefined;
+    let frame: { bytes: Uint8Array; hops: number } | undefined;
     for (const packet of vector.packetsHex.map(unhex)) {
       frame = reassembler.add(packet, 1000) ?? frame;
     }
-    expect(frame && hex(frame)).toBe(vector.frameHex);
+    expect(frame && hex(frame.bytes)).toBe(vector.frameHex);
+    expect(frame?.hops).toBe(vector.hops);
     expect(reassembler.pending).toBe(0);
   });
 
   test.each(vectors.fragmentation)('$name reassembles out of order', (vector) => {
     const reassembler = new Reassembler();
-    let frame: Uint8Array | undefined;
+    let frame: { bytes: Uint8Array; hops: number } | undefined;
     const packets = vector.packetsHex.map(unhex).reverse();
     for (const packet of packets) {
       frame = reassembler.add(packet, 1000) ?? frame;
     }
-    expect(frame && hex(frame)).toBe(vector.frameHex);
+    expect(frame && hex(frame.bytes)).toBe(vector.frameHex);
   });
 
   test.each(vectors.fragmentation)('$name tolerates a duplicate fragment', (vector) => {
@@ -81,11 +83,11 @@ describe('edge-mesh conformance (shared with hawk-node)', () => {
     const reassembler = new Reassembler();
     expect(reassembler.add(packets[0], 1000)).toBeUndefined();
     expect(reassembler.add(packets[0], 1000)).toBeUndefined();
-    let frame: Uint8Array | undefined;
+    let frame: { bytes: Uint8Array; hops: number } | undefined;
     for (const packet of packets.slice(1)) {
       frame = reassembler.add(packet, 1000) ?? frame;
     }
-    expect(frame && hex(frame)).toBe(vector.frameHex);
+    expect(frame && hex(frame.bytes)).toBe(vector.frameHex);
   });
 
   test.each(vectors.fragmentation)('$name rejects a corrupt fragment', (vector) => {
@@ -121,7 +123,7 @@ describe('edge-mesh behaviour', () => {
 
   test('a one-block IBD frame fits in two packets at MTU 185', () => {
     const fragmenter = new Fragmenter(185);
-    expect(fragmenter.payloadPerPacket).toBe(172);
+    expect(fragmenter.payloadPerPacket).toBe(171);
     expect(fragmenter.fragment(42, bytes(314, 7))).toHaveLength(2);
   });
 
@@ -140,18 +142,20 @@ describe('edge-mesh behaviour', () => {
     const queue = new StoreAndForward(100, 7, 5000);
     const f1 = bytes(60, 1);
     const f2 = bytes(60, 2);
-    expect(queue.add(f1, 1000)).toBe(true);
-    expect(queue.add(f1, 1000)).toBe(false);
-    expect(queue.add(f2, 1000)).toBe(true);
+    expect(queue.add(f1, 0, 1000)).toBe(true);
+    expect(queue.add(f1, 0, 1000)).toBe(false);
+    expect(queue.add(f2, 0, 1000)).toBe(true);
     expect(queue.count).toBe(1);
     const taken = queue.take(1000);
     expect(taken).toHaveLength(1);
-    expect(hex(taken[0])).toBe(hex(f2));
+    expect(hex(taken[0].frame)).toBe(hex(f2));
+    expect(taken[0].hops).toBe(0);
     expect(queue.count).toBe(0);
     expect(queue.bytes).toBe(0);
     expect(queue.seen(f2, 1000)).toBe(true);
     expect(queue.seen(f2, 6001)).toBe(false);
-    expect(queue.add(f2, 6001)).toBe(true);
+    expect(queue.add(f2, 0, 6001)).toBe(true);
+    expect(queue.add(bytes(10, 9), 8, 6001)).toBe(false);  // hop budget
   });
 
   test('the virtual link drops oversized and injected packets', () => {

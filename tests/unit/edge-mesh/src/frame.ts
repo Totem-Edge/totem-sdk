@@ -4,7 +4,7 @@
  *
  * Wire format (big-endian, 10-byte header):
  *
- *   magic 0xB7 | version 1 | msgId u16 | seq u16 | total u16 | crc16 u16
+ *   magic 0xB7 | version 2 | hops u8 | msgId u16 | seq u16 | total u16 | crc16 u16
  *
  * Mirrors hawk-node/ble/frame_codec.cpp; see RFC-0018. The module is
  * transport-agnostic: a BLE GATT characteristic, an NFC tap or a LoRaWAN
@@ -13,8 +13,8 @@
 import { crc16 } from './crc16.js';
 
 export const MAGIC = 0xb7;
-export const VERSION = 1;
-export const HEADER_BYTES = 10;
+export const VERSION = 2;
+export const HEADER_BYTES = 11;
 export const ATT_OVERHEAD = 3;
 export const MAX_FRAME_BYTES = 1 << 20;
 export const MAX_PENDING_MESSAGES = 32;
@@ -23,6 +23,8 @@ const MAX_FRAGMENTS = 0xffff;
 export interface PacketHeader {
   magic: number;
   version: number;
+  /** Relays traversed; a relay increments before forwarding. */
+  hops: number;
   msgId: number;
   seq: number;
   total: number;
@@ -33,14 +35,15 @@ export function encodeHeader(header: PacketHeader): Uint8Array {
   const out = new Uint8Array(HEADER_BYTES);
   out[0] = header.magic;
   out[1] = header.version;
-  out[2] = (header.msgId >> 8) & 0xff;
-  out[3] = header.msgId & 0xff;
-  out[4] = (header.seq >> 8) & 0xff;
-  out[5] = header.seq & 0xff;
-  out[6] = (header.total >> 8) & 0xff;
-  out[7] = header.total & 0xff;
-  out[8] = (header.crc >> 8) & 0xff;
-  out[9] = header.crc & 0xff;
+  out[2] = header.hops & 0xff;
+  out[3] = (header.msgId >> 8) & 0xff;
+  out[4] = header.msgId & 0xff;
+  out[5] = (header.seq >> 8) & 0xff;
+  out[6] = header.seq & 0xff;
+  out[7] = (header.total >> 8) & 0xff;
+  out[8] = header.total & 0xff;
+  out[9] = (header.crc >> 8) & 0xff;
+  out[10] = header.crc & 0xff;
   return out;
 }
 
@@ -54,14 +57,21 @@ export function decodeHeader(data: Uint8Array): PacketHeader | undefined {
   const header: PacketHeader = {
     magic: data[0],
     version: data[1],
-    msgId: readU16(data, 2),
-    seq: readU16(data, 4),
-    total: readU16(data, 6),
-    crc: readU16(data, 8),
+    hops: data[2],
+    msgId: readU16(data, 3),
+    seq: readU16(data, 5),
+    total: readU16(data, 7),
+    crc: readU16(data, 9),
   };
   if (header.magic !== MAGIC || header.version !== VERSION) return undefined;
   if (header.total === 0 || header.seq >= header.total) return undefined;
   return header;
+}
+
+/** A completed frame plus the hop count it arrived with. */
+export interface AssembledFrame {
+  bytes: Uint8Array;
+  hops: number;
 }
 
 export class Fragmenter {
@@ -80,7 +90,7 @@ export class Fragmenter {
     return Math.min(MAX_FRAME_BYTES, MAX_FRAGMENTS * this.payloadPerPacket);
   }
 
-  fragment(msgId: number, frame: Uint8Array): Uint8Array[] {
+  fragment(msgId: number, frame: Uint8Array, hops = 0): Uint8Array[] {
     if (frame.length > this.maxFrameBytes()) {
       throw new Error('frame exceeds the BLE mesh limit');
     }
@@ -94,6 +104,7 @@ export class Fragmenter {
       const header = encodeHeader({
         magic: MAGIC,
         version: VERSION,
+        hops,
         msgId,
         seq,
         total,
@@ -119,7 +130,7 @@ interface Partial {
 export class Reassembler {
   private readonly pendingSlots = new Map<number, Partial>();
 
-  add(packet: Uint8Array, nowMs: number): Uint8Array | undefined {
+  add(packet: Uint8Array, nowMs: number): AssembledFrame | undefined {
     const header = decodeHeader(packet);
     if (!header) return undefined;
 
@@ -170,7 +181,7 @@ export class Reassembler {
       offset += part.length;
     }
     this.pendingSlots.delete(header.msgId);
-    return frame;
+    return { bytes: frame, hops: header.hops };
   }
 
   expire(nowMs: number, ttlMs: number): void {

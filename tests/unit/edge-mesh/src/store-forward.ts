@@ -23,6 +23,12 @@ export function frameHash(frame: Uint8Array): bigint {
 interface Entry {
   frame: Uint8Array;
   key: bigint;
+  hops: number;
+}
+
+export interface RelayedFrame {
+  frame: Uint8Array;
+  hops: number;
 }
 
 export class StoreAndForward {
@@ -40,8 +46,9 @@ export class StoreAndForward {
   }
 
   /** False when the frame is a duplicate, expired-or-seen, or too large. */
-  add(frame: Uint8Array, nowMs: number): boolean {
+  add(frame: Uint8Array, hops: number, nowMs: number): boolean {
     this.purge(nowMs);
+    if (hops > this.hops) return false;  // hop budget exhausted
     const key = frameHash(frame);
     if (this.seenUntil.has(key)) return false;
     if (frame.length > this.maxBytes) return false;
@@ -51,16 +58,16 @@ export class StoreAndForward {
       if (dropped) this.bytesQueued -= dropped.frame.length;
     }
 
-    this.queue.push({ frame, key });
+    this.queue.push({ frame, key, hops });
     this.bytesQueued += frame.length;
     this.seenUntil.set(key, nowMs + this.ttl);
     return true;
   }
 
   /** Frames to transmit now; the queue is emptied, the dedupe cache is kept. */
-  take(nowMs: number): Uint8Array[] {
+  take(nowMs: number): RelayedFrame[] {
     this.purge(nowMs);
-    const out = this.queue.map((entry) => entry.frame);
+    const out = this.queue.map((entry) => ({ frame: entry.frame, hops: entry.hops }));
     this.queue = [];
     this.bytesQueued = 0;
     return out;
