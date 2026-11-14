@@ -5,7 +5,7 @@
  * All endpoints require x-api-key: 'totem-shared' (default) or your project ID.
  *
  * Key endpoints used:
- *   GET  /v1/wallet/portfolio/:address  — balance per token
+ *   GET  /v1/portfolio/:address  — balance per token
  *   GET  /v1/wallet/utxos/:address      — raw UTXO list
  *   POST /v1/wallet/rpc                 — Minima RPC commands (status, txnpost, etc.)
  *   POST /v1/wallet/ws-token            — obtain JWT for WebSocket auth
@@ -200,10 +200,10 @@ export class MinimaClient extends EventEmitter {
 
   /**
    * Get total confirmed Minima balance for an address.
-   * Uses GET /v1/wallet/portfolio/:address and sums the native token entry.
+   * Uses the canonical GET /v1/portfolio/:address and sums the native token entry.
    */
   async getBalance(address: string, tokenId?: string): Promise<string> {
-    const data = await this.request<{ entries?: any[] }>('GET', `/v1/wallet/portfolio/${encodeURIComponent(address)}`);
+    const data = await this.request<{ entries?: any[] }>('GET', `/v1/portfolio/${encodeURIComponent(address)}`);
     const entries = data.entries ?? [];
     const targetId = tokenId ?? '0x00';
     const entry = entries.find((e: any) => (e.tokenid ?? '0x00') === targetId);

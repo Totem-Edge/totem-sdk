@@ -53,6 +53,7 @@
         "@totemsdk/edge-mqtt",
         "@totemsdk/edge-bacnet",
         "@totemsdk/edge-ble",
+        "@totemsdk/edge-mesh",
         "@totemsdk/edge-can",
         "@totemsdk/edge-coap",
         "@totemsdk/edge-grpc",
@@ -424,6 +425,28 @@
       }
     },
     {
+      "name": "@totemsdk/edge-mesh",
+      "version": "0.1.0",
+      "description": "Edge mesh framing and relay — fragmentation, store-and-forward and stream framing for constrained links",
+      "domain": "edge-computing",
+      "keywords": [
+        "mesh",
+        "ble",
+        "fragmentation",
+        "store-and-forward",
+        "transport"
+      ],
+      "dependencies": {},
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "Fragmenter, Reassembler, StoreAndForward, StreamFramer, MeshLink, VirtualLink",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
       "name": "@totemsdk/edge-ble",
       "version": "0.2.2",
       "description": "Edge runtime adapter for BLE — wearables, beacons, proximity tracking",
@@ -435,7 +458,8 @@
         "beacons"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.6.0"
+        "@totemsdk/edge": "^1.6.0",
+        "@totemsdk/edge-mesh": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"

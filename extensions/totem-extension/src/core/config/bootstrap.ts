@@ -333,7 +333,7 @@ export async function getBootstrapConfig(): Promise<StoredConfig | null> {
 export async function initializeBootstrap(): Promise<StoredConfig> {
   // Singleflight: Return existing promise if already in-flight
   if (bootstrapPromise) {
-    console.log('[Bootstrap] Already initializing, returning existing promise');
+    console.debug('[Bootstrap] Already initializing, returning existing promise');
     return bootstrapPromise;
   }
   
@@ -354,7 +354,7 @@ export async function initializeBootstrap(): Promise<StoredConfig> {
  * Internal bootstrap implementation
  */
 async function initializeBootstrapImpl(): Promise<StoredConfig> {
-  console.log('🚀 Initializing Totem bootstrap...');
+  console.debug('🚀 Initializing Totem bootstrap...');
   
   // Check Designer mode override first
   const overrideConfig = await getBootstrapConfig();

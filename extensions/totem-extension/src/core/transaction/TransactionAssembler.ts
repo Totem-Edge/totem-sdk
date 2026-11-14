@@ -39,7 +39,15 @@ import {
 import type { ScriptDescriptor } from './types/ScriptTypes';
 import { mxToHex } from '../utils/minima-base32';
 
-const SIMPLE_SCRIPT_TYPES: TransactionType[] = ['simple_send'];
+/**
+ * Transaction types that must use the legacy simple builder.
+ *
+ * Simple sends now go through the canonical `@totemsdk/tx-builder` path like
+ * every other transaction type. Keeping this empty means the signed-by simple
+ * send and the scripted builders share one serialization implementation, which
+ * is what makes the node byte-for-byte golden test meaningful.
+ */
+const SIMPLE_SCRIPT_TYPES: TransactionType[] = [];
 
 /**
  * Normalize any address (Mx or 0x) to lowercase hex format for comparison

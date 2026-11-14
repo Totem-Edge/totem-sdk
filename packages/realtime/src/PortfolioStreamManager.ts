@@ -97,6 +97,7 @@ export class PortfolioStreamManager {
   private connectionState: ConnectionState = 'disconnected';
   private lastError: string | undefined;
   private seenEventIds: Set<string> = new Set();
+  private backendFailureCounts: Map<string, number> = new Map();
   private isSuspending = false;
   private cleanupSuspendHandler?: () => void;
   private cleanupResumeHandler?: () => void;
@@ -170,6 +171,7 @@ export class PortfolioStreamManager {
     this.wsTokenExpiry = null;
     this.reconnectAttempts = 0;
     this.seenEventIds.clear();
+    this.backendFailureCounts.clear();
   }
 
   private clearReconnectTimeout(): void {
@@ -267,18 +269,28 @@ export class PortfolioStreamManager {
    */
   async getSnapshot(addresses?: string[]): Promise<{
     portfolios: Record<string, PortfolioEntry[]>;
+    lastSyncedAt: Record<string, number>;
     connectionState: ConnectionState;
     error?: string;
   }> {
     const portfolios: Record<string, PortfolioEntry[]> = {};
+    const lastSyncedAt: Record<string, number> = {};
     const addressesToCheck = addresses ?? this.subscribedAddresses;
 
     for (const address of addressesToCheck) {
-      const cached = await this.portfolioCache.get(address);
-      if (cached) portfolios[address] = cached;
+      const cached = await this.portfolioCache.getWithTimestamp(address);
+      if (cached) {
+        portfolios[address] = cached.entries;
+        lastSyncedAt[address] = cached.timestamp;
+      }
     }
 
-    return { portfolios, connectionState: this.connectionState, error: this.lastError };
+    return {
+      portfolios,
+      lastSyncedAt,
+      connectionState: this.connectionState,
+      error: this.lastError,
+    };
   }
 
   /**
@@ -287,9 +299,14 @@ export class PortfolioStreamManager {
   async triggerReplay(): Promise<void> {
     this.logger.info('[PortfolioStream] triggerReplay: replaying cache to all listeners');
     for (const address of this.subscribedAddresses) {
-      const entries = await this.portfolioCache.get(address);
-      if (entries) {
-        this._emitPortfolioUpdate(address, entries, `replay-${this.timer.now()}`);
+      const cached = await this.portfolioCache.getWithTimestamp(address);
+      if (cached) {
+        this._emitPortfolioUpdate(
+          address,
+          cached.entries,
+          `replay-${this.timer.now()}`,
+          cached.timestamp,
+        );
       }
     }
   }
@@ -324,15 +341,24 @@ export class PortfolioStreamManager {
             addresses,
             (address, entries) => this._handleBackendUpdate(address, entries, 'websocket'),
           );
+          let snapshotFailures = 0;
+          let lastSnapshotError: unknown;
           for (const address of addresses) {
             try {
               const entries = await backend.getPortfolio(address);
               this._handleBackendUpdate(address, entries, 'websocket');
             } catch (e) {
+              snapshotFailures++;
+              lastSnapshotError = e;
               this.logger.warn(`[PortfolioStream] Backend snapshot failed for ${address}:`, e);
             }
           }
-          this.setConnectionState('connected');
+          if (addresses.length > 0 && snapshotFailures === addresses.length) {
+            this.reportBackendFailure(addresses[0], lastSnapshotError);
+            this.startHttpFallback();
+          } else {
+            this.setConnectionState('connected');
+          }
         } catch (error) {
           this.logger.error('[PortfolioStream] Backend push setup failed, falling back to polling:', error);
           this.startHttpFallback();
@@ -719,7 +745,12 @@ export class PortfolioStreamManager {
     }
   }
 
-  private _emitPortfolioUpdate(address: string, entries: PortfolioEntry[], eventId: string): void {
+  private _emitPortfolioUpdate(
+    address: string,
+    entries: PortfolioEntry[],
+    eventId: string,
+    lastSyncedAt: number = this.timer.now(),
+  ): void {
     const event: PortfolioUpdateEvent = {
       version: '3.0',
       timestamp: this.timer.now(),
@@ -727,6 +758,7 @@ export class PortfolioStreamManager {
       type: 'portfolio_update',
       address,
       entries,
+      lastSyncedAt,
     };
 
     for (const listener of this.listeners) {
@@ -827,10 +859,10 @@ export class PortfolioStreamManager {
           entries,
           `snapshot-poll-${this.timer.now()}-${address.substring(0, 8)}`,
         );
-      } catch {
-        // Backend fetch failed — do NOT commit zero; activate the HTTP fallback
-        // loop so it retries for all subscribed addresses.
-        this.logger.warn('[PortfolioStream] One-shot backend poll failed for', address, '— activating HTTP fallback');
+      } catch (error) {
+        // Backend fetch failed — do NOT commit zero; keep the last good cache
+        // and surface an error state so the UI can say "balance unavailable".
+        this.reportBackendFailure(address, error);
         if (!this.httpPollInterval) this.startHttpFallback();
       }
       return;
@@ -904,8 +936,43 @@ export class PortfolioStreamManager {
     source: 'websocket' | 'http',
   ): void {
     const eventId = `backend-${source}-${this.timer.now()}-${address.substring(0, 8)}`;
+    this.backendFailureCounts.delete(address);
     void this.portfolioCache.set(address, entries);
     this._emitPortfolioUpdate(address, entries, eventId);
+
+    // A successful read after an outage means the service is reachable again.
+    // Keep the state as "fallback" because a polling backend is not a push
+    // subscription, but clear the error so the UI can resume normal display.
+    if (this.connectionState === 'error') {
+      this.setConnectionState('fallback');
+    }
+  }
+
+  /**
+   * Report a backend read failure without destroying the last good portfolio.
+   * The caller keeps polling, so a later success clears the error state.
+   */
+  private reportBackendFailure(address: string, error: unknown): void {
+    const detail = error instanceof Error ? error.message : String(error);
+    const failures = (this.backendFailureCounts.get(address) ?? 0) + 1;
+    this.backendFailureCounts.set(address, failures);
+
+    this.logger.warn(
+      '[PortfolioStream] Backend portfolio fetch failed for',
+      address,
+      `(attempt ${failures}) — keeping last known balance:`,
+      detail,
+    );
+
+    // A single failed poll is usually a transient restart/network blip. Keep
+    // the last good state and only declare the service offline after two
+    // consecutive failures, so the UI does not flash a stale warning.
+    if (failures < 2) return;
+
+    this.setConnectionState(
+      'error',
+      detail ? `Balance service unavailable: ${detail}` : 'Balance service temporarily unavailable',
+    );
   }
 
   private startHttpFallback(): void {
@@ -933,13 +1000,28 @@ export class PortfolioStreamManager {
 
     const backend = this.config.backend;
     if (backend) {
+      let succeeded = 0;
+      let failed = 0;
+      let lastFailure: unknown;
+
       for (const address of this.subscribedAddresses) {
         try {
           const entries = await backend.getPortfolio(address);
           this._handleBackendUpdate(address, entries, 'http');
+          succeeded++;
         } catch (error) {
+          failed++;
+          lastFailure = error;
           this.logger.error(`[PortfolioStream] Backend poll failed for ${address}:`, error);
         }
+      }
+
+      if (succeeded === 0 && failed > 0) {
+        this.reportBackendFailure(this.subscribedAddresses[0] ?? '', lastFailure);
+      } else if (failed > 0) {
+        this.logger.warn(
+          `[PortfolioStream] Backend poll partially failed (${failed}/${this.subscribedAddresses.length}); keeping last known balances`,
+        );
       }
       return;
     }

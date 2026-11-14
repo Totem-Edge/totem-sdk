@@ -1,8 +1,9 @@
-import { test, expect, TEST_PASSWORD, waitForOnboarding, waitForHome } from './fixtures';
+import { test, expect, TEST_PASSWORD, waitForOnboarding, waitForHome, chooseAxiaProvider } from './fixtures';
 
 test.describe('Create Wallet Flow', () => {
   test.beforeEach(async ({ popupPage }) => {
     await waitForOnboarding(popupPage);
+    await chooseAxiaProvider(popupPage);
   });
 
   test('complete create wallet flow with phrase verification', async ({ popupPage }) => {

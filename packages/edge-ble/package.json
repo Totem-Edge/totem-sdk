@@ -30,7 +30,8 @@
     "NOTICE"
   ],
   "dependencies": {
-    "@totemsdk/edge": "workspace:^"
+    "@totemsdk/edge": "workspace:^",
+    "@totemsdk/edge-mesh": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

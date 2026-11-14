@@ -260,6 +260,59 @@ describe('PortfolioStreamManager — backend mode (no WS)', () => {
   });
 });
 
+describe('PortfolioStreamManager — backend outage handling', () => {
+  const cachedEntry: PortfolioEntry = {
+    kind: 'native', tokenid: '0x00', confirmed: '42', unconfirmed: '0',
+    sendable: '42', total: '42', decimals: 18, name: 'MIN', ticker: 'MIN', address: 'MxABC',
+  };
+
+  it('surfaces an error and keeps the last good cache when every backend read fails', async () => {
+    const backend: PortfolioBackend = {
+      supportsPush: false,
+      getPortfolio: vi.fn().mockRejectedValue(new Error('RPC unavailable')),
+    };
+    const states: Array<{ state: string; error?: string }> = [];
+    const { mgr, cache } = makeManager({ backend });
+    await cache.set('MxABC', [cachedEntry]);
+    mgr.addListener({
+      onPortfolioUpdate: vi.fn(),
+      onConnectionStateChange: (state, error) => states.push({ state, error }),
+    });
+
+    await mgr.start(['MxABC']);
+    // One transient failure must not flash the stale-balance warning.
+    expect(mgr.getConnectionState()).toBe('fallback');
+    await mgr.forceRefresh(); // second consecutive failure crosses the threshold
+    await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
+
+    expect(await mgr.getCachedPortfolio('MxABC')).toEqual([cachedEntry]);
+    expect(states[states.length - 1]?.error).toMatch(/Balance service unavailable: RPC unavailable/);
+  });
+
+  it('recovers from error to fallback after a later successful poll', async () => {
+    let fail = true;
+    const backend: PortfolioBackend = {
+      supportsPush: false,
+      getPortfolio: vi.fn(async () => {
+        if (fail) throw new Error('RPC unavailable');
+        return [cachedEntry];
+      }),
+    };
+    const { mgr, cache } = makeManager({ backend });
+
+    await mgr.start(['MxABC']);
+    await mgr.forceRefresh(); // second failure -> error
+    await vi.waitFor(() => expect(mgr.getConnectionState()).toBe('error'));
+
+    fail = false;
+    (mgr as any).lastForceRefreshAt = 0; // bypass the 5s refresh throttle in the test
+    await mgr.forceRefresh();
+
+    expect(mgr.getConnectionState()).toBe('fallback');
+    expect(await mgr.getCachedPortfolio('MxABC')).toEqual([cachedEntry]);
+  });
+});
+
 describe('PortfolioStreamManager — address updates', () => {
   it('re-subscribes a push backend when the watched addresses change', async () => {
     const unsub = vi.fn();
@@ -292,6 +345,7 @@ describe('PortfolioStreamManager — getSnapshot', () => {
     const snap = await mgr.getSnapshot(['MxABC']);
     expect(snap.connectionState).toBe('disconnected');
     expect(snap.portfolios['MxABC']).toEqual(entries);
+    expect(snap.lastSyncedAt['MxABC']).toBeGreaterThan(0);
   });
 
   it('returns empty portfolios for uncached addresses', async () => {

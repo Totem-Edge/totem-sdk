@@ -13,6 +13,7 @@ import {
 import { addDecimalAmounts, buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
 import { track } from '../core/observability';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 function getParams() {
   const url = new URL(window.location.href);
@@ -162,7 +163,7 @@ export function TokenCreateApproval() {
       {step === 'password' && (
         <div>
           <label className="label">Wallet Password</label>
-          <input type="password" className="input" style={{ marginBottom: 'var(--space-2)' }}
+          <WalletPasswordInput  className="input" style={{ marginBottom: 'var(--space-2)' }}
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUnlock()} autoFocus />
           {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}

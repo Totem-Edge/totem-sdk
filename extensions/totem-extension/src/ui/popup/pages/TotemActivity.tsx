@@ -1,5 +1,5 @@
 /**
- * AXIA TOTEM ACTIVITY PAGE - BRUTALIST REDESIGN
+ * AXIA TOTEM ACTIVITY PAGE - TOTEM REDESIGN
  * Transaction history fetched via TxpowIndexer SQL backend
  */
 
@@ -20,11 +20,11 @@ interface TxEvent {
   localAddress: string;
 }
 
-interface BrutalistActivityProps {
+interface TotemActivityProps {
   activeAccountAddress?: string;
 }
 
-export function BrutalistActivity({ activeAccountAddress }: BrutalistActivityProps) {
+export function TotemActivity({ activeAccountAddress }: TotemActivityProps) {
   const [events, setEvents] = useState<TxEvent[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function BrutalistActivity({ activeAccountAddress }: BrutalistActivityPro
         throw new Error(response?.error || 'Failed to load transactions');
       }
     } catch (err: any) {
-      console.error('[BrutalistActivity] Failed to load transactions:', err);
+      console.error('[TotemActivity] Failed to load transactions:', err);
       setError(err.message || 'Failed to load transaction history');
       setLoadingState('error');
     }

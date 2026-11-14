@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST HEADER
+ * AXIA TOTEM HEADER
  * Single-row compact header: Eagle logo (left) | Account switcher + WOTS key (right)
  */
 
@@ -10,7 +10,7 @@ import { isDesignerMode } from '../../../config/constants';
 import { DesignerConfigManager, type DesignerMode } from '../../../config/DesignerConfigManager';
 import '../../theme/axia-tokens.css';
 
-export interface BrutalistHeaderProps {
+export interface TotemHeaderProps {
   accountAddress?: string;
   activeAccountIndex?: number;
   accounts?: { address: string; index: number; name?: string }[];
@@ -64,7 +64,7 @@ function WotsKeyIcon({ health, size = 16 }: { health: 'healthy' | 'warning' | 'c
   );
 }
 
-export function BrutalistHeader({
+export function TotemHeader({
   accountAddress,
   activeAccountIndex = 0,
   accounts = [],
@@ -73,7 +73,7 @@ export function BrutalistHeader({
   onAccountSwitch,
   onWotsClick,
   onSettingsClick,
-}: BrutalistHeaderProps) {
+}: TotemHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [designerMode, setDesignerMode] = useState<DesignerMode>('mock');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -102,7 +102,7 @@ export function BrutalistHeader({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('[BrutalistHeader] Failed to copy address:', error);
+      console.error('[TotemHeader] Failed to copy address:', error);
     }
   };
 

@@ -7,13 +7,9 @@
  * Background script imports:
  *   import { portfolioStreamManager } from '../core/portfolio';
  */
-import { PortfolioStreamManager, PortfolioCache, toPortfolioEntry } from '@totemsdk/realtime';
+import { PortfolioStreamManager, PortfolioCache, MinimaRpcBackend } from '@totemsdk/realtime';
 import type { PortfolioBackend, PortfolioEntry, PortfolioStreamConfig } from '@totemsdk/realtime';
-import {
-  coinSelectionService,
-  addDecimalStrings,
-  type SpendableCoin,
-} from '../transaction/CoinSelectionService';
+import { resolveActiveNodeRpc } from '../providers/activeNode';
 import { getApiBase, getProjectId } from '../api/base';
 import type {
   StorageAdapter,
@@ -172,91 +168,64 @@ class ExtWsFactory implements WebSocketFactory {
   dispose(): void {}
 }
 
-// ── Wallet-backed portfolio backend ───────────────────────────────────────────
-// The extension UI previously read balances exclusively from Axia's
-// `/v1/:projectId/portfolio` endpoint. When that endpoint or the balance WS was
-// degraded the popup sat in "polling" with an empty cache. Read the wallet's
-// own coins instead: this uses the user's selected chain provider (hosted,
-// self-hosted or composite) and falls back to Axia's `/v1/wallet/coins`.
-function aggregateWalletCoins(coins: SpendableCoin[], address: string): PortfolioEntry[] {
-  const byToken = new Map<
-    string,
-    { total: string; count: number; coin: SpendableCoin }
-  >();
-
-  for (const coin of coins) {
-    if (coin.spent) continue;
-    const tokenid = coin.tokenid || '0x00';
-    const existing = byToken.get(tokenid);
-    if (existing) {
-      existing.total = addDecimalStrings(existing.total, coin.amount);
-      existing.count += 1;
-    } else {
-      byToken.set(tokenid, { total: coin.amount, count: 1, coin });
-    }
+// ── Portfolio backend ─────────────────────────────────────────────────────────
+// One source per mode, and no lossy fallback:
+//   • paired/self-hosted node → node `balance address:… megammr:true tokendetails:true`
+//   • Axia mode              → GET /v1/wallet/portfolio/:address
+//
+// `/v1/wallet/coins` is a UTXO/coin-selection endpoint, not a portfolio. It
+// used to be a silent fallback here and that is exactly how token names and
+// artwork disappeared while the balance still looked "live".
+class PortfolioUnavailableError extends Error {
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = 'PortfolioUnavailableError';
   }
-
-  const entries: PortfolioEntry[] = [...byToken.entries()].map(
-    ([tokenid, { total, count, coin }]) => {
-      const entry = toPortfolioEntry(
-        {
-          tokenid,
-          confirmed: total,
-          unconfirmed: '0',
-          sendable: total,
-          total,
-          token: coin.token,
-        },
-        address
-      );
-      entry.coins = count;
-      return entry;
-    }
-  );
-
-  if (!entries.some(entry => entry.kind === 'native')) {
-    const native = toPortfolioEntry(
-      { tokenid: '0x00', confirmed: '0', unconfirmed: '0', total: '0' },
-      address
-    );
-    native.coins = 0;
-    entries.unshift(native);
-  }
-
-  return entries;
 }
 
-async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[] | null> {
+async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[]> {
+  const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
+  const url = `${baseUrl.replace(/\/$/, '')}/v1/wallet/portfolio/${encodeURIComponent(address)}`;
+
+  let res: Response;
   try {
-    const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
-    const res = await fetch(
-      `${baseUrl.replace(/\/$/, '')}/v1/wallet/portfolio/${encodeURIComponent(address)}`,
-      { headers: { 'x-api-key': projectId } },
+    res = await fetch(url, { headers: { 'x-api-key': projectId } });
+  } catch (error) {
+    throw new PortfolioUnavailableError(
+      `Portfolio API unreachable: ${error instanceof Error ? error.message : String(error)}`,
+      error,
     );
-    if (!res.ok) return null;
-    const payload = await res.json();
-    const entries = Array.isArray(payload?.entries) ? payload.entries : [];
-    return entries.length > 0 ? entries as PortfolioEntry[] : null;
-  } catch {
-    return null;
   }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new PortfolioUnavailableError(
+      `Portfolio API ${res.status}${body ? `: ${body.slice(0, 300)}` : ''}`,
+    );
+  }
+
+  const payload = await res.json().catch(() => null);
+  if (!payload || payload.success === false || !Array.isArray(payload.entries)) {
+    throw new PortfolioUnavailableError(
+      payload?.error || 'Portfolio API returned an invalid response',
+    );
+  }
+
+  return payload.entries as PortfolioEntry[];
 }
 
-const walletPortfolioBackend: PortfolioBackend = {
+export const walletPortfolioBackend: PortfolioBackend = {
   supportsPush: false,
   async getPortfolio(address: string): Promise<PortfolioEntry[]> {
-    // The API route enriches token metadata (name/decimals/artwork/NFT kind).
-    // Wallet RPC alone often returns only tokenid/amount, so prefer the API and
-    // fall back to the wallet-backed coin index if Axia is unavailable.
-    const apiEntries = await fetchApiPortfolio(address);
-    if (apiEntries) return apiEntries;
+    // A paired/self-hosted node is authoritative. Fetch the node's own
+    // balance/token details so the portfolio has the same metadata the node
+    // uses for coin selection.
+    const node = await resolveActiveNodeRpc().catch(() => null);
+    if (node) {
+      return new MinimaRpcBackend(node.client).getPortfolio(address);
+    }
 
-    const coins = await coinSelectionService.fetchSpendableCoins(
-      [address],
-      '*',
-      { relevant: true }
-    );
-    return aggregateWalletCoins(coins, address);
+    return fetchApiPortfolio(address);
   },
 };
 

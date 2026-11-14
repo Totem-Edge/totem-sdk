@@ -11,6 +11,7 @@ import { Receive } from './pages/Receive';
 import { Settings } from './pages/Settings';
 import { Unlock } from './pages/Unlock';
 import { OmniaCoordinationApproval } from './components/OmniaCoordinationApproval';
+import { WalletPasswordInput } from './components/WalletPasswordInput';
 
 const AUTHED_ROUTES = new Set(['home', 'send', 'receive', 'settings', 'add-address']);
 
@@ -41,8 +42,8 @@ function SessionExpired() {
         </p>
       </div>
       <label className="label">Wallet Password</label>
-      <input
-        type="password" className="input" style={{ marginBottom: 'var(--space-2)' }}
+      <WalletPasswordInput
+         className="input" style={{ marginBottom: 'var(--space-2)' }}
         value={password} onChange={e => setPassword(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleUnlock()} autoFocus
       />

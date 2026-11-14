@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWallet } from '../core/WalletContext';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 export function Unlock() {
   const { unlock } = useWallet();
@@ -43,15 +44,13 @@ export function Unlock() {
       </div>
       <form onSubmit={handleUnlock}>
         <label className="label">Password</label>
-        <input
+        <WalletPasswordInput
           ref={inputRef}
-          type="password"
           className="input"
           style={{ marginBottom: 'var(--space-2)' }}
           placeholder="Enter your wallet password"
           value={password}
           onChange={e => { setPassword(e.target.value); setError(''); }}
-          autoComplete="current-password"
         />
         {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
         <button type="submit" className="btn btn-primary btn-full" disabled={loading || !password}>

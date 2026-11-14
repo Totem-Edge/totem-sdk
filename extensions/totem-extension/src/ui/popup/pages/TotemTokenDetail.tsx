@@ -26,7 +26,7 @@ export interface TokenDetailData {
   mintBlock?: number;
 }
 
-interface BrutalistTokenDetailProps {
+interface TotemTokenDetailProps {
   token: TokenDetailData;
   onNavigate: (tab: NavTab) => void;
   onSendToken: (token: TokenDetailData) => void;
@@ -66,7 +66,7 @@ function estimateMintTimestamp(mintBlock: number): number {
   return ANCHOR_TIME_MS - (ANCHOR_BLOCK - mintBlock) * AVG_BLOCK_MS;
 }
 
-export function BrutalistTokenDetail({ token, onNavigate, onSendToken, onBack }: BrutalistTokenDetailProps) {
+export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: TotemTokenDetailProps) {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);

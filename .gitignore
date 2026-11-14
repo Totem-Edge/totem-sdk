@@ -37,3 +37,6 @@ packages/*/go/realtime
 packages/*/go/se-server
 packages/*/go/omnia-router
 packages/*/go/cmd/omnia-router/omnia-router
+
+# Wrangler local state
+.wrangler/

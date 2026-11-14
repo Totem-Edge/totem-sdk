@@ -47,8 +47,10 @@ const node = (overrides: Record<string, jest.Mock> = {}) => ({
     coinExport: jest.fn(),
     txnImport: jest.fn(),
     txnPost: jest.fn(),
-    txnCheck: jest.fn(),
+    txnCheck: jest.fn().mockResolvedValue({ valid: true }),
     sendTransaction: jest.fn(),
+    // finalize() polls txncheck/txpow after txnpost; default to "observed".
+    runCommand: jest.fn().mockResolvedValue({ txpowid: '0x' + 'ff'.repeat(32) }),
     ...overrides,
   },
   url: 'http://127.0.0.1:9005',
@@ -142,7 +144,11 @@ describe('HawkTransactionService', () => {
     });
 
     expect(n.client.txnImport).toHaveBeenCalledWith('deadbeef', 'import-1');
+    expect(n.client.txnCheck).toHaveBeenCalledWith('import-1');
     expect(n.client.txnPost).toHaveBeenCalledWith({ id: 'import-1', mine: true });
+    expect(n.client.runCommand).toHaveBeenCalledWith('txpow', {
+      txpowid: '0x' + 'dd'.repeat(32),
+    });
     expect(watermarkStore.markUsed).toHaveBeenCalledWith(indices);
     expect(leaseStore.updateStatus).toHaveBeenCalledWith('lease-1', 'finalized');
     expect(result).toEqual({
@@ -188,26 +194,6 @@ describe('HawkTransactionService', () => {
 
     expect(n.client.txnImport).toHaveBeenCalledWith(txnRow, 'tx-1');
     expect(n.client.txnPost).toHaveBeenCalledWith({ id: 'tx-1', mine: true });
-  });
-
-  test('finalizeMined submits a pre-mined TxPoW', async () => {
-    const n = node();
-    n.client.sendTransaction.mockResolvedValue({ txpowid: '0x' + 'ab'.repeat(32) });
-    (resolveActiveNodeRpc as jest.Mock).mockResolvedValue(n);
-    (leaseStore.getByToken as jest.Mock).mockReturnValue({
-      leaseId: 'lease-1',
-      leaseToken: 'token-1',
-      indices,
-      status: 'active',
-    });
-
-    const result = await HawkTransactionService.finalizeMined({
-      leaseToken: 'token-1',
-      minedHex: '0xMINE',
-    });
-
-    expect(n.client.sendTransaction).toHaveBeenCalledWith('MINE');
-    expect(result.txpowid).toBe('0x' + 'ab'.repeat(32));
   });
 
   test('broadcast imports, checks, and mines a pre-signed TxnRow', async () => {

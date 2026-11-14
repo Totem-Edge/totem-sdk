@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST STATUS PILL
+ * AXIA TOTEM STATUS PILL
  * Flat badge component for transaction/connection states
  */
 

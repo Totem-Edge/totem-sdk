@@ -30,6 +30,8 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
   'use strict';
 
   const WALLET_ORIGIN: string = __WALLET_ORIGIN__;
+  const WALLET_BASE: string = __WALLET_BASE__;
+  const withBase = (path: string): string => `${WALLET_BASE.replace(/\/$/, '')}${path}`;
   const POPUP_W = 400;
   const POPUP_H = 640;
 
@@ -49,6 +51,12 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
 
   let connectedAccounts: Array<{ address: string; index: number }> = [];
   let _redirectReturn: { method: string; result: unknown; error?: string } | null = null;
+  /**
+   * The wallet popup opened for this dApp. A TOTEM_CONNECT window is kept open
+   * and reused for the follow-up TOTEM_VERIFY sign-in so the wallet only has to
+   * be unlocked once and the browser does not block a second popup.
+   */
+  let walletWin: Window | null = null;
 
   function emitEvent(name: string, ...args: unknown[]): void {
     const cbs = eventListeners.get(name);
@@ -144,6 +152,12 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     if (method === 'TOTEM_VERIFY') {
       const challenge = params.challenge as Record<string, unknown> | undefined;
       if (challenge?.statement) out.message = encodeURIComponent(String(challenge.statement));
+      // Callers (e.g. a server issuing a 5-minute nonce) can cap how long the
+      // verification may claim to be valid. Without this the approval page had
+      // to guess, and servers rejected the resulting expiry.
+      if (typeof challenge?.expiryMs === 'number' && Number.isFinite(challenge.expiryMs)) {
+        out.expiryMs = String(challenge.expiryMs);
+      }
       out.mode = 'verify';
     }
 
@@ -160,6 +174,13 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       if (params.to) out.to = String(params.to);
       if (params.amount) out.amount = String(params.amount);
       if (params.tokenId) out.tokenId = String(params.tokenId);
+    }
+
+    if (method === 'TOTEM_GET_COINS') {
+      for (const key of ['address', 'tokenId', 'allTokens', 'minAmount', 'sendable', 'relevant', 'spent']) {
+        if (params[key] !== undefined) out[key] = String(params[key]);
+      }
+      return out;
     }
 
     if (method === 'TOTEM_SIGN_DATA') {
@@ -243,9 +264,25 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       nonce,
       returnUrl,
     }).toString();
-    const url = `${WALLET_ORIGIN}${path}?${query}`;
+    const keepOpen = method === 'TOTEM_CONNECT';
+    const url = `${WALLET_ORIGIN}${path}?${query}${keepOpen ? '&keepOpen=1' : ''}`;
+
+    // Diagnostic: the sign-in flow makes two requests (connect, then verify).
+    // If the first window is gone the second window.open() is blocked — the
+    // browser only allows a popup while the original click's activation is
+    // fresh — and the user is dropped into a full-page approval that asks for
+    // the password again. These lines say which of those happened.
+    const trace = (event: string, extra?: Record<string, unknown>) =>
+      console.info('[totem-provider]', method, event, {
+        keepOpen,
+        hasWalletWin: !!walletWin,
+        walletWinClosed: walletWin ? walletWin.closed : null,
+        mobile: isMobile(),
+        ...extra,
+      });
 
     if (isMobile() || isCustomScheme(returnUrl)) {
+      trace('navigating-full-page', { reason: 'mobile-or-custom-scheme' });
       // For native app callers with custom scheme returnUrl, skip sessionStorage
       // caching — the approval page will redirect directly to the custom scheme.
       if (!isCustomScheme(returnUrl)) {
@@ -256,29 +293,69 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       return;
     }
 
-    const walletWin = window.open(
-      url, `totem_${id}`,
+    // Follow-up request (sign-in) inside the already-open approval window. The
+    // wallet is still unlocked in that window, so the user is not asked for the
+    // password again and the browser does not need to allow a second popup.
+    if (!keepOpen && walletWin && !walletWin.closed) {
+      try {
+        walletWin.postMessage(
+          { type: 'totem_request', reqId: id, nonce, method, params: qs, origin: callerOrigin, returnUrl },
+          WALLET_ORIGIN,
+        );
+        walletWin.focus();
+        trace('reused-window');
+        const reusedCheck = setInterval(() => {
+          if (!walletWin || walletWin.closed) {
+            clearInterval(reusedCheck);
+            const p = pendingRequests.get(id);
+            if (p) {
+              pendingRequests.delete(id);
+              p.reject(new Error('User closed wallet'));
+            }
+          }
+        }, 500);
+        return;
+      } catch (err) {
+        trace('reuse-failed', { error: err instanceof Error ? err.message : String(err) });
+        // Fall through and open a fresh window.
+      }
+    }
+
+    const win = window.open(
+      url, 'totem_wallet',
       `width=${POPUP_W},height=${POPUP_H},` +
       `top=${Math.max(0, Math.round(window.screenY + (window.outerHeight - POPUP_H) / 2))},` +
       `left=${Math.max(0, Math.round(window.screenX + (window.outerWidth  - POPUP_W) / 2))},` +
       'resizable=no,scrollbars=no,status=no,toolbar=no,menubar=no',
     );
 
-    if (!walletWin) {
-      if (!isCustomScheme(returnUrl)) {
-        sessionStorage.setItem('totem_redirect_id', id);
-        sessionStorage.setItem('totem_redirect_method', method);
+    if (!win) {
+      // Never take over the dApp's tab to show an approval: it destroys the
+      // caller's state and the wallet looks like it restarted the whole flow.
+      // Tell the page instead so it can retry from a fresh click (a user
+      // gesture is what makes a window allowed).
+      trace('popup-blocked');
+      window.dispatchEvent(new CustomEvent('totem#popup-blocked', {
+        detail: { method, reqId: id },
+      }));
+      const pending = pendingRequests.get(id);
+      if (pending) {
+        pendingRequests.delete(id);
+        pending.reject(new Error(
+          'Your browser blocked the wallet window. Approve again to reopen it.',
+        ));
       }
-      window.location.href = url;
       return;
     }
+    trace('opened-popup');
+    walletWin = win;
 
     let bc: BroadcastChannel | null = null;
+    let closedCheck: ReturnType<typeof setInterval> | null = null;
     try {
       bc = new BroadcastChannel(`totem_response_${id}_${nonce}`);
       bc.onmessage = (e: MessageEvent) => {
         bc?.close(); bc = null;
-        clearInterval(closedCheck);
         const msg = e.data as { type?: string; reqId?: string; result?: unknown; error?: string };
         if (msg.type !== 'totem_response') return;
         const p = pendingRequests.get(id);
@@ -293,14 +370,20 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           }
         }
         p.resolve(msg.result);
-        if (!walletWin.closed) walletWin.close();
+        if (keepOpen) {
+          if (closedCheck) clearInterval(closedCheck);
+        } else {
+          if (!win.closed) win.close();
+          walletWin = null;
+        }
       };
     } catch { /* BroadcastChannel not supported */ }
 
-    const closedCheck = setInterval(() => {
-      if (walletWin.closed) {
-        clearInterval(closedCheck);
+    closedCheck = setInterval(() => {
+      if (win.closed) {
+        if (closedCheck) clearInterval(closedCheck);
         bc?.close(); bc = null;
+        if (walletWin === win) walletWin = null;
         const p = pendingRequests.get(id);
         if (p) {
           pendingRequests.delete(id);
@@ -627,7 +710,36 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         return Promise.resolve(ret.result);
       }
 
-      const path = methodToPath(method);
+      // Balance reads reuse the approval window that is already unlocked. A
+      // fresh popup per token read would re-prompt for the password and be
+      // blocked outside a user gesture.
+      if (method === 'TOTEM_GET_COINS') {
+        if (!walletWin || walletWin.closed) {
+          return Promise.reject(new Error('Open the Totem web wallet and reconnect to read balances.'));
+        }
+        const coinReqId = genId();
+        const nonceBytes = new Uint8Array(16);
+        crypto.getRandomValues(nonceBytes);
+        const coinNonce = Array.from(nonceBytes, b => b.toString(16).padStart(2, '0')).join('');
+        const coinParams = paramsToQs(method, params);
+        const coinReturnUrl = window.location.href.split('?')[0];
+        return new Promise<unknown>((resolve, reject) => {
+          pendingRequests.set(coinReqId, { method, resolve, reject });
+          try {
+            walletWin!.postMessage(
+              { type: 'totem_request', reqId: coinReqId, nonce: coinNonce, method, params: coinParams, origin, returnUrl: coinReturnUrl },
+              WALLET_ORIGIN,
+            );
+            walletWin!.focus();
+          } catch (err) {
+            pendingRequests.delete(coinReqId);
+            reject(err instanceof Error ? err : new Error(String(err)));
+          }
+        });
+      }
+
+      const rawPath = methodToPath(method);
+      const path = typeof rawPath === 'string' ? withBase(rawPath) : rawPath;
       if (path === undefined) {
         return Promise.reject(new Error(`Unsupported method: ${method}`));
       }
@@ -733,7 +845,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           info: {
             id: 'totem-pwa',
             name: 'Totem Wallet',
-            icon: `${WALLET_ORIGIN}/icons/totem.svg`,
+            icon: `${WALLET_ORIGIN}${withBase('/icons/totem.svg')}`,
             version: '1.0.0',
           },
           provider: totemProvider,

@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST BUTTON
+ * AXIA TOTEM BUTTON
  * Flat, geometric, zero border-radius
  */
 

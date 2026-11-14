@@ -1,4 +1,4 @@
-import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome } from './fixtures';
+import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome, chooseAxiaProvider } from './fixtures';
 
 test.describe('Unlock Wallet Flow', () => {
   test.describe.configure({ mode: 'serial' });
@@ -6,6 +6,7 @@ test.describe('Unlock Wallet Flow', () => {
   test('setup: create wallet first', async ({ popupPage, context, extensionId }) => {
     const page = popupPage;
     await waitForOnboarding(page);
+    await chooseAxiaProvider(page);
 
     const importButton = page.getByRole('button', { name: /IMPORT EXISTING WALLET/i });
     await importButton.click();

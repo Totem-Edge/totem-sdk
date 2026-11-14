@@ -135,6 +135,7 @@ interface PriceCache {
   lastUpdated: number;
 }
 let cachedPrice: PriceCache | null = null;
+let pricePrefetchPromise: Promise<PriceCache | null> | null = null;
 const PRICE_CACHE_DURATION = 60000; // 1 minute
 
 // =========================================================================
@@ -169,6 +170,18 @@ function cleanupStaleSessions(): void {
 }
 
 async function prefetchMinimaPrice(): Promise<PriceCache | null> {
+  // Coalesce concurrent callers (wallet create/import, startup and popup can
+  // all request the price at once). Without this, the same CoinGecko request
+  // is sent two or three times on a cold start.
+  if (pricePrefetchPromise) return pricePrefetchPromise;
+
+  pricePrefetchPromise = fetchMinimaPrice().finally(() => {
+    pricePrefetchPromise = null;
+  });
+  return pricePrefetchPromise;
+}
+
+async function fetchMinimaPrice(): Promise<PriceCache | null> {
   try {
     // Return cached if fresh
     if (cachedPrice && Date.now() - cachedPrice.lastUpdated < PRICE_CACHE_DURATION) {
@@ -1458,6 +1471,7 @@ chrome.runtime.onSuspend.addListener(() => {
   console.log('[Background] Service worker suspending — cleaning up connections');
   initSessions.clear();
   cachedPrice = null;
+  pricePrefetchPromise = null;
 });
 
 // Extension startup (browser restart)
@@ -1582,6 +1596,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
   switch (messageType) {
     case 'balance:replay':
       await portfolioStreamManager.triggerReplay();
+      return { ok: true, id };
+
+    case 'balance:refresh':
+      await portfolioStreamManager.forceRefresh();
       return { ok: true, id };
 
     case 'ui:isInitialized':
@@ -5734,6 +5752,7 @@ chrome.runtime.onConnect.addListener((port) => {
               type: 'INITIAL_SNAPSHOT', 
               payload: {
                 entries: allCachedEntries,
+                lastSyncedAt: initialSnapshot.lastSyncedAt,
                 connectionState: initialSnapshot.connectionState,
                 error: initialSnapshot.error
               }
@@ -5768,6 +5787,7 @@ chrome.runtime.onConnect.addListener((port) => {
               type: 'SNAPSHOT', 
               payload: {
                 portfolios: snap.portfolios,
+                lastSyncedAt: snap.lastSyncedAt,
                 connectionState: snap.connectionState,
                 error: snap.error
               }

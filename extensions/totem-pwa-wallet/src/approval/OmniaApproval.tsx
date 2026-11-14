@@ -14,6 +14,7 @@ import { createOmniaRelayClient, type RelayOmniaClient } from '@totemsdk/omnia-r
 import { WalletManager } from '../core/WalletManager';
 import { buildPwaOmniaSigningMaterial } from '../core/omnia';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 type Step = 'password' | 'confirm' | 'working' | 'done' | 'error';
 
@@ -131,8 +132,7 @@ export function OmniaApproval() {
 
       {step === 'password' && (
         <form onSubmit={handleUnlock}>
-          <input
-            type="password"
+          <WalletPasswordInput
             placeholder="Wallet password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

@@ -22,6 +22,7 @@ export {
   PortfolioCache,
   type PortfolioCacheDependencies,
   type PortfolioCacheConfig,
+  type PortfolioCacheEntry,
 } from './PortfolioCache.js';
 
 export { LookupBackend, type LookupLike } from './backends/LookupBackend.js';

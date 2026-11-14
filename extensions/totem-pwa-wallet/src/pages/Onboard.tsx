@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import { useWallet } from '../core/WalletContext';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 type Step = 'choose' | 'create' | 'import' | 'password';
 
@@ -153,8 +154,7 @@ export function Onboard() {
       {step === 'password' && (
         <div>
           <label className="label">Set wallet password</label>
-          <input
-            type="password"
+          <WalletPasswordInput
             className="input"
             style={{ marginBottom: 'var(--space-2)' }}
             placeholder="Minimum 8 characters"
@@ -163,8 +163,7 @@ export function Onboard() {
             autoComplete="new-password"
           />
           <label className="label">Confirm password</label>
-          <input
-            type="password"
+          <WalletPasswordInput
             className="input"
             style={{ marginBottom: 'var(--space-2)' }}
             placeholder="Repeat password"

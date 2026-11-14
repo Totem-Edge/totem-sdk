@@ -6,18 +6,18 @@
   "background_color": "#0f172a",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "scope": "/",
-  "start_url": "/",
-  "id": "/",
+  "scope": "./",
+  "start_url": "./",
+  "id": "./",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -25,22 +25,10 @@
   ],
   "screenshots": [],
   "categories": ["finance", "utilities"],
-  "shortcuts": [
-    {
-      "name": "Send",
-      "url": "/send",
-      "description": "Send Minima tokens"
-    },
-    {
-      "name": "Receive",
-      "url": "/receive",
-      "description": "Receive Minima tokens"
-    }
-  ],
   "protocol_handlers": [
     {
       "protocol": "web+totem",
-      "url": "/protocol-handler?request=%s"
+      "url": "./protocol-handler?request=%s"
     }
   ]
 }

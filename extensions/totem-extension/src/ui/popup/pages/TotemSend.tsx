@@ -1,5 +1,5 @@
 /**
- * AXIA TOTEM SEND PAGE - BRUTALIST REDESIGN
+ * AXIA TOTEM SEND PAGE - TOTEM REDESIGN
  * Send assets with 44-decimal precision, MetaMask-style Review & Confirm + Transaction Receipt screens
  * 1-address model: always sends from the active account
  */
@@ -13,7 +13,7 @@ import {
   buildTransactionPreviewViewModel
 } from '../../components/molecules';
 import { Card, Typography, Button, StatusPill } from '../../components/atoms';
-import { parseMinimaAmount, formatAmount, parseTokenImageUrl } from '../../../constants';
+import { parseMinimaAmount, formatAmount, formatTokenAmount, parseTokenImageUrl } from '../../../constants';
 import { useSendTransaction } from '../../../core/transaction/useSendTransaction';
 import { parseDecimalToBaseUnits } from '../../../core/transaction/MinimaTransactionBuilder';
 import { validateMinimaAddress } from '../../../core/validation';
@@ -24,7 +24,7 @@ import {
 } from '../../../core/transaction';
 import { useUnlock } from '../contexts/UnlockContext';
 import { usePortfolio } from '../../hooks';
-import type { TokenDetailData } from './BrutalistTokenDetail';
+import type { TokenDetailData } from './TotemTokenDetail';
 import '../../theme/axia-tokens.css';
 
 interface WalletToken {
@@ -41,13 +41,13 @@ interface WalletToken {
 
 type SendScreen = 'form' | 'review' | 'receipt';
 
-interface BrutalistSendProps {
+interface TotemSendProps {
   initialToken?: TokenDetailData | null;
   onTokenConsumed?: () => void;
   activeAccountIndex?: number;
 }
 
-export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountIndex = 0 }: BrutalistSendProps) {
+export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 0 }: TotemSendProps) {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedAsset, setSelectedAsset] = useState('MINIMA');
@@ -211,7 +211,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
         const stored = await chrome.storage.local.getTyped(['excludedAddresses']);
         setExcludedAddresses(stored.excludedAddresses || []);
       } catch (error) {
-        console.error('[BrutalistSend] Failed to load wallet state:', error);
+        console.error('[TotemSend] Failed to load wallet state:', error);
       }
     };
     load();
@@ -223,9 +223,6 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
     const activeAccount = addresses.find(a => a.index === activeAccountIndex) || addresses[0];
     if (!activeAccount?.address) return;
     startStream([activeAccount.address]);
-    setTimeout(() => {
-      chrome.runtime.sendMessage({ type: 'balance:replay' }).catch((err) => console.warn('[Send] balance:replay failed:', err));
-    }, 150);
   }, [addresses, activeAccountIndex, startStream]);
 
 
@@ -271,7 +268,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
     const sourceAddress = getSourceAddress();
     const tokenId = selectedTokenId;
     
-    console.log('[BrutalistSend] Assembling transaction before review...');
+    console.log('[TotemSend] Assembling transaction before review...');
     setAssemblyLoading(true);
     setAssemblyError(null);
     setTransactionArtifact(null);
@@ -297,19 +294,19 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
         wotsRootPublicKey
       };
       
-      console.log('[BrutalistSend] Calling TransactionAssembler with:', assemblyRequest);
+      console.log('[TotemSend] Calling TransactionAssembler with:', assemblyRequest);
       
       // Assemble the full transaction with coin selection and proofs
       const result = await transactionAssembler.assemble(assemblyRequest);
       
       if (!result.success || !result.artifact) {
-        console.error('[BrutalistSend] Assembly failed:', result.error);
+        console.error('[TotemSend] Assembly failed:', result.error);
         setAssemblyError(result.error || 'Failed to assemble transaction');
         setAssemblyLoading(false);
         return;
       }
       
-      console.log('[BrutalistSend] Transaction assembled successfully:', {
+      console.log('[TotemSend] Transaction assembled successfully:', {
         inputCount: result.artifact.inputs.length,
         outputCount: result.artifact.outputs.length,
         rawHexLength: result.artifact.rawTransactionHex.length
@@ -334,7 +331,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
       setScreen('review');
       
     } catch (error) {
-      console.error('[BrutalistSend] Assembly error:', error);
+      console.error('[TotemSend] Assembly error:', error);
       setAssemblyError(error instanceof Error ? error.message : 'Failed to assemble transaction');
     } finally {
       setAssemblyLoading(false);
@@ -343,7 +340,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
 
   // Handle confirmation from review screen
   const handleConfirmSend = async () => {
-    console.log('[BrutalistSend] Confirming and sending transaction');
+    console.log('[TotemSend] Confirming and sending transaction');
     await confirmAndSend();
   };
 
@@ -373,7 +370,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
       const sourceAddress = getSourceAddress();
       const burnBaseUnits = burnAmount && parseFloat(burnAmount) > 0 ? parseMinimaAmount(burnAmount) : undefined;
 
-      console.log('[BrutalistSend] Direct send:', { 
+      console.log('[TotemSend] Direct send:', { 
         sourceAddress,
         recipient, 
         amount: amountInBaseUnits, 
@@ -392,7 +389,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
       });
       
     } catch (error) {
-      console.error('[BrutalistSend] Send failed:', error);
+      console.error('[TotemSend] Send failed:', error);
     }
   };
   

@@ -55,6 +55,14 @@ export async function waitForOnboarding(page: Page): Promise<void> {
   await expect(page.getByText('TOTEM WALLET')).toBeVisible({ timeout: 15000 });
 }
 
+/** First-run provider choice: tests use the hosted Axia path. */
+export async function chooseAxiaProvider(page: Page): Promise<void> {
+  const connectButton = page.getByRole('button', { name: /CONNECT VIA AXIA \(FREE\)/i });
+  await expect(connectButton).toBeVisible({ timeout: 15000 });
+  await connectButton.click();
+  await expect(page.getByRole('button', { name: /CREATE NEW WALLET/i })).toBeVisible({ timeout: 15000 });
+}
+
 export async function waitForHome(page: Page): Promise<void> {
   const home = page.locator('[data-testid="home-balance"], .balance-display');
   const minima = page.getByText(/MINIMA/i);

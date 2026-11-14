@@ -165,10 +165,27 @@ export class AxiaRpcClient {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
       
-      const relevantKeys = ['AXIA_BASE', 'AXIA_PROJECT_ID', 'AXIA_QUOTAS', 'AXIA_RATE_LIMITS'];
-      const hasRelevantChange = relevantKeys.some(key => key in changes);
-      
-      if (hasRelevantChange) {
+      const relevantKeys = ['AXIA_BASE', 'AXIA_PROJECT_ID', 'AXIA_QUOTAS', 'AXIA_RATE_LIMITS'] as const;
+      const currentValue = (key: typeof relevantKeys[number]) => {
+        switch (key) {
+          case 'AXIA_BASE': return this.config?.AXIA_BASE;
+          case 'AXIA_PROJECT_ID': return this.config?.AXIA_PROJECT_ID;
+          case 'AXIA_QUOTAS': return this.config?.AXIA_QUOTAS;
+          case 'AXIA_RATE_LIMITS': return this.config?.AXIA_RATE_LIMITS;
+        }
+      };
+
+      // Persisting the bootstrap config writes the same values back to
+      // chrome.storage, which fires onChanged even when nothing changed.
+      // Only reload when the stored value actually differs from the live config.
+      const hasEffectiveChange = relevantKeys.some(key => {
+        const change = changes[key];
+        if (!change) return false;
+        if (JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) return false;
+        return JSON.stringify(change.newValue) !== JSON.stringify(currentValue(key));
+      });
+
+      if (hasEffectiveChange) {
         console.log('[AxiaRpcClient] Config change detected, reloading...');
         this.reloadConfig().catch(err => {
           console.error('[AxiaRpcClient] Auto-reload failed:', err);

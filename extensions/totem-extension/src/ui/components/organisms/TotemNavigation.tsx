@@ -1,6 +1,6 @@
 /**
- * AXIA BRUTALIST NAVIGATION
- * Bottom tab navigation with flat brutalist design
+ * AXIA TOTEM NAVIGATION
+ * Bottom tab navigation with flat totem design
  */
 
 import React from 'react';
@@ -9,7 +9,7 @@ import '../../theme/axia-tokens.css';
 
 export type NavTab = 'home' | 'send' | 'receive' | 'activity' | 'settings' | 'token-detail';
 
-export interface BrutalistNavigationProps {
+export interface TotemNavigationProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
 }
@@ -75,7 +75,7 @@ function NavItem({ id, label, icon, active, onClick }: NavItemProps) {
   );
 }
 
-export function BrutalistNavigation({ activeTab, onTabChange }: BrutalistNavigationProps) {
+export function TotemNavigation({ activeTab, onTabChange }: TotemNavigationProps) {
   const tabs: Array<{ id: NavTab; label: string; icon: string }> = [
     { id: 'home', label: 'Home', icon: '■' },
     { id: 'send', label: 'Send', icon: '↑' },

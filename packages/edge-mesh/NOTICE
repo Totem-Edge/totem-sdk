@@ -1,0 +1,60 @@
+Totem SDK
+Copyright 2024-2026 Totem SDK Contributors
+
+This product includes software and material derived from the projects listed
+below. The notices are provided for attribution and do not modify the Apache
+License, Version 2.0.
+
+Minima
+------
+Minima protocol and application
+https://github.com/minima-global/Minima
+Licensed under the Apache License, Version 2.0.
+
+Portions of the Totem SDK core, KISSVM, serialization, transaction and wallet
+surfaces are translated or adapted from Minima's Java implementation. Those
+portions remain subject to the Apache License, Version 2.0 and retain the
+applicable copyright and attribution notices.
+
+Bouncy Castle
+-------------
+Legion of the Bouncy Castle Inc.
+https://www.bouncycastle.org/
+Licensed under the Bouncy Castle License (MIT-style).
+
+The Winternitz/GMSS-compatible WOTS implementation follows the algorithms and
+behaviour of Bouncy Castle's WinternitzOTSignature, WinternitzOTSVerify and
+GMSSRandom classes.
+
+QVAC
+----
+QVAC SDK
+https://www.npmjs.com/package/@qvac/sdk
+Licensed under the Apache License, Version 2.0.
+
+The vendored type surface in packages/qvac/src/vendor/qvac-sdk.d.ts is
+reconstructed from the @qvac/sdk type declarations for build-time use.
+
+Protocol Buffers
+----------------
+Protocol Buffers - Google's data interchange format
+Copyright 2008 Google Inc. All rights reserved.
+https://developers.google.com/protocol-buffers/
+Licensed under the BSD 3-Clause License.
+
+The generated file packages/agent-policy/src/generated/google/protobuf/struct.ts
+retains its original BSD 3-Clause header.
+
+BIP39
+-----
+BIP39 English word list
+https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
+Licensed under the MIT License.
+
+Contributor Covenant
+--------------------
+Contributor Covenant, version 2.1
+https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+Licensed under the Creative Commons Attribution 4.0 International License.
+
+The Totem SDK Code of Conduct is adapted from Contributor Covenant 2.1.

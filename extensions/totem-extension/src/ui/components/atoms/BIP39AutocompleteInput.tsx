@@ -1,5 +1,5 @@
 /**
- * BIP39 AUTOCOMPLETE INPUT - BRUTALIST DESIGN
+ * BIP39 AUTOCOMPLETE INPUT - TOTEM DESIGN
  * Individual word input with BIP39 wordlist autocomplete dropdown
  * Security: Prevents keylogging of full phrase, validates against 2048-word list
  */

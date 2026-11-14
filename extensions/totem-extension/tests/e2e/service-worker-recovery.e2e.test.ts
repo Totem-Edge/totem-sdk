@@ -1,4 +1,4 @@
-import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome } from './fixtures';
+import { test, expect, TEST_MNEMONIC, TEST_PASSWORD, waitForOnboarding, waitForHome, chooseAxiaProvider } from './fixtures';
 import { chromium, type BrowserContext } from '@playwright/test';
 import path from 'path';
 
@@ -29,6 +29,7 @@ test.describe('Service Worker Recovery (MV3 Lifecycle)', () => {
       const setupPage = await context.newPage();
       await setupPage.goto(`chrome-extension://${extensionId}/popup.html`);
       await waitForOnboarding(setupPage);
+      await chooseAxiaProvider(setupPage);
 
       const importButton = setupPage.getByRole('button', { name: /IMPORT EXISTING WALLET/i });
       await importButton.click();
@@ -145,6 +146,8 @@ test.describe('Service Worker Recovery (MV3 Lifecycle)', () => {
       const needsSetup = await page1.getByText(/TOTEM WALLET/i).isVisible({ timeout: 3000 }).catch(() => false);
       
       if (needsSetup) {
+        await chooseAxiaProvider(page1);
+
         const importButton = page1.getByRole('button', { name: /IMPORT EXISTING WALLET/i });
         await importButton.click();
 

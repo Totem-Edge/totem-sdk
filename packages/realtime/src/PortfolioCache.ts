@@ -21,7 +21,7 @@ export interface PortfolioCacheDependencies {
   timer: { now(): number };
 }
 
-interface CacheEntry {
+export interface PortfolioCacheEntry {
   entries: PortfolioEntry[];
   timestamp: number;
 }
@@ -31,7 +31,7 @@ export class PortfolioCache {
   private readonly logger: LoggerAdapter;
   private readonly timer: { now(): number };
   private readonly maxCacheAge: number;
-  private inMemoryCache: Map<string, CacheEntry> = new Map();
+  private inMemoryCache: Map<string, PortfolioCacheEntry> = new Map();
 
   constructor(
     deps: PortfolioCacheDependencies,
@@ -44,17 +44,26 @@ export class PortfolioCache {
   }
 
   async get(address: string): Promise<PortfolioEntry[] | null> {
+    const cached = await this.getWithTimestamp(address);
+    return cached?.entries ?? null;
+  }
+
+  /**
+   * Return the cached entries together with the time they were fetched.
+   * Callers use the timestamp to warn that a last-known balance is stale.
+   */
+  async getWithTimestamp(address: string): Promise<PortfolioCacheEntry | null> {
     try {
       if (this.inMemoryCache.has(address)) {
         const cached = this.inMemoryCache.get(address)!;
         if (this.timer.now() - cached.timestamp <= this.maxCacheAge) {
-          return cached.entries;
+          return cached;
         }
         this.inMemoryCache.delete(address);
       }
 
       const key = CACHE_PREFIX + address;
-      const cached = await this.storage.get<CacheEntry>(key);
+      const cached = await this.storage.get<PortfolioCacheEntry>(key);
 
       if (!cached) return null;
 
@@ -64,7 +73,7 @@ export class PortfolioCache {
       }
 
       this.inMemoryCache.set(address, cached);
-      return cached.entries;
+      return cached;
     } catch (error) {
       this.logger.error('[PortfolioCache] Failed to get:', error);
       return null;
@@ -73,7 +82,7 @@ export class PortfolioCache {
 
   async set(address: string, entries: PortfolioEntry[]): Promise<void> {
     try {
-      const entry: CacheEntry = { entries, timestamp: this.timer.now() };
+      const entry: PortfolioCacheEntry = { entries, timestamp: this.timer.now() };
       this.inMemoryCache.set(address, entry);
 
       const key = CACHE_PREFIX + address;
@@ -102,7 +111,7 @@ export class PortfolioCache {
 
       for (const key of allKeys) {
         if (key.startsWith(CACHE_PREFIX)) {
-          const cached = await this.storage.get<CacheEntry>(key);
+          const cached = await this.storage.get<PortfolioCacheEntry>(key);
           if (cached && now - cached.timestamp <= this.maxCacheAge) {
             const address = key.substring(CACHE_PREFIX.length);
             result[address] = cached.entries;
@@ -140,7 +149,7 @@ export class PortfolioCache {
 
       for (const key of allKeys) {
         if (key.startsWith(CACHE_PREFIX)) {
-          const cached = await this.storage.get<CacheEntry>(key);
+          const cached = await this.storage.get<PortfolioCacheEntry>(key);
           if (cached && now - cached.timestamp > this.maxCacheAge) {
             await this.storage.remove(key);
             removed++;

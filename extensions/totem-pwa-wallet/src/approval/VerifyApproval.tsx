@@ -5,8 +5,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import { signAndSerialize } from '../core/signing';
+import { signVerificationMessage } from '../core/signMessage';
 import { fromHex } from '../core/utils';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
+import { resolveVerifyTtlMs } from './verifyTtl';
+import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
 function getParams() {
   const url = new URL(window.location.href);
@@ -18,6 +21,7 @@ function getParams() {
     digestTx: url.searchParams.get('digestTx') ?? '',
     blobHash: url.searchParams.get('blobHash') ?? '',
     unsignedHex: url.searchParams.get('unsignedHex') ?? '',
+    expiryMs: url.searchParams.get('expiryMs') ?? '',
   };
 }
 
@@ -27,8 +31,9 @@ export function VerifyApproval() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const ctx = useMemo(parseApprovalContext, []);
-  const { mode, message, digestTx, blobHash, unsignedHex } = getParams();
+  const { mode, message, digestTx, blobHash, unsignedHex, expiryMs } = getParams();
   const isVerifyMode = mode === 'verify';
+  const verifyTtlMs = useMemo(() => resolveVerifyTtlMs(expiryMs), [expiryMs]);
 
   const displayContent = digestTx || message || blobHash || '(empty)';
   const isHexSigning = !isVerifyMode && (!!digestTx || !!unsignedHex);
@@ -53,22 +58,19 @@ export function VerifyApproval() {
   async function handleSign() {
     setStep('signing');
     try {
-      const treeKey = await WalletManager.getActiveTreeKey();
       // Reserve a unique WOTS leaf BEFORE signing. Message signing is not driven
       // by a server lease, so without this every popup reused leaf 0 (AUD-001).
-      const uses = await WalletManager.reserveNextUse();
-      let sigBytes: Uint8Array;
+      let signature: string;
 
       if (isHexSigning && (digestTx || unsignedHex)) {
         // Sign the raw hex bytes of the digestTx / transaction hash
         const hexStr = (digestTx || unsignedHex).replace(/^0x/, '');
-        sigBytes = fromHex(hexStr);
+        const treeKey = await WalletManager.getActiveTreeKey();
+        const uses = await WalletManager.reserveNextUse();
+        signature = await signAndSerialize(treeKey, fromHex(hexStr), uses);
       } else {
-        // Sign the UTF-8 message bytes (verify mode or plain message)
-        sigBytes = new TextEncoder().encode(message);
+        signature = await signVerificationMessage(message);
       }
-
-      const signature = await signAndSerialize(treeKey, sigBytes, uses);
 
       if (isVerifyMode) {
         const account = WalletManager.getActiveAccount();
@@ -79,7 +81,7 @@ export function VerifyApproval() {
           publicKey: account?.publicKey ?? '',
           signature,
           message,
-          expiresAt: Date.now() + 3600000,
+          expiresAt: Date.now() + verifyTtlMs,
         });
       } else {
         const account = WalletManager.getActiveAccount();
@@ -112,7 +114,7 @@ export function VerifyApproval() {
       {step === 'password' && (
         <div>
           <label className="label">Wallet Password</label>
-          <input type="password" className="input" style={{ marginBottom: 'var(--space-2)' }}
+          <WalletPasswordInput  className="input" style={{ marginBottom: 'var(--space-2)' }}
             value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUnlock()} autoFocus />
           {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}

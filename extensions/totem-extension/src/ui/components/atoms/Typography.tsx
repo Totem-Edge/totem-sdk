@@ -1,5 +1,5 @@
 /**
- * AXIA BRUTALIST TYPOGRAPHY
+ * AXIA TOTEM TYPOGRAPHY
  * UPPERCASE headings, high contrast, geometric spacing
  */
 

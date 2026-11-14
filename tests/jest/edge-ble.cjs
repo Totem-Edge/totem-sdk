@@ -22,6 +22,7 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/packages/.*/dist/'],
   moduleNameMapper: {
     '^@totemsdk/edge$': '<rootDir>/packages/edge/src/index.ts',
+    '^@totemsdk/edge-mesh$': '<rootDir>/packages/edge-mesh/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

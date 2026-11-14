@@ -22,6 +22,8 @@ export interface UsePortfolioResult {
   status: PortfolioStatus;
   connectionState: ConnectionState;
   error: string | undefined;
+  /** When the displayed balance was last fetched from the chain/API. */
+  lastSyncedAt: number | null;
   startStream: (addresses: string[]) => void;
   stopStream: () => void;
   updateAddresses: (addresses: string[]) => void;
@@ -32,6 +34,7 @@ export function usePortfolio(): UsePortfolioResult {
   const [status, setStatus] = useState<PortfolioStatus>('loading');
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [error, setError] = useState<string | undefined>();
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const addressesRef = useRef<string[]>([]);
@@ -57,12 +60,27 @@ export function usePortfolio(): UsePortfolioResult {
 
           case 'PORTFOLIO_SNAPSHOT': {
             const incomingEntries: PortfolioEntry[] = msg.payload.entries ?? [];
+
+            // An empty frame is not proof that the wallet is empty. The API is
+            // expected to send an explicit zero-native entry when an address
+            // truly has no UTXOs, so keep the last known balance instead of
+            // blanking the whole portfolio on an empty update.
+            if (incomingEntries.length === 0) {
+              setStatus(prev => (prev === 'loading' ? 'cached' : prev));
+              break;
+            }
+
             setEntries(prev => {
               const address: string = incomingEntries[0]?.address ?? (msg.payload as any).address ?? '';
               if (!address) return incomingEntries;
               const unrelated = prev.filter(e => e.address !== address);
               return [...unrelated, ...incomingEntries];
             });
+            setLastSyncedAt(
+              typeof msg.payload.lastSyncedAt === 'number'
+                ? msg.payload.lastSyncedAt
+                : Date.now(),
+            );
             setStatus('live');
             setError(undefined);
             break;
@@ -70,11 +88,27 @@ export function usePortfolio(): UsePortfolioResult {
 
           case 'INITIAL_SNAPSHOT': {
             const incomingEntries: PortfolioEntry[] = msg.payload.entries ?? [];
+            const initialConnectionState: ConnectionState = msg.payload.connectionState ?? 'connecting';
+            const syncedAtByAddress: Record<string, number> = msg.payload.lastSyncedAt ?? {};
+            const address = incomingEntries[0]?.address ?? addressesRef.current[0];
+            const initialSyncedAt = address
+              ? syncedAtByAddress[address]
+              : Object.values(syncedAtByAddress)[0];
+
             if (incomingEntries.length > 0) {
               setEntries(incomingEntries);
               setStatus('cached');
+            } else if (initialConnectionState === 'error') {
+              // The manager may already be in error state before this popup
+              // connected, so no CONNECTION_STATE transition is emitted.
+              setStatus('error');
             }
-            setConnectionState(msg.payload.connectionState ?? 'connecting');
+
+            if (typeof initialSyncedAt === 'number') {
+              setLastSyncedAt(initialSyncedAt);
+            }
+            setConnectionState(initialConnectionState);
+            setError(msg.payload.error);
             break;
           }
 
@@ -118,7 +152,16 @@ export function usePortfolio(): UsePortfolioResult {
     };
   }, []);
 
-  return { entries, status, connectionState, error, startStream, stopStream, updateAddresses };
+  return {
+    entries,
+    status,
+    connectionState,
+    error,
+    lastSyncedAt,
+    startStream,
+    stopStream,
+    updateAddresses,
+  };
 }
 
 export type { PortfolioEntry };
