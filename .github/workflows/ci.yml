@@ -53,7 +53,7 @@ jobs:
           echo "generated $count SBOM files"
           test "$count" -ge 67 || (echo "expected at least 67 SBOMs, got $count" && exit 1)
       - name: Upload SBOMs
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sbom-cyclonedx
           path: ${{ runner.temp }}/sbom
@@ -73,7 +73,7 @@ jobs:
         working-directory: packages/core-wasm
         run: npm run build
       - name: Upload rebuilt core-wasm artifacts (provenance)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: core-wasm-rebuilt
           path: |
