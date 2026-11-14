@@ -239,7 +239,7 @@ jobs:
       # unchanged version.
       - name: Publish rolling extension-latest release
         if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'extension-v')
-        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           tag_name: extension-latest
           name: Totem Extension (latest build)
@@ -254,7 +254,7 @@ jobs:
       # Approval gate for a *versioned* release: only an `extension-v<version>`
       # release attaches the stable artifacts under that tag.
       - name: Create versioned release
-        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'extension-v')
         with:
           files: |
