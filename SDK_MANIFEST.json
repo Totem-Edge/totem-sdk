@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 75,
+  "total": 76,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
