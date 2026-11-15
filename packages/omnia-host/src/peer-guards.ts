@@ -88,6 +88,25 @@ export function resolveFactoryFundingTarget(
 }
 
 /**
+ * CAN-018: a factory proposal must carry the commitment this host derived
+ * itself. `rebuiltCommitment` comes from rebuildFactoryCommitment (the funding
+ * transaction rebuilt from the proposal terms and materials), never from the
+ * message.
+ */
+export function assertFactoryCommitment(
+  claimedCommitment: string | undefined,
+  rebuiltCommitment: string | undefined,
+): void {
+  if (!claimedCommitment) throw new Error('factory proposal has no pending commitment');
+  if (!rebuiltCommitment) {
+    throw new Error('factory proposal commitment could not be rebuilt from its funding materials');
+  }
+  if (normalizeHex(claimedCommitment) !== normalizeHex(rebuiltCommitment)) {
+    throw new Error('factory proposal commitment does not match the locally rebuilt funding transaction');
+  }
+}
+
+/**
  * Validate SPLICE_FINALIZED against the acceptance this host produced when it
  * answered the matching SPLICE_PROPOSAL.
  *

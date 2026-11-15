@@ -2,6 +2,7 @@ import type { ChannelFactory } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance } from '@totemsdk/omnia-splice';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import {
+  assertFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
   resolveFactoryFundingTarget,
@@ -230,5 +231,25 @@ describe('assertVcFinalized (CAN-007)', () => {
       hasChannel: () => false,
       payload: { kind: 'vc-close', factory: factory({ currentSequence: 5 }), channelId: 'vc-1' },
     })).toThrow(/closes a channel this host does not hold/);
+  });
+});
+
+// ─── CAN-018: factory proposal commitment ───────────────────────────────────
+
+describe('assertFactoryCommitment (CAN-018)', () => {
+  const commitment = 'ab'.repeat(32);
+
+  it('accepts a commitment that matches the locally rebuilt one', () => {
+    expect(() => assertFactoryCommitment('0x' + commitment.toUpperCase(), commitment)).not.toThrow();
+  });
+
+  it('rejects a peer-chosen commitment', () => {
+    expect(() => assertFactoryCommitment(commitment, 'cd'.repeat(32)))
+      .toThrow(/does not match the locally rebuilt funding transaction/);
+  });
+
+  it('rejects a proposal with no commitment or no rebuildable transaction', () => {
+    expect(() => assertFactoryCommitment(undefined, commitment)).toThrow(/no pending commitment/);
+    expect(() => assertFactoryCommitment(commitment, undefined)).toThrow(/could not be rebuilt/);
   });
 });
