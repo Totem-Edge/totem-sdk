@@ -7,6 +7,8 @@
  * hawk-node/ble/stream_framer.cpp.
  */
 
+import { FrameTooLargeError, InvalidStreamFrameError } from './errors.js';
+
 export const LENGTH_PREFIX_BYTES = 4;
 export const MAX_STREAM_FRAME = 8 << 20;
 
@@ -30,7 +32,7 @@ export class StreamFramer {
 
     if (length === 0 || length > MAX_STREAM_FRAME) {
       this.buffer = new Uint8Array(0);
-      throw new Error('invalid Minima frame length on the bridge stream');
+      throw new InvalidStreamFrameError(length);
     }
     const total = LENGTH_PREFIX_BYTES + length;
     if (this.buffer.length < total) return undefined;
@@ -48,7 +50,7 @@ export class StreamFramer {
 /** Wrap a type + body into a wire frame (tests and the bridge). */
 export function makeFrame(type: number, body: Uint8Array): Uint8Array {
   const length = 1 + body.length;
-  if (length > MAX_STREAM_FRAME) throw new Error('frame too large for the bridge');
+  if (length > MAX_STREAM_FRAME) throw new FrameTooLargeError(length, MAX_STREAM_FRAME);
   const frame = new Uint8Array(LENGTH_PREFIX_BYTES + length);
   frame[0] = (length >>> 24) & 0xff;
   frame[1] = (length >>> 16) & 0xff;
