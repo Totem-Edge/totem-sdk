@@ -46,6 +46,15 @@ describe('CAN-001 — transaction conservation', () => {
     expect(() => buildTransaction(params('1000', ['1000', '1']))).toThrow(/Unbalanced transaction/);
   });
 
+  it('rejects a negative output amount (CAN-017)', () => {
+    expect(() => buildTransaction(params('1000', ['1100', '-100']))).toThrow(/Negative amount/);
+  });
+
+  it('rejects offsetting positive and negative outputs (CAN-017)', () => {
+    // 1000 + (-1000) balances numerically, so conservation alone would pass it.
+    expect(() => buildTransaction(params('1000', ['1000', '-1000']))).toThrow(/Negative amount/);
+  });
+
   it('rejects creation in a non-native token', () => {
     const base = params('1000', ['1000']);
     const tokenParams = {

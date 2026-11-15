@@ -64,6 +64,43 @@ describe('createChannelWatchService', () => {
     expect(closed).toEqual(['chan-1']);
   });
 
+  it('treats a spent coin with a successor as an update, not a close (CAN-014)', async () => {
+    const queried: string[] = [];
+    const closed: string[] = [];
+    const service = createChannelWatchService({
+      channels: new Map([['chan-1', channel()]]),
+      chain: {
+        getTip: async () => ({ block: 100 }),
+        getCoin: async (coinId) => { queried.push(coinId); return { spent: coinId === 'coin-1' }; },
+        getSuccessor: async () => ({ coinId: 'coin-2' }),
+      },
+      onUnilateralClose: (ch) => { closed.push(ch.channelId); },
+    });
+
+    const findings = await service.runOnce();
+    expect(findings.map((f) => f.kind)).not.toContain('unilateral-close');
+    expect(closed).toEqual([]);
+
+    // The service tracks the successor for the next pass.
+    await service.runOnce();
+    expect(queried).toEqual(['coin-1', 'coin-2']);
+  });
+
+  it('still reports a close when the spent coin has no successor', async () => {
+    const closed: string[] = [];
+    const service = createChannelWatchService({
+      channels: new Map([['chan-1', channel()]]),
+      chain: {
+        getTip: async () => ({ block: 100 }),
+        getCoin: async () => ({ spent: true }),
+        getSuccessor: async () => null,
+      },
+      onUnilateralClose: (ch) => { closed.push(ch.channelId); },
+    });
+    expect((await service.runOnce()).map((f) => f.kind)).toContain('unilateral-close');
+    expect(closed).toEqual(['chan-1']);
+  });
+
   it('reports HTLCs inside the lead window and runs the resolver', async () => {
     const seen: Array<{ id: string; remaining?: number }> = [];
     const service = createChannelWatchService({

@@ -8,6 +8,7 @@ import type {
   CrossTokenRoute,
   PaymentRequest,
   PaymentResult,
+  PendingRefund,
   LeaseProvider,
   SwapHop,
   RoutingHop,
@@ -40,11 +41,23 @@ function counterpartPkd(channel: RouterChannel): string {
  * Errors from individual timeoutHTLC calls are silently ignored so rollback
  * always completes as many cancellations as possible.
  */
+/** Raised when rollback could not release every HTLC (CAN-015). */
+export class PendingRefundError extends Error {
+  constructor(public readonly pendingRefunds: PendingRefund[]) {
+    super(
+      `${pendingRefunds.length} HTLC(s) could not be released before their timeout block; `
+      + 'liquidity remains locked',
+    );
+    this.name = 'PendingRefundError';
+  }
+}
+
 async function cancelHtlcs(
   ops:            ChannelOps,
   channels:       Map<string, RouterChannel>,
   locked:         Array<{ channelId: string; htlcId: string }>,
   leaseProviders: Map<string, LeaseProvider>,
+  pending:        PendingRefund[],
 ): Promise<void> {
   for (const { channelId, htlcId } of [...locked].reverse()) {
     const ch = channels.get(channelId);
@@ -53,7 +66,18 @@ async function cancelHtlcs(
     try {
       const res = await ops.timeoutHTLC(ch, htlcId, lp);
       channels.set(channelId, res.channel);
-    } catch { /* best-effort: continue rolling back other hops */ }
+    } catch (err) {
+      // CAN-015: timeoutHTLC refuses to release before the timeout block, which
+      // is the normal case for a payment that just failed. Record the lock
+      // instead of reporting a clean failure.
+      const htlc = ch.pendingHTLCs.find(h => h.htlcId === htlcId);
+      pending.push({
+        channelId,
+        htlcId,
+        reason: err instanceof Error ? err.message : String(err),
+        ...(htlc ? { timeoutBlock: htlc.timeoutBlock.toString() } : {}),
+      });
+    }
   }
 }
 
@@ -80,9 +104,13 @@ export async function executeMultiHopPayment(
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
 ): Promise<PaymentResult> {
+  /** Locks rollback could not release (CAN-015). */
+  const pendingRefunds: PendingRefund[] = [];
+  const failed = (result: PaymentResult): PaymentResult =>
+    pendingRefunds.length > 0 ? { ...result, pendingRefunds: [...pendingRefunds] } : result;
   const preimage = paymentRequest.preimage;
   if (!preimage) {
-    return { success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
+    return failed({ success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] });
   }
 
   const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
@@ -102,12 +130,12 @@ export async function executeMultiHopPayment(
 
   const routeValidation = validateRoute(channels, route);
   if (!routeValidation.ok) {
-    return {
+    return failed({
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
       settledHops: [],
-    };
+    });
   }
 
   const locked: Array<{ channelId: string; htlcId: string }> = [];
@@ -117,23 +145,23 @@ export async function executeMultiHopPayment(
     const hop     = plainHops[i];
     const channel = channels.get(hop.channelId);
     if (!channel) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return { success: false, error: `Channel ${hop.channelId} not found`, settledHops: [] };
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: `Channel ${hop.channelId} not found`, settledHops: [] });
     }
     const lp = leaseProviders.get(hop.channelId);
     if (!lp) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return { success: false, error: `No lease provider for channel ${hop.channelId}`, settledHops: [] };
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: `No lease provider for channel ${hop.channelId}`, settledHops: [] });
     }
     const hopValidation = validateRoutingHop(channels, hop);
     if (!hopValidation.ok) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return {
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({
         success: false,
         error: `ROUTE_REVALIDATION_FAILED: ${hopValidation.error}`,
         errorCode: 'ROUTE_REVALIDATION_FAILED',
         settledHops: [],
-      };
+      });
     }
 
     // Timeouts decrease toward the recipient so each hop has time to claim.
@@ -149,13 +177,13 @@ export async function executeMultiHopPayment(
         counterpartPublicKeyDigest: counterpartPkd(channel),
       }, lp);
     } catch (err) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return { success: false, error: String(err), settledHops: [] };
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: String(err), settledHops: [] });
     }
 
     if (addResult.error) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return { success: false, error: addResult.error, settledHops: [] };
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: addResult.error, settledHops: [] });
     }
 
     channels.set(hop.channelId, addResult.channel);
@@ -180,14 +208,14 @@ export async function executeMultiHopPayment(
     } catch (err) {
       // Timeout every still-pending lock (not yet fulfilled)
       const stillPending = locked.filter(h => !fulfilledSet.has(h.htlcId));
-      await cancelHtlcs(ops, channels, stillPending, leaseProviders);
-      return { success: false, error: String(err), settledHops: settled };
+      await cancelHtlcs(ops, channels, stillPending, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: String(err), settledHops: settled });
     }
 
     if (fulfillResult.error) {
       const stillPending = locked.filter(h => !fulfilledSet.has(h.htlcId));
-      await cancelHtlcs(ops, channels, stillPending, leaseProviders);
-      return { success: false, error: fulfillResult.error, settledHops: settled };
+      await cancelHtlcs(ops, channels, stillPending, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: fulfillResult.error, settledHops: settled });
     }
 
     channels.set(channelId, fulfillResult.channel);
@@ -267,12 +295,19 @@ export async function cancelPayment(
   leaseProviders: Map<string, LeaseProvider>,
 ): Promise<void> {
   const hopsWithHtlc = route.hops.filter(h => h.htlcId && !isSwapHop(h)) as RoutingHop[];
+  // CAN-015: cancellation is best-effort; locks that are still before their
+  // timeout block are collected rather than silently reported as released.
+  const pendingRefunds: PendingRefund[] = [];
   await cancelHtlcs(
     ops,
     channels,
     hopsWithHtlc.map(h => ({ channelId: h.channelId, htlcId: h.htlcId! })),
     leaseProviders,
+    pendingRefunds,
   );
+  if (pendingRefunds.length > 0) {
+    throw new PendingRefundError(pendingRefunds);
+  }
 }
 
 // ─── Cross-token multi-hop payment ───────────────────────────────────────────
@@ -299,19 +334,23 @@ export async function executeCrossTokenPayment(
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
 ): Promise<PaymentResult> {
+  /** Locks rollback could not release (CAN-015). */
+  const pendingRefunds: PendingRefund[] = [];
+  const failed = (result: PaymentResult): PaymentResult =>
+    pendingRefunds.length > 0 ? { ...result, pendingRefunds: [...pendingRefunds] } : result;
   const preimage = paymentRequest.preimage;
   if (!preimage) {
-    return { success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
+    return failed({ success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] });
   }
 
   const routeValidation = validateRoute(channels, route);
   if (!routeValidation.ok) {
-    return {
+    return failed({
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
       settledHops: [],
-    };
+    });
   }
 
   const locked: Array<{ channelId: string; htlcId: string }> = [];
@@ -382,21 +421,21 @@ export async function executeCrossTokenPayment(
           hop.from,
         );
       } catch (err) {
-        await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Inbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
+        await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+        return failed({ success: false, error: `Inbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] });
       }
 
       // Outbound channel (intermediary → recipient, tokenOut side)
       const outTimeout = paymentRequest.expiryBlock - BigInt(pos++);
       const intermediary = swapIntermediary(channels, hop);
       if (!intermediary) {
-        await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return {
+        await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+        return failed({
           success: false,
           error: `ROUTE_REVALIDATION_FAILED: no intermediary for ${hop.inboundChannelId}`,
           errorCode: 'ROUTE_REVALIDATION_FAILED',
           settledHops: [],
-        };
+        });
       }
       try {
         await lockHTLC(
@@ -408,8 +447,8 @@ export async function executeCrossTokenPayment(
           intermediary,
         );
       } catch (err) {
-        await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Outbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
+        await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+        return failed({ success: false, error: `Outbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] });
       }
     } else {
       const timeout = paymentRequest.expiryBlock - BigInt(pos++);
@@ -423,8 +462,8 @@ export async function executeCrossTokenPayment(
           hop.from,
         );
       } catch (err) {
-        await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Hop HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
+        await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+        return failed({ success: false, error: `Hop HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] });
       }
     }
   }
@@ -442,14 +481,14 @@ export async function executeCrossTokenPayment(
       fulfillResult = await ops.fulfillHTLC(channel, htlcId, preimage, lp);
     } catch (err) {
       const stillPending = locked.filter(h => !fulfilledSet.has(h.htlcId));
-      await cancelHtlcs(ops, channels, stillPending, leaseProviders);
-      return { success: false, error: String(err), settledHops: settled };
+      await cancelHtlcs(ops, channels, stillPending, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: String(err), settledHops: settled });
     }
 
     if (fulfillResult.error) {
       const stillPending = locked.filter(h => !fulfilledSet.has(h.htlcId));
-      await cancelHtlcs(ops, channels, stillPending, leaseProviders);
-      return { success: false, error: fulfillResult.error, settledHops: settled };
+      await cancelHtlcs(ops, channels, stillPending, leaseProviders, pendingRefunds);
+      return failed({ success: false, error: fulfillResult.error, settledHops: settled });
     }
 
     channels.set(channelId, fulfillResult.channel);

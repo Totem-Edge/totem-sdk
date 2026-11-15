@@ -143,7 +143,21 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
       channels: aliceChannels as never,
       leaseProvider: alice.lp,
       verifySignature: mockVerify,
-      finalizeOptions: { mineDifficulty: MAX_HASH, verifySignature: mockVerify },
+      finalizeOptions: {
+        mineDifficulty: MAX_HASH,
+        verifySignature: mockVerify,
+        chainProvider: {
+          getCoins: async () => [{
+            coinid: '0x' + '77'.repeat(32),
+            amount: '1500',
+            address: ch.fundingAddress,
+            tokenid: '0x00',
+            spent: false,
+            created: '1',
+          }],
+          getTip: async () => ({ block: 100 }),
+        },
+      },
       onFinalized: (s) => {
         finalized = s;
       },
@@ -186,7 +200,21 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
       channels: new Map([[ch.channelId, ch]]) as never,
       leaseProvider: alice.lp,
       verifySignature: mockVerify,
-      finalizeOptions: { mineDifficulty: MAX_HASH, verifySignature: mockVerify },
+      finalizeOptions: {
+        mineDifficulty: MAX_HASH,
+        verifySignature: mockVerify,
+        chainProvider: {
+          getCoins: async () => [{
+            coinid: '0x' + '77'.repeat(32),
+            amount: '1500',
+            address: ch.fundingAddress,
+            tokenid: '0x00',
+            spent: false,
+            created: '1',
+          }],
+          getTip: async () => ({ block: 100 }),
+        },
+      },
       onFinalized: (s) => {
         finalized = s;
       },

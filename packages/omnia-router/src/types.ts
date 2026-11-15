@@ -221,6 +221,16 @@ export interface RouterFeeProof {
   proofHash: string;
 }
 
+/** An HTLC that failed to release during rollback and is still locked. */
+export interface PendingRefund {
+  channelId: string;
+  htlcId: string;
+  /** Why it could not be released (usually: timeout block not reached). */
+  reason: string;
+  /** Block at which the HTLC becomes releasable, when known. */
+  timeoutBlock?: string;
+}
+
 export interface PaymentResult {
   success: boolean;
   /**
@@ -247,6 +257,11 @@ export interface PaymentResult {
   settledHops: string[];
   /** Verifiable fee proofs for each settled hop — feeds recordPoolFee earn-proofs. */
   feeProofs?: RouterFeeProof[];
+  /**
+   * HTLCs that rollback could not release (CAN-015). Present on failure when
+   * liquidity is still locked; `success: false` alone does not mean released.
+   */
+  pendingRefunds?: PendingRefund[];
 }
 
 // ─── Pathfinding options ──────────────────────────────────────────────────────

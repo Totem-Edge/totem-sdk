@@ -126,6 +126,11 @@ export function buildTransaction(params: EnhancedBuildParams): EnhancedBuildResu
       } catch {
         throw new Error(`Invalid amount '${String(coin.amount)}' for token ${token}`);
       }
+      if (amount < 0n) {
+        // CAN-017: a negative output could offset a positive one and still
+        // balance, producing a coin with a nonsensical amount.
+        throw new Error(`Negative amount '${String(coin.amount)}' for token ${token}`);
+      }
       totals.set(token, (totals.get(token) ?? 0n) + amount);
     }
     return totals;

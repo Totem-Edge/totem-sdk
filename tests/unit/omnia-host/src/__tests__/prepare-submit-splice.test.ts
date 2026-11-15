@@ -88,6 +88,17 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       isConnected: jest.fn(() => true),
     };
     const broadcastTxPoW = jest.fn(async () => ({ success: true, txpowid: 'tx-splice' }));
+    // CAN-011: the host now observes the successor before marking a splice
+    // active, so the chain mock must answer like a node.
+    const getCoins = jest.fn(async () => [{
+      coinid: '0x' + '77'.repeat(32),
+      amount: '1500',
+      address: channel.fundingAddress,
+      tokenid: '0x00',
+      spent: false,
+      created: '1',
+    }]);
+    const getTip = jest.fn(async () => ({ block: 100 }));
     const context = {
       channels: new Map([[channel.channelId, channel]]),
       preparedSplice: new Map(),
@@ -100,7 +111,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       },
       signer: alice.signer,
       leaseProvider: alice.leaseProvider,
-      chainProvider: { broadcastTxPoW },
+      chainProvider: { broadcastTxPoW, getCoins, getTip },
       localParticipant: { partyId: 'alice', publicKeyDigest: alice.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
       swarm: { connectToPeer: jest.fn(async () => peer) },

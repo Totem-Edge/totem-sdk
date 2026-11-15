@@ -400,6 +400,27 @@ describe('@totemsdk/omnia — transaction builders', () => {
     expect(inputSum).toBe(outputSum);
   });
 
+  it('buildFundingTx: refuses to send change to one owner when inputs span addresses (CAN-017)', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    expect(() =>
+      buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1', 'coin-2'], [600n, 900n], ['MxOWNER_A', 'MxOWNER_B']),
+    ).toThrow(/span 2 addresses/);
+  });
+
+  it('buildFundingTx: allows multi-address inputs when no change is due (CAN-017)', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    const draft = buildFundingTx(
+      script, address, 1000n, '0x00', 0, ['coin-1', 'coin-2'], [600n, 400n], ['MxOWNER_A', 'MxOWNER_B'],
+    );
+    expect(draft.outputs).toHaveLength(1);
+  });
+
+  it('buildFundingTx: rejects a negative input amount (CAN-017)', () => {
+    const { script, address } = buildAndHashEltooScript([alice, bob]);
+    expect(() => buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1'], [-500n], ['MxFUNDER']))
+      .toThrow(/non-negative/);
+  });
+
   it('buildFundingTx: rejects inputs that do not cover the channel value', () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     expect(() => buildFundingTx(script, address, 1000n, '0x00', 0, ['coin-1'], [900n], ['MxFUNDER']))

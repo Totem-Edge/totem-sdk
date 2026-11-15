@@ -83,12 +83,23 @@ export async function observeSpliceSuccessor(
 
   for (;;) {
     const coins = await chain.getCoins({ address: options.address, tokenId: options.tokenId });
-    const candidate = coins.find((coin) =>
+    const candidates = coins.filter((coin) =>
       !coin.spent
       && coin.address.toLowerCase() === options.address.toLowerCase()
       && coin.tokenid.toLowerCase() === options.tokenId.toLowerCase()
       && BigInt(coin.amount) === options.amount,
     );
+    // CAN-012: the channel input floats (COINID_ELTOO), so the coin id cannot be
+    // predicted from the transaction. Two coins matching the same address, token
+    // and amount are indistinguishable here; picking the first would silently
+    // adopt a coin the channel does not control.
+    if (candidates.length > 1) {
+      throw new Error(
+        `Ambiguous splice successor: ${candidates.length} unspent coins match `
+        + `${options.address} token ${options.tokenId} amount ${options.amount}`,
+      );
+    }
+    const candidate = candidates[0];
 
     if (candidate) {
       const tip = await chain.getTip();

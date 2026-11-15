@@ -35,6 +35,8 @@ import {
 import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
 import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
+import { channelLockKey, withChannelLock } from './channel-lock.js';
+import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
   assertSpliceFinalized,
   assertVcFinalized,
@@ -126,6 +128,7 @@ export function createOmniaHost(
   let controlServer: ControlServer | undefined = dependencies.controlServer;
   let chainAdapter: TotemNodeAdapter | undefined = dependencies.chainAdapter;
   let routingProvider = dependencies.routingProvider ?? new InProcessRoutingProvider();
+  let watchService: ChannelWatchService | undefined;
   let p2pHubServer: WebSocketHubServer | undefined;
   let p2pHubUrl: string | undefined;
 
@@ -336,7 +339,7 @@ export function createOmniaHost(
       /** Funding digests this host already signed, so a retry cannot burn leaves (CAN-010). */
       const factoryFundingSignatures = new Map<string, string>();
 
-      const onSpliceMessage = async (peer: any, msg: any): Promise<void> => {
+      const onSpliceMessage = (peer: any, msg: any): Promise<void> => withChannelLock(channelLockKey(msg), async () => {
         if (!spliceLeaseProvider || !channelStore) return;
         if (msg?.type !== 'SPLICE_PROPOSAL' && msg?.type !== 'SPLICE_FINALIZED') return;
         const payload = (msg.payload ?? {}) as Record<string, any>;
@@ -398,12 +401,12 @@ export function createOmniaHost(
             payload: { error: err instanceof Error ? err.message : String(err) },
           }).catch(() => {});
         }
-      };
+      });
 
       const factoryReplies = new ReplyCache();
       const vcReplies = new ReplyCache();
 
-      const onFactoryMessage = async (peer: any, msg: any): Promise<void> => {
+      const onFactoryMessage = (peer: any, msg: any): Promise<void> => withChannelLock(channelLockKey(msg), async () => {
         if (!factories || !localBundle) return;
         if (
           msg?.type !== 'FACTORY_PROPOSAL' &&
@@ -501,7 +504,7 @@ export function createOmniaHost(
           }
         });
         if (reply) await peer.sendMessage(reply);
-      };
+      });
 
       const channelPeers = new Map<string, any>();
       const importedRouteEdges = new Map<string, ChannelGraphEdge[]>();
@@ -610,7 +613,7 @@ export function createOmniaHost(
           data: { payload },
         });
       };
-      const onVcMessage = async (peer: any, msg: any): Promise<void> => {
+      const onVcMessage = (peer: any, msg: any): Promise<void> => withChannelLock(channelLockKey(msg), async () => {
         if (!factories || !localBundle) return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (msg?.type === 'VC_FINALIZED') {
@@ -718,7 +721,7 @@ export function createOmniaHost(
           }
         });
         if (reply) await peer.sendMessage(reply);
-      };
+      });
 
       unsubscribe = createOmniaIntegration(swarm, channelStore, {
         signer: dependencies.signer,
@@ -821,9 +824,67 @@ export function createOmniaHost(
           }),
         });
       }
+      // CAN-014: a timelock is not a monitor. Watch the live channel coin so a
+      // unilateral close and an expiring HTLC are observed, and treat a spent
+      // coin with a successor as an update/splice rather than a close.
+      try {
+        watchService = createChannelWatchService({
+          channels: channelStore as unknown as Map<string, OmniaChannel>,
+          chain: {
+            getTip: async () => ({ block: Number((await chainAdapter!.getTip()).block) }),
+            getCoin: async (coinId) => {
+              const coin = await chainAdapter!.getCoin(coinId);
+              return coin ? { spent: coin.spent, created: coin.created } : null;
+            },
+            getSuccessor: async (channel) => {
+              const coins = await chainAdapter!.getCoins({
+                address: channel.fundingAddress,
+                tokenId: channel.tokenId,
+              });
+              const successor = coins.find(
+                (coin) => !coin.spent && BigInt(coin.amount) === channel.totalValue,
+              );
+              return successor ? { coinId: successor.coinid } : null;
+            },
+          },
+          ...(hostStateStore
+            ? {
+                // Bridge the synchronous host store to the async StorageAdapter
+                // the watch service expects.
+                storage: {
+                  get: async <T>(key: string) => hostStateStore!.get<T>(key),
+                  set: async <T>(key: string, value: T) => { hostStateStore!.set(key, value); },
+                  remove: async (key: string) => hostStateStore!.remove(key),
+                  clear: async () => { hostStateStore!.clear(); },
+                  keys: async () => hostStateStore!.keys(),
+                  has: async (key: string) => hostStateStore!.has(key),
+                },
+              }
+            : {}),
+          onUnilateralClose: async (channel, finding) => {
+            void observation?.emit({
+              domain: 'channel', kind: 'channel.unilateral_close', phase: 'observed',
+              entity: { type: 'channel', id: channel.channelId },
+              data: { detail: finding.detail },
+            });
+          },
+          onHtlcExpiring: async (channel, htlc, finding) => {
+            void observation?.emit({
+              domain: 'channel', kind: 'channel.htlc_expiring', phase: 'observed',
+              entity: { type: 'channel', id: channel.channelId },
+              data: { htlcId: htlc.htlcId, blocksRemaining: finding.blocksRemaining },
+            });
+          },
+        });
+      } catch (err) {
+        console.error('[omnia-host] watch service disabled:', err instanceof Error ? err.message : String(err));
+        watchService = undefined;
+      }
+
       try {
         await controlServer.listen();
         started = true;
+        watchService?.start(30_000);
       } catch (error) {
         unsubscribe?.();
         unsubscribe = undefined;
@@ -843,6 +904,8 @@ export function createOmniaHost(
 
     async close(): Promise<void> {
       if (!started) return;
+      watchService?.stop();
+      watchService = undefined;
       unsubscribe?.();
       unsubscribe = undefined;
       await p2pHubServer?.close();

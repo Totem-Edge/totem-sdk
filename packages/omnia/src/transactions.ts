@@ -334,6 +334,7 @@ export function buildFundingTx(
   }));
 
   const rawTotal = toRawMinima(totalValue, tokenScale);
+  // toRawMinima already rejects negative values for the total and every input.
   const rawInputs = inputs.reduce((sum, input) => sum + input.amount, 0n);
   // A funding transaction is a spend, not a drain: the inputs must cover the
   // channel coin, and anything left over belongs to the funding coin's owner.
@@ -354,6 +355,16 @@ export function buildFundingTx(
   const outputs: TxOutputDraft[] = [output];
   const change = rawInputs - rawTotal;
   if (change > 0n) {
+    // CAN-017: change can only go back to one owner. Paying it to the first
+    // input's address silently moves another owner's value, and the draft then
+    // cannot be signed by that owner anyway.
+    const owners = new Set(inputs.map((input) => input.address.toLowerCase()).filter(Boolean));
+    if (owners.size > 1) {
+      throw new Error(
+        `funding inputs span ${owners.size} addresses; change cannot be returned to a single owner. `
+        + 'Fund the channel from one address per draft.',
+      );
+    }
     const changeAddress = inputAddresses[0];
     if (!changeAddress) {
       throw new Error('funding inputs exceed totalValue but no input address is available for change');

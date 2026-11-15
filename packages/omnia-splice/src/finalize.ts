@@ -341,9 +341,10 @@ export async function finalizeSplice(
 
   // Observe the actual successor. The old channel coin is spent by the splice,
   // so `txid-0` is only a placeholder; the live coin id comes from the funding
-  // address. Until it is confirmed the channel must not be reported active.
+  // address. Until it is confirmed the channel must not be reported active —
+  // with no observer we cannot know, so it stays funding_pending (CAN-011).
   let spliceFundingCoinId = `${spliceFundingTxId}-0`;
-  let successorStatus: 'active' | 'funding_pending' = 'active';
+  let successorStatus: 'active' | 'funding_pending' = 'funding_pending';
   if (options?.chainProvider) {
     const observed = await observeSpliceSuccessor(options.chainProvider, {
       address: (channel as unknown as OmniaChannel).fundingAddress,

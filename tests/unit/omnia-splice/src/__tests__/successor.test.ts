@@ -46,6 +46,32 @@ describe('observeSpliceSuccessor', () => {
   });
 });
 
+describe('observeSpliceSuccessor — ambiguity (CAN-012)', () => {
+  it('refuses to pick between two identical unspent candidates', async () => {
+    await expect(observeSpliceSuccessor(
+      {
+        getCoins: async () => [
+          coin({ coinid: '0x' + '33'.repeat(32) }),
+          coin({ coinid: '0x' + '44'.repeat(32) }),
+        ],
+        getTip: async () => ({ block: 105 }),
+      },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1, timeoutMs: 0 },
+    )).rejects.toThrow(/Ambiguous splice successor: 2 unspent coins/);
+  });
+
+  it('still accepts a single matching successor', async () => {
+    const observed = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [coin(), coin({ coinid: '0x' + '55'.repeat(32), amount: '900' })],
+        getTip: async () => ({ block: 105 }),
+      },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1, timeoutMs: 0 },
+    );
+    expect(observed?.coinId).toBe('0x' + '11'.repeat(32));
+  });
+});
+
 describe('recoverInterruptedSplices', () => {
   const record: PendingSpliceRecord = {
     spliceId: 'splice-1',
