@@ -19,7 +19,7 @@
 | v1 | 13 |
 | rc | 54 |
 | beta | 3 |
-| alpha | 5 |
+| alpha | 6 |
 | excluded | 6 |
 
 | Support tier | Packages |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 42 |
+| Outside production surface | 43 |
 | Excluded | 6 |
 
-Total: **75** publishable packages + **6** excluded entries = **81** workspace entries.
+Total: **76** publishable packages + **6** excluded entries = **82** workspace entries.
 
 ## Matrix
 
@@ -107,6 +107,7 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
 | `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.0 | beta | outside | `packages/qvac` |
+| `@totemsdk/edge-mesh` | 0.1.0 | alpha | outside | `packages/edge-mesh` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/omnia-relay` | 0.7.1 | alpha | outside | `packages/omnia-relay` |
 | `@totemsdk/replication` | 0.2.0 | alpha | outside | `packages/replication` |
@@ -114,6 +115,6 @@ Total: **75** publishable packages + **6** excluded entries = **81** workspace e
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |
-| `totem-extension` | 1.0.13 | excluded | excluded | `extensions/totem-extension` |
+| `totem-extension` | 1.0.16 | excluded | excluded | `extensions/totem-extension` |
 | `totem-pear-android-starter` | 0.1.0 | excluded | excluded | `extensions/totem-pear-android-starter` |
 | `totem-pwa-wallet` | 1.0.0 | excluded | excluded | `extensions/totem-pwa-wallet` |
