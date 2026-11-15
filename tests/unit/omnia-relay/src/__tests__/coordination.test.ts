@@ -110,7 +110,21 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
       store: createMemoryCoordinationStore(),
       policy: { autoAccept: true },
       verifySignature: mockVerify,
-      spliceFinalizeOptions: { mineDifficulty: MAX_HASH, verifySignature: mockVerify },
+      spliceFinalizeOptions: {
+        mineDifficulty: MAX_HASH,
+        verifySignature: mockVerify,
+        chainProvider: {
+          getCoins: async () => [{
+            coinid: '0x' + '77'.repeat(32),
+            amount: '1500',
+            address: ch.fundingAddress,
+            tokenid: '0x00',
+            spent: false,
+            created: '1',
+          }],
+          getTip: async () => ({ block: 100 }),
+        },
+      },
       onSpliceFinalized: (s) => { finalized = s; },
     });
     const bob = createWalletCoordination({
@@ -151,7 +165,21 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
       store: createMemoryCoordinationStore(),
       policy: { autoAccept: true },
       verifySignature: mockVerify,
-      spliceFinalizeOptions: { mineDifficulty: MAX_HASH, verifySignature: mockVerify },
+      spliceFinalizeOptions: {
+        mineDifficulty: MAX_HASH,
+        verifySignature: mockVerify,
+        chainProvider: {
+          getCoins: async () => [{
+            coinid: '0x' + '77'.repeat(32),
+            amount: '1500',
+            address: ch.fundingAddress,
+            tokenid: '0x00',
+            spent: false,
+            created: '1',
+          }],
+          getTip: async () => ({ block: 100 }),
+        },
+      },
       onSpliceFinalized: (s) => { finalized = s; },
     });
     const bob = createWalletCoordination({

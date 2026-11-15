@@ -94,17 +94,24 @@ export interface HtlcLink {
   inChannelId: string;
   inHtlcId: string;
   outChannelId: string;
+  /** Empty while the link is an intent (the outgoing HTLC id is not signed yet). */
   outHtlcId: string;
   via: string;
+  /**
+   * `intent` is written before the outgoing HTLC is signed (CAN-008);
+   * `active` once the signed HTLC id is known.
+   */
+  status?: 'intent' | 'active';
 }
 
 export interface MultiHopForwarder {
   forwardIncoming(params: ForwardIncomingParams): Promise<ForwardIncomingResult>;
   revealPreimage(hashlock: string, preimage: string): Promise<RevealPreimageResult>;
   /**
-   * Reconcile journaled links after a restart. Links whose incoming or
-   * outgoing HTLC is no longer pending are cleared; unresolved links are
-   * returned for the caller to reveal or time out.
+   * Reconcile journaled links after a restart. A link is cleared only when its
+   * INCOMING HTLC is no longer pending; an intent is completed from the outgoing
+   * channel when the signed HTLC is present. Remaining links are returned for
+   * the caller to reveal or time out.
    */
   recover(): Promise<HtlcLink[]>;
   links(): ReadonlyMap<string, HtlcLink>;
@@ -198,6 +205,20 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
     }
 
+    // CAN-008: journal the association BEFORE signing the outgoing HTLC. If the
+    // process dies between the signature and the id, recovery still knows which
+    // incoming payment this outgoing obligation belongs to.
+    const intent: HtlcLink = {
+      hashlock: params.hashlock,
+      inChannelId: params.inChannelId,
+      inHtlcId: params.inHtlcId,
+      outChannelId: outChannel.channelId,
+      outHtlcId: '',
+      via: next.via,
+      status: 'intent',
+    };
+    await options.linkJournal.record(intent);
+
     const result = await addHTLC(
       outChannel,
       {
@@ -213,12 +234,10 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     options.channels.set(result.channel.channelId, result.channel);
 
     const link: HtlcLink = {
-      hashlock: params.hashlock,
-      inChannelId: params.inChannelId,
-      inHtlcId: params.inHtlcId,
+      ...intent,
       outChannelId: result.channel.channelId,
       outHtlcId: result.htlcId,
-      via: next.via,
+      status: 'active',
     };
     links.set(params.hashlock, link);
     await options.linkJournal.record(link);
@@ -282,15 +301,43 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     const unresolved: HtlcLink[] = [];
     for (const link of journaled) {
       const inChannel = options.channels.get(link.inChannelId);
-      const outChannel = options.channels.get(link.outChannelId);
       const inHtlc = inChannel?.pendingHTLCs.find((h) => h.htlcId === link.inHtlcId);
-      const outHtlc = outChannel?.pendingHTLCs.find((h) => h.htlcId === link.outHtlcId);
-      const terminal = (h: typeof inHtlc) => !h || h.status !== 'pending';
-      if (terminal(inHtlc) || terminal(outHtlc)) {
+      // CAN-009: only the INCOMING side decides whether the association is still
+      // needed. An outgoing HTLC being fulfilled means "reveal the preimage to
+      // the incoming side", not "settled backwards".
+      const inTerminal = !inHtlc || inHtlc.status !== 'pending';
+      if (inTerminal) {
         links.delete(link.hashlock);
         await options.linkJournal.remove(link.hashlock);
         continue;
       }
+
+      // CAN-008: an intent whose outgoing HTLC id was never journaled. If the
+      // signed HTLC exists on the outgoing channel, complete the link;
+      // otherwise the forward died before anything was signed and the intent is
+      // safe to drop.
+      if (link.status === 'intent' || !link.outHtlcId) {
+        const outChannel = options.channels.get(link.outChannelId);
+        const match = outChannel?.pendingHTLCs.find(
+          (h) => h.hashlock === link.hashlock && h.status === 'pending',
+        );
+        if (!match) {
+          links.delete(link.hashlock);
+          await options.linkJournal.remove(link.hashlock);
+          continue;
+        }
+        const completed: HtlcLink = {
+          ...link,
+          outChannelId: outChannel!.channelId,
+          outHtlcId: match.htlcId,
+          status: 'active',
+        };
+        links.set(completed.hashlock, completed);
+        await options.linkJournal.record(completed);
+        unresolved.push(completed);
+        continue;
+      }
+
       unresolved.push(link);
     }
     return unresolved;

@@ -506,6 +506,29 @@ describe('executeMultiHopPayment — 3-hop single-token payment', () => {
     expect(result.settledHops.length).toBe(0);
   });
 
+  test('rollback before the timeout block reports pending refunds (CAN-015)', async () => {
+    const { channels, lps, route, paymentReq } = setup();
+
+    // A payment that fails immediately has not reached any timeout block, so
+    // timeoutHTLC refuses to release — the real omnia guard, not a mock quirk.
+    const ops = makeMockOps({
+      async fulfillHTLC() {
+        throw new Error('simulated fulfill failure');
+      },
+      async timeoutHTLC() {
+        throw new Error('HTLC has not yet timed out (block 10 < 100)');
+      },
+    });
+
+    const result = await executeMultiHopPayment(ops, channels, route, paymentReq, lps);
+    expect(result.success).toBe(false);
+    expect(result.pendingRefunds).toHaveLength(3);
+    expect(result.pendingRefunds?.[0]?.reason).toMatch(/has not yet timed out/);
+    expect(result.pendingRefunds?.[0]?.timeoutBlock).toBeDefined();
+    // The failure must not claim the liquidity was returned.
+    expect(result.error).toBeDefined();
+  });
+
   test('partial fulfill failure: only still-pending HTLCs are timed out', async () => {
     const { channels, lps, route, paymentReq } = setup();
 

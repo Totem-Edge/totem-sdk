@@ -1,3 +1,4 @@
+import { withChannelLock } from '../channel-lock.js';
 import {
   activateChannel,
   addHTLC,
@@ -1367,6 +1368,8 @@ function registerPreparedPayMethods(
       };
       const spliced = await finalizeSplice(quiescedChannel, proposal, entry.acceptance, {
         broadcast: (txHex) => context.chainProvider!.broadcastTxPoW!(txHex),
+        // CAN-011: without on-chain observation a splice cannot be active.
+        chainProvider: context.chainProvider,
       });
       context.channels.set(entry.channelId, spliced as unknown as OmniaChannel);
       if (context.swarm) {
@@ -2015,22 +2018,6 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   const register = (name: string, handler: JsonRpcHandler, alias: string): void => {
     methods.set(name, handler);
     methods.set(alias, handler);
-  };
-
-  // Channel mutations are read-modify-write over the in-memory channel map.
-  // Serialize them per channel so two concurrent RPC calls cannot both read the
-  // same sequence and silently apply only one transition while both report
-  // success.
-  const channelMutationTails = new Map<string, Promise<unknown>>();
-  const withChannelLock = <T>(channelId: string, fn: () => Promise<T>): Promise<T> => {
-    const previous = channelMutationTails.get(channelId) ?? Promise.resolve();
-    const tail = previous.then(fn, fn);
-    const tracked = tail.catch(() => undefined);
-    channelMutationTails.set(channelId, tracked);
-    void tracked.finally(() => {
-      if (channelMutationTails.get(channelId) === tracked) channelMutationTails.delete(channelId);
-    });
-    return tail;
   };
 
   const observeMethods = (map: Map<string, JsonRpcHandler>): Map<string, JsonRpcHandler> => {
@@ -3076,6 +3063,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const spliced = await finalizeSplice(quiesced, proposal, acceptance, {
         ...(provider.broadcast ? { broadcast: provider.broadcast } : {}),
         proposerLeaseProvider: provider.wotsLease,
+        // CAN-011: without on-chain observation a splice cannot be active.
+        chainProvider: context.chainProvider,
       });
       context.channels.set(channelId, spliced as unknown as OmniaChannel);
       await context.observe?.emit({
@@ -3353,5 +3342,17 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaPayMultiHop', payMultiHop, 'omnia/payMultiHop');
 
-  return observeMethods(methods);
+  // CAN-013: every channel mutation takes the same per-channel lock, not just
+  // direct pay. Peer handlers take the same lock (channel-lock.ts), so an RPC
+  // call and an incoming message for one channel cannot interleave.
+  const locked = new Map<string, JsonRpcHandler>();
+  for (const [name, handler] of methods) {
+    locked.set(name, (raw) => {
+      const params = (raw ?? {}) as Record<string, unknown>;
+      const channelId = typeof params.channelId === 'string' ? params.channelId : undefined;
+      return channelId ? withChannelLock(channelId, async () => handler(raw)) : handler(raw);
+    });
+  }
+
+  return observeMethods(locked);
 }

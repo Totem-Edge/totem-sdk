@@ -37,6 +37,21 @@ function mockVerifySignature(sig: Uint8Array, digest: Uint8Array, pkd: string): 
 
 const TEST_MINE_OPTS = { mineDifficulty: MAX_HASH, verifySignature: mockVerifySignature };
 
+/** A chain observer that reports the expected successor as confirmed. */
+function activeObserver(fundingAddress: string, amount: bigint) {
+  return {
+    getCoins: async () => [{
+      coinid: '0x' + '77'.repeat(32),
+      amount: amount.toString(),
+      address: fundingAddress,
+      tokenid: '0x00',
+      spent: false,
+      created: '1',
+    }],
+    getTip: async () => ({ block: 100 }),
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -619,7 +634,10 @@ describe('finalizeSplice', () => {
 
   it('splice-in: SplicedChannel status active, correct totalValue, next sequence', async () => {
     const { ch, q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
-    const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
+    const spliced = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    });
     expect(spliced.status).toBe('active');
     expect(spliced.totalValue).toBe(1500n);
     expect(spliced.currentSequence).toBe(7);
@@ -672,7 +690,10 @@ describe('finalizeSplice', () => {
 
   it('splice-out: SplicedChannel status active and reduced totalValue', async () => {
     const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceOut(200n);
-    const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
+    const spliced = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    });
     expect(spliced.status).toBe('active');
     expect(spliced.totalValue).toBe(800n);
     expect(spliced.currentSequence).toBe(7);
@@ -719,7 +740,10 @@ describe('finalizeSplice', () => {
 
   it('marks the quiesced channel as status spliced and returns active new channel', async () => {
     const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn();
-    const spliced = await finalizeSplice(q, proposal, acceptance, MINE_OPTS);
+    const spliced = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    });
     expect((q as unknown as OmniaChannel).status).toBe('spliced');
     expect(spliced.status).toBe('active');
   });
@@ -850,7 +874,7 @@ describe('Full splice lifecycle', () => {
     expect(spliced.totalValue).toBe(1500n);
     expect(spliced.balances).toEqual({ alice: 900n, bob: 600n });
     expect(spliced.currentSequence).toBe(7);
-    expect(spliced.status).toBe('active');
+    expect(spliced.status).toBe('funding_pending');
     expect(spliced.splicedFrom).toBe(ch.channelId);
     expect((q as unknown as OmniaChannel).status).toBe('spliced');
     expect(ch.status).toBe('active');
@@ -870,6 +894,7 @@ describe('Full splice lifecycle', () => {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
       acceptorLeaseProvider: bobLp.wotsLease,
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
     });
 
     expect(spliced.totalValue).toBe(800n);
@@ -923,6 +948,7 @@ describe('Full splice lifecycle', () => {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
       acceptorLeaseProvider: bobLp.wotsLease,
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
     });
     expect(spliced.totalValue).toBe(750n);
     expect(spliced.status).toBe('active');

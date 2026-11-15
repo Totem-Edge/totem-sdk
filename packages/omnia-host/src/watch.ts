@@ -14,6 +14,14 @@ import type { HTLCRecord, OmniaChannel } from '@totemsdk/omnia';
 export interface WatchChainView {
   getTip(): Promise<{ block: number }>;
   getCoin(coinId: string): Promise<{ spent?: boolean; created?: string | number } | null>;
+  /**
+   * The current unspent coin at the channel's funding address, if any.
+   *
+   * CAN-014: a spent funding coin is not by itself a close — a state update or
+   * a splice also spends it and creates a successor. When this hook is provided
+   * a spent coin with a successor is treated as continuity, not closure.
+   */
+  getSuccessor?(channel: OmniaChannel): Promise<{ coinId: string } | null>;
 }
 
 export interface WatchFinding {
@@ -72,6 +80,8 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
   const retryDelayMs = options.retryDelayMs ?? 250;
   const sleep = options.sleep ?? defaultSleep;
   const closed = new Set<string>();
+  /** Latest known channel coin per channel, advanced across updates/splices. */
+  const trackedCoin = new Map<string, string>();
   let loaded: Promise<void> | null = null;
   let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -113,13 +123,23 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
 
     for (const channel of options.channels.values()) {
       if (channel.status === 'active' && channel.fundingCoinId) {
-        const coin = await options.chain.getCoin(channel.fundingCoinId);
+        const coinId = trackedCoin.get(channel.channelId) ?? channel.fundingCoinId;
+        const coin = await options.chain.getCoin(coinId);
         if (coin?.spent && !closed.has(channel.channelId)) {
-          findings.push({
-            kind: 'unilateral-close',
-            channelId: channel.channelId,
-            detail: `funding coin ${channel.fundingCoinId} is spent while the channel is active`,
-          });
+          const successor = options.chain.getSuccessor
+            ? await options.chain.getSuccessor(channel)
+            : null;
+          if (successor) {
+            // A state update or splice spent the coin and produced a successor;
+            // the channel is still live. Track the new coin.
+            trackedCoin.set(channel.channelId, successor.coinId);
+          } else {
+            findings.push({
+              kind: 'unilateral-close',
+              channelId: channel.channelId,
+              detail: `funding coin ${coinId} is spent while the channel is active`,
+            });
+          }
         }
       }
 
