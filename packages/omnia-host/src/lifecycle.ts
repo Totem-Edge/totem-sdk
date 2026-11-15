@@ -35,6 +35,12 @@ import {
 import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
 import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
+import {
+  assertSpliceFinalized,
+  assertVcFinalized,
+  resolveFactoryFundingTarget,
+  type PendingVcAcceptance,
+} from './peer-guards.js';
 
 export interface OmniaHostDependencies {
   createSwarm?: (config: Parameters<typeof createOmniaSwarm>[0]) => Promise<OmniaSwarm>;
@@ -325,6 +331,10 @@ export function createOmniaHost(
       );
       const spliceProposals = hostMap<SpliceProposal>('omnia:splice:proposal:', dependencies.spliceProposals);
       const spliceAcceptances = hostMap<SpliceAcceptance>('omnia:splice:acceptance:', dependencies.spliceAcceptances);
+      /** VC proposals this host co-signed, awaiting VC_FINALIZED (CAN-007). */
+      const vcAcceptances = new Map<string, PendingVcAcceptance>();
+      /** Funding digests this host already signed, so a retry cannot burn leaves (CAN-010). */
+      const factoryFundingSignatures = new Map<string, string>();
 
       const onSpliceMessage = async (peer: any, msg: any): Promise<void> => {
         if (!spliceLeaseProvider || !channelStore) return;
@@ -362,8 +372,11 @@ export function createOmniaHost(
             });
             return;
           }
-          if (msg.type === 'SPLICE_FINALIZED' && payload.channel) {
-            const channel = payload.channel as OmniaChannel;
+          if (msg.type === 'SPLICE_FINALIZED') {
+            // CAN-007: a finalized splice is a claim, not a fact. It must match
+            // the acceptance this host produced for that spliceId before any of
+            // it reaches the channel store.
+            const { acceptance, channel } = assertSpliceFinalized(spliceAcceptances, payload);
             channelStore.set(channel.channelId, channel);
             void observation?.emit({
               domain: 'splice', kind: 'splice.finalized', phase: 'confirmed',
@@ -371,8 +384,7 @@ export function createOmniaHost(
               amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, v.toString()])) },
               data: { spliceId: (payload as any).spliceId, txId: (payload as any).txId },
             });
-            const acceptance = spliceAcceptances.get(payload.spliceId);
-            if (acceptance && typeof payload.txId === 'string') {
+            if (typeof payload.txId === 'string') {
               await spliceLeaseProvider.wotsLease
                 .commitKeyUse(acceptance.acceptorReservationId, payload.txId)
                 .catch(() => {});
@@ -407,20 +419,36 @@ export function createOmniaHost(
         const reply = await factoryReplies.run(key, async () => {
           try {
             if (msg.type === 'FACTORY_FUNDING_REQUEST' && typeof payload.digest === 'string') {
-              const digest = Uint8Array.from(Buffer.from(payload.digest.replace(/^0x/i, ''), 'hex'));
-              const reservation = await localBundle.leaseProvider.reserveKeyUse({
-                treeId: 'factory-funding',
-                purpose: 'factory-funding',
-                payloadHash: payload.digest,
-              });
-              try {
-                const signature = await localBundle.signer.sign(digest, reservation.indices);
-                await localBundle.leaseProvider.commitKeyUse(reservation.reservationId, 'factory-funding');
+              // CAN-010: sign only the digest this host derived for a factory it
+              // already accepted, and only when the peer is a participant of it.
+              resolveFactoryFundingTarget(factories, payload.digest, peer?.pubkey);
+              const requested = payload.digest.replace(/^0x/i, '').toLowerCase();
+              const alreadySigned = factoryFundingSignatures.get(requested);
+              if (alreadySigned) {
+                // A retry gets the same signature; it must not burn a second leaf.
                 return {
                   type: 'FACTORY_FUNDING_RESPONSE',
                   channelId: msg.channelId,
                   nonce: msg.nonce,
-                  payload: { signature: '0x' + Buffer.from(signature).toString('hex') },
+                  payload: { signature: alreadySigned },
+                };
+              }
+              const digest = Uint8Array.from(Buffer.from(requested, 'hex'));
+              const reservation = await localBundle.leaseProvider.reserveKeyUse({
+                treeId: 'factory-funding',
+                purpose: 'factory-funding',
+                payloadHash: requested,
+              });
+              try {
+                const signature = await localBundle.signer.sign(digest, reservation.indices);
+                await localBundle.leaseProvider.commitKeyUse(reservation.reservationId, 'factory-funding');
+                const signed = '0x' + Buffer.from(signature).toString('hex');
+                factoryFundingSignatures.set(requested, signed);
+                return {
+                  type: 'FACTORY_FUNDING_RESPONSE',
+                  channelId: msg.channelId,
+                  nonce: msg.nonce,
+                  payload: { signature: signed },
                 };
               } catch (err) {
                 await localBundle.leaseProvider.burnReservation(reservation.reservationId, 'factory-funding-failed').catch(() => {});
@@ -586,21 +614,49 @@ export function createOmniaHost(
         if (!factories || !localBundle) return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (msg?.type === 'VC_FINALIZED') {
-          if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
-          if (payload.kind === 'vc-open' && payload.channel) {
-            channelStore?.set(payload.channel.channelId, payload.channel);
-            void observation?.emit({
-              domain: 'factory', kind: 'factory.vc_opened', phase: 'accepted',
-              entity: { type: 'channel', id: payload.channel.channelId },
-              data: { factoryId: payload.factory?.factoryId },
+          try {
+            // CAN-007: require the VC proposal this host co-signed, the same
+            // factory, and a single-sequence successor of the local copy.
+            const acceptance = assertVcFinalized({
+              acceptances: vcAcceptances,
+              factories,
+              hasChannel: (id) => Boolean(channelStore?.get(id)),
+              payload: payload as {
+                kind?: unknown;
+                factory?: ChannelFactory;
+                channel?: OmniaChannel;
+                channelId?: unknown;
+              },
             });
-          } else if (payload.kind === 'vc-close' && payload.channelId) {
-            channelStore?.delete(payload.channelId);
-            void observation?.emit({
-              domain: 'factory', kind: 'factory.vc_closed', phase: 'closed',
-              entity: { type: 'channel', id: payload.channelId },
-              data: { factoryId: payload.factory?.factoryId },
-            });
+            if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
+            if (payload.kind === 'vc-open' && payload.channel) {
+              channelStore?.set(payload.channel.channelId, payload.channel);
+              void observation?.emit({
+                domain: 'factory', kind: 'factory.vc_opened', phase: 'accepted',
+                entity: { type: 'channel', id: payload.channel.channelId },
+                data: { factoryId: payload.factory?.factoryId },
+              });
+            } else if (payload.kind === 'vc-close' && payload.channelId) {
+              channelStore?.delete(payload.channelId);
+              void observation?.emit({
+                domain: 'factory', kind: 'factory.vc_closed', phase: 'closed',
+                entity: { type: 'channel', id: payload.channelId },
+                data: { factoryId: payload.factory?.factoryId },
+              });
+            }
+            vcAcceptances.delete(
+              payload.kind === 'vc-open'
+                ? String(payload.channel?.channelId ?? '')
+                : String(payload.channelId ?? ''),
+            );
+            void acceptance;
+          } catch (err) {
+            await peer.sendMessage({
+              type: 'ERROR',
+              channelId: msg.channelId,
+              nonce: msg.nonce,
+              payload: { error: err instanceof Error ? err.message : String(err) },
+            }).catch(() => {});
           }
           return;
         }
@@ -610,12 +666,22 @@ export function createOmniaHost(
           try {
             const factory = factories.get(payload.factoryId);
             if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
+            if (typeof payload.vcId !== 'string' || payload.vcId.length === 0) {
+              throw new Error('VC_PROPOSAL without a vcId');
+            }
             if (payload.kind === 'vc-open') {
               const signature = await signVirtualChannelOpen(factory, payload.plan, localBundle);
               await localBundle.leaseProvider.commitKeyUse(
                 signature.reservationId,
                 `factory-vc-open-${payload.factoryId}`,
               );
+              // CAN-007: remember what we agreed to, so VC_FINALIZED can be
+              // checked against it instead of being trusted outright.
+              vcAcceptances.set(payload.vcId, {
+                kind: 'vc-open',
+                factoryId: payload.factoryId,
+                localPartyId: signature.partyId,
+              });
               return {
                 type: 'VC_ACCEPT',
                 channelId: payload.vcId,
@@ -629,6 +695,11 @@ export function createOmniaHost(
                 signature.reservationId,
                 `factory-vc-close-${payload.factoryId}`,
               );
+              vcAcceptances.set(payload.vcId, {
+                kind: 'vc-close',
+                factoryId: payload.factoryId,
+                localPartyId: signature.partyId,
+              });
               return {
                 type: 'VC_ACCEPT',
                 channelId: payload.vcId,
