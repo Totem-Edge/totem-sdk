@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-mesh",
   "version": "0.1.0",
-  "description": "Edge mesh framing and relay — fragmentation, store-and-forward and stream framing for constrained links",
+  "description": "Edge mesh framing and relay \u2014 fragmentation, store-and-forward and stream framing for constrained links",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,8 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest --config ../../tests/jest/edge-mesh.cjs"
+    "test": "jest --config ../../tests/jest/edge-mesh.cjs",
+    "test:integration": "node --test ../../tests/qualification/edge-mesh/integration.test.mjs"
   },
   "files": [
     "dist",

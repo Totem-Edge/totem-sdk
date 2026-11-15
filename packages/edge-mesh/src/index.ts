@@ -1,5 +1,13 @@
 export { crc16 } from './crc16.js';
 export {
+  MeshError,
+  MtuTooSmallError,
+  FrameTooLargeError,
+  TooManyFragmentsError,
+  InvalidStreamFrameError,
+} from './errors.js';
+export type { MeshErrorCode, MeshRejectReason, MeshRejectSink } from './errors.js';
+export {
   Fragmenter,
   Reassembler,
   MAGIC,
@@ -10,6 +18,7 @@ export {
   MAX_PENDING_MESSAGES,
   encodeHeader,
   decodeHeader,
+  headerRejectReason,
 } from './frame.js';
 export type { PacketHeader, AssembledFrame } from './frame.js';
 export { StoreAndForward, frameHash } from './store-forward.js';

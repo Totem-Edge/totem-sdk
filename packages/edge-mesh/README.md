@@ -72,6 +72,27 @@ Regenerate after an intentional format change (node repo):
 cmake --build build --target ble_gen_vectors && ./build/ble_gen_vectors > ble/vectors/mesh-v1.json
 ```
 
+## Errors and rejects
+
+Callers distinguish a mistake from hostile input without string matching:
+
+| Error | When |
+|---|---|
+| `MtuTooSmallError` | the link cannot carry one header-sized fragment |
+| `FrameTooLargeError` | payload exceeds what the MTU can express |
+| `TooManyFragmentsError` | more than 65 535 fragments |
+| `InvalidStreamFrameError` | bridge length prefix is 0 or above `MAX_STREAM_FRAME` |
+
+All extend `MeshError` and carry a `code`.
+
+A relay must not throw on received bytes. `Reassembler` instead drops the packet
+and reports why through `new Reassembler({ onReject })`:
+`short-header`, `bad-magic`, `unsupported-version`, `bad-header`, `crc`,
+`duplicate`, `frame-too-large`. Count these: a rising `crc` or `bad-magic` rate
+is a broken or hostile peer.
+
+Security boundaries and residual risks: [EDGE-MESH-THREAT-MODEL.md](../../docs/security/EDGE-MESH-THREAT-MODEL.md).
+
 ## Limits
 
 - Full-chain bootstrap over a constrained link is not viable; use it for tip and

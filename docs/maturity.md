@@ -18,8 +18,8 @@
 |---|---:|
 | v1 | 13 |
 | rc | 54 |
-| beta | 3 |
-| alpha | 6 |
+| beta | 4 |
+| alpha | 5 |
 | excluded | 6 |
 
 | Support tier | Packages |
@@ -105,9 +105,9 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/statechain` | 0.3.2 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.2 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
+| `@totemsdk/edge-mesh` | 0.1.0 | beta | outside | `packages/edge-mesh` |
 | `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.0 | beta | outside | `packages/qvac` |
-| `@totemsdk/edge-mesh` | 0.1.0 | alpha | outside | `packages/edge-mesh` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/omnia-relay` | 0.7.1 | alpha | outside | `packages/omnia-relay` |
 | `@totemsdk/replication` | 0.2.0 | alpha | outside | `packages/replication` |

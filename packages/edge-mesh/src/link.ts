@@ -6,6 +6,8 @@
  * in-memory link used by tests, so the framing and relay logic can be exercised
  * without radio hardware.
  */
+import { MtuTooSmallError } from './errors.js';
+
 export interface MeshLink {
   readonly mtu: number;
   send(packet: Uint8Array): void;
@@ -20,7 +22,7 @@ export class VirtualLink implements MeshLink {
   private corruptNext = false;
 
   constructor(mtu = 185) {
-    if (mtu <= 16) throw new Error('MTU too small');
+    if (mtu <= 16) throw new MtuTooSmallError(16);
     this.mtu = mtu;
   }
 
