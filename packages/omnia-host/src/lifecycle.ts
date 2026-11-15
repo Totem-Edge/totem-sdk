@@ -28,16 +28,18 @@ import { createHostMethods, type OperationStoreLike } from './api/methods.js';
 import { ReplyCache } from './reply-cache.js';
 import {
   acceptFactory,
+  buildFactoryOpening,
   signFactorySettlement,
   signVirtualChannelOpen,
   signVirtualChannelClose,
 } from '@totemsdk/omnia-factory';
 import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
-import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
+import type { ChannelFactory, FactoryFundingMaterial, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
 import { channelLockKey, withChannelLock } from './channel-lock.js';
 import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
+  assertFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
   resolveFactoryFundingTarget,
@@ -412,7 +414,8 @@ export function createOmniaHost(
           msg?.type !== 'FACTORY_PROPOSAL' &&
           msg?.type !== 'FACTORY_FUNDING_REQUEST' &&
           msg?.type !== 'FACTORY_CLOSE_PROPOSAL' &&
-          msg?.type !== 'FACTORY_CLOSE_FINALIZED'
+          msg?.type !== 'FACTORY_CLOSE_FINALIZED' &&
+          msg?.type !== 'FACTORY_FINALIZED'
         ) return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (process.env.OMNIA_DEBUG) {
@@ -459,7 +462,27 @@ export function createOmniaHost(
               }
             }
             if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
-              const accepted = await acceptFactory(payload.factory, localBundle);
+              const proposal = payload.factory as ChannelFactory;
+              // CAN-018: never sign a commitment the peer chose. Rebuild the
+              // funding transaction from the proposal terms and materials and
+              // sign only the digest this host derived.
+              if (proposal.pendingCommitment) {
+                const materials = Array.isArray(payload.fundingMaterials)
+                  ? payload.fundingMaterials as FactoryFundingMaterial[]
+                  : undefined;
+                if (!materials) {
+                  throw new Error('factory proposal carries a commitment but no funding materials to verify it');
+                }
+                const rebuilt = await buildFactoryOpening(
+                  proposal.participants,
+                  proposal.tokenId,
+                  proposal.tokenScale ?? 0,
+                  chainAdapter,
+                  materials,
+                );
+                assertFactoryCommitment(proposal.pendingCommitment, rebuilt.factory.pendingCommitment);
+              }
+              const accepted = await acceptFactory(proposal, localBundle);
               factories.set(accepted.factoryId, accepted);
               void observation?.emit({
                 domain: 'factory', kind: 'factory.accepted', phase: 'accepted',
@@ -486,6 +509,18 @@ export function createOmniaHost(
                 nonce: msg.nonce,
                 payload: { signature },
               };
+            }
+            if (msg.type === 'FACTORY_FINALIZED' && payload.factory) {
+              // CAN-020: the proposal is sent before funding is signed, so the
+              // responder learns the funding txid from this follow-up. Only a
+              // factory we already accepted may be updated.
+              const finalized = payload.factory as ChannelFactory;
+              const known = factories.get(finalized.factoryId);
+              if (!known) {
+                throw new Error(`FACTORY_FINALIZED for factory ${finalized.factoryId} which this host has not accepted`);
+              }
+              factories.set(finalized.factoryId, finalized);
+              return null;
             }
             if (msg.type === 'FACTORY_CLOSE_FINALIZED' && payload.factoryId) {
               const factory = factories.get(payload.factoryId);

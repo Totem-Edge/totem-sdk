@@ -2785,6 +2785,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return withOperation(context, params, async () => {
       // Off-chain when no funding material is supplied; with funding material the
       // SDK builds, signs, and submits the on-chain factory funding TX.
+      const plan = await buildFactoryOpening(parsed, tokenId, 0, context.chainProvider, funding);
       let factory = await createFactory(
         parsed,
         tokenId,
@@ -2794,25 +2795,37 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         funding,
       );
       if (context.swarm && remote) {
-        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
+        // CAN-020: announce the factory before createFactory asks for funding
+        // signatures, so the counterparty can verify the commitment (CAN-018).
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
         const reply = await requestPeerReply(
           peer,
           {
             type: 'FACTORY_PROPOSAL',
-            channelId: factory.factoryId,
+            channelId: plan.factory.factoryId,
             nonce: Date.now(),
-            payload: { factory },
+            payload: { factory: plan.factory, fundingMaterials: funding },
           },
-          factory.factoryId,
+          plan.factory.factoryId,
           30_000,
           ['FACTORY_ACCEPT', 'ERROR'],
         );
         if (reply?.type !== 'FACTORY_ACCEPT') {
           throw new Error(`Counterparty did not accept the factory (${reply?.type ?? 'timeout'})`);
         }
-        const accepted = (reply.payload as { factory?: ChannelFactory } | undefined)?.factory;
-        if (!accepted) throw new Error('Factory accept reply missing factory');
-        factory = accepted;
+        factory = {
+          ...factory,
+          pendingSignatures: {
+            ...factory.pendingSignatures,
+            ...((reply.payload as { factory?: ChannelFactory }).factory?.pendingSignatures ?? {}),
+          },
+        };
+        await peer.sendMessage({
+          type: 'FACTORY_FINALIZED',
+          channelId: factory.factoryId,
+          nonce: Date.now(),
+          payload: { factory },
+        });
       }
       context.factories!.set(factory.factoryId, factory);
       await context.observe?.emit({
