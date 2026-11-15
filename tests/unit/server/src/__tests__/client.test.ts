@@ -100,7 +100,8 @@ describe('MinimaClient — getBalance', () => {
     const client = new MinimaClient({ apiUrl: API_URL, apiKey: API_KEY });
     await client.getBalance('MxABC');
     const [url, opts] = mockFetch.mock.calls[0];
-    expect(url).toContain('/v1/wallet/portfolio/');
+    // /v1/wallet/portfolio was removed in favour of the canonical endpoint.
+    expect(url).toContain('/v1/portfolio/');
     expect((opts.headers as Record<string, string>)['x-api-key']).toBe(API_KEY);
   });
 
