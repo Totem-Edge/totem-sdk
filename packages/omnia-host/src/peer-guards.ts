@@ -15,6 +15,7 @@
  *
  * See docs/findings/agent/CAN-007.md and CAN-010.md in the canary.
  */
+import { computeFactoryStateCommitment } from '@totemsdk/omnia-factory';
 import type { ChannelFactory } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance } from '@totemsdk/omnia-splice';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -207,4 +208,31 @@ export function assertVcFinalized(input: {
   }
 
   return acceptance;
+}
+
+/**
+ * Validate an off-chain factory proposal.
+ *
+ * An off-chain factory has no funding transaction, so there are no funding
+ * materials to rebuild. The proposal is bound by its state commitment, which
+ * commits to the factoryId, sequence and allocations. Recompute it here instead
+ * of requiring materials the peer cannot supply.
+ */
+export function assertOffChainFactoryCommitment(factory: ChannelFactory): void {
+  if (!factory.pendingCommitment) {
+    throw new Error('off-chain factory proposal has no commitment');
+  }
+  if (!factory.factoryId) {
+    throw new Error('off-chain factory proposal has no factoryId');
+  }
+  const sum = Object.values(factory.allocations ?? {}).reduce((a, b) => a + b, 0n);
+  if (sum !== factory.totalValue) {
+    throw new Error(
+      `off-chain factory proposal violates conservation: allocations(${sum}) !== totalValue(${factory.totalValue})`,
+    );
+  }
+  const expected = computeFactoryStateCommitment(factory.factoryId, 1, factory.allocations, []);
+  if (normalizeHex(factory.pendingCommitment) !== normalizeHex(Buffer.from(expected).toString('hex'))) {
+    throw new Error('off-chain factory proposal commitment does not match its terms');
+  }
 }

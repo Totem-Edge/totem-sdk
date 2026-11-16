@@ -94,9 +94,9 @@ import {
   buildVirtualChannelClose,
   buildVirtualChannelOpen,
   closeFactory,
-  createFactory,
   buildFactoryOpening,
   finalizeFactoryOpening,
+  proposeFactoryOpening,
   signFactorySettlement,
   signVirtualChannelClose,
   signVirtualChannelOpen,
@@ -1458,26 +1458,6 @@ function registerPreparedPayMethods(
         context.chainProvider,
         fundingMaterials,
       );
-      let remoteFundingSignature: Uint8Array | undefined;
-      if (plan.onChain && context.swarm && remote) {
-        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
-        const reply = await requestPeerReply(
-          peer,
-          {
-            type: 'FACTORY_FUNDING_REQUEST',
-            channelId: plan.factory.factoryId,
-            nonce: Date.now(),
-            payload: { digest: '0x' + Buffer.from(plan.fundingDigest!).toString('hex') },
-          },
-          plan.factory.factoryId,
-          30_000,
-          ['FACTORY_FUNDING_RESPONSE', 'ERROR'],
-        );
-        const signature = (reply?.payload as { signature?: string } | undefined)?.signature;
-        if (!signature) throw new Error(`Counterparty did not co-sign factory funding (${reply?.type ?? 'timeout'})`);
-        remoteFundingSignature = Uint8Array.from(Buffer.from(signature.replace(/^0x/i, ''), 'hex'));
-      }
-
       const preparedOperationId = operationId(params);
       const expiresAt = Date.now() + 300_000;
       const commitment = Buffer.from(plan.factory.pendingCommitment!, 'hex');
@@ -1511,7 +1491,6 @@ function registerPreparedPayMethods(
       context.preparedFactory!.set(preparedOperationId, {
         plan,
         remotePartyId: remote?.partyId,
-        remoteFundingSignature,
         intent,
         commitment: commitmentRequest,
         expiresAt,
@@ -1557,27 +1536,27 @@ function registerPreparedPayMethods(
       }
       if (!context.chainProvider && entry.plan.onChain) throw new Error('Factory funding requires a chain provider');
 
-      const fundingSignatures: Record<string, Uint8Array> = { [localPartyId]: commitmentSignature };
-      if (entry.remotePartyId && entry.remoteFundingSignature) {
-        fundingSignatures[entry.remotePartyId] = entry.remoteFundingSignature;
-      }
-      let factory = await finalizeFactoryOpening(
-        entry.plan,
-        {
-          fundingSignatures: entry.plan.onChain ? fundingSignatures : undefined,
-          openingSignatures: { [localPartyId]: commitmentSignature },
-        },
-        context.chainProvider,
-      );
-      context.factories?.set(factory.factoryId, factory);
-
+      let factory: ChannelFactory = {
+        ...entry.plan.factory,
+        pendingSignatures: { [localPartyId]: commitmentSignature },
+      };
+      let peer: { sendMessage(msg: unknown): Promise<void> } | undefined;
       if (context.swarm && entry.remotePartyId) {
-        const remote = factory.participants.find((participant) => participant.partyId === entry.remotePartyId);
+        const remote = entry.plan.factory.participants.find((participant) => participant.partyId === entry.remotePartyId);
         if (remote) {
-          const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
+          peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
           const reply = await requestPeerReply(
             peer,
-            { type: 'FACTORY_PROPOSAL', channelId: factory.factoryId, nonce: Date.now(), payload: { factory } },
+            {
+              type: 'FACTORY_PROPOSAL',
+              channelId: factory.factoryId,
+              nonce: Date.now(),
+              payload: {
+                factory,
+                onChain: entry.plan.onChain,
+                ...(entry.plan.onChain ? { fundingMaterials: entry.plan.fundingMaterials } : {}),
+              },
+            },
             factory.factoryId,
             30_000,
             ['FACTORY_ACCEPT', 'ERROR'],
@@ -1587,9 +1566,49 @@ function registerPreparedPayMethods(
           }
           const accepted = (reply.payload as { factory?: ChannelFactory } | undefined)?.factory;
           if (!accepted) throw new Error('Factory accept reply missing factory');
-          factory = accepted;
-          context.factories?.set(factory.factoryId, factory);
+          if (accepted.factoryId !== factory.factoryId) {
+            throw new Error('Counterparty accepted a different factory');
+          }
+          factory = { ...factory, pendingSignatures: accepted.pendingSignatures };
         }
+      }
+
+      let fundingSignatures: Record<string, Uint8Array> | undefined;
+      if (entry.plan.onChain) {
+        if (!entry.plan.fundingDigest) throw new Error('On-chain factory plan has no funding digest');
+        fundingSignatures = { [localPartyId]: commitmentSignature };
+        if (peer && entry.remotePartyId) {
+          const reply = await requestPeerReply(
+            peer,
+            {
+              type: 'FACTORY_FUNDING_REQUEST',
+              channelId: factory.factoryId,
+              nonce: Date.now(),
+              payload: { digest: '0x' + Buffer.from(entry.plan.fundingDigest).toString('hex') },
+            },
+            factory.factoryId,
+            30_000,
+            ['FACTORY_FUNDING_RESPONSE', 'ERROR'],
+          );
+          const signature = (reply?.payload as { signature?: string } | undefined)?.signature;
+          if (!signature) throw new Error(`Counterparty did not co-sign factory funding (${reply?.type ?? 'timeout'})`);
+          fundingSignatures[entry.remotePartyId] = Uint8Array.from(Buffer.from(signature.replace(/^0x/i, ''), 'hex'));
+        }
+      }
+
+      factory = await finalizeFactoryOpening(
+        entry.plan,
+        { fundingSignatures, openingSignatures: factory.pendingSignatures },
+        context.chainProvider,
+      );
+      context.factories?.set(factory.factoryId, factory);
+      if (peer) {
+        await peer.sendMessage({
+          type: 'FACTORY_FINALIZED',
+          channelId: factory.factoryId,
+          nonce: Date.now(),
+          payload: { factory },
+        });
       }
       context.preparedFactory!.delete(preparedOperationId);
       return { success: true, factoryId: factory.factoryId, status: factory.status, fundingTxId: factory.fundingTxId };
@@ -2783,28 +2802,26 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       : undefined;
     const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
     return withOperation(context, params, async () => {
-      // Off-chain when no funding material is supplied; with funding material the
-      // SDK builds, signs, and submits the on-chain factory funding TX.
+      // One plan, one ID. Proposal first; funding signatures are only requested
+      // after the counterparty has accepted these exact terms (CAN-020).
       const plan = await buildFactoryOpening(parsed, tokenId, 0, context.chainProvider, funding);
-      let factory = await createFactory(
-        parsed,
-        tokenId,
-        localBundle,
-        context.chainProvider,
-        0,
-        funding,
-      );
+      const proposal = await proposeFactoryOpening(plan, localBundle);
+
+      let openingSignatures = proposal.pendingSignatures;
+      let factoryPeer: { sendMessage(msg: unknown): Promise<void> } | undefined;
       if (context.swarm && remote) {
-        // CAN-020: announce the factory before createFactory asks for funding
-        // signatures, so the counterparty can verify the commitment (CAN-018).
-        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
+        factoryPeer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
         const reply = await requestPeerReply(
-          peer,
+          factoryPeer,
           {
             type: 'FACTORY_PROPOSAL',
             channelId: plan.factory.factoryId,
             nonce: Date.now(),
-            payload: { factory: plan.factory, fundingMaterials: funding },
+            payload: {
+              factory: proposal,
+              onChain: plan.onChain,
+              ...(plan.onChain ? { fundingMaterials: funding } : {}),
+            },
           },
           plan.factory.factoryId,
           30_000,
@@ -2813,21 +2830,46 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (reply?.type !== 'FACTORY_ACCEPT') {
           throw new Error(`Counterparty did not accept the factory (${reply?.type ?? 'timeout'})`);
         }
-        factory = {
-          ...factory,
-          pendingSignatures: {
-            ...factory.pendingSignatures,
-            ...((reply.payload as { factory?: ChannelFactory }).factory?.pendingSignatures ?? {}),
-          },
-        };
-        await peer.sendMessage({
+        const accepted = (reply.payload as { factory?: ChannelFactory } | undefined)?.factory;
+        if (!accepted) throw new Error('Factory accept reply missing factory');
+        if (accepted.factoryId !== plan.factory.factoryId) {
+          throw new Error('Counterparty accepted a different factory');
+        }
+        openingSignatures = accepted.pendingSignatures;
+      }
+
+      let fundingSignatures: Record<string, Uint8Array> | undefined;
+      if (plan.onChain) {
+        if (!plan.fundingDigest) throw new Error('On-chain factory plan has no funding digest');
+        const materials = new Map((funding ?? []).map(material => [material.partyId, material]));
+        fundingSignatures = {};
+        for (const participant of plan.factory.participants) {
+          const material = materials.get(participant.partyId);
+          if (!material) throw new Error(`Missing funding material for factory party '${participant.partyId}'`);
+          if (material.signature) {
+            fundingSignatures[participant.partyId] = material.signature;
+          } else if (material.signer) {
+            fundingSignatures[participant.partyId] = Uint8Array.from(await material.signer(plan.fundingDigest));
+          } else {
+            throw new Error(`Missing signature or signer for factory party '${participant.partyId}'`);
+          }
+        }
+      }
+
+      const factory = await finalizeFactoryOpening(
+        plan,
+        { fundingSignatures, openingSignatures },
+        context.chainProvider,
+      );
+      context.factories!.set(factory.factoryId, factory);
+      if (factoryPeer) {
+        await factoryPeer.sendMessage({
           type: 'FACTORY_FINALIZED',
           channelId: factory.factoryId,
           nonce: Date.now(),
           payload: { factory },
         });
       }
-      context.factories!.set(factory.factoryId, factory);
       await context.observe?.emit({
         domain: 'factory', kind: 'factory.opened', phase: 'accepted',
         entity: { type: 'factory', id: factory.factoryId },
