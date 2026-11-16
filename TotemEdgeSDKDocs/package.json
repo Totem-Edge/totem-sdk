@@ -45,7 +45,7 @@
     "prism-react-renderer": "^2.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "serve": "^14.2.4",
+    "serve": "^14.2.7",
     "serve-handler": "^6.1.5"
   },
   "devDependencies": {
