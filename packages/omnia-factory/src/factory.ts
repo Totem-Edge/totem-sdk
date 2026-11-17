@@ -193,7 +193,7 @@ export async function proposeFactoryOpening(
   if (!plan.factory.pendingCommitment) {
     throw new Error('Factory plan has no pending commitment');
   }
-  const commitment = Buffer.from(plan.factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(plan.factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const sig = await leaseSign(plan.factory.factoryId, commitment, 'factory-open', proposer, bundle);
   return {
     ...plan.factory,
@@ -426,6 +426,7 @@ export async function finalizeFactoryOpening(
 export async function acceptFactory(
   factory: ChannelFactory,
   bundle: WotsLeaseBundle,
+  opts?: { deferCommit?: boolean },
 ): Promise<ChannelFactory> {
   if (factory.status !== 'opening') {
     throw new Error(`acceptFactory requires factory status 'opening', got '${factory.status}'`);
@@ -444,15 +445,16 @@ export async function acceptFactory(
     throw new Error(`Party '${participant.partyId}' has already co-signed this factory proposal`);
   }
 
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const sig = await leaseSign(factory.factoryId, commitment, 'factory-open', participant, bundle);
 
   const newSigs = { ...factory.pendingSignatures, [participant.partyId]: sig };
   const updatedFactory = { ...factory, pendingSignatures: newSigs };
 
-  // When all N parties have signed, commit the opening.
+  // When all N parties have signed, commit the opening unless the host is
+  // waiting for funding evidence (on-chain) or the proposer's FINALIZED.
   const allSigned = factory.participants.every(p => newSigs[p.partyId] !== undefined);
-  if (allSigned) {
+  if (allSigned && !opts?.deferCommit) {
     return commitOpening(updatedFactory);
   }
   return updatedFactory;
@@ -491,7 +493,7 @@ export async function signFactoryOpening(
     throw new Error(`Party '${participant.partyId}' has already co-signed this factory proposal`);
   }
 
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const reservation = await bundle.leaseProvider.reserveKeyUse({
     treeId: `omnia-factory-${factory.factoryId}`,
     purpose: 'factory-open',
@@ -531,7 +533,7 @@ export function verifyFactorySignature(
   if (!factory.pendingCommitment) return false;
   const participant = factory.participants.find(p => p.partyId === partyId);
   if (!participant) return false;
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const verifyFn =
     verify ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => verifyChannelSignature(s, c, pkd));
   try {
@@ -706,7 +708,18 @@ export function assertFactoryFinalized(
   if (senderPublicKeyDigest && !known.participants.some(p => p.publicKeyDigest === senderPublicKeyDigest)) {
     throw new Error('FACTORY_FINALIZED sender is not a factory participant');
   }
-  if (factoryTermsFingerprint(known) !== factoryTermsFingerprint(incoming)) {
+
+  const terms = (f: ChannelFactory): string => JSON.stringify(jsonSafeForCompare({
+    participants: f.participants,
+    totalValue: f.totalValue,
+    tokenId: f.tokenId,
+    tokenScale: f.tokenScale,
+    allocations: f.allocations,
+    virtualChannels: f.virtualChannels,
+    fundingScript: f.fundingScript,
+    fundingAddress: f.fundingAddress,
+  }));
+  if (terms(known) !== terms(incoming)) {
     throw new Error('FACTORY_FINALIZED changes factory terms');
   }
   if (known.fundingTxId && incoming.fundingTxId !== known.fundingTxId) {
@@ -718,39 +731,61 @@ export function assertFactoryFinalized(
   if (known.status === 'closed' && incoming.status !== 'closed') {
     throw new Error('FACTORY_FINALIZED cannot reopen a closed factory');
   }
-  if (known.status === 'active' && incoming.status === 'opening') {
-    throw new Error('FACTORY_FINALIZED cannot downgrade an active factory');
-  }
-  if (!known.pendingCommitment) {
-    throw new Error('FACTORY_FINALIZED for a factory without a pending commitment');
+
+  // The expected transition for a proposal this host accepted with every
+  // participant signature present is the deterministic commit: sequence 1, an
+  // 'accept' log entry, cleared pending commitment and signatures.
+  if (known.status === 'opening' && incoming.status === 'active') {
+    if (known.currentSequence !== 0 || incoming.currentSequence !== 1) {
+      throw new Error('FACTORY_FINALIZED has an invalid sequence for an opening');
+    }
+    if (!known.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED for a proposal without a pending commitment');
+    }
+    const commitment = Buffer.from(known.pendingCommitment.replace(/^0x/i, ''), 'hex');
+    const signatures = known.pendingSignatures ?? {};
+    for (const participant of known.participants) {
+      const sig = signatures[participant.partyId];
+      if (!sig) throw new Error(`FACTORY_FINALIZED activates a factory missing the signature for '${participant.partyId}'`);
+      if (!verifyChannelSignature(sig, commitment, participant.publicKeyDigest)) {
+        throw new Error(`FACTORY_FINALIZED activates a factory with an invalid signature for '${participant.partyId}'`);
+      }
+    }
+    if (incoming.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED must clear the pending commitment when it activates');
+    }
+    if (incoming.pendingSignatures && Object.keys(incoming.pendingSignatures).length > 0) {
+      throw new Error('FACTORY_FINALIZED must clear pending signatures when it activates');
+    }
+    const log = incoming.stateLog ?? [];
+    if (log.length !== (known.stateLog?.length ?? 0) + 1) {
+      throw new Error('FACTORY_FINALIZED has an unexpected state log');
+    }
+    const last = log[log.length - 1];
+    if (!last || last.event !== 'accept' || last.sequence !== 1) {
+      throw new Error('FACTORY_FINALIZED is missing the accept log entry');
+    }
+    if (JSON.stringify(jsonSafeForCompare(last.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
+      throw new Error('FACTORY_FINALIZED changes allocations in the accept entry');
+    }
+    return { ...incoming, pendingSignatures: {} };
   }
 
-  const commitment = Buffer.from(known.pendingCommitment, 'hex');
-  const knownSigs = known.pendingSignatures ?? {};
-  const incomingSigs = incoming.pendingSignatures ?? {};
-
-  for (const [partyId, sig] of Object.entries(knownSigs)) {
-    const next = incomingSigs[partyId];
-    if (!next || Buffer.from(next).toString('hex') !== Buffer.from(sig).toString('hex')) {
-      throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
-    }
+  if (known.status === 'active' && incoming.status === 'active') {
+    // Funding references may be filled in after activation; terms are already checked.
+    return { ...incoming };
   }
-  for (const [partyId, sig] of Object.entries(incomingSigs)) {
-    const participant = known.participants.find(p => p.partyId === partyId);
-    if (!participant) {
-      throw new Error(`FACTORY_FINALIZED carries a signature for unknown party '${partyId}'`);
+  if (known.status === 'opening' && incoming.status === 'opening') {
+    // Funding references only; signatures may not be removed or altered.
+    const knownSigs = known.pendingSignatures ?? {};
+    const incomingSigs = incoming.pendingSignatures ?? {};
+    for (const [partyId, sig] of Object.entries(knownSigs)) {
+      const next = incomingSigs[partyId];
+      if (!next || Buffer.from(next).toString('hex') !== Buffer.from(sig).toString('hex')) {
+        throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
+      }
     }
-    const verifyFn = verifyChannelSignature;
-    if (!verifyFn(sig, commitment, participant.publicKeyDigest)) {
-      throw new Error(`FACTORY_FINALIZED carries an invalid signature for '${partyId}'`);
-    }
+    return { ...incoming, pendingSignatures: { ...incomingSigs } };
   }
-  if (incoming.status === 'active') {
-    const allSigned = known.participants.every(p => incomingSigs[p.partyId] !== undefined);
-    if (!allSigned) throw new Error('FACTORY_FINALIZED cannot activate without every signature');
-  }
-  return {
-    ...incoming,
-    pendingSignatures: { ...incomingSigs },
-  };
+  throw new Error('FACTORY_FINALIZED has an unsupported status transition');
 }

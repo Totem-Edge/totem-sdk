@@ -236,3 +236,40 @@ export function assertOffChainFactoryCommitment(factory: ChannelFactory): void {
     throw new Error('off-chain factory proposal commitment does not match its terms');
   }
 }
+
+function jsonSafeForCompare(value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(jsonSafeForCompare);
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => [k, jsonSafeForCompare(v)] as const);
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
+/**
+ * A peer may only ask this host to sign the settlement its local factory
+ * produces. Compare the peer's draft to the rebuilt canonical draft before any
+ * WOTS leaf is reserved.
+ */
+export function assertFactorySettlementDraft(
+  expected: { settlementDraft: unknown; settlementTxHex: string; txDigest: Uint8Array },
+  proposed: { settlementDraft?: unknown; settlementTxHex?: unknown; txDigest?: unknown },
+): void {
+  if (!proposed || !(proposed.txDigest instanceof Uint8Array)) {
+    throw new Error('factory settlement proposal carries no tx digest');
+  }
+  if (normalizeHex(Buffer.from(expected.txDigest).toString('hex')) !== normalizeHex(Buffer.from(proposed.txDigest).toString('hex'))) {
+    throw new Error('factory settlement proposal digest does not match the local factory');
+  }
+  if (typeof proposed.settlementTxHex !== 'string'
+      || normalizeHex(proposed.settlementTxHex) !== normalizeHex(expected.settlementTxHex)) {
+    throw new Error('factory settlement proposal transaction does not match the local factory');
+  }
+  if (JSON.stringify(jsonSafeForCompare(proposed.settlementDraft))
+      !== JSON.stringify(jsonSafeForCompare(expected.settlementDraft))) {
+    throw new Error('factory settlement proposal draft does not match the local factory');
+  }
+}

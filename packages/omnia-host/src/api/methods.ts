@@ -1540,7 +1540,7 @@ function registerPreparedPayMethods(
         ...entry.plan.factory,
         pendingSignatures: { [localPartyId]: commitmentSignature },
       };
-      let peer: { sendMessage(msg: unknown): Promise<void> } | undefined;
+      let peer: any;
       if (context.swarm && entry.remotePartyId) {
         const remote = entry.plan.factory.participants.find((participant) => participant.partyId === entry.remotePartyId);
         if (remote) {
@@ -1569,7 +1569,12 @@ function registerPreparedPayMethods(
           if (accepted.factoryId !== factory.factoryId) {
             throw new Error('Counterparty accepted a different factory');
           }
-          factory = { ...factory, pendingSignatures: accepted.pendingSignatures };
+          if (accepted.status === 'active') {
+            if (entry.plan.onChain) throw new Error('Counterparty committed the factory before funding');
+            factory = accepted;
+          } else {
+            factory = { ...factory, pendingSignatures: accepted.pendingSignatures };
+          }
         }
       }
 
@@ -1596,11 +1601,13 @@ function registerPreparedPayMethods(
         }
       }
 
-      factory = await finalizeFactoryOpening(
-        entry.plan,
-        { fundingSignatures, openingSignatures: factory.pendingSignatures },
-        context.chainProvider,
-      );
+      if (factory.status !== 'active') {
+        factory = await finalizeFactoryOpening(
+          entry.plan,
+          { fundingSignatures, openingSignatures: factory.pendingSignatures },
+          context.chainProvider,
+        );
+      }
       context.factories?.set(factory.factoryId, factory);
       if (peer) {
         await peer.sendMessage({
@@ -2808,7 +2815,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const proposal = await proposeFactoryOpening(plan, localBundle);
 
       let openingSignatures = proposal.pendingSignatures;
-      let factoryPeer: { sendMessage(msg: unknown): Promise<void> } | undefined;
+      let acceptedFactory: ChannelFactory | undefined;
+      let factoryPeer: any;
       if (context.swarm && remote) {
         factoryPeer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
         const reply = await requestPeerReply(
@@ -2835,7 +2843,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (accepted.factoryId !== plan.factory.factoryId) {
           throw new Error('Counterparty accepted a different factory');
         }
-        openingSignatures = accepted.pendingSignatures;
+        if (accepted.status === 'active') {
+          if (plan.onChain) throw new Error('Counterparty committed the factory before funding');
+          acceptedFactory = accepted;
+        } else {
+          openingSignatures = accepted.pendingSignatures;
+        }
       }
 
       let fundingSignatures: Record<string, Uint8Array> | undefined;
@@ -2856,7 +2869,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         }
       }
 
-      const factory = await finalizeFactoryOpening(
+      const factory = acceptedFactory ?? await finalizeFactoryOpening(
         plan,
         { fundingSignatures, openingSignatures },
         context.chainProvider,

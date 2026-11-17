@@ -30,6 +30,7 @@ import {
   acceptFactory,
   assertFactoryFinalized,
   buildFactoryOpening,
+  buildFactorySettlement,
   signFactorySettlement,
   signVirtualChannelOpen,
   signVirtualChannelClose,
@@ -41,6 +42,7 @@ import { channelLockKey, withChannelLock } from './channel-lock.js';
 import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
   assertFactoryCommitment,
+  assertFactorySettlementDraft,
   assertOffChainFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
@@ -488,7 +490,7 @@ export function createOmniaHost(
               } else {
                 assertOffChainFactoryCommitment(proposal);
               }
-              const accepted = await acceptFactory(proposal, localBundle);
+              const accepted = await acceptFactory(proposal, localBundle, { deferCommit: true });
               factories.set(accepted.factoryId, accepted);
               void observation?.emit({
                 domain: 'factory', kind: 'factory.accepted', phase: 'accepted',
@@ -505,7 +507,15 @@ export function createOmniaHost(
             if (msg.type === 'FACTORY_CLOSE_PROPOSAL' && payload.factoryId) {
               const factory = factories.get(payload.factoryId);
               if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
-              const signature = await signFactorySettlement(factory, payload.draft, localBundle);
+              // Never sign a peer-supplied draft: rebuild it from the local
+              // factory and only sign the canonical digest this host derived.
+              const expectedDraft = buildFactorySettlement(factory);
+              assertFactorySettlementDraft(expectedDraft, (payload.draft ?? {}) as {
+                settlementDraft?: unknown;
+                settlementTxHex?: unknown;
+                txDigest?: unknown;
+              });
+              const signature = await signFactorySettlement(factory, expectedDraft, localBundle);
               await localBundle.leaseProvider
                 .commitKeyUse(signature.reservationId, `factory-settlement-${payload.factoryId}`)
                 .catch(() => {});
