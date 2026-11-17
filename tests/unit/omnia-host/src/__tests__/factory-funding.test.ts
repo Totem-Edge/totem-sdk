@@ -8,14 +8,41 @@ jest.mock('@totemsdk/omnia-factory', () => {
   const actual = jest.requireActual('@totemsdk/omnia-factory');
   return {
     ...actual,
-    createFactory: jest.fn(async (participants: any[]) => ({
-      factoryId: 'factory-1',
+    buildFactoryOpening: jest.fn(async (participants: any[]) => ({
+      factory: {
+        factoryId: 'factory-1',
+        status: 'opening',
+        participants,
+        allocations: Object.fromEntries(participants.map((p: any) => [p.partyId, BigInt(p.contributionAmount)])),
+        totalValue: participants.reduce((sum: bigint, p: any) => sum + BigInt(p.contributionAmount), 0n),
+        tokenId: '0x00',
+        tokenScale: 0,
+        virtualChannels: [],
+        currentSequence: 0,
+        stateLog: [],
+        fundingScript: 'RETURN TRUE',
+        fundingAddress: '0x' + 'ee'.repeat(32),
+        pendingCommitment: '0x' + 'ab'.repeat(32),
+        pendingSignatures: {},
+      },
+      fundingTxBytes: new Uint8Array([1, 2, 3]),
+      fundingDigest: new Uint8Array(32).fill(9),
+      fundingCoinId: '0x' + 'cd'.repeat(32),
+      fundingMaterials: [],
+      onChain: true,
+    })),
+    proposeFactoryOpening: jest.fn(async (plan: any) => ({
+      ...plan.factory,
+      pendingSignatures: { alice: new Uint8Array(64).fill(1) },
+    })),
+    finalizeFactoryOpening: jest.fn(async (plan: any) => ({
+      ...plan.factory,
       status: 'active',
-      participants,
-      allocations: {},
-      virtualChannels: [],
-      currentSequence: 0,
-      fundingCoinId: '0x' + 'ab'.repeat(32),
+      currentSequence: 1,
+      fundingTxId: 'tx-fund',
+      fundingCoinId: plan.fundingCoinId,
+      pendingCommitment: undefined,
+      pendingSignatures: {},
     })),
     closeFactory: jest.fn(async () => ({
       txpowId: 'tx-close-1',
@@ -41,7 +68,7 @@ jest.mock('@totemsdk/omnia-factory', () => {
 import {
   assembleFactorySettlement as mockAssembleFactorySettlement,
   closeFactory as mockCloseFactory,
-  createFactory as mockCreateFactory,
+  finalizeFactoryOpening as mockFinalizeFactoryOpening,
 } from '@totemsdk/omnia-factory';
 import { createHostMethods } from '../api/methods.js';
 
@@ -107,18 +134,79 @@ describe('S5 factory funding + close host plumbing', () => {
         { partyId: 'bob', publicKeyDigest: 'bob', addressIndex: 0, contributionAmount: '100' },
       ],
       funding: [
+        { partyId: 'alice', coinProof: COIN_PROOF, coinAddress: 'MxAlice', script: 'RETURN TRUE', signature: '0x' + '11'.repeat(64) },
+        { partyId: 'bob', coinProof: COIN_PROOF, coinAddress: 'MxBob', script: 'RETURN TRUE', signature: '0x' + '22'.repeat(64) },
+      ],
+    });
+
+    expect(result).toMatchObject({ success: true, factoryId: 'factory-1' });
+    expect(mockFinalizeFactoryOpening).toHaveBeenCalledTimes(1);
+    const opts = (mockFinalizeFactoryOpening as jest.Mock).mock.calls[0][1];
+    expect(opts.fundingSignatures).toMatchObject({
+      alice: expect.any(Uint8Array),
+      bob: expect.any(Uint8Array),
+    });
+    expect(opts.openingSignatures).toMatchObject({ alice: expect.any(Uint8Array) });
+  });
+
+  it('sends the proposal before requesting funding signatures', async () => {
+    const events: string[] = [];
+    let reply: ((msg: any) => void) | undefined;
+    const peer = {
+      pubkey: 'bob',
+      channelId: 'factory-1',
+      sendMessage: jest.fn(async (msg: any) => {
+        events.push(msg.type);
+        if (msg.type === 'FACTORY_PROPOSAL') {
+          const sig = new Uint8Array(64).fill(9);
+          setTimeout(() => reply?.({
+            type: 'FACTORY_ACCEPT',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: {
+              factory: {
+                ...msg.payload.factory,
+                pendingSignatures: { alice: sig, bob: sig },
+              },
+            },
+          }), 0);
+        }
+        if (msg.type === 'FACTORY_FUNDING_REQUEST') {
+          setTimeout(() => reply?.({
+            type: 'FACTORY_FUNDING_RESPONSE',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: { signature: '0x' + '33'.repeat(64) },
+          }), 0);
+        }
+      }),
+      onMessage: jest.fn((cb: (msg: any) => void) => { reply = cb; return () => { reply = undefined; }; }),
+      onReconnected: jest.fn(() => () => {}),
+      disconnect: jest.fn(),
+      isConnected: jest.fn(() => true),
+    };
+    const context = makeContext();
+    context.swarm = { connectToPeer: jest.fn(async () => peer) };
+    const methods = createHostMethods(context);
+
+    await methods.get('omnia/createFactory')!({
+      operationId: 'op-order',
+      tokenId: '0x00',
+      participants: [
+        { partyId: 'alice', publicKeyDigest: 'alice', addressIndex: 0, contributionAmount: '100' },
+        { partyId: 'bob', publicKeyDigest: 'bob', addressIndex: 0, contributionAmount: '100' },
+      ],
+      funding: [
         { partyId: 'alice', coinProof: COIN_PROOF, coinAddress: 'MxAlice', script: 'RETURN TRUE' },
         { partyId: 'bob', coinProof: COIN_PROOF, coinAddress: 'MxBob', script: 'RETURN TRUE' },
       ],
     });
 
-    expect(result).toMatchObject({ success: true, factoryId: 'factory-1' });
-    expect(mockCreateFactory).toHaveBeenCalledTimes(1);
-    const args = (mockCreateFactory as jest.Mock).mock.calls[0];
-    expect(args[5]).toHaveLength(2);
-    expect(args[5][0]).toMatchObject({ partyId: 'alice', coinAddress: 'MxAlice', script: 'RETURN TRUE' });
-    expect(args[5][0].coinProof).toBeInstanceOf(Uint8Array);
-    expect(typeof args[5][0].signer).toBe('function');
+    expect(events[0]).toBe('FACTORY_PROPOSAL');
+    expect(events).toContain('FACTORY_FUNDING_REQUEST');
+    expect(events.indexOf('FACTORY_FUNDING_REQUEST')).toBeGreaterThan(events.indexOf('FACTORY_PROPOSAL'));
+    const opts = (mockFinalizeFactoryOpening as jest.Mock).mock.calls.at(-1)[1];
+    expect(opts.fundingSignatures).toMatchObject({ alice: expect.any(Uint8Array), bob: expect.any(Uint8Array) });
   });
 
   it('passes the factory coin proof into closeFactory', async () => {
