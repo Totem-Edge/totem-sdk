@@ -41,6 +41,8 @@ export type { FactoryDistributionOutput, FactoryDistributionScriptConfig } from 
 
 export {
   createFactory,
+  createFactoryFromPlan,
+  proposeFactoryOpening,
   buildFactoryOpening,
   finalizeFactoryOpening,
   acceptFactory,
@@ -49,6 +51,7 @@ export {
   signFactoryOpening,
   verifyFactorySignature,
   applyFactorySignature,
+  assertFactoryFinalized,
 } from './factory.js';
 export type { FactoryOpeningSignature } from './factory.js';
 

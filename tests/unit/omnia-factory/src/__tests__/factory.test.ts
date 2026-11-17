@@ -1,6 +1,9 @@
 import { wotsAddressData } from '@totemsdk/core';
 import {
   createFactory,
+  createFactoryFromPlan,
+  buildFactoryOpening,
+  proposeFactoryOpening,
   acceptFactory,
   reallocate,
   enforceConservation,
@@ -967,5 +970,19 @@ describe('factory distribution (scalable escape)', () => {
     expect(s).toContain('ASSERT MULTISIG(2 ');
     expect(s).toContain('ASSERT SAMESTATE(111 111)');
     expect(s).toContain('ASSERT SAMESTATE(112 112)');
+  });
+});
+
+
+describe('plan-based factory opening', () => {
+  it('reuses the plan factoryId instead of generating a second identity', async () => {
+    const plan = await buildFactoryOpening([ALICE, BOB], TOKEN_A, 0);
+    const proposer = await proposeFactoryOpening(plan, ALICE_BUNDLE);
+    expect(proposer.factoryId).toBe(plan.factory.factoryId);
+    expect(proposer.pendingSignatures.alice).toBeInstanceOf(Uint8Array);
+
+    const factory = await createFactoryFromPlan(plan, ALICE_BUNDLE);
+    expect(factory.factoryId).toBe(plan.factory.factoryId);
+    expect(factory.pendingSignatures.alice).toBeInstanceOf(Uint8Array);
   });
 });

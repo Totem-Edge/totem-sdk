@@ -28,7 +28,9 @@ import { createHostMethods, type OperationStoreLike } from './api/methods.js';
 import { ReplyCache } from './reply-cache.js';
 import {
   acceptFactory,
+  assertFactoryFinalized,
   buildFactoryOpening,
+  buildFactorySettlement,
   signFactorySettlement,
   signVirtualChannelOpen,
   signVirtualChannelClose,
@@ -40,6 +42,8 @@ import { channelLockKey, withChannelLock } from './channel-lock.js';
 import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
   assertFactoryCommitment,
+  assertFactorySettlementDraft,
+  assertOffChainFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
   resolveFactoryFundingTarget,
@@ -463,15 +467,17 @@ export function createOmniaHost(
             }
             if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
               const proposal = payload.factory as ChannelFactory;
-              // CAN-018: never sign a commitment the peer chose. Rebuild the
-              // funding transaction from the proposal terms and materials and
-              // sign only the digest this host derived.
-              if (proposal.pendingCommitment) {
+              // CAN-018: never sign a commitment the peer chose. On-chain
+              // proposals are rebuilt from their funding materials; off-chain
+              // proposals are bound by their state commitment and have no
+              // funding materials to present.
+              const onChain = payload.onChain === true || Array.isArray(payload.fundingMaterials);
+              if (onChain) {
                 const materials = Array.isArray(payload.fundingMaterials)
                   ? payload.fundingMaterials as FactoryFundingMaterial[]
                   : undefined;
                 if (!materials) {
-                  throw new Error('factory proposal carries a commitment but no funding materials to verify it');
+                  throw new Error('on-chain factory proposal carries no funding materials to verify it');
                 }
                 const rebuilt = await buildFactoryOpening(
                   proposal.participants,
@@ -481,8 +487,10 @@ export function createOmniaHost(
                   materials,
                 );
                 assertFactoryCommitment(proposal.pendingCommitment, rebuilt.factory.pendingCommitment);
+              } else {
+                assertOffChainFactoryCommitment(proposal);
               }
-              const accepted = await acceptFactory(proposal, localBundle);
+              const accepted = await acceptFactory(proposal, localBundle, { deferCommit: true });
               factories.set(accepted.factoryId, accepted);
               void observation?.emit({
                 domain: 'factory', kind: 'factory.accepted', phase: 'accepted',
@@ -499,7 +507,15 @@ export function createOmniaHost(
             if (msg.type === 'FACTORY_CLOSE_PROPOSAL' && payload.factoryId) {
               const factory = factories.get(payload.factoryId);
               if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
-              const signature = await signFactorySettlement(factory, payload.draft, localBundle);
+              // Never sign a peer-supplied draft: rebuild it from the local
+              // factory and only sign the canonical digest this host derived.
+              const expectedDraft = buildFactorySettlement(factory);
+              assertFactorySettlementDraft(expectedDraft, (payload.draft ?? {}) as {
+                settlementDraft?: unknown;
+                settlementTxHex?: unknown;
+                txDigest?: unknown;
+              });
+              const signature = await signFactorySettlement(factory, expectedDraft, localBundle);
               await localBundle.leaseProvider
                 .commitKeyUse(signature.reservationId, `factory-settlement-${payload.factoryId}`)
                 .catch(() => {});
@@ -519,7 +535,10 @@ export function createOmniaHost(
               if (!known) {
                 throw new Error(`FACTORY_FINALIZED for factory ${finalized.factoryId} which this host has not accepted`);
               }
-              factories.set(finalized.factoryId, finalized);
+              // A known factory ID is not authority to replace its state: only
+              // funding references and additional valid signatures may change.
+              const validated = assertFactoryFinalized(known, finalized, peer?.pubkey);
+              factories.set(validated.factoryId, validated);
               return null;
             }
             if (msg.type === 'FACTORY_CLOSE_FINALIZED' && payload.factoryId) {

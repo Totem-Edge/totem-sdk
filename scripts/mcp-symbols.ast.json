@@ -6068,6 +6068,14 @@
         "BleSensorBridge": {
           "kind": "interface",
           "signature": "export interface BleSensorBridge"
+        },
+        "BleMeshLink": {
+          "kind": "class",
+          "signature": "export class BleMeshLink implements MeshLink"
+        },
+        "BleMeshLinkConfig": {
+          "kind": "interface",
+          "signature": "export interface BleMeshLinkConfig"
         }
       }
     },
@@ -6655,6 +6663,145 @@
         "MavlinkSensorBridge": {
           "kind": "interface",
           "signature": "export interface MavlinkSensorBridge"
+        }
+      }
+    },
+    "@totemsdk/edge-mesh": {
+      "symbols": {
+        "crc16": {
+          "kind": "function",
+          "signature": "crc16(data: Uint8Array): number",
+          "doc": "CRC-16/CCITT-FALSE, as used by the edge-mesh packet header.\n\nMatches `crc16()` in hawk-node/ble/frame_codec.cpp. The shared conformance\nvectors in test-vectors/mesh-v1.json pin both implementations."
+        },
+        "MeshError": {
+          "kind": "class",
+          "signature": "export class MeshError extends Error"
+        },
+        "MtuTooSmallError": {
+          "kind": "class",
+          "signature": "export class MtuTooSmallError extends MeshError",
+          "doc": "The link MTU cannot carry even one header-sized fragment."
+        },
+        "FrameTooLargeError": {
+          "kind": "class",
+          "signature": "export class FrameTooLargeError extends MeshError",
+          "doc": "The payload exceeds what this MTU can express in `MAX_FRAGMENTS` packets."
+        },
+        "TooManyFragmentsError": {
+          "kind": "class",
+          "signature": "export class TooManyFragmentsError extends MeshError"
+        },
+        "InvalidStreamFrameError": {
+          "kind": "class",
+          "signature": "export class InvalidStreamFrameError extends MeshError",
+          "doc": "A length-prefixed bridge frame declared a length that cannot be valid."
+        },
+        "MeshErrorCode": {
+          "kind": "type",
+          "signature": "export type MeshErrorCode = | 'mtu-too-small' | 'frame-too-large' | 'too-many-fragments' | 'invalid-stream-frame' | 'corrupt-frame'",
+          "doc": "Typed errors for the edge mesh (RFC-063 P3).\n\nA framed link has two kinds of failure: a caller mistake (bad MTU, frame too\nlarge) and hostile input (a byte stream that does not parse). Callers must be\nable to tell them apart without string matching, and relays must be able to\ncount rejects without swallowing them."
+        },
+        "MeshRejectReason": {
+          "kind": "type",
+          "signature": "export type MeshRejectReason = | 'short-header' | 'bad-magic' | 'unsupported-version' | 'bad-header' | 'crc' | 'duplicate' | 'frame-too-large'",
+          "doc": "Why a received packet was not accepted into a frame."
+        },
+        "MeshRejectSink": {
+          "kind": "type",
+          "signature": "export type MeshRejectSink = (reason: MeshRejectReason) => void",
+          "doc": "Called for every dropped packet. Relays should count these: silent drops make\na hostile or broken peer indistinguishable from an idle link."
+        },
+        "Fragmenter": {
+          "kind": "class",
+          "signature": "export class Fragmenter"
+        },
+        "Reassembler": {
+          "kind": "class",
+          "signature": "export class Reassembler"
+        },
+        "MAGIC": {
+          "kind": "const",
+          "signature": "MAGIC = 0xb7"
+        },
+        "VERSION": {
+          "kind": "const",
+          "signature": "VERSION = 2"
+        },
+        "HEADER_BYTES": {
+          "kind": "const",
+          "signature": "HEADER_BYTES = 11"
+        },
+        "ATT_OVERHEAD": {
+          "kind": "const",
+          "signature": "ATT_OVERHEAD = 3"
+        },
+        "MAX_FRAME_BYTES": {
+          "kind": "const",
+          "signature": "MAX_FRAME_BYTES = 1 << 20"
+        },
+        "MAX_PENDING_MESSAGES": {
+          "kind": "const",
+          "signature": "MAX_PENDING_MESSAGES = 32"
+        },
+        "encodeHeader": {
+          "kind": "function",
+          "signature": "encodeHeader(header: PacketHeader): Uint8Array"
+        },
+        "decodeHeader": {
+          "kind": "function",
+          "signature": "decodeHeader(data: Uint8Array): PacketHeader | undefined",
+          "doc": "Returns the header only when it is well formed and self-consistent."
+        },
+        "headerRejectReason": {
+          "kind": "function",
+          "signature": "headerRejectReason(data: Uint8Array): MeshRejectReason",
+          "doc": "Why a header was refused, for relays that count rejects."
+        },
+        "PacketHeader": {
+          "kind": "interface",
+          "signature": "export interface PacketHeader"
+        },
+        "AssembledFrame": {
+          "kind": "interface",
+          "signature": "export interface AssembledFrame",
+          "doc": "A completed frame plus the hop count it arrived with."
+        },
+        "StoreAndForward": {
+          "kind": "class",
+          "signature": "export class StoreAndForward"
+        },
+        "frameHash": {
+          "kind": "function",
+          "signature": "frameHash(frame: Uint8Array): bigint"
+        },
+        "RelayedFrame": {
+          "kind": "interface",
+          "signature": "export interface RelayedFrame"
+        },
+        "StreamFramer": {
+          "kind": "class",
+          "signature": "export class StreamFramer"
+        },
+        "makeFrame": {
+          "kind": "function",
+          "signature": "makeFrame(type: number, body: Uint8Array): Uint8Array",
+          "doc": "Wrap a type + body into a wire frame (tests and the bridge)."
+        },
+        "LENGTH_PREFIX_BYTES": {
+          "kind": "const",
+          "signature": "LENGTH_PREFIX_BYTES = 4"
+        },
+        "MAX_STREAM_FRAME": {
+          "kind": "const",
+          "signature": "MAX_STREAM_FRAME = 8 << 20"
+        },
+        "VirtualLink": {
+          "kind": "class",
+          "signature": "export class VirtualLink implements MeshLink"
+        },
+        "MeshLink": {
+          "kind": "interface",
+          "signature": "export interface MeshLink"
         }
       }
     },
@@ -10584,6 +10731,11 @@
           "signature": "computeManifestEnvelopeId(signedManifest: SignedManifest): string",
           "doc": "Content-addressed identity for a **signed manifest revision**.\n\n`computeManifestId` is the durable logical identifier (stable across versions).\nThis envelope ID changes with the signed revision content (including signature\nand signedAt) so ProofGraph can retain multiple revisions of one manifest."
         },
+        "computeManifestContentId": {
+          "kind": "function",
+          "signature": "computeManifestContentId(manifest: Manifest): string",
+          "doc": "Content id of a manifest **revision**: SHA3-256 over the canonical manifest.\n\nUnlike `computeManifestId` (stable across versions), this changes whenever any\nfield changes — version included. A proof that attests \"this manifest\" must\nbind to this id, otherwise a proof for one version verifies for another."
+        },
         "signManifest": {
           "kind": "function",
           "signature": "signManifest<T extends Manifest>(manifest: T, treeKey: TreeKey, useIndex: number): Promise<SignedManifest<T>>"
@@ -12065,6 +12217,11 @@
           "signature": "createOmniaIntegration(swarm: OmniaSwarm, store: ChannelStore, config?: OmniaIntegrationConfig): Unsubscribe",
           "doc": "Wire an OmniaSwarm to"
         },
+        "defaultCoSignPolicy": {
+          "kind": "const",
+          "signature": "defaultCoSignPolicy: CoSignPolicy = { authorize(request) { if (request.localBalanceAfter < request.localBalanceBefore) { return { allowed: false, reason: 'local balance would decrease' }; } if (reques",
+          "doc": "Safe default: never co-sign a local balance decrease or the removal of a\nlocal pending HTLC. Applications may install a narrower policy that approves\nspecific receive/forward/refund effects."
+        },
         "sendProgramTransitionStateUpdate": {
           "kind": "function",
           "signature": "sendProgramTransitionStateUpdate(peer: OmniaPeer, channel: OmniaChannel, signedState: Partial<SignedChannelState>, nonce: number): Promise<void>"
@@ -12088,6 +12245,19 @@
         "MinimalChainProvider": {
           "kind": "type",
           "signature": "export type MinimalChainProvider = any"
+        },
+        "CoSignDecision": {
+          "kind": "interface",
+          "signature": "export interface CoSignDecision"
+        },
+        "CoSignPolicy": {
+          "kind": "interface",
+          "signature": "export interface CoSignPolicy",
+          "doc": "Application-supplied consent decision for an inbound peer state."
+        },
+        "CoSignRequest": {
+          "kind": "interface",
+          "signature": "export interface CoSignRequest"
         },
         "createOmniaCoordination": {
           "kind": "function",
@@ -12418,6 +12588,16 @@
           "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number, funding?: FactoryFundingMaterial[]): Promise<ChannelFactory>",
           "doc": "Create a factory proposal (proposer step).\n\nThe calling party (`signer.publicKeyDigest` matches one of `participants`)\nsigns the factory opening commitment via `leaseProvider`, performing the full\nWOTS reserve → sign → verify → commit cycle.\n\nWhen ALL participants supply `fundingCoinId` and `chainProvider` is given,\nthe N-input → 1-output funding TX is built (via `@totemsdk/omnia`'s\n`buildFundingTx`), mined (via `@totemsdk/txpow`'s `mineTxPoW`), and broadcast.\nThe TX draft digest is used as the factory opening commitment so that all\nparties are co-signing the EXACT on-chain TX structure.\n\nWithout `fundingCoinId`s or `chainProvider`, the factory is in-memory only\n(useful for testing and off-chain simulation); the commitment falls back to\nthe factory state commitment hash.\n\nThe returned factory is in `'opening'` status.  Every other participant must\ncall `acceptFactory(factory, leaseProvider, signer)` before the factory\ntransitions to `'active'`."
         },
+        "createFactoryFromPlan": {
+          "kind": "function",
+          "signature": "createFactoryFromPlan(plan: FactoryOpeningPlan, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider): Promise<ChannelFactory>",
+          "doc": "Finish a plan: collect the funding-witness signatures from the plan's\nfunding materials (or use the supplied ones), broadcast the funding\ntransaction when the plan is on-chain, and commit the opening once every\nparticipant has signed."
+        },
+        "proposeFactoryOpening": {
+          "kind": "function",
+          "signature": "proposeFactoryOpening(plan: FactoryOpeningPlan, bundle: WotsLeaseBundle): Promise<ChannelFactory>",
+          "doc": "Sign the opening commitment for a plan and record the proposer's signature.\nNothing is broadcast and no funding signature is requested, so callers can\npropose the factory to the peer first (CAN-020 ordering)."
+        },
         "buildFactoryOpening": {
           "kind": "function",
           "signature": "buildFactoryOpening(participants: FactoryParticipant[], tokenId: string, tokenScale: number, chainProvider?: ChainStateProvider, funding?: FactoryFundingMaterial[]): Promise<FactoryOpeningPlan>",
@@ -12430,7 +12610,7 @@
         },
         "acceptFactory": {
           "kind": "function",
-          "signature": "acceptFactory(factory: ChannelFactory, bundle: WotsLeaseBundle): Promise<ChannelFactory>",
+          "signature": "acceptFactory(factory: ChannelFactory, bundle: WotsLeaseBundle, opts?: { deferCommit?: boolean; }): Promise<ChannelFactory>",
           "doc": "Counterparty co-signs the factory proposal.\n\nEach non-proposing participant calls this once. When ALL N parties have\nsigned (proposer via `createFactory` + N-1 counterparties via `acceptFactory`),\nthe factory transitions from `'opening'` to `'active'`.\n\nUses the full WOTS lease cycle: reserve → sign → verify → commit."
         },
         "reallocate": {
@@ -12457,6 +12637,11 @@
           "kind": "function",
           "signature": "applyFactorySignature(factory: ChannelFactory, partyId: string, signature: Uint8Array): ChannelFactory",
           "doc": "Merge a co-signer's opening signature (RFC-035 B2). When all N participants\nhave signed, the opening commits (`'opening'` → `'active'`)."
+        },
+        "assertFactoryFinalized": {
+          "kind": "function",
+          "signature": "assertFactoryFinalized(known: ChannelFactory, incoming: ChannelFactory, senderPublicKeyDigest?: string): ChannelFactory",
+          "doc": "Validate a peer-supplied `FACTORY_FINALIZED` transition against the locally\naccepted factory. The peer may only fill in the funding references and add\nvalid opening signatures; every term, commitment and existing signature must\nbe identical. Returns the validated factory to store."
         },
         "FactoryOpeningSignature": {
           "kind": "interface",
@@ -15080,6 +15265,16 @@
           "kind": "function",
           "signature": "createManifestProof(params: CreateManifestProofParams): UnsignedProof"
         },
+        "createManifestProofFor": {
+          "kind": "function",
+          "signature": "createManifestProofFor(signedManifest: SignedManifest<any>, params: Omit<CreateManifestProofParams, \"manifestId\" | \"issuer\"> & { issuer?: string; }): UnsignedProof",
+          "doc": "Build a manifest proof whose id is derived from the manifest itself, so it\ncannot be created with a mismatched id by accident."
+        },
+        "manifestContentId": {
+          "kind": "function",
+          "signature": "manifestContentId(manifest: Manifest): string",
+          "doc": "Content id of a manifest revision: SHA3-256 over the canonical manifest.\n\n`computeManifestId` is deliberately stable across versions (it identifies the\nmanifest, not the revision), so it cannot bind a proof to a specific version.\nThis digest changes with any field, version included. It mirrors the\ncanonicalisation `signManifest` signs over."
+        },
         "verifyManifestProof": {
           "kind": "function",
           "signature": "verifyManifestProof(signedProof: SignedProof, signedManifest: SignedManifest<any>): ProofVerifyResult"
@@ -16906,6 +17101,10 @@
         "PortfolioCacheConfig": {
           "kind": "interface",
           "signature": "export interface PortfolioCacheConfig"
+        },
+        "PortfolioCacheEntry": {
+          "kind": "interface",
+          "signature": "export interface PortfolioCacheEntry"
         },
         "LookupBackend": {
           "kind": "class",
