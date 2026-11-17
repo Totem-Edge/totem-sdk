@@ -1,8 +1,15 @@
 /**
  * MinimaRpcProvider — thin wrapper over @totemsdk/minima-rpc.
+ *
+ * Unit boundary: the node reports `amount` as decimal MINIMA (`"0.2"`), while
+ * Omnia channel/HTLC/funding maths is raw atoms. `getCoins` and `getCoin`
+ * normalise to atoms so `BigInt(coin.amount)` is always valid downstream.
+ * `verifyDeposit` is intentionally left on the node's decimal values: it
+ * evaluates the `coinexport` coinproof against a decimal `claimedAmount`.
  */
 
 import type { MinimaRpcClient } from '@totemsdk/minima-rpc';
+import { amountToAtoms } from '../amount.js';
 import type {
   ChainStateProvider,
   CoinsQuery,
@@ -32,7 +39,11 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
       coinid: query.coinId,
       megammr: query.megammr,
     });
-    return result as unknown as Coin[];
+    // The node reports decimal MINIMA; Omnia's channel maths is in raw atoms.
+    return (result as unknown as Coin[]).map((coin) => ({
+      ...coin,
+      amount: amountToAtoms(coin.amount),
+    }));
   }
 
   async getAddressInfo(address: string): Promise<AddressInfo | null> {
@@ -55,7 +66,11 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
       const exported = await this.client.coinExport(coinId);
       const coin = exported?.coinproof?.coin as unknown as Coin | undefined;
       if (coin) {
-        return { ...coin, spent: (coin as { spent?: boolean }).spent === true };
+        return {
+          ...coin,
+          amount: amountToAtoms(coin.amount),
+          spent: (coin as { spent?: boolean }).spent === true,
+        };
       }
     } catch {
       // fall through to the wallet query
