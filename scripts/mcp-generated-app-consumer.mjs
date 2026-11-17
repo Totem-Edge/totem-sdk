@@ -18,8 +18,18 @@ const { buildIndex } = require(join(ROOT, 'packages', 'mcp-server', 'dist', 'ind
 const { RECIPES, planRecipe } = require(join(ROOT, 'packages', 'mcp-server', 'dist', 'recipes.js'));
 const { scaffoldApp } = require(join(ROOT, 'packages', 'mcp-server', 'dist', 'composition.js'));
 
+// `minimum-release-age` (pnpm's supply-chain gate) hides versions published in
+// the last day from *range* resolution. The app pins exact SDK versions, so a
+// transitive `@totemsdk/core: ^1.4.2` would otherwise install an older copy next
+// to the pinned one, and the duplicate core-wasm peer variant never initialises
+// its wasm module (`__wbindgen_malloc` is undefined). It has to be passed as a
+// config flag on every pnpm command: a project `.npmrc` entry is ignored and
+// pnpm re-verifies dependencies before `run`.
+const SDK_INSTALL_FLAGS = ['--config.minimum-release-age=0', '--config.verify-deps-before-run=false'];
+
 function run(cmd, args, cwd) {
-  return execFileSync(cmd, args, { cwd, stdio: 'pipe', encoding: 'utf8' });
+  const finalArgs = cmd === 'pnpm' ? [...SDK_INSTALL_FLAGS, ...args] : args;
+  return execFileSync(cmd, finalArgs, { cwd, stdio: 'pipe', encoding: 'utf8' });
 }
 
 const index = buildIndex();
@@ -33,7 +43,7 @@ for (const recipe of RECIPES) {
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, file.content);
     }
-    run('pnpm', ['install', '--ignore-scripts', '--config.verify-deps-before-run=false'], dir);
+    run('pnpm', ['install', '--ignore-scripts'], dir);
     run('pnpm', ['run', 'build'], dir);
     const output = run('pnpm', ['test'], dir);
     if (!output.includes('# fail 0')) throw new Error(`${recipe.id}: generated tests failed`);

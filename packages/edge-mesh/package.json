@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-mesh",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Edge mesh framing and relay \u2014 fragmentation, store-and-forward and stream framing for constrained links",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

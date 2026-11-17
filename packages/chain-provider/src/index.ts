@@ -27,6 +27,9 @@ export type { HostedProviderConfig } from './providers/hosted.js';
 
 export { MinimaRpcProvider } from './providers/minima-rpc.js';
 
+// Unit boundary helpers: the node speaks decimal MINIMA, the SDK speaks atoms.
+export { MINIMA_DECIMALS, amountToAtoms } from './amount.js';
+
 export { LookupClientProvider } from './providers/lookup-client.js';
 export type { LookupClientLike } from './providers/lookup-client.js';
 
