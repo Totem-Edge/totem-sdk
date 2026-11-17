@@ -164,155 +164,82 @@ export async function createFactory(
   tokenScale: number = 0,
   funding?: FactoryFundingMaterial[],
 ): Promise<ChannelFactory> {
-  if (participants.length < 2) {
-    throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
-  }
+  // One plan, one factory ID: build the opening once and reuse it for the
+  // proposal, the local record and the funding transaction. Rebuilding here
+  // would generate a different ID (the ID includes a random nonce) and the
+  // peer would accept a factory this host never stored.
+  const plan = await buildFactoryOpening(participants, tokenId, tokenScale, chainProvider, funding);
+  return createFactoryFromPlan(plan, bundle, chainProvider);
+}
 
-  // Identify the proposer by public key digest.
-  const proposer = participants.find(p => p.publicKeyDigest === bundle.signer.publicKeyDigest);
+function findProposer(factory: ChannelFactory, bundle: WotsLeaseBundle): FactoryParticipant {
+  const proposer = factory.participants.find(p => p.publicKeyDigest === bundle.signer.publicKeyDigest);
   if (!proposer) {
-    throw new Error(
-      'signer.publicKeyDigest does not match any registered factory participant',
-    );
+    throw new Error('signer.publicKeyDigest does not match any registered factory participant');
   }
+  return proposer;
+}
 
-  const totalValue = participants.reduce((sum, p) => sum + p.contributionAmount, 0n);
-  const allocations: Record<string, bigint> = {};
-  for (const p of participants) {
-    allocations[p.partyId] = p.contributionAmount;
+/**
+ * Sign the opening commitment for a plan and record the proposer's signature.
+ * Nothing is broadcast and no funding signature is requested, so callers can
+ * propose the factory to the peer first (CAN-020 ordering).
+ */
+export async function proposeFactoryOpening(
+  plan: FactoryOpeningPlan,
+  bundle: WotsLeaseBundle,
+): Promise<ChannelFactory> {
+  const proposer = findProposer(plan.factory, bundle);
+  if (!plan.factory.pendingCommitment) {
+    throw new Error('Factory plan has no pending commitment');
   }
+  const commitment = Buffer.from(plan.factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
+  const sig = await leaseSign(plan.factory.factoryId, commitment, 'factory-open', proposer, bundle);
+  return {
+    ...plan.factory,
+    pendingSignatures: { [proposer.partyId]: sig },
+  };
+}
 
-  const { script, address } = buildAndHashFactoryScript(participants);
-  const factoryId = generateFactoryId(participants, tokenId, tokenScale);
+/**
+ * Finish a plan: collect the funding-witness signatures from the plan's
+ * funding materials (or use the supplied ones), broadcast the funding
+ * transaction when the plan is on-chain, and commit the opening once every
+ * participant has signed.
+ */
+export async function createFactoryFromPlan(
+  plan: FactoryOpeningPlan,
+  bundle: WotsLeaseBundle,
+  chainProvider?: ChainStateProvider,
+): Promise<ChannelFactory> {
+  let factory = await proposeFactoryOpening(plan, bundle);
 
-  // ── Build + mine + broadcast funding TX (when participants provide UTXOs) ──
-  let fundingTxId: string | undefined;
-  let fundingCoinId: string | undefined;
-  let pendingCommitment: Uint8Array;
-
-  const allHaveCoinId = participants.every(p => p.fundingCoinId);
-  if (allHaveCoinId && chainProvider) {
-    const materialByParty = new Map((funding ?? []).map(m => [m.partyId, m]));
-
-    // The transaction input address must be the *funding coin's* address, not
-    // the participant's settlement address. Callers supply it directly or via
-    // the funding coin script.
-    const inputAddresses = participants.map(p => {
-      const m = materialByParty.get(p.partyId);
-      return m?.coinAddress ?? (m?.script ? computeScriptAddress(m.script) : '');
-    });
-    if (inputAddresses.some(a => !a)) {
-      throw new Error(
-        'createFactory on-chain requires funding material (coinAddress or script) for every participant',
-      );
+  if (plan.onChain) {
+    if (!chainProvider || !plan.fundingTxBytes || !plan.fundingDigest) {
+      throw new Error('Factory funding requires a chain provider and a complete funding plan');
     }
-
-    const tip = await chainProvider.getTip();
-    const escapeBlock = tip.block + FACTORY_ESCAPE_DELAY_BLOCKS;
-    const fundingDraft = buildFundingTx(
-      script,
-      address,
-      totalValue,
-      tokenId,
-      tokenScale,
-      participants.map(p => p.fundingCoinId!),
-      participants.map(p => p.contributionAmount),
-      inputAddresses,
-      [...factoryBalanceStateVariables(participants), factoryEscapeStateVariable(escapeBlock)],
-    );
-
-    // Production signatures must cover the canonical Minima transaction ID.
-    pendingCommitment = computeOmniaTxDigest(fundingDraft);
-
-    // Assemble the real witness: one CoinProof + ScriptProof + signature per
-    // input coin (the factory's own MULTISIG script is the *output* script).
-    const signatures: Uint8Array[] = [];
-    const coinProofs: Uint8Array[] = [];
-    const scriptProofs: Uint8Array[] = [];
-    for (const p of participants) {
-      const m = materialByParty.get(p.partyId);
-      if (!m) throw new Error(`Missing funding material for factory party '${p.partyId}'`);
-      coinProofs.push(m.coinProof);
-      let scriptProof = m.scriptProof;
-      if (!scriptProof) {
-        if (!m.script) throw new Error(`Missing script or scriptProof for factory party '${p.partyId}'`);
-        scriptProof = buildScriptProof(m.script);
-      }
-      scriptProofs.push(scriptProof);
-      if (m.signature) {
-        signatures.push(m.signature);
-      } else if (m.signer) {
-        signatures.push(Uint8Array.from(await m.signer(pendingCommitment)));
+    const materials = new Map((plan.fundingMaterials ?? []).map(m => [m.partyId, m]));
+    const fundingSignatures: Record<string, Uint8Array> = {};
+    for (const participant of factory.participants) {
+      const material = materials.get(participant.partyId);
+      if (!material) throw new Error(`Missing funding material for factory party '${participant.partyId}'`);
+      if (material.signature) {
+        fundingSignatures[participant.partyId] = material.signature;
+      } else if (material.signer) {
+        fundingSignatures[participant.partyId] = Uint8Array.from(await material.signer(plan.fundingDigest));
       } else {
-        throw new Error(`Missing signature or signer for factory party '${p.partyId}'`);
+        throw new Error(`Missing signature or signer for factory party '${participant.partyId}'`);
       }
     }
-
-    const draftBytes = omniaDraftToMinimaBytes(fundingDraft);
-    const witnessBytes = serializeOmniaWitness({ signatures, coinProofs, scriptProofs });
-
-    if (chainProvider.submitTransaction) {
-      const submitted = await chainProvider.submitTransaction(draftBytes, witnessBytes);
-      if (submitted.success === false || !submitted.txpowid) {
-        throw new Error(`Factory funding submission failed: ${submitted.message ?? 'no txpowid'}`);
-      }
-      fundingTxId = submitted.txpowid;
-    } else {
-      const txnDifficulty = await resolveTxPowTarget(chainProvider);
-      const txBody = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
-      const mined = await mineTxPoW(txBody, txnDifficulty);
-      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-      const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-      if (broadcast.success === false) {
-        throw new Error(`Factory funding broadcast failed: ${broadcast.message ?? 'unknown error'}`);
-      }
-      fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
-    }
-
-    fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
-  } else {
-    // In-memory / test path: sign the factory state commitment instead.
-    pendingCommitment = computeFactoryStateCommitment(factoryId, 1, allocations, []);
+    factory = await finalizeFactoryOpening(
+      plan,
+      { fundingSignatures, openingSignatures: factory.pendingSignatures },
+      chainProvider,
+    );
   }
-
-  // Sign with the proposer's lease (full bundle preserved so verify override is available).
-  const proposerSig = await leaseSign(
-    factoryId,
-    pendingCommitment,
-    'factory-open',
-    proposer,
-    bundle,
-  );
-
-  const initialEntry: FactoryLogEntry = {
-    sequence:          0,
-    timestamp:         Date.now(),
-    event:             'create',
-    allocations:       { ...allocations },
-    virtualChannelIds: [],
-  };
-
-  const factory: ChannelFactory = {
-    factoryId,
-    participants,
-    totalValue,
-    tokenId,
-    tokenScale,
-    allocations:        { ...allocations },
-    virtualChannels:    [],
-    currentSequence:    0,
-    status:             'opening',
-    stateLog:           [initialEntry],
-    fundingScript:      script,
-    fundingAddress:     address,
-    fundingTxId,
-    fundingCoinId,
-    pendingCommitment:  Buffer.from(pendingCommitment).toString('hex'),
-    pendingSignatures:  { [proposer.partyId]: proposerSig },
-  };
 
   // If proposer is the only participant (edge case), activate immediately.
-  if (participants.length === 1) {
+  if (factory.participants.length === 1) {
     return commitOpening(factory);
   }
 
@@ -499,6 +426,7 @@ export async function finalizeFactoryOpening(
 export async function acceptFactory(
   factory: ChannelFactory,
   bundle: WotsLeaseBundle,
+  opts?: { deferCommit?: boolean },
 ): Promise<ChannelFactory> {
   if (factory.status !== 'opening') {
     throw new Error(`acceptFactory requires factory status 'opening', got '${factory.status}'`);
@@ -517,15 +445,16 @@ export async function acceptFactory(
     throw new Error(`Party '${participant.partyId}' has already co-signed this factory proposal`);
   }
 
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const sig = await leaseSign(factory.factoryId, commitment, 'factory-open', participant, bundle);
 
   const newSigs = { ...factory.pendingSignatures, [participant.partyId]: sig };
   const updatedFactory = { ...factory, pendingSignatures: newSigs };
 
-  // When all N parties have signed, commit the opening.
+  // When all N parties have signed, commit the opening unless the host is
+  // waiting for funding evidence (on-chain) or the proposer's FINALIZED.
   const allSigned = factory.participants.every(p => newSigs[p.partyId] !== undefined);
-  if (allSigned) {
+  if (allSigned && !opts?.deferCommit) {
     return commitOpening(updatedFactory);
   }
   return updatedFactory;
@@ -564,7 +493,7 @@ export async function signFactoryOpening(
     throw new Error(`Party '${participant.partyId}' has already co-signed this factory proposal`);
   }
 
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const reservation = await bundle.leaseProvider.reserveKeyUse({
     treeId: `omnia-factory-${factory.factoryId}`,
     purpose: 'factory-open',
@@ -604,7 +533,7 @@ export function verifyFactorySignature(
   if (!factory.pendingCommitment) return false;
   const participant = factory.participants.find(p => p.partyId === partyId);
   if (!participant) return false;
-  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const commitment = Buffer.from(factory.pendingCommitment.replace(/^0x/i, ''), 'hex');
   const verifyFn =
     verify ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => verifyChannelSignature(s, c, pkd));
   try {
@@ -729,4 +658,134 @@ export async function reallocate(
 
   enforceConservation(updated);
   return updated;
+}
+
+// ─── Peer-supplied state validation ──────────────────────────────────────────
+
+function jsonSafeForCompare(value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(jsonSafeForCompare);
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => [k, jsonSafeForCompare(v)] as const);
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
+function factoryTermsFingerprint(f: ChannelFactory): string {
+  return JSON.stringify(jsonSafeForCompare({
+    factoryId: f.factoryId,
+    participants: f.participants,
+    totalValue: f.totalValue,
+    tokenId: f.tokenId,
+    tokenScale: f.tokenScale,
+    allocations: f.allocations,
+    virtualChannels: f.virtualChannels,
+    currentSequence: f.currentSequence,
+    stateLog: f.stateLog,
+    fundingScript: f.fundingScript,
+    fundingAddress: f.fundingAddress,
+    pendingCommitment: f.pendingCommitment,
+  }));
+}
+
+/**
+ * Validate a peer-supplied `FACTORY_FINALIZED` transition against the locally
+ * accepted factory. The peer may only fill in the funding references and add
+ * valid opening signatures; every term, commitment and existing signature must
+ * be identical. Returns the validated factory to store.
+ */
+export function assertFactoryFinalized(
+  known: ChannelFactory,
+  incoming: ChannelFactory,
+  senderPublicKeyDigest?: string,
+): ChannelFactory {
+  if (!incoming || incoming.factoryId !== known.factoryId) {
+    throw new Error('FACTORY_FINALIZED for a different factory');
+  }
+  if (senderPublicKeyDigest && !known.participants.some(p => p.publicKeyDigest === senderPublicKeyDigest)) {
+    throw new Error('FACTORY_FINALIZED sender is not a factory participant');
+  }
+
+  const terms = (f: ChannelFactory): string => JSON.stringify(jsonSafeForCompare({
+    participants: f.participants,
+    totalValue: f.totalValue,
+    tokenId: f.tokenId,
+    tokenScale: f.tokenScale,
+    allocations: f.allocations,
+    virtualChannels: f.virtualChannels,
+    fundingScript: f.fundingScript,
+    fundingAddress: f.fundingAddress,
+  }));
+  if (terms(known) !== terms(incoming)) {
+    throw new Error('FACTORY_FINALIZED changes factory terms');
+  }
+  if (known.fundingTxId && incoming.fundingTxId !== known.fundingTxId) {
+    throw new Error('FACTORY_FINALIZED changes the funding transaction');
+  }
+  if (known.fundingCoinId && incoming.fundingCoinId !== known.fundingCoinId) {
+    throw new Error('FACTORY_FINALIZED changes the funding coin');
+  }
+  if (known.status === 'closed' && incoming.status !== 'closed') {
+    throw new Error('FACTORY_FINALIZED cannot reopen a closed factory');
+  }
+
+  // The expected transition for a proposal this host accepted with every
+  // participant signature present is the deterministic commit: sequence 1, an
+  // 'accept' log entry, cleared pending commitment and signatures.
+  if (known.status === 'opening' && incoming.status === 'active') {
+    if (known.currentSequence !== 0 || incoming.currentSequence !== 1) {
+      throw new Error('FACTORY_FINALIZED has an invalid sequence for an opening');
+    }
+    if (!known.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED for a proposal without a pending commitment');
+    }
+    const commitment = Buffer.from(known.pendingCommitment.replace(/^0x/i, ''), 'hex');
+    const signatures = known.pendingSignatures ?? {};
+    for (const participant of known.participants) {
+      const sig = signatures[participant.partyId];
+      if (!sig) throw new Error(`FACTORY_FINALIZED activates a factory missing the signature for '${participant.partyId}'`);
+      if (!verifyChannelSignature(sig, commitment, participant.publicKeyDigest)) {
+        throw new Error(`FACTORY_FINALIZED activates a factory with an invalid signature for '${participant.partyId}'`);
+      }
+    }
+    if (incoming.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED must clear the pending commitment when it activates');
+    }
+    if (incoming.pendingSignatures && Object.keys(incoming.pendingSignatures).length > 0) {
+      throw new Error('FACTORY_FINALIZED must clear pending signatures when it activates');
+    }
+    const log = incoming.stateLog ?? [];
+    if (log.length !== (known.stateLog?.length ?? 0) + 1) {
+      throw new Error('FACTORY_FINALIZED has an unexpected state log');
+    }
+    const last = log[log.length - 1];
+    if (!last || last.event !== 'accept' || last.sequence !== 1) {
+      throw new Error('FACTORY_FINALIZED is missing the accept log entry');
+    }
+    if (JSON.stringify(jsonSafeForCompare(last.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
+      throw new Error('FACTORY_FINALIZED changes allocations in the accept entry');
+    }
+    return { ...incoming, pendingSignatures: {} };
+  }
+
+  if (known.status === 'active' && incoming.status === 'active') {
+    // Funding references may be filled in after activation; terms are already checked.
+    return { ...incoming };
+  }
+  if (known.status === 'opening' && incoming.status === 'opening') {
+    // Funding references only; signatures may not be removed or altered.
+    const knownSigs = known.pendingSignatures ?? {};
+    const incomingSigs = incoming.pendingSignatures ?? {};
+    for (const [partyId, sig] of Object.entries(knownSigs)) {
+      const next = incomingSigs[partyId];
+      if (!next || Buffer.from(next).toString('hex') !== Buffer.from(sig).toString('hex')) {
+        throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
+      }
+    }
+    return { ...incoming, pendingSignatures: { ...incomingSigs } };
+  }
+  throw new Error('FACTORY_FINALIZED has an unsupported status transition');
 }

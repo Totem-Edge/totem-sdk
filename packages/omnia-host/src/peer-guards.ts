@@ -15,6 +15,7 @@
  *
  * See docs/findings/agent/CAN-007.md and CAN-010.md in the canary.
  */
+import { computeFactoryStateCommitment } from '@totemsdk/omnia-factory';
 import type { ChannelFactory } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance } from '@totemsdk/omnia-splice';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -207,4 +208,68 @@ export function assertVcFinalized(input: {
   }
 
   return acceptance;
+}
+
+/**
+ * Validate an off-chain factory proposal.
+ *
+ * An off-chain factory has no funding transaction, so there are no funding
+ * materials to rebuild. The proposal is bound by its state commitment, which
+ * commits to the factoryId, sequence and allocations. Recompute it here instead
+ * of requiring materials the peer cannot supply.
+ */
+export function assertOffChainFactoryCommitment(factory: ChannelFactory): void {
+  if (!factory.pendingCommitment) {
+    throw new Error('off-chain factory proposal has no commitment');
+  }
+  if (!factory.factoryId) {
+    throw new Error('off-chain factory proposal has no factoryId');
+  }
+  const sum = Object.values(factory.allocations ?? {}).reduce((a, b) => a + b, 0n);
+  if (sum !== factory.totalValue) {
+    throw new Error(
+      `off-chain factory proposal violates conservation: allocations(${sum}) !== totalValue(${factory.totalValue})`,
+    );
+  }
+  const expected = computeFactoryStateCommitment(factory.factoryId, 1, factory.allocations, []);
+  if (normalizeHex(factory.pendingCommitment) !== normalizeHex(Buffer.from(expected).toString('hex'))) {
+    throw new Error('off-chain factory proposal commitment does not match its terms');
+  }
+}
+
+function jsonSafeForCompare(value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(jsonSafeForCompare);
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => [k, jsonSafeForCompare(v)] as const);
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
+/**
+ * A peer may only ask this host to sign the settlement its local factory
+ * produces. Compare the peer's draft to the rebuilt canonical draft before any
+ * WOTS leaf is reserved.
+ */
+export function assertFactorySettlementDraft(
+  expected: { settlementDraft: unknown; settlementTxHex: string; txDigest: Uint8Array },
+  proposed: { settlementDraft?: unknown; settlementTxHex?: unknown; txDigest?: unknown },
+): void {
+  if (!proposed || !(proposed.txDigest instanceof Uint8Array)) {
+    throw new Error('factory settlement proposal carries no tx digest');
+  }
+  if (normalizeHex(Buffer.from(expected.txDigest).toString('hex')) !== normalizeHex(Buffer.from(proposed.txDigest).toString('hex'))) {
+    throw new Error('factory settlement proposal digest does not match the local factory');
+  }
+  if (typeof proposed.settlementTxHex !== 'string'
+      || normalizeHex(proposed.settlementTxHex) !== normalizeHex(expected.settlementTxHex)) {
+    throw new Error('factory settlement proposal transaction does not match the local factory');
+  }
+  if (JSON.stringify(jsonSafeForCompare(proposed.settlementDraft))
+      !== JSON.stringify(jsonSafeForCompare(expected.settlementDraft))) {
+    throw new Error('factory settlement proposal draft does not match the local factory');
+  }
 }
