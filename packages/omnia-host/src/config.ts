@@ -55,6 +55,16 @@ export interface OmniaHostConfig {
    * is explicit and policy-controlled. This does not change on-chain custody.
    */
   custodyMode?: CustodyMode;
+  /**
+   * Policy for peer-initiated factory signing. Deny is the default: a host must
+   * either wire an operator authorizer or explicitly opt into a bounded
+   * automated policy (maxTotalValue / allowedPeers).
+   */
+  factoryApproval?: {
+    autoApprove?: boolean;
+    maxTotalValue?: bigint;
+    allowedPeers?: string[];
+  };
   /** Identity file containing a delegated identity claim (operator root → service delegate). */
   identityFile?: string;
   /** EdgeServiceManifest serviceType (default "omnia-router"). */
@@ -236,5 +246,14 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     p2pHubOrigins: parseOrigins(env.OMNIA_P2P_HUB_ORIGINS),
     p2pHubTopics: parseList(env.OMNIA_P2P_HUB_TOPICS),
     controlToken: optional(env.OMNIA_CONTROL_TOKEN),
+    factoryApproval: {
+      autoApprove: env.OMNIA_FACTORY_AUTO_APPROVE === 'true',
+      ...(env.OMNIA_FACTORY_AUTO_APPROVE_MAX
+        ? { maxTotalValue: BigInt(env.OMNIA_FACTORY_AUTO_APPROVE_MAX.trim()) }
+        : {}),
+      ...(parseList(env.OMNIA_FACTORY_AUTO_APPROVE_PEERS)
+        ? { allowedPeers: parseList(env.OMNIA_FACTORY_AUTO_APPROVE_PEERS) }
+        : {}),
+    },
   };
 }
