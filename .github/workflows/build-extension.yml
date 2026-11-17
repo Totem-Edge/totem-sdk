@@ -246,6 +246,7 @@ jobs:
           prerelease: true
           files: |
             totem-extension.zip
+            totem-extension-v${VERSION}.zip
             totem-extension.crx
             totem-extension.xml
             SHA256SUMS.txt
