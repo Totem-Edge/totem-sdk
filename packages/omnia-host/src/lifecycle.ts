@@ -39,6 +39,7 @@ import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
 import type { ChannelFactory, FactoryFundingMaterial, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
 import { channelLockKey, withChannelLock } from './channel-lock.js';
+import { createFactoryAuthorizer, type FactoryAuthorizer } from './factory-approval.js';
 import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
   assertFactoryCommitment,
@@ -72,6 +73,8 @@ export interface OmniaHostDependencies {
   transportPubkey?: string;
   factories?: Map<string, ChannelFactory>;
   factoryBundles?: Record<string, WotsLeaseBundle>;
+  /** Authorization gate for peer-initiated factory signing (deny by default). */
+  factoryAuthorization?: FactoryAuthorizer;
   spliceProposals?: Map<string, SpliceProposal>;
   spliceAcceptances?: Map<string, SpliceAcceptance>;
   spliceLeaseProvider?: SpliceLeaseProvider;
@@ -115,6 +118,8 @@ export function createOmniaHost(
   config: OmniaHostConfig,
   dependencies: OmniaHostDependencies = {},
 ): OmniaHost {
+  const authorizeFactory: FactoryAuthorizer =
+    dependencies.factoryAuthorization ?? createFactoryAuthorizer(config.factoryApproval ?? {});
   let started = false;
   let swarm = dependencies.swarm;
   let unsubscribe: (() => void) | undefined;
@@ -490,6 +495,17 @@ export function createOmniaHost(
               } else {
                 assertOffChainFactoryCommitment(proposal);
               }
+              await authorizeFactory({
+                kind: 'open',
+                factoryId: proposal.factoryId,
+                peerPublicKeyDigest: String(peer?.pubkey ?? ''),
+                participants: proposal.participants.length,
+                totalValue: proposal.totalValue.toString(),
+                tokenId: proposal.tokenId,
+                tokenScale: proposal.tokenScale ?? 0,
+                digest: proposal.pendingCommitment ?? '',
+                summary: `Open factory ${proposal.factoryId} with ${proposal.participants.length} participants`,
+              });
               const accepted = await acceptFactory(proposal, localBundle, { deferCommit: true });
               factories.set(accepted.factoryId, accepted);
               void observation?.emit({
@@ -514,6 +530,17 @@ export function createOmniaHost(
                 settlementDraft?: unknown;
                 settlementTxHex?: unknown;
                 txDigest?: unknown;
+              });
+              await authorizeFactory({
+                kind: 'close',
+                factoryId: factory.factoryId,
+                peerPublicKeyDigest: String(peer?.pubkey ?? ''),
+                participants: factory.participants.length,
+                totalValue: factory.totalValue.toString(),
+                tokenId: factory.tokenId,
+                tokenScale: factory.tokenScale ?? 0,
+                digest: '0x' + Buffer.from(expectedDraft.txDigest).toString('hex'),
+                summary: `Close factory ${factory.factoryId}`,
               });
               const signature = await signFactorySettlement(factory, expectedDraft, localBundle);
               await localBundle.leaseProvider

@@ -31,6 +31,7 @@ describe('loadConfigFromEnv', () => {
       serviceType: 'omnia-router',
       allowedOrigins: undefined,
       controlToken: undefined,
+      factoryApproval: { autoApprove: false },
     });
   });
 
@@ -77,6 +78,20 @@ describe('loadConfigFromEnv', () => {
       serviceType: 'omnia-router',
       allowedOrigins: undefined,
       controlToken: undefined,
+      factoryApproval: { autoApprove: false },
+    });
+  });
+
+  it('parses the bounded factory auto-approval policy', () => {
+    const config = loadConfigFromEnv({
+      OMNIA_FACTORY_AUTO_APPROVE: 'true',
+      OMNIA_FACTORY_AUTO_APPROVE_MAX: '5000',
+      OMNIA_FACTORY_AUTO_APPROVE_PEERS: ' 0xaa, 0xbb ',
+    });
+    expect(config.factoryApproval).toEqual({
+      autoApprove: true,
+      maxTotalValue: 5000n,
+      allowedPeers: ['0xaa', '0xbb'],
     });
   });
 

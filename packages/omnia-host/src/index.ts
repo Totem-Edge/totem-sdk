@@ -56,6 +56,14 @@ export type {
 } from './watch.js';
 export { createLocalSignerPort, createPolicySignerPort } from './signer-port.js';
 export type { SignerAuditRecord, SignerPolicy } from './signer-port.js';
+export { createFactoryAuthorizer } from './factory-approval.js';
+export type {
+  FactoryApprovalEvent,
+  FactoryApprovalKind,
+  FactoryApprovalPolicy,
+  FactoryAuthorizationRequest,
+  FactoryAuthorizer,
+} from './factory-approval.js';
 
 // Durable, replayable observation feed (RFC-0011 Amendment A).
 export * from './observe/index.js';
