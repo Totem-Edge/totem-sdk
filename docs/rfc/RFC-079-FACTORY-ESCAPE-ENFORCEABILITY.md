@@ -1,0 +1,171 @@
+# RFC-079: Factory Escape State Enforceability
+
+**Status:** Accepted decision — checkpoint fallback specified, contestable mode
+conditional on a real-node KISSVM proof.
+**Date:** 2026-11-18
+**Supersedes:** nothing. **Blocked-by:** OMN-057/OMN-058, OMN-064.
+**Related:** RFC-009 (KISSVM signature fidelity), RFC-016 (template security),
+RFC-048 (port budgets), RFC-078 (authorization hardening).
+
+## 1. Decision
+
+Omnia factory settlement must pay a **cryptographically authenticated,
+enforceable factory state**, not the immutable funding allocation.
+
+The target design is a versioned, challengeable unilateral settlement protocol:
+monotonically increasing state sequences, bounded contest windows, independent
+recovery certificates, and verified distribution outputs.
+
+Deployment of that design is **conditional** on:
+
+1. detached-certificate signature verification on a real Minima node *and* in
+   both SDK evaluators;
+2. bounded contest deadlines derived from an authoritative height;
+3. successor continuity and value conservation enforceable in KISSVM;
+4. final distribution verified against the committed allocation.
+
+Until those hold, **only confirmed on-chain state checkpoints may establish
+enforceable allocation changes**, and dynamic off-chain factory value transfers
+stay release-blocked.
+
+OMN-058 therefore remains **open / critical**. This RFC is the design record,
+not a closure.
+
+## 2. Measured feasibility (spike, commit 63f1cada)
+
+The spike lives in
+`tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts`. It records
+observed behaviour, so a failure there is a real blocker, not a flaky test.
+
+| Question | Result | Evidence |
+|---|---|---|
+| Can a covenant authenticate a detached state certificate without fresh counterparty signatures? | **No** | `evalChecksig` verifies `witness.signatures[publicKey]` against `txCtx.txDigest`. `CHECKSIG(pk data sig)`'s `data` and `sig` arguments are parsed and then ignored. Two scripts with different `data`/`sig` produce the same verdict. |
+| Can a covenant require a strictly higher sequence plus a matching commitment? | **Yes** | `ASSERT nextSeq GT prevSeq` and `ASSERT STATE(102) EQ <commitment>` both evaluate; the whole contest branch uses 8 instructions of the 1024 budget. |
+| Can it enforce value conservation on the successor? | **Yes** | `VERIFYOUT(0 @ADDRESS @AMOUNT @TOKENID TRUE)` rejects an inflated output. |
+| Can the successor member/balance root be recomputed on chain? | **Arithmetic only** | A statically unrolled 4-leaf recompute costs 17 instructions. The blocker is input, not cost: no opcode exposes an arbitrary witness proof element as a script value, so siblings cannot be fed in. |
+| Does the current escape branch pay stale shares? | **Yes — defect** | A script that pays `PREVSTATE(128)` after the timeout passes even when the participant already signed a lower allocation at a later sequence. |
+
+Known parity caveat: WOTS verification is mocked in the workspace's KISSVM test
+config, so the spike measures **dispatch and structure**, not the cryptographic
+primitive. Signature fidelity itself is RFC-009/RFC-016 work and must be
+re-proven on a node.
+
+### 2.1 The CHECKSIG parity gap
+
+Documented Minima form: `CHECKSIG(public_key data signature)`.
+
+Current SDK evaluator (`packages/kissvm/src/eval.ts`):
+
+```
+const txDigest = vm.txCtx.txDigest;
+const pubKeyHex = String(evalExpr(args[0], vm));
+const sig = vm.witness.signatures.get(stripped);   // args[1], args[2] unused
+return verifyWitnessSignature(sig, txDigest, pkBytes);
+```
+
+This is tracked as **OMN-064**. It is not evidence that the node behaves the
+same way; it is a parity question that must be settled on a real node before
+any detached-certificate covenant is relied upon.
+
+## 3. Target architecture
+
+```
+funding UTXO (locked funds · participant root · initial state)
+  ├── cooperative close   N-of-N signatures, immediate settlement
+  └── unilateral exit     signed recovery certificate
+        └── contest UTXO (sequence · state root · deadline)
+              └── challenge window: a strictly higher valid sequence replaces it
+                    └── final distribution: pays the winning state
+```
+
+A unilateral exit **starts a settlement**; it never immediately pays the
+original contributors.
+
+### 3.1 Recovery state
+
+```ts
+interface FactoryRecoveryState {
+  version: 1;
+  chainId: string;
+  factoryId: string;
+  fundingCoinId: string;
+  sequence: bigint;
+  partyRoot: string;
+  tokenId: string;
+  tokenScale: number;
+  totalValue: bigint;
+  allocations: Record<string, bigint>;
+  /** Enforceable financial state of every outstanding VC, not just its id. */
+  virtualChannelCommitments: { channelId: string; stateDigest: string; sequence: bigint }[];
+  distributionRoot: string;
+  settlementPlanHash: string;
+}
+```
+
+A certificate is valid only when the complete N-of-N authorization verifies,
+all token amounts conserve value, and the settlement package implements the
+committed distribution. Unresolved VCs/HTLCs retain value in a separately
+enforceable output; they cannot disappear from accounting.
+
+Certificates must be durable **before** the SDK reports the update as final.
+
+### 3.2 Dispute rules
+
+1. A stale state may be presented first; it only creates a contest coin.
+2. The challenger presents a complete certificate with a strictly higher
+   sequence. No fresh signature from the first presenter is required.
+3. The deadline is a fixed contest window (or a strictly bounded extension);
+   it is never chosen by the challenger to extend indefinitely.
+4. After expiry with no higher valid state, distribution executes from the
+   winning state, with fees explicitly accounted.
+
+Security statement: latest-known-state security **under the challenge-window
+liveness assumption**. If everyone holding the newest state is offline, the
+globally newest state does not necessarily win. Monitoring or delegated
+watchtowers are required; this is not a claim of unconditional finality.
+
+## 4. Checkpoint fallback
+
+If the contest covenant is not implementable, the enforceable baseline is:
+
+- every finalized allocation change **consumes** the factory UTXO and creates a
+  successor at the same script with updated `STATE(128+k)` balances, party and
+  balance roots, and an advanced sequence;
+- the previous version becomes unspendable (same-script successor continuity,
+  no double-spend of a checkpoint);
+- the escape branch pays the **latest checkpoint**, and value conservation is
+  enforced against the spent coin.
+
+Cost: one on-chain transaction per allocation change. That is the price of
+enforceability without on-chain certificate verification. It must be stated in
+the product docs, not hidden.
+
+## 5. Implementation changes required
+
+| Location | Change |
+|---|---|
+| `omnia-factory/src/script.ts` | Replace the old-share unilateral payout with either (a) a contest transition + bounded deadline + distribution verification, or (b) checkpoint continuity: same-script successor, advanced sequence, conserved value. |
+| `omnia-factory/src/commitment.ts` | Commit to complete VC exposure and the exact settlement outcome. |
+| `omnia-factory/src/factory.ts` | Every committed transition produces and durably retains a recovery certificate/checkpoint. |
+| `omnia-factory/src/virtual.ts` | VC open/update/close update the recoverable economic state. |
+| `omnia-factory/src/distribution.ts` | `buildFactoryDistributionScript()` currently pins `STATE(112)` and authorizes N-of-N after the timeout without checking outputs. It must verify the distribution or be removed from the settlement path. |
+| `packages/kissvm` | OMN-064: make `CHECKSIG` honour its documented arguments, or document the divergence and forbid detached-certificate designs. |
+
+## 6. Acceptance tests (all must be real, not mocks)
+
+1. A stale state loses to a newer authorized state within the window.
+2. Signatures cannot be replayed across funding coins or factories.
+3. Unresolved VCs/HTLCs retain recoverable value after escape.
+4. All exit outputs conserve value, including fees.
+5. A crash or partition does not erase the winning recovery certificate.
+6. Real Minima proofs and signature verification, on a node and in both SDK
+   evaluators.
+
+## 7. Consequences
+
+- Factories must not be advertised as a place to move value off-chain until
+  §6 passes.
+- The release gate keeps OMN-058 blocking.
+- The checkpoint fallback is the only acceptable interim posture; a nominal
+  "escape pays original shares" fix is rejected because it would preserve the
+  custody defect while looking green.

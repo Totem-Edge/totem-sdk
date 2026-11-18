@@ -87,5 +87,6 @@
 | [RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md](RFC-076-SUNSPEC-OBSERVATIONS-AND-GOVERNED-CONTROLS.md) | RFC-076: SunSpec observations and governed inverter controls | Draft — approved design direction; implementation and qualification remain to be completed. |
 | [RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md](RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md) | RFC-077 — Verifiable Adaptive Intelligence Lifecycle | Draft for architectural review — not implemented; no releaseability claim |
 | [RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md](RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md) | RFC-078 — Omnia Authorization and One-Time-Key Hardening | Draft — security and correctness remediation; no application-specific code |
+| [RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md](RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md) | RFC-079: Factory Escape State Enforceability | Accepted decision — checkpoint fallback specified, contestable mode |
 
-Total: **83** RFC documents.
+Total: **84** RFC documents.

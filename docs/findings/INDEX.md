@@ -1,8 +1,8 @@
 # Canary findings
 
-Generated 2026-11-18T13:34:26.147Z. 86 findings, 17 open.
+Generated 2026-11-18T15:55:33.308Z. 87 findings, 18 open.
 
-sdk-defect: 80 · environment-blocked: 1 · sdk-gap: 5
+sdk-defect: 81 · environment-blocked: 1 · sdk-gap: 5
 
 | id | severity | kind | status | packages | title |
 |---|---|---|---|---|---|
@@ -69,6 +69,7 @@ sdk-defect: 80 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-059` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | A unilateral VTXO exit could alter the remaining pool root and epoch |
 | `OMN-062` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | VTXO on-chain spending helpers broadcast without required proofs |
 | `OMN-063` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host` | Funding activation did not consistently wait for chain confirmations |
+| `OMN-064` | high | sdk-defect | open | `@totemsdk/kissvm` | KISSVM CHECKSIG ignores its documented data and signature arguments |
 | `CAN-005` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The initiator discards the peer ERROR frame, so a rejected open reports only acknowledged=false |
 | `CAN-012` | medium | sdk-defect | in-progress | `@totemsdk/omnia-splice` | Splice successor selection matches on address, token and amount only |
 | `CAN-015` | medium | sdk-defect | in-progress | `@totemsdk/omnia-router` | Router rollback cannot release HTLCs early and reports failure as if liquidity were returned |

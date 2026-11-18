@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T13:34:26.147Z",
+  "generatedAt": "2026-11-18T15:55:33.308Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -914,7 +914,7 @@
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-factory test",
         "expected": "Every committed factory transition has an enforceable recovery artifact for its latest allocation.",
-        "actual": "Only the immutable initial split is enforceable by the escape covenant.",
+        "actual": "Only the immutable initial split is enforceable by the escape covenant. RFC-079 records the feasibility spike: sequence challenges and value conservation are expressible in KISSVM, but detached-certificate authentication is not (CHECKSIG ignores its data/signature arguments).",
         "evidence": [
           "packages/omnia-factory/src/factory.ts buildFactoryOpening",
           "packages/omnia-factory/src/script.ts escape branch",
@@ -927,10 +927,11 @@
           "packages/omnia-factory/src/script.ts",
           "packages/omnia-factory/src/virtual.ts"
         ],
-        "approach": "Give every committed transition a presigned, independently broadcastable distribution (eltoo-style) or a covenant that verifies the latest authorized state before paying escape shares.",
+        "approach": "Per RFC-079: (a) target a versioned, challengeable unilateral settlement protocol with monotonic sequences, bounded contest windows, independent recovery certificates and verified distribution outputs; (b) until detached-certificate verification is proven on a real node and both SDK evaluators, only confirmed on-chain checkpoints may establish enforceable allocation changes. A nominal fix that keeps paying original shares is rejected.",
         "constraints": [
           "An immutable initial-share escape is insufficient for a changing ledger.",
-          "Do not claim factory value is enforceable until the artifact exists and is tested."
+          "Do not claim factory value is enforceable until a recovery artifact exists and is adversarially tested.",
+          "Remove buildFactoryDistributionScript from the settlement path unless it verifies the distribution outputs."
         ],
         "acceptance": [
           "A signed virtual-channel payment is enforceable by the losing party on chain.",
@@ -947,6 +948,10 @@
         "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
         "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
         "verification": "code-confirmed"
+      },
+      "links": {
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
+        "spike": "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts"
       }
     },
     {
@@ -3911,6 +3916,63 @@
       },
       "links": {
         "fixedIn": "PENDING"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/kissvm": "0.6.0",
+        "@totemsdk/core": "1.6.0"
+      },
+      "source": "OMN-058 feasibility spike, 2026-11-18 (RFC-079)",
+      "id": "OMN-064",
+      "status": "open",
+      "severity": "high",
+      "title": "KISSVM CHECKSIG ignores its documented data and signature arguments",
+      "packages": [
+        "@totemsdk/kissvm"
+      ],
+      "summary": "Minima documents CHECKSIG(public_key data signature). packages/kissvm/src/eval.ts evaluates only args[0], looks up witness.signatures[publicKey] and verifies it against txCtx.txDigest; args[1] and args[2] are parsed and discarded. Two scripts that differ only in data/signature produce the same verdict.",
+      "impact": "Any covenant that relies on verifying a detached certificate (for example a factory recovery certificate) cannot be expressed or tested with the SDK evaluator. This is a parity question, not evidence about node behaviour.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/kissvm test",
+        "expected": "CHECKSIG(pk data sig) verifies the supplied signature over the supplied data.",
+        "actual": "The evaluator verifies the witness signature over the transaction digest; data and sig are ignored.",
+        "evidence": [
+          "packages/kissvm/src/eval.ts evalChecksig",
+          "packages/kissvm/src/parser.ts CHECKSIG parse",
+          "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/kissvm/src/eval.ts",
+          "packages/kissvm/src/types.ts"
+        ],
+        "approach": "Implement the documented three-argument form (verify the parsed signature over the parsed data with the parsed key) while keeping the zero/one-argument witness form, then prove parity against a real Minima node and the Rust/WASM evaluator.",
+        "constraints": [
+          "Do not silently keep the current meaning under the documented signature.",
+          "Cover both the witness path and the detached path with real signatures."
+        ],
+        "acceptance": [
+          "CHECKSIG(pk data sig) returns true only for a valid signature over data.",
+          "A stale/foreign certificate fails.",
+          "Node, TS and Rust/WASM evaluators agree on the same fixture."
+        ],
+        "tests": [
+          "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/kissvm test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      },
+      "links": {
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md"
       }
     },
     {
