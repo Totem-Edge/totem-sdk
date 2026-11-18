@@ -13,7 +13,7 @@
  *   MINIMA_RPC_PASSWORD      node RPC password (default "test")
  *   RPC_TOKEN                control-plane bearer token (default "test")
  *   S4_CONTEST_DELAY         contest delay blocks (default 2)
- *   S4_PAY_AMOUNT            off-chain payment amount (default 100000000)
+ *   S4_PAY_AMOUNT            off-chain payment amount in decimal MINIMA (default 1)
  *
  * Flags:
  *   --json                   only print the final result JSON
@@ -24,7 +24,7 @@
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { buildScriptProof } = require('../packages/core/dist/cjs/index.js');
+const { buildScriptProof, amountToAtoms, atomsToAmount } = require('../packages/core/dist/cjs/index.js');
 
 const NODE_A = process.env.NODE_A ?? 'http://127.0.0.1:9005';
 const NODE_B = process.env.NODE_B ?? 'http://127.0.0.1:9015';
@@ -33,7 +33,7 @@ const HOST_B = process.env.HOST_B ?? 'http://127.0.0.1:50053/rpc';
 const MINIMA_RPC_PASSWORD = process.env.MINIMA_RPC_PASSWORD ?? 'test';
 const RPC_TOKEN = process.env.RPC_TOKEN ?? 'test';
 const CONTEST_DELAY = Number(process.env.S4_CONTEST_DELAY ?? 2);
-const PAY_AMOUNT = process.env.S4_PAY_AMOUNT ?? '100000000';
+const PAY_AMOUNT = process.env.S4_PAY_AMOUNT ?? '1';
 const JSON_ONLY = process.argv.includes('--json');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -97,9 +97,11 @@ async function main() {
   if (!addr?.publickey || !addr?.script) throw new Error('getaddressinfo missing publickey/script');
   if (!exported?.data) throw new Error('coinexport missing data');
 
-  const total = BigInt(coin.amount);
-  const localAmount = ((total * 6n) / 10n).toString();
-  const remoteAmount = (total - BigInt(localAmount)).toString();
+  // Node amounts are decimal MINIMA text; the RPC takes decimal text too.
+  const totalAtoms = amountToAtoms(String(coin.amount));
+  const localAtoms = (totalAtoms * 6n) / 10n;
+  const localAmount = atomsToAmount(localAtoms);
+  const remoteAmount = atomsToAmount(totalAtoms - localAtoms);
 
   const opened = await host(HOST_A, 'totem_omniaOpenChannel', {
     operationId: `s4-open-${Date.now()}`,

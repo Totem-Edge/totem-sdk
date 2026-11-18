@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { MINIMA_DECIMALS, atomsToAmount, sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
 import type { OmniaChannel, OmniaTxDraft, StateValue, TxOutputDraft, HTLCRecord, SignedChannelState } from './types.js';
 import { COINID_ELTOO } from './script.js';
@@ -147,7 +147,10 @@ function writeStateValueLocal(sv: StateValue): Uint8Array {
       break;
     case 'number':
       type = 2;
-      data = writeMiniNumberLocal(typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value)));
+      data = writeMiniNumberLocal(
+        typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value)),
+        sv.scale ?? 0,
+      );
       break;
     case 'hex':
       type = 1;
@@ -177,14 +180,20 @@ interface NormalizedStateValueForCommitment {
   port: number;
   type: StateValue['type'];
   value: string;
+  /** MiniNumber scale, bound for number values so it cannot be re-encoded. */
+  scale?: number;
 }
 
 function normalizeStateValueForCommitment(sv: StateValue): NormalizedStateValueForCommitment {
-  return {
+  const base = {
     port: sv.port,
     type: sv.type,
     value: typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
   };
+  // Bind the wire scale for numbers: without it a signed state could be
+  // re-encoded with a different scale (e.g. 0 instead of 44) and change the
+  // on-chain value while keeping the signature valid.
+  return sv.type === 'number' ? { ...base, scale: sv.scale ?? 0 } : base;
 }
 
 export function computeStateCommitmentV2(
@@ -589,7 +598,8 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
   const inputs: TxBuilderInput[] = draft.inputs.map(inp => ({
     coinId: inp.coinId,
     address: inp.address,
-    amount: inp.amount.toString(),
+    // tx-builder/core take decimal MINIMA text; drafts hold atoms.
+    amount: atomsToAmount(inp.amount),
     tokenId: inp.tokenId,
     scriptDescriptor: { type: 'RETURN_TRUE' },
     coinProofHex: inp.scriptHex || undefined,
@@ -597,7 +607,7 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
 
   const outputs: TxBuilderOutput[] = draft.outputs.map(out => ({
     address: out.address,
-    amount: out.amount.toString(),
+    amount: atomsToAmount(out.amount),
     tokenId: out.tokenId,
     storeState: out.storeState,
     state: out.storeState ? draft.stateVariables.map(sv => ({
@@ -664,7 +674,9 @@ function serializeCoinForMinima(opts: {
   const parts = [
     writeHashToStreamLocal(opts.coinId),
     writeHashToStreamLocal(opts.address),
-    writeMiniNumberLocal(opts.amount),
+    // Coin amounts are integer atoms: Java reads `MiniNumber(unscaled, scale)`
+    // as unscaled x 10^-scale, so scale 44 turns 2e43 back into 0.2 MINIMA.
+    writeMiniNumberLocal(opts.amount, MINIMA_DECIMALS),
     writeHashToStreamLocal(opts.tokenId),
     writeMiniByteLocal(opts.storeState),
     writeMMREntryNumberLocal(opts.mmrEntry ?? 0n),

@@ -12,7 +12,7 @@ jest.mock('@totemsdk/omnia-splice', () => {
     proposeSpliceIn: jest.fn(async (_channel: any, coinId: string, amount: bigint) => ({
       spliceId: 'splice-1',
       channelId: 'ch-1',
-      params: { type: 'splice_in', newTotalValue: 1500n, newBalances: { alice: 900n, bob: 600n }, additionalCoinId: coinId, additionalAmount: amount },
+      params: { type: 'splice_in', newTotalValue: atoms('1500'), newBalances: { alice: atoms('900'), bob: atoms('600') }, additionalCoinId: coinId, additionalAmount: amount },
       spliceTxHex: '0xdead',
       spliceTxDraft: {},
       proposerPublicKeyDigest: 'alice',
@@ -27,13 +27,17 @@ jest.mock('@totemsdk/omnia-splice', () => {
       spliceType: 'splice_in',
       spliceFundingTxId: 'tx-1',
       spliceFundingCoinId: 'tx-1-0',
-      totalValue: 1500n,
-      balances: { alice: 900n, bob: 600n },
+      totalValue: atoms('1500'),
+      balances: { alice: atoms('900'), bob: atoms('600') },
     })),
   };
 });
 
+import { amountToAtoms } from '@totemsdk/core';
 import { createHostMethods } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 describe('S7 host splice coordination', () => {
   it('proposes, accepts, finalizes, and notifies the counterparty', async () => {
@@ -44,8 +48,8 @@ describe('S7 host splice coordination', () => {
         { partyId: 'alice', publicKeyDigest: 'alice', addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: 'bob', addressIndex: 0 },
       ],
-      balances: { alice: 600n, bob: 400n },
-      totalValue: 1000n,
+      balances: { alice: atoms('600'), bob: atoms('400') },
+      totalValue: atoms('1000'),
       pendingHTLCs: [],
       currentSequence: 5,
       stateLog: [],
@@ -115,7 +119,7 @@ describe('S7 host splice coordination', () => {
 
     expect(result).toMatchObject({ success: true, channelId: 'ch-1', spliceId: 'splice-1', totalValue: '1500' });
     expect(sent.map((m) => m.type)).toEqual(['SPLICE_PROPOSAL', 'SPLICE_FINALIZED']);
-    expect(context.channels.get('ch-1').totalValue).toBe(1500n);
+    expect(context.channels.get('ch-1').totalValue).toBe(atoms('1500'));
     expect(context.spliceAcceptances.get('splice-1')).toEqual(acceptance);
   });
 });

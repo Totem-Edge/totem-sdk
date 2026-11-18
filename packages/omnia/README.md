@@ -293,6 +293,41 @@ const closing = markChannelClosing(channel);
 const closed  = markChannelClosed(closing);
 ```
 
+## Amount units
+
+Chain providers return the node's **decimal MINIMA text** (`"0.2"`). Omnia keeps
+all channel, HTLC and funding maths in integer **atoms** (1 MINIMA = 10^44 atoms)
+and converts once at the boundary with `coinAmountAtoms()` / `amountToAtoms()`.
+
+The binary transaction form is Java's
+`MiniNumber(unscaled, scale)` with value = `unscaled × 10^-scale`; every coin
+amount is written as `(unscaled = atoms, scale = 44)`, so 0.2 MINIMA travels as
+`(2×10^43, 44)` and reads back as `0.2`. Writing atoms with scale 0 would encode
+an amount 10^44 times too large that the node rejects as an invalid Minima
+amount.
+
+```typescript
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
+
+const atoms = amountToAtoms('0.2'); // 20000000000000000000000000000000000000000000n
+atomsToAmount(atoms);               // '0.2'
+```
+
+### Value-bearing state ports
+
+Programs that hold a channel amount in a state variable (HTLC locked amount,
+vault locked value, treasury cap/spent, membership dividend pool, asset
+balances, meter unit price/payment) use `programAmountState()`. Those values are
+stored in atoms like every other Omnia amount, but are serialized with scale 44,
+so a KISSVM comparison such as `ASSERT AMOUNT EQ STATE(141)` compares equal
+decimals instead of 0.2 against 2×10^43. Counters, sequence numbers and indexes
+stay scale 0. The scale is part of the signed state commitment, so a signer
+cannot re-encode a value port with a different scale.
+
+When the evaluator builds a script context, amount ports are presented as
+decimal text (`stateValuesToContext`), matching what the node would read from
+the coin.
+
 ## Channel lifecycle statuses
 
 ```

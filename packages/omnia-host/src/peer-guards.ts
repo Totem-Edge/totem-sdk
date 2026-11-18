@@ -28,6 +28,43 @@ export interface PendingVcAcceptance {
   factoryId: string;
   /** Party id whose signature this host returned in VC_ACCEPT. */
   localPartyId: string;
+  /** CAN-019: the state this host signed, so the finalized message is compared. */
+  expected?: {
+    totalValue?: bigint;
+    balances?: Record<string, bigint>;
+    finalAllocations?: Record<string, bigint>;
+    factoryAllocations?: Record<string, bigint>;
+  };
+}
+
+/** CAN-019: the outcome the locally signed splice proposal commits to. */
+export interface SpliceExpectation {
+  channelId: string;
+  totalValue: bigint;
+  balances: Record<string, bigint>;
+}
+
+function amountBigInt(value: unknown): bigint | null {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number' && Number.isSafeInteger(value)) return BigInt(value);
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) return BigInt(value);
+  return null;
+}
+
+function sameAmountMap(
+  actual: Record<string, unknown> | undefined,
+  expected: Record<string, bigint> | undefined,
+): boolean {
+  if (!expected) return true;
+  if (!actual) return false;
+  const actualKeys = Object.keys(actual).sort();
+  const expectedKeys = Object.keys(expected).sort();
+  if (actualKeys.length !== expectedKeys.length) return false;
+  return expectedKeys.every((key, index) => {
+    if (actualKeys[index] !== key) return false;
+    const value = amountBigInt(actual[key]);
+    return value !== null && value === expected[key];
+  });
 }
 
 export interface SpliceFinalizedPayload {
@@ -108,6 +145,31 @@ export function assertFactoryCommitment(
 }
 
 /**
+ * CAN-019: a FACTORY_CLOSE_FINALIZED is a settlement claim. Require the tx id
+ * and the final allocation split to match the factory this host holds.
+ */
+export function assertFactoryCloseSettlement(
+  factory: ChannelFactory,
+  payload: { factoryId?: unknown; txId?: unknown; finalAllocations?: unknown },
+): void {
+  if (payload.factoryId !== factory.factoryId) {
+    throw new Error('FACTORY_CLOSE_FINALIZED factoryId does not match the local factory');
+  }
+  if (typeof payload.txId !== 'string' || payload.txId.length === 0) {
+    throw new Error('FACTORY_CLOSE_FINALIZED carries no settlement txId');
+  }
+  if (!payload.finalAllocations || typeof payload.finalAllocations !== 'object' || Array.isArray(payload.finalAllocations)) {
+    throw new Error('FACTORY_CLOSE_FINALIZED carries no final allocations');
+  }
+  if (!sameAmountMap(
+    payload.finalAllocations as Record<string, unknown>,
+    factory.allocations as unknown as Record<string, bigint>,
+  )) {
+    throw new Error('FACTORY_CLOSE_FINALIZED allocations do not match the local factory');
+  }
+}
+
+/**
  * Validate SPLICE_FINALIZED against the acceptance this host produced when it
  * answered the matching SPLICE_PROPOSAL.
  *
@@ -118,6 +180,7 @@ export function assertFactoryCommitment(
 export function assertSpliceFinalized(
   acceptances: ReadonlyMap<string, SpliceAcceptance>,
   payload: SpliceFinalizedPayload,
+  expectations?: ReadonlyMap<string, SpliceExpectation>,
 ): { acceptance: SpliceAcceptance; channel: OmniaChannel } {
   if (typeof payload.spliceId !== 'string' || payload.spliceId.length === 0) {
     throw new Error('SPLICE_FINALIZED without a spliceId');
@@ -146,6 +209,22 @@ export function assertSpliceFinalized(
     && normalizeHex(channel.spliceFundingTxId) !== normalizeHex(payload.txId)
   ) {
     throw new Error('SPLICE_FINALIZED txId does not match the channel funding transaction');
+  }
+
+  // CAN-019: identifiers alone are not enough. Compare the resulting channel
+  // with the totals and split this host signed for the splice.
+  if (expectations) {
+    const expected = expectations.get(payload.spliceId);
+    if (!expected) {
+      throw new Error(`SPLICE_FINALIZED for splice ${payload.spliceId} has no locally signed expectation`);
+    }
+    const totalValue = amountBigInt(channel.totalValue);
+    if (totalValue === null || totalValue !== expected.totalValue) {
+      throw new Error('SPLICE_FINALIZED totalValue does not match the locally signed splice');
+    }
+    if (!sameAmountMap(channel.balances as unknown as Record<string, unknown>, expected.balances)) {
+      throw new Error('SPLICE_FINALIZED balances do not match the locally signed splice');
+    }
   }
   return { acceptance, channel };
 }
@@ -196,6 +275,26 @@ export function assertVcFinalized(input: {
     throw new Error(
       `VC_FINALIZED factory sequence ${factory.currentSequence} is not the successor of local ${local.currentSequence}`,
     );
+  }
+
+  // CAN-019: compare the resulting state with what this host co-signed.
+  const expected = acceptance.expected;
+  if (expected?.factoryAllocations && !sameAmountMap(
+    factory.allocations as unknown as Record<string, unknown>,
+    expected.factoryAllocations,
+  )) {
+    throw new Error('VC_FINALIZED factory allocations do not match the locally signed proposal');
+  }
+  if (kind === 'vc-open' && payload.channel) {
+    if (expected?.totalValue !== undefined && amountBigInt(payload.channel.totalValue) !== expected.totalValue) {
+      throw new Error('VC_FINALIZED channel totalValue does not match the locally signed proposal');
+    }
+    if (!sameAmountMap(
+      payload.channel.balances as unknown as Record<string, unknown>,
+      expected?.balances,
+    )) {
+      throw new Error('VC_FINALIZED channel balances do not match the locally signed proposal');
+    }
   }
 
   if (kind === 'vc-open') {

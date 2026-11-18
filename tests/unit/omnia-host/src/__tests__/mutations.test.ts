@@ -1,6 +1,10 @@
+import { amountToAtoms } from '@totemsdk/core';
 import { _resetChannelWatermarks } from '@totemsdk/omnia';
 import { createHostMethods } from '../api/methods.js';
 import { InProcessRoutingProvider } from '../router/routing-provider.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 function channel(overrides: Record<string, unknown> = {}) {
   return {
@@ -13,12 +17,12 @@ function channel(overrides: Record<string, unknown> = {}) {
     fundingAddress: '0x' + '33'.repeat(32),
     tokenId: '0x00',
     tokenScale: 0,
-    totalValue: 10n,
+    totalValue: atoms('10'),
     parties: [
       { partyId: 'alice', publicKeyDigest: '0x' + 'aa'.repeat(32), addressIndex: 0, settlementAddress: '0x' + '44'.repeat(32) },
       { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1, settlementAddress: '0x' + '55'.repeat(32) },
     ],
-    balances: { alice: 7n, bob: 3n },
+    balances: { alice: atoms('7'), bob: atoms('3') },
     pendingHTLCs: [],
     currentSequence: 0,
     latestState: null,
@@ -119,7 +123,7 @@ describe('omnia-host mutations', () => {
     expect(first).toMatchObject({ success: true, sequence: 1 });
     expect(second).toEqual(first);
     expect(signer.sign).toHaveBeenCalledTimes(2);
-    expect(channels.get('channel-1')!.balances).toEqual({ alice: 6n, bob: 4n });
+    expect(channels.get('channel-1')!.balances).toEqual({ alice: atoms('6'), bob: atoms('4') });
   });
 
   it('applies a generic program transition and persists the updated channel', async () => {
@@ -153,7 +157,7 @@ describe('omnia-host mutations', () => {
 
     expect(result).toMatchObject({ success: true, channelId: 'channel-1', sequence: 1 });
     expect(channels.get('channel-1')!.currentSequence).toBe(1);
-    expect(channels.get('channel-1')!.balances).toEqual({ alice: 7n, bob: 3n });
+    expect(channels.get('channel-1')!.balances).toEqual({ alice: atoms('7'), bob: atoms('3') });
   });
 
   it('records meter readings and transfers payer balance to payee', async () => {
@@ -169,7 +173,7 @@ describe('omnia-host mutations', () => {
     });
 
     expect(result).toMatchObject({ success: true, channelId: 'channel-1', sequence: 1, balances: { alice: '5', bob: '5' } });
-    expect(channels.get('channel-1')!.balances).toEqual({ alice: 5n, bob: 5n });
+    expect(channels.get('channel-1')!.balances).toEqual({ alice: atoms('5'), bob: atoms('5') });
   });
 
   it('returns the stored result for an identical committed operation', async () => {

@@ -7,7 +7,8 @@
   {
     "port": 141,
     "value": "250",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 142,

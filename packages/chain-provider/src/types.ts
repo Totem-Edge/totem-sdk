@@ -13,6 +13,12 @@ export interface CoinsQuery {
 
 export interface Coin {
   coinid: string;
+  /**
+   * Coin amount exactly as the node reports it: decimal MINIMA text (e.g.
+   * `"0.2"`). Every provider returns this form. Convert with
+   * `amountToAtoms()` from `@totemsdk/core` where integer base units are
+   * required; never assume atoms or a JS number.
+   */
   amount: string;
   address: string;
   miniaddress?: string;

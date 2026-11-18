@@ -3,7 +3,6 @@ import { CompositeProvider } from '../providers/composite';
 import { LookupClientProvider } from '../providers/lookup-client';
 import type { LookupClientLike } from '../providers/lookup-client';
 import { MinimaRpcProvider } from '../providers/minima-rpc';
-import { MINIMA_DECIMALS, amountToAtoms } from '../amount';
 import type { ChainStateProvider, ChainTip } from '../types';
 
 function mockFetch(data: unknown, ok = true, status = 200) {
@@ -266,13 +265,10 @@ describe('LookupClientProvider', () => {
   });
 });
 
-// Regression: the node reports decimal MINIMA ("0.2"), Omnia's channel and
-// funding maths is raw atoms. `BigInt("0.2")` used to throw inside
-// `openChannel` after the host had already committed to opening.
+// The ChainStateProvider contract is node-native decimal text. Every provider
+// passes `amount` through unchanged; atom conversion happens at the consumer
+// boundary (see @totemsdk/core amountToAtoms).
 describe('MinimaRpcProvider amount units', () => {
-  const ATOMS_PER_MINIMA = 10n ** BigInt(MINIMA_DECIMALS);
-  const atoms = (minima: string) => amountToAtoms(minima);
-
   function rpcClient(overrides: Record<string, unknown> = {}) {
     return {
       coins: jest.fn().mockResolvedValue([]),
@@ -281,7 +277,7 @@ describe('MinimaRpcProvider amount units', () => {
     } as unknown as { coins: jest.Mock; coinExport: jest.Mock };
   }
 
-  it('getCoins converts a fractional native amount to atoms', async () => {
+  it('getCoins preserves the node decimal amount', async () => {
     const client = rpcClient({
       coins: jest.fn().mockResolvedValue([
         { coinid: '0xC1', amount: '0.2', address: '0xA', tokenid: '0x00' },
@@ -291,24 +287,11 @@ describe('MinimaRpcProvider amount units', () => {
 
     const coins = await provider.getCoins({ address: '0xA' });
     expect(coins).toHaveLength(1);
-    expect(coins[0].amount).toBe((2n * ATOMS_PER_MINIMA / 10n).toString());
-    expect(BigInt(coins[0].amount)).toBe(2n * 10n ** 43n);
+    expect(coins[0].amount).toBe('0.2');
     expect(coins[0].coinid).toBe('0xC1');
   });
 
-  it('getCoins converts a whole amount to atoms', async () => {
-    const client = rpcClient({
-      coins: jest.fn().mockResolvedValue([
-        { coinid: '0xC2', amount: '3', address: '0xA', tokenid: '0x00' },
-      ]),
-    });
-    const provider = new MinimaRpcProvider(client as never);
-
-    const [coin] = await provider.getCoins({ address: '0xA' });
-    expect(BigInt(coin.amount)).toBe(3n * ATOMS_PER_MINIMA);
-  });
-
-  it('getCoin converts the coinexport coinproof amount to atoms', async () => {
+  it('getCoin preserves the coinexport coinproof amount', async () => {
     const client = rpcClient({
       coinExport: jest.fn().mockResolvedValue({
         coinproof: { coin: { coinid: '0xC3', amount: '0.5', address: '0xA', tokenid: '0x00' } },
@@ -317,11 +300,11 @@ describe('MinimaRpcProvider amount units', () => {
     const provider = new MinimaRpcProvider(client as never);
 
     const coin = await provider.getCoin('0xC3');
-    expect(coin?.amount).toBe((ATOMS_PER_MINIMA / 2n).toString());
+    expect(coin?.amount).toBe('0.5');
     expect(coin?.spent).toBe(false);
   });
 
-  it('getCoin falls back to the wallet query with atoms', async () => {
+  it('getCoin falls back to the wallet query without changing units', async () => {
     const client = rpcClient({
       coinExport: jest.fn().mockResolvedValue(null),
       coins: jest.fn().mockResolvedValue([
@@ -331,17 +314,6 @@ describe('MinimaRpcProvider amount units', () => {
     const provider = new MinimaRpcProvider(client as never);
 
     const coin = await provider.getCoin('0xC4');
-    expect(coin?.amount).toBe((ATOMS_PER_MINIMA / 4n).toString());
-  });
-
-  it('amountToAtoms is exact and fails closed', () => {
-    expect(atoms('0')).toBe('0');
-    expect(atoms('1')).toBe(ATOMS_PER_MINIMA.toString());
-    expect(atoms('0.' + '0'.repeat(43) + '1')).toBe('1');
-    expect(atoms('0.' + '0'.repeat(MINIMA_DECIMALS) + '0')).toBe('0');
-    expect(() => atoms('-1')).toThrow(/non-negative decimal/);
-    expect(() => atoms('1e3')).toThrow(/non-negative decimal/);
-    expect(() => atoms('abc')).toThrow(/non-negative decimal/);
-    expect(() => atoms('1.' + '0'.repeat(MINIMA_DECIMALS) + '1')).toThrow(/cannot be represented exactly/);
+    expect(coin?.amount).toBe('0.25');
   });
 });

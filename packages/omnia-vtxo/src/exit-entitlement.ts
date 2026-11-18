@@ -7,6 +7,7 @@
  */
 
 import { deserializeTxDraft } from '@totemsdk/omnia';
+import { wotsAddressData } from '@totemsdk/core';
 import type { OmniaVtxo } from './types.js';
 import { exitTransactionDigest, type ExitTxParams, type ExitTxResult } from './exit-tx.js';
 
@@ -75,6 +76,11 @@ export function verifyVtxoExitEntitlement(
   if (entitlement.tokenId !== vtxo.tokenId) errors.push('token mismatch');
   if (entitlement.holders[entitlement.holderIndex] !== vtxo.owner) errors.push('holder index/owner mismatch');
   if (entitlement.shares[entitlement.holderIndex] !== vtxo.amount.toString()) errors.push('holder share mismatch');
+  // The exit transaction commits the pool state it spends. It must match the
+  // proof root/epoch of the VTXO it is attached to, otherwise it authorizes an
+  // exit against a different pool state.
+  if (!vtxo.proof.root || entitlement.root !== vtxo.proof.root) errors.push('proof root mismatch');
+  if (entitlement.epoch !== vtxo.epoch) errors.push('epoch mismatch');
   if (!entitlement.txHex) errors.push('missing exit transaction');
   if (!entitlement.witnessHex) errors.push('missing exit witness');
 
@@ -83,6 +89,24 @@ export function verifyVtxoExitEntitlement(
       const draft = deserializeTxDraft(entitlement.txHex);
       const digest = Buffer.from(exitTransactionDigest(draft)).toString('hex');
       if (digest !== entitlement.digest.replace(/^0x/i, '')) errors.push('exit digest mismatch');
+
+      // The entitlement is only meaningful if the decoded transaction actually
+      // pays this VTXO's owner and spends the stated pool coin.
+      const payout = draft.outputs?.[0];
+      if (!payout) {
+        errors.push('exit transaction has no payout output');
+      } else {
+        if (payout.address !== wotsAddressData(entitlement.owner)) {
+          errors.push('exit transaction does not pay the entitlement owner');
+        }
+        if (payout.amount !== BigInt(entitlement.amount)) {
+          errors.push('exit transaction payout amount mismatch');
+        }
+      }
+      const fundingInput = draft.inputs?.[0];
+      if (!fundingInput || fundingInput.coinId !== entitlement.fundingCoinId) {
+        errors.push('exit transaction does not spend the stated pool coin');
+      }
     } catch (err) {
       errors.push(`exit transaction does not decode: ${err instanceof Error ? err.message : String(err)}`);
     }

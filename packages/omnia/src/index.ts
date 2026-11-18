@@ -189,6 +189,7 @@ export {
   getStateBigInt,
   getStateValue,
   programNumberState,
+  programAmountState,
 } from './state-vars.js';
 
 export {
@@ -205,6 +206,8 @@ export {
 } from './addresses.js';
 
 export { coinCreatedBlock, confirmationsAt, channelContestDelay } from './chain-truth.js';
+
+export { coinAmountAtoms } from './units.js';
 
 export {
   verifyStateWithRustMirror,

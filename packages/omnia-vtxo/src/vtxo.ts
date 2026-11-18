@@ -7,8 +7,8 @@ import {
 } from './types.js';
 import { VtxoStatusError } from './errors.js';
 
-import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { assertPoolCanMint } from './pool.js';
+import { computeVtxoId, computeReceiptId } from './commitment.js';
+import { assertPoolCanMint, commitPoolMembers } from './pool.js';
 
 export function isVtxoActive(vtxo: OmniaVtxo): boolean {
   return vtxo.status === 'active';
@@ -28,6 +28,11 @@ export function mintVtxo(
   const ts = now !== undefined ? now : Date.now();
   assertPoolCanMint(pool, params.amount);
 
+  // Every mint is a new batch: the epoch advances and the pool's membership
+  // set grows. The root commits to the whole set, so minting B does not
+  // invalidate A (OMN-002).
+  const epoch = pool.epoch + 1;
+
   const vtxoId = computeVtxoId({
     poolId: pool.poolId,
     owner: params.owner,
@@ -43,13 +48,13 @@ export function mintVtxo(
     amount: params.amount,
     tokenId: pool.tokenId,
     status: 'active',
-    epoch: pool.epoch,
+    epoch,
     proof: {
       leaf: '',
       root: '',
       siblings: [],
       positions: [],
-      epoch: pool.epoch,
+      epoch,
       batchId: '',
     },
     fundingProof: params.fundingProof,
@@ -66,14 +71,13 @@ export function mintVtxo(
     expiresAt: params.expiresAt,
   };
 
-  const { root, proofs } = buildVtxoProofSet([vtxo]);
-  const proof = proofs[vtxoId];
+  const committed = commitPoolMembers(pool, [vtxo], { epoch });
+  const proof = committed.proofs[vtxoId];
   const mintedVtxo: OmniaVtxo = { ...vtxo, proof };
 
   const updatedPool: OmniaVtxoPool = {
-    ...pool,
+    ...committed.pool,
     availableCapacity: pool.availableCapacity - params.amount,
-    commitmentRoot: root,
   };
 
   const receiptId = computeReceiptId(pool.poolId, 'mint', [], [vtxoId], ts);
@@ -83,7 +87,7 @@ export function mintVtxo(
     op: 'mint',
     inputIds: [],
     outputIds: [vtxoId],
-    epoch: pool.epoch,
+    epoch,
     at: ts,
     signature: '',
   };

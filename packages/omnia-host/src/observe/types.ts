@@ -87,7 +87,8 @@ export interface OmniaObservation {
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
   amounts?: {
-    amountAtoms?: string;
+    /** Decimal MINIMA/token amount text (e.g. "0.2"). */
+    amount?: string;
     capacity?: string;
     fee?: string;
     balances?: Record<string, string>;

@@ -7,16 +7,19 @@
   {
     "port": 181,
     "value": "300",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 182,
     "value": "200",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 183,
     "value": "500",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   }
 ]

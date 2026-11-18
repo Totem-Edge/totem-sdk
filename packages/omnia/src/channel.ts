@@ -23,7 +23,9 @@ import {
   omniaDraftToCanonicalMinimaBytes,
   STATE_SEQUENCE_PORT,
   STATE_COMMITMENT_V2_PORT,
+  toRawMinima,
 } from './transactions.js';
+import { coinAmountAtoms } from './units.js';
 import { serializeOmniaWitness } from './witness.js';
 import { assessCapacity, WOTS_CAPACITY_TOTAL, flatSigningIndex } from './capacity.js';
 import { signState, validateStateForCoSign, verifyStateSignature } from './sign.js';
@@ -130,7 +132,7 @@ export async function buildChannelOpening(
     tokenId,
     tokenScale,
     [params.fundingCoinId],
-    [BigInt(fundingCoin.amount) * 10n ** BigInt(tokenScale)],
+    [coinAmountAtoms(fundingCoin) * 10n ** BigInt(tokenScale)],
     [fundingCoin.address],
     [],
     [{ storeState: fundingCoin.storestate === true, stateVariables: [] }],
@@ -436,9 +438,15 @@ export async function acceptChannel(
         `Funding coin address ${coin.address} is not the channel script address ${address}`,
       );
     }
-    const expectedAmount = proposal.localAmount + proposal.remoteAmount;
-    if (BigInt(coin.amount) !== expectedAmount) {
-      throw new Error(`Funding coin amount ${coin.amount} does not match proposal total ${expectedAmount}`);
+    const expectedAmount = toRawMinima(
+      proposal.localAmount + proposal.remoteAmount,
+      proposal.tokenScale ?? 0,
+    );
+    const observedAmount = coinAmountAtoms(coin);
+    if (observedAmount !== expectedAmount) {
+      throw new Error(
+        `Funding coin amount ${coin.amount} (${observedAmount} atoms) does not match proposal total ${expectedAmount} atoms`,
+      );
     }
     if (normalizeDigest(coin.tokenid) !== normalizeDigest(proposal.tokenId ?? '0x00')) {
       throw new Error(`Funding coin token ${coin.tokenid} does not match proposal token ${proposal.tokenId}`);

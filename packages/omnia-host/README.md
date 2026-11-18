@@ -118,6 +118,14 @@ The local test environment may skip SQLite integration tests when the
 CI or on the target platform to execute those tests.
 
 
+## Amount units
+
+The JSON-RPC surface uses **decimal MINIMA/token text** for every amount
+(`"0.2"`, `"1500"`) in both requests and responses. The host converts to atoms
+(1 MINIMA = 10^44 atoms) at the boundary and keeps integer atoms internally, so
+channel balances, HTLCs, splice totals and route fees are all exact. Observation
+events use the same decimal text.
+
 ## Testing
 
 Tests live outside the published package in `tests/unit/omnia-host/`. Package `test:*` scripts are repository delegates; tests are not shipped.

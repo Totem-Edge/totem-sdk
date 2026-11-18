@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Released 2026-11-18 — amount-unit train
+
+Nine packages carry the corrected Minima amount contract (CAN-024/CAN-025).
+This is a wire- and state-format break: Omnia 3.0.0 supersedes 2.x.
+
+| Package | Version | Change |
+|---|---|---|
+| `@totemsdk/core` | 1.6.0 | `amountToAtoms` / `atomsToAmount` / `unscaledToAmount` / `coinAmountAtoms` |
+| `@totemsdk/chain-provider` | 0.4.0 | every provider returns node-native decimal amounts; `Coin.amount` contract documented |
+| `@totemsdk/kissvm` | 1.4.1 | `TxContext` amounts accept decimal text or a number (no `Number()` truncation) |
+| `@totemsdk/omnia` | 3.0.0 | atoms + `MiniNumber(scale 44)` coin amounts; scale-44 value state ports bound in the state commitment; Rust/WASM mirror uses arbitrary-precision integers |
+| `@totemsdk/omnia-host` | 0.14.0 | JSON-RPC takes and returns decimal amounts for channels, splice, factory, pool, VTXO and routes |
+| `@totemsdk/liquidity-bond` | 0.4.0 | pool funding verification passes decimal `claimedAmount`; verifier-backed settled-payout ledger for fee claims |
+| `@totemsdk/statechain` | 0.3.3 | provider coin amount converted to atoms at the boundary |
+| `@totemsdk/omnia-splice` | 0.3.4 | successor amount match in atoms |
+| `@totemsdk/omnia-vtxo` | 0.9.0 | append-only pool membership root, transfer-bound exit entitlements, vesting enforcement, cryptographic claim proof, anchored verification |
+| `@totemsdk/omnia-pool` | 0.6.0 | payout finality requires a verifier; fee records are verified and claims consume settled payouts |
+| `@totemsdk/omnia-relay` | 0.8.0 | durable backward-preimage duty across restart recovery |
+| `@totemsdk/tx-builder` | 0.3.4 | fractional MINIMA amounts parse correctly in conservation checks |
+| `@totemsdk/edge-adapters` | 0.4.1 | liquidity balances parse MINIMA at 44 decimals |
+| `@totemsdk/omnia-vtxo` | 0.8.2 | pool funding amount compared exactly |
+
+Compatibility impact: `@totemsdk/omnia` 3.0.0 changes the signed state and
+transaction encoding. Coin amounts are written as
+`MiniNumber(unscaled = atoms, scale = 44)`, value-bearing program state ports use
+the same scale, and the scale is included in the state commitment. Signed
+states, close packages and transactions produced by 2.x are not compatible;
+there is no migration because the SDK has no production users yet.
+`@totemsdk/omnia-host` 0.14.0 changes every JSON-RPC amount from integer atoms to
+decimal MINIMA/token text, in both requests and responses.
+`@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 RPC-only normalisation so all
+providers share the node's unit. `@totemsdk/omnia-pool` 0.6.0 requires a
+settlement verifier to settle a payout and a fee verifier to earn fees;
+`@totemsdk/omnia-vtxo` 0.9.0 requires an anchored membership proof and a claim
+signature verifier; `@totemsdk/omnia-host` now fails closed when those verifiers
+are not configured.
+
+#### Fixed
+
+- **One amount contract, end to end.** Minima has exactly one amount type,
+  `MiniNumber`. JSON reports it as decimal MINIMA text (`"0.2"`); the binary
+  transaction form is `(unscaled, scale)` with value = `unscaled x 10^-scale`.
+  `chain-provider` now returns the node's decimal text unchanged from every
+  provider (no per-provider unit switch); `amountToAtoms()` in `@totemsdk/core`
+  converts once where integer maths is required (1 MINIMA = 10^44 atoms).
+  `@totemsdk/omnia` keeps channel/HTLC/funding maths in atoms and serializes
+  every coin amount as `MiniNumber(unscaled = atoms, scale = 44)`. Value-bearing
+  program state ports (HTLC locked amount, vault value, treasury cap/spent,
+  membership pool, asset balances, meter unit price/payment) are also written
+  with scale 44, so scripts can compare `STATE(port)` to `AMOUNT`; the scale is
+  bound into the signed state commitment. `@totemsdk/omnia-host`'s JSON-RPC now
+  takes and returns decimal MINIMA/token text for every amount, converting once
+  at the boundary. The previous code of writing atom values with scale 0
+  encoded an amount 10^44 times too large, which the node rejects as an invalid
+  Minima amount, and normalising only the RPC provider split the unit contract
+  across providers and packages. `liquidity-bond` now hands the chain verifier
+  a decimal `claimedAmount` instead of an atom integer, which made every
+  non-zero pool deposit fail the amount gate.
+
+  (CAN-024: scale-0 atom encoding; CAN-025: pool `claimedAmount` double
+  conversion.) The same train closes the release-blocking audit findings
+  CAN-004/006/007/010/011/013/014/018/019/020 and OMN-002/003/004/005/006/007/008/010.
+
 ### Released 2026-11-17 — SDK train
 
 Twenty packages are released together so the factory/approval hardening and the
@@ -41,14 +104,6 @@ the contract-address derivation for a given parameter set (security fix). HTLC
 coins funded with 1.4.x scripts must be spent with 1.4.x; new HTLCs should use
 1.5.0. `@totemsdk/omnia-host` 0.13.6 rejects peer-initiated factory signing by
 default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt in.
-
-### Fixed
-
-- **Chain amounts are atoms.** `MinimaRpcProvider.getCoins`/`getCoin` now convert
-  the node's decimal MINIMA `amount` (`"0.2"`) to raw atoms (`2e43`). Previously
-  `openChannel` threw `Cannot convert 0.2 to a BigInt` after the host had already
-  committed to the channel. `verifyDeposit` keeps the node's decimal values, as
-  its `claimedAmount` contract is decimal.
 
 ### Added
 

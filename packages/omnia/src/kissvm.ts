@@ -1,13 +1,17 @@
+import { unscaledToAmount } from '@totemsdk/core';
 import { evaluateScript, KissvmLimitError, type ScriptWitness, type TxContext } from '@totemsdk/kissvm';
 import type { OmniaChannel, OmniaTxDraft, SignedChannelState, StateValue } from './types.js';
 import { buildSettlementTx, computeOmniaTxDigest, deserializeTxDraft, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
 import { buildProgramUpdateTx } from './program.js';
 
 function stateValuesToContext(values: StateValue[]): Record<number, string> {
-  return Object.fromEntries(values.map(sv => [
-    sv.port,
-    typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
-  ]));
+  return Object.fromEntries(values.map(sv => {
+    if (sv.type === 'number' && sv.scale !== undefined && sv.scale > 0) {
+      const unscaled = typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value));
+      return [sv.port, unscaledToAmount(unscaled, sv.scale)];
+    }
+    return [sv.port, typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value)];
+  }));
 }
 
 function signatureWitness(channel: OmniaChannel, state: SignedChannelState): ScriptWitness {
@@ -32,10 +36,6 @@ function txContextForDraft(
   draft: OmniaTxDraft,
   opts?: KissvmValidationOptions,
 ): TxContext {
-  const amount = Number(channel.totalValue);
-  if (!Number.isSafeInteger(amount)) {
-    throw new Error(`KISSVM validation requires safe integer channel totalValue, got ${channel.totalValue}`);
-  }
   const transitionBlock = state.programTransition?.inputs?.currentBlock;
   const block = opts?.block ?? (transitionBlock !== undefined ? Number(transitionBlock) : 0);
   return {
@@ -44,13 +44,13 @@ function txContextForDraft(
     inputs: draft.inputs.map(input => ({
       coinId: input.coinId,
       address: input.address,
-      amount: Number(input.amount),
+      amount: String(input.amount),
       tokenId: input.tokenId,
       coinCreatedBlock: opts?.previousCreatedBlock ?? 0,
     })),
     outputs: draft.outputs.map(output => ({
       address: output.address,
-      amount: Number(output.amount),
+      amount: String(output.amount),
       tokenId: output.tokenId,
       keepState: output.storeState,
     })),

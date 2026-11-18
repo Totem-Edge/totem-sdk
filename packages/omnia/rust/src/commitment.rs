@@ -119,11 +119,20 @@ pub fn compute_state_commitment_v2(
                 serde_json::Value::String(text) => text.clone(),
                 other => other.to_string(),
             };
-            json!({
-                "port": sv.port,
-                "type": sv.value_type,
-                "value": value,
-            })
+            if sv.value_type == "number" {
+                json!({
+                    "port": sv.port,
+                    "type": sv.value_type,
+                    "value": value,
+                    "scale": sv.scale.unwrap_or(0),
+                })
+            } else {
+                json!({
+                    "port": sv.port,
+                    "type": sv.value_type,
+                    "value": value,
+                })
+            }
         })
         .collect();
 

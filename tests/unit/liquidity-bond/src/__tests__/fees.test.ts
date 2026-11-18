@@ -1,6 +1,17 @@
-import { recordLiquidityFee, sumFeesForPosition, sumLpFeesForPosition, verifyLiquidityFeeRecord, isEarnableSource } from '../fees.js';
+import {
+  recordLiquidityFee,
+  sumFeesForPosition,
+  sumLpFeesForPosition,
+  verifyLiquidityFeeRecord,
+  isEarnableSource,
+  computeFeePayoutKey,
+  getSettledFeePayout,
+  registerSettledFeePayout,
+  consumeSettledFeePayout,
+} from '../fees.js';
 import { createLiquidityPosition } from '../position.js';
 import { createLiquidityCommitment } from '../commitment.js';
+import { createEmptyLiquidityBondRegistryState, registerLiquidityPosition } from '../registry.js';
 
 function makePosition() {
   const commitment = createLiquidityCommitment({
@@ -137,6 +148,218 @@ describe('fees', () => {
       expect(isEarnableSource('rfq-spread')).toBe(true);
       expect(isEarnableSource('merchant-fee')).toBe(true);
       expect(isEarnableSource('manual-adjustment')).toBe(false);
+    });
+  });
+
+  describe('settled fee payouts', () => {
+    const ref = { payoutId: 'payout-1', nonce: 'n1', kind: 'vtxo-mint' as const };
+    const settlement = { status: 'confirmed' as const, evidenceRef: 'idx-1', txpowId: 'tx-1' };
+
+    function makeRegistry() {
+      const position = makePosition();
+      const registry = registerLiquidityPosition(createEmptyLiquidityBondRegistryState(), position);
+      return { position, registry };
+    }
+
+    const settleVerifier = () => ({
+      verifySettlement: jest.fn(async () => ({ valid: true })),
+    });
+
+    it('records a payout only after the verifier confirms the settlement', async () => {
+      const { position, registry } = makeRegistry();
+      const verifier = settleVerifier();
+
+      const { payout, registry: next } = await registerSettledFeePayout(registry, {
+        payoutRef: ref,
+        positionId: position.positionId,
+        poolId: 'pool-1',
+        amount: 50n,
+        settlement,
+        verifier,
+      });
+
+      expect(verifier.verifySettlement).toHaveBeenCalledWith({
+        settlement,
+        poolId: 'pool-1',
+        positionId: position.positionId,
+        recipientAddress: position.lpAddress,
+        amount: 50n,
+      });
+      expect(payout.evidenceRef).toBe('idx-1');
+      expect(getSettledFeePayout(next, ref)).toEqual(
+        expect.objectContaining({ payoutId: 'payout-1', nonce: 'n1', amount: 50n, poolId: 'pool-1' }),
+      );
+    });
+
+    it('fails closed without a verifier or when verification fails', async () => {
+      const { position, registry } = makeRegistry();
+
+      await expect(
+        registerSettledFeePayout(registry, {
+          payoutRef: ref,
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement,
+          verifier: {} as never,
+        }),
+      ).rejects.toThrow(/settlement verifier/);
+
+      await expect(
+        registerSettledFeePayout(registry, {
+          payoutRef: ref,
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement,
+          verifier: { verifySettlement: async () => ({ valid: false, reason: 'unknown tx' }) },
+        }),
+      ).rejects.toThrow(/not verified: unknown tx/);
+
+      expect(getSettledFeePayout(registry, ref)).toBeUndefined();
+    });
+
+    it('rejects an unbound payout (missing evidence) and an unknown position', async () => {
+      const { position, registry } = makeRegistry();
+
+      await expect(
+        registerSettledFeePayout(registry, {
+          payoutRef: ref,
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement: { status: 'confirmed', evidenceRef: '' },
+          verifier: settleVerifier(),
+        }),
+      ).rejects.toThrow(/evidenceRef/);
+
+      await expect(
+        registerSettledFeePayout(registry, {
+          payoutRef: ref,
+          positionId: 'pos-missing',
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement,
+          verifier: settleVerifier(),
+        }),
+      ).rejects.toThrow(/not registered/);
+
+      await expect(
+        registerSettledFeePayout(registry, {
+          payoutRef: ref,
+          positionId: position.positionId,
+          poolId: 'pool-2',
+          amount: 50n,
+          settlement,
+          verifier: settleVerifier(),
+        }),
+      ).rejects.toThrow(/does not belong to pool/);
+    });
+
+    it('rejects a reused payout reference', async () => {
+      const { position, registry } = makeRegistry();
+      const { registry: next } = await registerSettledFeePayout(registry, {
+        payoutRef: ref,
+        positionId: position.positionId,
+        poolId: 'pool-1',
+        amount: 50n,
+        settlement,
+        verifier: settleVerifier(),
+      });
+
+      await expect(
+        registerSettledFeePayout(next, {
+          payoutRef: { ...ref, kind: 'external' },
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement,
+          verifier: settleVerifier(),
+        }),
+      ).rejects.toThrow(/already registered as a settled payout/);
+
+      // The same settlement evidence cannot mint a second payout either.
+      await expect(
+        registerSettledFeePayout(next, {
+          payoutRef: { payoutId: 'payout-2', nonce: 'n2', kind: 'vtxo-mint' },
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 50n,
+          settlement,
+          verifier: settleVerifier(),
+        }),
+      ).rejects.toThrow(/already backs payoutRef payout-1:n1/);
+    });
+
+    it('consumes a payout exactly once and enforces its binding', async () => {
+      const { position, registry } = makeRegistry();
+      const { registry: withPayout } = await registerSettledFeePayout(registry, {
+        payoutRef: ref,
+        positionId: position.positionId,
+        poolId: 'pool-1',
+        amount: 50n,
+        settlement,
+        verifier: settleVerifier(),
+      });
+
+      expect(() =>
+        consumeSettledFeePayout(withPayout, { ...ref, kind: 'external' }, {
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 10n,
+          consumedBy: 'fee-1',
+        }),
+      ).toThrow(/does not match the settled payout kind/);
+
+      expect(() =>
+        consumeSettledFeePayout(withPayout, ref, {
+          positionId: 'pos-other',
+          poolId: 'pool-1',
+          amount: 10n,
+          consumedBy: 'fee-1',
+        }),
+      ).toThrow(/bound to position/);
+
+      expect(() =>
+        consumeSettledFeePayout(withPayout, ref, {
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 51n,
+          consumedBy: 'fee-1',
+        }),
+      ).toThrow(/exceeds settled payout amount/);
+
+      const consumed = consumeSettledFeePayout(withPayout, ref, {
+        positionId: position.positionId,
+        poolId: 'pool-1',
+        amount: 10n,
+        consumedBy: 'fee-1',
+      });
+      expect(getSettledFeePayout(consumed, ref)).toEqual(
+        expect.objectContaining({ consumedBy: 'fee-1' }),
+      );
+
+      expect(() =>
+        consumeSettledFeePayout(consumed, ref, {
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 10n,
+          consumedBy: 'fee-2',
+        }),
+      ).toThrow(/already been consumed/);
+    });
+
+    it('rejects an unknown payout reference', () => {
+      const { position, registry } = makeRegistry();
+      expect(() =>
+        consumeSettledFeePayout(registry, ref, {
+          positionId: position.positionId,
+          poolId: 'pool-1',
+          amount: 10n,
+          consumedBy: 'fee-1',
+        }),
+      ).toThrow(/unknown payoutRef/);
+      expect(computeFeePayoutKey(ref)).toBe('payout-1:n1');
     });
   });
 });

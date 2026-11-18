@@ -1,3 +1,4 @@
+use num_bigint::BigInt;
 use serde_json::{json, Value};
 
 use crate::types::{SignedChannelState, StateValue};
@@ -38,18 +39,24 @@ pub fn get_state_value(state: Option<&SignedChannelState>, port: u32) -> Option<
 pub fn get_state_bigint(
     state: Option<&SignedChannelState>,
     port: u32,
-    fallback: i128,
-) -> Result<i128, String> {
+    fallback: impl Into<BigInt>,
+) -> Result<BigInt, String> {
+    let fallback = fallback.into();
     let Some(value) = get_state_value(state, port) else {
         return Ok(fallback);
     };
 
     match &value.value {
-        Value::String(value) => value.parse::<i128>().map_err(|e| e.to_string()),
-        Value::Number(value) => value
-            .as_i64()
-            .map(i128::from)
-            .ok_or_else(|| format!("Invalid integer state value at port {}", port)),
+        Value::String(value) => value.parse::<BigInt>().map_err(|e| e.to_string()),
+        Value::Number(value) => {
+            if let Some(value) = value.as_i64() {
+                Ok(BigInt::from(value))
+            } else if let Some(value) = value.as_u64() {
+                Ok(BigInt::from(value))
+            } else {
+                Err(format!("Invalid integer state value at port {}", port))
+            }
+        }
         other => Err(format!(
             "Invalid integer state value at port {}: {}",
             port, other
@@ -57,12 +64,22 @@ pub fn get_state_bigint(
     }
 }
 
-pub fn program_number_state(port: u32, value: i128) -> Result<StateValue, String> {
+pub fn program_number_state(port: u32, value: impl Into<BigInt>) -> Result<StateValue, String> {
     assert_program_state_port(port)?;
     Ok(StateValue {
         port,
-        value: json!(value.to_string()),
+        value: json!(value.into().to_string()),
         value_type: "number".to_string(),
+        scale: None,
+    })
+}
+
+/// A number state value that carries a MINIMA/token amount: stored in atoms,
+/// serialized with scale 44 so KISSVM sees the decimal value.
+pub fn program_amount_state(port: u32, value: impl Into<BigInt>) -> Result<StateValue, String> {
+    Ok(StateValue {
+        scale: Some(crate::serialize::COIN_AMOUNT_SCALE),
+        ..program_number_state(port, value)?
     })
 }
 
@@ -72,6 +89,7 @@ pub fn program_bool_state(port: u32, value: bool) -> Result<StateValue, String> 
         port,
         value: json!(value),
         value_type: "bool".to_string(),
+        scale: None,
     })
 }
 
@@ -88,6 +106,7 @@ pub fn program_hex_state(port: u32, value: &str) -> Result<StateValue, String> {
         port,
         value: json!(value.to_string()),
         value_type: "hex".to_string(),
+        scale: None,
     })
 }
 
@@ -97,6 +116,7 @@ pub fn program_string_state(port: u32, value: &str) -> Result<StateValue, String
         port,
         value: json!(value.to_string()),
         value_type: "string".to_string(),
+        scale: None,
     })
 }
 
@@ -174,8 +194,14 @@ mod tests {
             program_transition: None,
         };
 
-        assert_eq!(get_state_bigint(Some(&signed), 120, 0).unwrap(), 42);
-        assert_eq!(get_state_bigint(Some(&signed), 121, 7).unwrap(), 7);
+        assert_eq!(
+            get_state_bigint(Some(&signed), 120, 0).unwrap(),
+            BigInt::from(42)
+        );
+        assert_eq!(
+            get_state_bigint(Some(&signed), 121, 7).unwrap(),
+            BigInt::from(7)
+        );
     }
 
     #[test]
@@ -188,6 +214,7 @@ mod tests {
                 port: 120,
                 value: json!(true),
                 value_type: "bool".to_string(),
+                scale: None,
             }],
             transaction_hex: "0xupdate".to_string(),
             signatures: HashMap::new(),

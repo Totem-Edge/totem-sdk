@@ -1,9 +1,11 @@
+use num_bigint::BigInt;
+use num_traits::{Signed, Zero};
 use serde_json::Value;
 
 use crate::state_vars::{
     get_state_bigint, get_state_bool, get_state_hex, get_state_string, normalize_hex,
-    preimage_digest, program_bool_state, program_hex_state, program_number_state,
-    program_string_state,
+    preimage_digest, program_amount_state, program_bool_state, program_hex_state,
+    program_number_state, program_string_state,
 };
 use crate::types::{
     OmniaChannel, ProgramTransition, SignedChannelState, StateValue, ValidationResult,
@@ -68,11 +70,14 @@ fn invalid(reason: impl Into<String>) -> ValidationResult {
     }
 }
 
+/// Amounts (payment values, channel funds, caps, pools) are integer atoms and
+/// therefore arbitrary precision: 1 MINIMA is 10^44 atoms, far beyond u64/i128.
 fn input_bigint(
     transition: Option<&ProgramTransition>,
     key: &str,
-    fallback: i128,
-) -> Result<i128, String> {
+    fallback: impl Into<BigInt>,
+) -> Result<BigInt, String> {
+    let fallback = fallback.into();
     let Some(transition) = transition else {
         return Ok(fallback);
     };
@@ -83,11 +88,16 @@ fn input_bigint(
         return Ok(fallback);
     };
     match value {
-        Value::String(value) => value.parse::<i128>().map_err(|e| e.to_string()),
-        Value::Number(value) => value
-            .as_i64()
-            .map(i128::from)
-            .ok_or_else(|| format!("Invalid integer input {}", key)),
+        Value::String(value) => value.parse::<BigInt>().map_err(|e| e.to_string()),
+        Value::Number(value) => {
+            if let Some(value) = value.as_i64() {
+                Ok(BigInt::from(value))
+            } else if let Some(value) = value.as_u64() {
+                Ok(BigInt::from(value))
+            } else {
+                Err(format!("Invalid integer input {}", key))
+            }
+        }
         Value::Bool(value) => Err(format!("invalid digit found in string: {}", value)),
         other => Err(format!("Invalid integer input {}: {}", key, other)),
     }
@@ -96,15 +106,18 @@ fn input_bigint(
 fn state_bigint_or_validation(
     state: Option<&SignedChannelState>,
     port: u32,
-    fallback: i128,
-) -> Result<i128, ValidationResult> {
+    fallback: impl Into<BigInt>,
+) -> Result<BigInt, ValidationResult> {
     get_state_bigint(state, port, fallback).map_err(invalid)
 }
 
-fn balance_bigint(balance: Option<&String>, fallback: i128) -> Result<i128, ValidationResult> {
+fn balance_bigint(
+    balance: Option<&String>,
+    fallback: impl Into<BigInt>,
+) -> Result<BigInt, ValidationResult> {
     match balance {
-        Some(value) => value.parse::<i128>().map_err(|e| invalid(e.to_string())),
-        None => Ok(fallback),
+        Some(value) => value.parse::<BigInt>().map_err(|e| invalid(e.to_string())),
+        None => Ok(fallback.into()),
     }
 }
 
@@ -126,7 +139,7 @@ pub fn build_counter_state_variables(
         Some("increment") => {
             let by = input_bigint(transition, "by", 1)?;
             Ok(vec![
-                program_number_state(COUNTER_STATE_PORT, current + by)?,
+                program_number_state(COUNTER_STATE_PORT, &current + &by)?,
                 program_number_state(COUNTER_ACTION_PORT, COUNTER_ACTION_INCREMENT)?,
                 program_number_state(COUNTER_OPERAND_PORT, by)?,
             ])
@@ -134,7 +147,7 @@ pub fn build_counter_state_variables(
         Some("decrement") => {
             let by = input_bigint(transition, "by", 1)?;
             Ok(vec![
-                program_number_state(COUNTER_STATE_PORT, current - by)?,
+                program_number_state(COUNTER_STATE_PORT, &current - &by)?,
                 program_number_state(COUNTER_ACTION_PORT, COUNTER_ACTION_DECREMENT)?,
                 program_number_state(COUNTER_OPERAND_PORT, by)?,
             ])
@@ -142,7 +155,7 @@ pub fn build_counter_state_variables(
         Some("set") => {
             let value = input_bigint(transition, "value", current)?;
             Ok(vec![
-                program_number_state(COUNTER_STATE_PORT, value)?,
+                program_number_state(COUNTER_STATE_PORT, value.clone())?,
                 program_number_state(COUNTER_ACTION_PORT, COUNTER_ACTION_SET)?,
                 program_number_state(COUNTER_OPERAND_PORT, value)?,
             ])
@@ -212,16 +225,16 @@ pub fn build_meter_state_variables(
 ) -> Result<Vec<StateValue>, String> {
     let previous_reading = get_state_bigint(previous_state, METER_READING_PORT, 0)?;
     let previous_unit_price = get_state_bigint(previous_state, METER_UNIT_PRICE_PORT, 0)?;
-    let reading = input_bigint(transition, "reading", previous_reading)?;
+    let reading = input_bigint(transition, "reading", previous_reading.clone())?;
     let unit_price = input_bigint(transition, "unitPrice", previous_unit_price)?;
-    let usage = reading - previous_reading;
-    let payment = usage * unit_price;
+    let usage = &reading - &previous_reading;
+    let payment = &usage * &unit_price;
 
     Ok(vec![
         program_number_state(METER_READING_PORT, reading)?,
         program_number_state(METER_USAGE_DELTA_PORT, usage)?,
-        program_number_state(METER_UNIT_PRICE_PORT, unit_price)?,
-        program_number_state(METER_PAYMENT_PORT, payment)?,
+        program_amount_state(METER_UNIT_PRICE_PORT, unit_price)?,
+        program_amount_state(METER_PAYMENT_PORT, payment)?,
     ])
 }
 
@@ -294,7 +307,7 @@ pub fn validate_meter_transition(
         Err(result) => return result,
     };
 
-    if next_payer != previous_payer - payment || next_payee != previous_payee + payment {
+    if next_payer != &previous_payer - &payment || next_payee != &previous_payee + &payment {
         return invalid("meter balance transfer mismatch");
     }
     valid()
@@ -359,7 +372,7 @@ pub fn build_htlc_state_variables(
             let timeout = input_bigint(Some(transition), "timeoutBlock", 0)?;
             Ok(vec![
                 program_hex_state(HTLC_HASHLOCK_PORT, &format!("0x{}", hashlock))?,
-                program_number_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
+                program_amount_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                 program_bool_state(HTLC_CLAIMED_PORT, false)?,
                 program_hex_state(HTLC_PREIMAGE_PORT, "")?,
@@ -370,7 +383,7 @@ pub fn build_htlc_state_variables(
             if preimage.is_empty() || preimage_digest(&preimage) != normalize_hex(&hashlock) {
                 return Ok(vec![
                     program_hex_state(HTLC_HASHLOCK_PORT, &hashlock)?,
-                    program_number_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
+                    program_amount_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
                     program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                     program_bool_state(HTLC_CLAIMED_PORT, false)?,
                     program_hex_state(HTLC_PREIMAGE_PORT, &prev_preimage)?,
@@ -378,7 +391,7 @@ pub fn build_htlc_state_variables(
             }
             Ok(vec![
                 program_hex_state(HTLC_HASHLOCK_PORT, &hashlock)?,
-                program_number_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
+                program_amount_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                 program_bool_state(HTLC_CLAIMED_PORT, true)?,
                 program_hex_state(
@@ -389,7 +402,7 @@ pub fn build_htlc_state_variables(
         }
         "timeout" => Ok(vec![
             program_hex_state(HTLC_HASHLOCK_PORT, &hashlock)?,
-            program_number_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
+            program_amount_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
             program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
             program_bool_state(HTLC_CLAIMED_PORT, true)?,
             program_hex_state(HTLC_PREIMAGE_PORT, &prev_preimage)?,
@@ -455,7 +468,7 @@ pub fn validate_htlc_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if next_amount != 0 {
+            if !next_amount.is_zero() {
                 return invalid("htlc claim must release locked amount");
             }
             if !claimed {
@@ -469,8 +482,8 @@ pub fn validate_htlc_transition(
                 .as_ref()
                 .and_then(|inputs| inputs.get("currentBlock"))
                 .and_then(Value::as_str)
-                .and_then(|value| value.parse::<i128>().ok())
-                .unwrap_or_default();
+                .and_then(|value| value.parse::<BigInt>().ok())
+                .unwrap_or_else(BigInt::zero);
             let timeout_block = match get_state_bigint(previous_state, HTLC_TIMEOUT_BLOCK_PORT, 0) {
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
@@ -486,7 +499,7 @@ pub fn validate_htlc_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if next_amount != 0 {
+            if !next_amount.is_zero() {
                 return invalid("htlc timeout must release locked amount");
             }
             if !claimed {
@@ -509,7 +522,7 @@ pub fn build_vault_state_variables(
 
     let Some(transition) = transition else {
         return Ok(vec![
-            program_number_state(VAULT_LOCKED_VALUE_PORT, locked)?,
+            program_amount_state(VAULT_LOCKED_VALUE_PORT, locked)?,
             program_number_state(VAULT_RELEASE_SEQUENCE_PORT, release)?,
             program_bool_state(
                 VAULT_SWEPT_PORT,
@@ -522,7 +535,7 @@ pub fn build_vault_state_variables(
             let amount = input_bigint(Some(transition), "amount", 0)?;
             let release = input_bigint(Some(transition), "releaseSequence", 0)?;
             Ok(vec![
-                program_number_state(VAULT_LOCKED_VALUE_PORT, amount)?,
+                program_amount_state(VAULT_LOCKED_VALUE_PORT, amount)?,
                 program_number_state(VAULT_RELEASE_SEQUENCE_PORT, release)?,
                 program_bool_state(VAULT_SWEPT_PORT, false)?,
             ])
@@ -530,7 +543,7 @@ pub fn build_vault_state_variables(
         "extend" => {
             let release = input_bigint(Some(transition), "releaseSequence", 0)?;
             Ok(vec![
-                program_number_state(VAULT_LOCKED_VALUE_PORT, locked)?,
+                program_amount_state(VAULT_LOCKED_VALUE_PORT, locked)?,
                 program_number_state(VAULT_RELEASE_SEQUENCE_PORT, release)?,
                 program_bool_state(
                     VAULT_SWEPT_PORT,
@@ -539,14 +552,14 @@ pub fn build_vault_state_variables(
             ])
         }
         "release" => Ok(vec![
-            program_number_state(VAULT_LOCKED_VALUE_PORT, 0)?,
+            program_amount_state(VAULT_LOCKED_VALUE_PORT, 0)?,
             program_number_state(VAULT_RELEASE_SEQUENCE_PORT, release)?,
             program_bool_state(VAULT_SWEPT_PORT, true)?,
         ]),
         _ => {
             let swept = get_state_bool(previous_state, VAULT_SWEPT_PORT, false)?;
             Ok(vec![
-                program_number_state(VAULT_LOCKED_VALUE_PORT, locked)?,
+                program_amount_state(VAULT_LOCKED_VALUE_PORT, locked)?,
                 program_number_state(VAULT_RELEASE_SEQUENCE_PORT, release)?,
                 program_bool_state(VAULT_SWEPT_PORT, swept)?,
             ])
@@ -572,7 +585,7 @@ pub fn validate_vault_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if amount < 0 {
+            if amount.is_negative() {
                 return invalid("vault lock amount must be non-negative");
             }
             let prev_locked = match get_state_bigint(previous_state, VAULT_LOCKED_VALUE_PORT, 0) {
@@ -606,11 +619,12 @@ pub fn validate_vault_transition(
             if swept {
                 return invalid("vault lock after sweep is not allowed");
             }
-            if prev_locked > 0 {
-                if i128::from(next_state.sequence) < prev_release && next_amount != prev_locked {
+            if prev_locked.is_positive() {
+                let sequence = BigInt::from(next_state.sequence);
+                if sequence < prev_release && next_amount != prev_locked {
                     return invalid("vault lock before release must keep locked value");
                 }
-                if i128::from(next_state.sequence) >= prev_release && next_amount < prev_locked {
+                if sequence >= prev_release && next_amount < prev_locked {
                     return invalid("vault lock must not decrease locked value");
                 }
             }
@@ -652,7 +666,7 @@ pub fn validate_vault_transition(
                     Ok(value) => value,
                     Err(reason) => return invalid(reason),
                 };
-            if i128::from(next_state.sequence) < prev_release {
+            if BigInt::from(next_state.sequence) < prev_release {
                 return invalid("vault release sequence not reached");
             }
             let next_amount = match get_state_bigint(Some(next_state), VAULT_LOCKED_VALUE_PORT, 0) {
@@ -663,7 +677,7 @@ pub fn validate_vault_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if next_amount != 0 {
+            if !next_amount.is_zero() {
                 return invalid("vault release must empty locked value");
             }
             if !swept {
@@ -687,12 +701,12 @@ pub fn build_treasury_state_variables(
     let spent = get_state_bigint(previous_state, TREASURY_SPENT_PORT, 0)?;
     let proof = get_state_string(previous_state, TREASURY_OUTCOME_PROOF_ID_PORT, "")?;
 
-    let pass_through = |spent: i128, snapshot: &str, tally: &str, cap: i128, proof: &str| {
+    let pass_through = |spent: BigInt, snapshot: &str, tally: &str, cap: BigInt, proof: &str| {
         Ok(vec![
             program_string_state(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, snapshot)?,
             program_string_state(TREASURY_VOTE_TALLY_HASH_PORT, tally)?,
-            program_number_state(TREASURY_SPEND_CAP_PORT, cap)?,
-            program_number_state(TREASURY_SPENT_PORT, spent)?,
+            program_amount_state(TREASURY_SPEND_CAP_PORT, cap)?,
+            program_amount_state(TREASURY_SPENT_PORT, spent)?,
             program_string_state(TREASURY_OUTCOME_PROOF_ID_PORT, proof)?,
         ])
     };
@@ -706,7 +720,7 @@ pub fn build_treasury_state_variables(
             let tally = input_string(Some(transition), "voteTallyHash", "");
             let cap = input_bigint(Some(transition), "spendCap", 0)?;
             let proof = input_string(Some(transition), "outcomeProofId", "");
-            pass_through(0, &snapshot, &tally, cap, &proof)
+            pass_through(BigInt::zero(), &snapshot, &tally, cap, &proof)
         }
         "spend" => {
             let amount = input_bigint(Some(transition), "amount", 0)?;
@@ -734,10 +748,10 @@ pub fn validate_treasury_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if spend_cap < 0 {
+            if spend_cap.is_negative() {
                 return invalid("treasury spend cap must be non-negative");
             }
-            if spent != 0 {
+            if !spent.is_zero() {
                 return invalid("treasury configure must reset spent");
             }
             valid()
@@ -772,7 +786,7 @@ pub fn validate_treasury_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if amount < 0 {
+            if amount.is_negative() {
                 return invalid("treasury spend amount must be non-negative");
             }
             if next_spent != prev_spent + amount {
@@ -788,7 +802,7 @@ pub fn validate_treasury_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if spent != 0 {
+            if !spent.is_zero() {
                 return invalid("treasury rotate must reset spent");
             }
             valid()
@@ -810,43 +824,39 @@ pub fn build_membership_state_variables(
     let pool = get_state_bigint(previous_state, MEMBERSHIP_DIVIDEND_POOL_PORT, 0)?;
     let payout = get_state_bigint(previous_state, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0)?;
 
-    let pass_through = || {
+    let pass_through = |pool: &BigInt, payout: &BigInt| {
         Ok(vec![
             program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, &root)?,
-            program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, pool)?,
-            program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout)?,
+            program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, pool.clone())?,
+            program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout.clone())?,
         ])
     };
 
     let Some(transition) = transition else {
-        return pass_through();
+        return pass_through(&pool, &payout);
     };
     match transition.action.as_str() {
         "member_add" | "member_remove" => {
             let root = normalize_hex(&input_string(Some(transition), "memberRoot", ""));
             Ok(vec![
                 program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, &root)?,
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, pool)?,
+                program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, pool)?,
                 program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout)?,
             ])
         }
         "mint_dividend" => {
             let amount = input_bigint(Some(transition), "amount", 0)?;
-            Ok(vec![
-                program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, &root)?,
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, pool + amount)?,
-                program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout)?,
-            ])
+            pass_through(&(&pool + &amount), &payout)
         }
         "pay_dividend" => {
             let payout = input_bigint(Some(transition), "payoutSequence", 0)?;
             Ok(vec![
                 program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, &root)?,
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0)?,
+                program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0)?,
                 program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout)?,
             ])
         }
-        _ => pass_through(),
+        _ => pass_through(&pool, &payout),
     }
 }
 
@@ -878,7 +888,7 @@ pub fn validate_membership_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if amount < 0 {
+            if amount.is_negative() {
                 return invalid("membership dividend amount must be non-negative");
             }
             let prev_pool = match get_state_bigint(previous_state, MEMBERSHIP_DIVIDEND_POOL_PORT, 0)
@@ -922,7 +932,7 @@ pub fn validate_membership_transition(
             if next_payout != payout {
                 return invalid("membership payout sequence mismatch");
             }
-            if next_pool != 0 {
+            if !next_pool.is_zero() {
                 return invalid("membership payout must empty pool");
             }
             valid()
@@ -945,12 +955,12 @@ pub fn build_asset_state_variables(
     let holder_b = get_state_bigint(previous_state, ASSET_HOLDER_B_BALANCE_PORT, 0)?;
     let total = get_state_bigint(previous_state, ASSET_TOTAL_PORT, 0)?;
 
-    let pass_through = |token: &str, holder_a: i128, holder_b: i128, total: i128| {
+    let pass_through = |token: &str, holder_a: BigInt, holder_b: BigInt, total: BigInt| {
         Ok(vec![
             program_hex_state(ASSET_TOKEN_ID_PORT, token)?,
-            program_number_state(ASSET_HOLDER_A_BALANCE_PORT, holder_a)?,
-            program_number_state(ASSET_HOLDER_B_BALANCE_PORT, holder_b)?,
-            program_number_state(ASSET_TOTAL_PORT, total)?,
+            program_amount_state(ASSET_HOLDER_A_BALANCE_PORT, holder_a)?,
+            program_amount_state(ASSET_HOLDER_B_BALANCE_PORT, holder_b)?,
+            program_amount_state(ASSET_TOTAL_PORT, total)?,
         ])
     };
 
@@ -962,20 +972,21 @@ pub fn build_asset_state_variables(
             let token = normalize_hex(&input_string(Some(transition), "tokenId", ""));
             let holder_a = input_bigint(Some(transition), "holderABalance", 0)?;
             let holder_b = input_bigint(Some(transition), "holderBBalance", 0)?;
-            pass_through(&token, holder_a, holder_b, holder_a + holder_b)
+            let total = &holder_a + &holder_b;
+            pass_through(&token, holder_a, holder_b, total)
         }
         "transfer" => {
             let amount = input_bigint(Some(transition), "amount", 0)?;
             let to = input_string(Some(transition), "to", "b");
             let next_a = if to == "a" {
-                holder_a + amount
+                &holder_a + &amount
             } else {
-                holder_a - amount
+                &holder_a - &amount
             };
             let next_b = if to == "a" {
-                holder_b - amount
+                &holder_b - &amount
             } else {
-                holder_b + amount
+                &holder_b + &amount
             };
             pass_through(&token, next_a, next_b, total)
         }
@@ -1007,7 +1018,7 @@ pub fn validate_asset_transition(
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
             };
-            if holder_a < 0 || holder_b < 0 {
+            if holder_a.is_negative() || holder_b.is_negative() {
                 return invalid("asset balances must be non-negative");
             }
             if total != holder_a + holder_b {
@@ -1021,7 +1032,7 @@ pub fn validate_asset_transition(
                 Err(reason) => return invalid(reason),
             };
             let to = input_string(Some(transition), "to", "b");
-            if amount < 0 {
+            if amount.is_negative() {
                 return invalid("asset transfer amount must be non-negative");
             }
             let prev_a = match get_state_bigint(previous_state, ASSET_HOLDER_A_BALANCE_PORT, 0) {
@@ -1049,16 +1060,16 @@ pub fn validate_asset_transition(
                 Err(reason) => return invalid(reason),
             };
             let expected_a = if to == "a" {
-                prev_a + amount
+                &prev_a + &amount
             } else {
-                prev_a - amount
+                &prev_a - &amount
             };
             let expected_b = if to == "b" {
-                prev_b + amount
+                &prev_b + &amount
             } else {
-                prev_b - amount
+                &prev_b - &amount
             };
-            if expected_a < 0 || expected_b < 0 {
+            if expected_a.is_negative() || expected_b.is_negative() {
                 return invalid("asset transfer exceeds balance");
             }
             if next_a != expected_a || next_b != expected_b {
@@ -1227,7 +1238,7 @@ mod tests {
             vec![("alice", "600"), ("bob", "400")],
             vec![
                 program_number_state(METER_READING_PORT, 100).unwrap(),
-                program_number_state(METER_UNIT_PRICE_PORT, 2).unwrap(),
+                program_amount_state(METER_UNIT_PRICE_PORT, 2).unwrap(),
             ],
         );
         let transition = ProgramTransition {
@@ -1255,8 +1266,8 @@ mod tests {
             vec![
                 program_number_state(METER_READING_PORT, 110).unwrap(),
                 program_number_state(METER_USAGE_DELTA_PORT, 10).unwrap(),
-                program_number_state(METER_UNIT_PRICE_PORT, 2).unwrap(),
-                program_number_state(METER_PAYMENT_PORT, 20).unwrap(),
+                program_amount_state(METER_UNIT_PRICE_PORT, 2).unwrap(),
+                program_amount_state(METER_PAYMENT_PORT, 20).unwrap(),
             ],
         );
         let transition = ProgramTransition {
@@ -1289,7 +1300,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(HTLC_HASHLOCK_PORT, "0xabcdef").unwrap(),
-                program_number_state(HTLC_LOCKED_AMOUNT_PORT, 500).unwrap(),
+                program_amount_state(HTLC_LOCKED_AMOUNT_PORT, 500).unwrap(),
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, 100).unwrap(),
                 program_bool_state(HTLC_CLAIMED_PORT, false).unwrap(),
             ],
@@ -1314,7 +1325,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(HTLC_HASHLOCK_PORT, &digest).unwrap(),
-                program_number_state(HTLC_LOCKED_AMOUNT_PORT, 500).unwrap(),
+                program_amount_state(HTLC_LOCKED_AMOUNT_PORT, 500).unwrap(),
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, 100).unwrap(),
                 program_bool_state(HTLC_CLAIMED_PORT, false).unwrap(),
             ],
@@ -1329,7 +1340,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(HTLC_HASHLOCK_PORT, &digest).unwrap(),
-                program_number_state(HTLC_LOCKED_AMOUNT_PORT, 0).unwrap(),
+                program_amount_state(HTLC_LOCKED_AMOUNT_PORT, 0).unwrap(),
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, 100).unwrap(),
                 program_bool_state(HTLC_CLAIMED_PORT, true).unwrap(),
             ],
@@ -1361,7 +1372,7 @@ mod tests {
         let next = state_with_vars(
             vec![],
             vec![
-                program_number_state(VAULT_LOCKED_VALUE_PORT, 800).unwrap(),
+                program_amount_state(VAULT_LOCKED_VALUE_PORT, 800).unwrap(),
                 program_number_state(VAULT_RELEASE_SEQUENCE_PORT, 50).unwrap(),
                 program_bool_state(VAULT_SWEPT_PORT, false).unwrap(),
             ],
@@ -1405,8 +1416,8 @@ mod tests {
             vec![
                 program_string_state(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, "snap-1").unwrap(),
                 program_string_state(TREASURY_VOTE_TALLY_HASH_PORT, "tally-1").unwrap(),
-                program_number_state(TREASURY_SPEND_CAP_PORT, 1000).unwrap(),
-                program_number_state(TREASURY_SPENT_PORT, 0).unwrap(),
+                program_amount_state(TREASURY_SPEND_CAP_PORT, 1000).unwrap(),
+                program_amount_state(TREASURY_SPENT_PORT, 0).unwrap(),
                 program_string_state(TREASURY_OUTCOME_PROOF_ID_PORT, "proof-1").unwrap(),
             ],
         );
@@ -1423,8 +1434,8 @@ mod tests {
             vec![
                 program_string_state(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, "snap-1").unwrap(),
                 program_string_state(TREASURY_VOTE_TALLY_HASH_PORT, "tally-1").unwrap(),
-                program_number_state(TREASURY_SPEND_CAP_PORT, 1000).unwrap(),
-                program_number_state(TREASURY_SPENT_PORT, 250).unwrap(),
+                program_amount_state(TREASURY_SPEND_CAP_PORT, 1000).unwrap(),
+                program_amount_state(TREASURY_SPENT_PORT, 250).unwrap(),
                 program_string_state(TREASURY_OUTCOME_PROOF_ID_PORT, "proof-1").unwrap(),
             ],
         );
@@ -1460,7 +1471,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, "abcd").unwrap(),
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0).unwrap(),
+                program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0).unwrap(),
                 program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0).unwrap(),
             ],
         );
@@ -1476,7 +1487,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, "abcd").unwrap(),
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 100).unwrap(),
+                program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 100).unwrap(),
                 program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0).unwrap(),
             ],
         );
@@ -1492,7 +1503,7 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(MEMBERSHIP_MEMBER_ROOT_PORT, "abcd").unwrap(),
-                program_number_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0).unwrap(),
+                program_amount_state(MEMBERSHIP_DIVIDEND_POOL_PORT, 0).unwrap(),
                 program_number_state(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 1).unwrap(),
             ],
         );
@@ -1519,9 +1530,9 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(ASSET_TOKEN_ID_PORT, "abcd").unwrap(),
-                program_number_state(ASSET_HOLDER_A_BALANCE_PORT, 300).unwrap(),
-                program_number_state(ASSET_HOLDER_B_BALANCE_PORT, 200).unwrap(),
-                program_number_state(ASSET_TOTAL_PORT, 500).unwrap(),
+                program_amount_state(ASSET_HOLDER_A_BALANCE_PORT, 300).unwrap(),
+                program_amount_state(ASSET_HOLDER_B_BALANCE_PORT, 200).unwrap(),
+                program_amount_state(ASSET_TOTAL_PORT, 500).unwrap(),
             ],
         );
         assert!(validate_asset_transition(None, &next, Some(&configure)).valid);
@@ -1536,9 +1547,9 @@ mod tests {
             vec![],
             vec![
                 program_hex_state(ASSET_TOKEN_ID_PORT, "abcd").unwrap(),
-                program_number_state(ASSET_HOLDER_A_BALANCE_PORT, 200).unwrap(),
-                program_number_state(ASSET_HOLDER_B_BALANCE_PORT, 300).unwrap(),
-                program_number_state(ASSET_TOTAL_PORT, 500).unwrap(),
+                program_amount_state(ASSET_HOLDER_A_BALANCE_PORT, 200).unwrap(),
+                program_amount_state(ASSET_HOLDER_B_BALANCE_PORT, 300).unwrap(),
+                program_amount_state(ASSET_TOTAL_PORT, 500).unwrap(),
             ],
         );
         assert!(validate_asset_transition(Some(&next), &transferred, Some(&transfer)).valid);
@@ -1554,6 +1565,52 @@ mod tests {
         assert_eq!(
             result.reason.as_deref(),
             Some("asset transfer exceeds balance")
+        );
+    }
+
+    /// `n` whole MINIMA in atoms (1 MINIMA = 10^44 atoms).
+    fn minima(n: u32) -> String {
+        format!("{n}{}", "0".repeat(44))
+    }
+
+    #[test]
+    fn meter_program_handles_atom_amounts_beyond_i128() {
+        // unitPrice is quoted in atoms, so 1 MINIMA per unit is 10^44 atoms.
+        let previous = state_with_vars(
+            vec![],
+            vec![
+                program_number_state(METER_READING_PORT, 0).unwrap(),
+                program_amount_state(METER_UNIT_PRICE_PORT, 0).unwrap(),
+            ],
+        );
+        let transition = ProgramTransition {
+            action: "record_reading".to_string(),
+            inputs: Some(json!({ "reading": "2", "unitPrice": minima(1) })),
+            witness: None,
+            metadata: None,
+        };
+
+        let vars = build_meter_state_variables(Some(&previous), Some(&transition)).unwrap();
+        assert_eq!(vars[3].value, json!(minima(2)));
+
+        let alice_before = minima(3);
+        let bob_before = "0".to_string();
+        let previous = state_with_vars(
+            vec![
+                ("alice", alice_before.as_str()),
+                ("bob", bob_before.as_str()),
+            ],
+            previous.state_variables,
+        );
+        let alice_after = minima(1);
+        let bob_after = minima(2);
+        let next = state_with_vars(
+            vec![("alice", alice_after.as_str()), ("bob", bob_after.as_str())],
+            vars,
+        );
+        assert!(
+            validate_meter_transition(&channel(), Some(&previous), &next, Some(&transition)).valid,
+            "atom balances must not overflow"
         );
     }
 }

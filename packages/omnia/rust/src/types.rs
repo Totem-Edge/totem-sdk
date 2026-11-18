@@ -61,6 +61,10 @@ pub struct StateValue {
     pub value: serde_json::Value,
     #[serde(rename = "type")]
     pub value_type: String,
+    /// MiniNumber scale for `number` values. Amount ports use 44 so the script
+    /// sees the same decimal value as AMOUNT; counts/sequences omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

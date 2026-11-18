@@ -1,7 +1,31 @@
-import { OmniaVtxo, VtxoProof, VtxoTransfer, VerifyVtxoResult } from './types.js';
+import {
+  OmniaVtxo,
+  OmniaVtxoPool,
+  VtxoProof,
+  VtxoTransfer,
+  VerifyVtxoResult,
+} from './types.js';
 import { computeVtxoLeaf, verifyMerkleProof, MerkleProofNode } from './commitment.js';
+import { poolEpochRoot, poolPublishedRoots } from './pool.js';
 
-export function verifyVtxo(vtxo: OmniaVtxo): VerifyVtxoResult {
+export interface VerifyVtxoOptions {
+  /**
+   * The root published by the pool / epoch authority. Required on the
+   * authoritative path: a proof is only accepted when it anchors here.
+   */
+  expectedRoot?: string;
+  /**
+   * Explicitly opt out of pool anchoring for non-pool or structural
+   * inspection. A VTXO verified this way is NOT a verified claim; never use
+   * this to authorize a transfer or an exit.
+   */
+  allowUnanchored?: boolean;
+}
+
+export function verifyVtxo(
+  vtxo: OmniaVtxo,
+  options: VerifyVtxoOptions = {},
+): VerifyVtxoResult {
   const errors: string[] = [];
 
   if (!vtxo.vtxoId) errors.push('Missing vtxoId');
@@ -11,10 +35,98 @@ export function verifyVtxo(vtxo: OmniaVtxo): VerifyVtxoResult {
   if (!vtxo.tokenId) errors.push('Missing tokenId');
   if (!vtxo.status) errors.push('Missing status');
 
-  if (vtxo.proof && vtxo.proof.leaf && vtxo.proof.root) {
+  const hasProof = Boolean(vtxo.proof && vtxo.proof.leaf && vtxo.proof.root);
+  if (!hasProof) {
+    if (!options.allowUnanchored) {
+      errors.push(
+        'Missing membership proof: a pool VTXO must carry a proof and must be ' +
+        'verified against a published root (expectedRoot or verifyVtxoMembership)',
+      );
+    }
+  } else {
     const proofResult = verifyVtxoProof(vtxo, vtxo.proof);
     if (!proofResult.valid) {
       errors.push(...proofResult.errors.map(e => `Proof: ${e}`));
+    }
+    if (options.expectedRoot !== undefined) {
+      if (vtxo.proof.root !== options.expectedRoot) {
+        errors.push(
+          `Proof root ${vtxo.proof.root} is not the anchored root ${options.expectedRoot}`,
+        );
+      }
+    } else if (!options.allowUnanchored) {
+      errors.push(
+        'Missing anchored root: pass expectedRoot (or verifyVtxoMembership(vtxo, pool))',
+      );
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Anchor a VTXO proof to a pool: the proof must be present, its root must be
+ * a root the pool published, and (when the pool records membership) the VTXO
+ * must be a member with the matching leaf.
+ *
+ * Accepts historical epoch roots, so a VTXO minted in an earlier epoch remains
+ * verifiable after later batches (OMN-002 + OMN-010).
+ */
+export function verifyVtxoMembership(
+  vtxo: OmniaVtxo,
+  pool: OmniaVtxoPool,
+): VerifyVtxoResult {
+  const errors: string[] = [];
+
+  if (vtxo.poolId !== pool.poolId) {
+    errors.push(`Pool mismatch: VTXO ${vtxo.poolId} vs pool ${pool.poolId}`);
+  }
+  if (!vtxo.proof || !vtxo.proof.leaf || !vtxo.proof.root) {
+    errors.push('Missing membership proof');
+    return { valid: false, errors };
+  }
+
+  const proofResult = verifyVtxoProof(vtxo, vtxo.proof);
+  if (!proofResult.valid) {
+    errors.push(...proofResult.errors.map(e => `Proof: ${e}`));
+  }
+
+  const published = poolPublishedRoots(pool);
+  if (!published.includes(vtxo.proof.root)) {
+    errors.push(`Proof root ${vtxo.proof.root} is not a published pool root`);
+  } else {
+    const epochRoot = poolEpochRoot(pool, vtxo.epoch);
+    if (epochRoot) {
+      if (epochRoot.root !== vtxo.proof.root) {
+        errors.push(
+          `Proof root ${vtxo.proof.root} is not the published root for epoch ${vtxo.epoch}`,
+        );
+      }
+    } else if (vtxo.epoch === pool.epoch) {
+      if (vtxo.proof.root !== pool.commitmentRoot) {
+        errors.push(
+          `Proof root ${vtxo.proof.root} is not the current pool root ${pool.commitmentRoot}`,
+        );
+      }
+    } else {
+      errors.push(`No published root for epoch ${vtxo.epoch}`);
+    }
+  }
+
+  const members = pool.members ?? [];
+  if (members.length > 0) {
+    const member = members.find((entry) => entry.vtxoId === vtxo.vtxoId);
+    if (!member) {
+      errors.push(`VTXO ${vtxo.vtxoId} is not a member of the pool commitment`);
+    } else {
+      if (member.leaf !== computeVtxoLeaf(vtxo)) {
+        errors.push('Pool membership leaf mismatch');
+      }
+      if (member.epoch !== vtxo.epoch) {
+        errors.push(
+          `Pool membership epoch ${member.epoch} does not match VTXO epoch ${vtxo.epoch}`,
+        );
+      }
     }
   }
 
@@ -29,6 +141,9 @@ export function verifyVtxoProof(vtxo: OmniaVtxo, proof: VtxoProof): VerifyVtxoRe
     errors.push(
       `Proof leaf mismatch: expected ${expectedLeaf}, got ${proof.leaf}`
     );
+  }
+  if (proof.epoch !== vtxo.epoch) {
+    errors.push(`Proof epoch ${proof.epoch} does not match VTXO epoch ${vtxo.epoch}`);
   }
 
   if (proof.siblings.length > 0) {

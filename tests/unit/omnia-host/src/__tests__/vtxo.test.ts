@@ -3,10 +3,14 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import { verifyChannelSignature } from '@totemsdk/omnia';
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-vtxo-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
@@ -32,6 +36,8 @@ describe('VTXO host API', () => {
       tokenId: '0x00',
       totalCapacity: '1000000',
       nonce: 'pool-1',
+      // Pool policy limits are internal atom quantities.
+      policy: { maxAmount: atoms('1000000') },
     });
     expect(created).toMatchObject({ success: true });
     const storePoolId = (created as any).pool.poolId;
@@ -39,7 +45,7 @@ describe('VTXO host API', () => {
       const prepared = await methods.get('omnia/prepareVtxoReceipt')!({
         receiptId,
         root,
-        epoch: 0,
+        epoch: typeof extra.epoch === 'number' ? extra.epoch : 1,
         ...extra,
       });
       const request = (prepared as any).requests.receipt;
@@ -77,16 +83,16 @@ describe('VTXO host API', () => {
 
     const refreshed = await methods.get('omnia/refreshVtxo')!({
       vtxoId: transfer.output.vtxoId,
-      newEpoch: 1,
+      newEpoch: 2,
       nonce: 'refresh-1',
     });
     const refresh = refreshed as any;
-    expect(refresh.refreshed.epoch).toBe(1);
+    expect(refresh.refreshed.epoch).toBe(2);
     const refreshPrepared = await methods.get('omnia/prepareVtxoReceipt')!({
       receiptId: refresh.receipt.receiptId,
       root: refresh.refreshed.proof.root,
-      epoch: 1,
-      previousEpoch: 0,
+      epoch: 2,
+      previousEpoch: 1,
       inputsAmount: '40000',
     });
     const refreshRequest = (refreshPrepared as any).requests.receipt;

@@ -100,8 +100,15 @@ export interface HtlcLink {
   /**
    * `intent` is written before the outgoing HTLC is signed (CAN-008);
    * `active` once the signed HTLC id is known.
+   * OMN-006: `preimage-revealed` is written before fulfilling the incoming
+   * HTLC; `backward-sent` once the preimage update has been sent. A link is not
+   * removed while `preimage-revealed` — recovery must retry the backward send.
    */
-  status?: 'intent' | 'active';
+  status?: 'intent' | 'active' | 'preimage-revealed' | 'backward-sent';
+  /** OMN-006: preimage owed to the previous hop, journaled before fulfil. */
+  preimage?: string;
+  /** OMN-006: deterministic nonce so a retried backward send is deduplicated. */
+  backwardNonce?: number;
 }
 
 export interface MultiHopForwarder {
@@ -263,32 +270,63 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     return { status: 'forwarded', outChannelId: result.channel.channelId, outHtlcId: result.htlcId };
   };
 
+  const createBackwardPayload = (
+    channel: OmniaChannel,
+    preimage: string,
+    fallback: Record<string, unknown> = {},
+  ): Record<string, unknown> => ({
+    ...(channel.latestState ? { ...channel.latestState } : fallback),
+    preimage,
+  });
+
+  const sendBackward = async (link: HtlcLink): Promise<void> => {
+    const channel = options.channels.get(link.inChannelId);
+    if (!channel) throw new Error(`incoming channel ${link.inChannelId} is not loaded`);
+    const previousHop = channel.parties.find(
+      (p) => p.publicKeyDigest !== self.publicKeyDigest,
+    );
+    if (!previousHop) throw new Error(`incoming channel ${channel.channelId} has no previous hop`);
+    const peer = await options.swarm.connectToPeer(previousHop.publicKeyDigest, channel.channelId);
+    await peer.sendMessage({
+      type: 'STATE_UPDATE',
+      channelId: channel.channelId,
+      nonce: link.backwardNonce ?? Date.now(),
+      payload: createBackwardPayload(channel, link.preimage ?? ''),
+    });
+  };
+
   const revealPreimage = async (hashlock: string, preimage: string): Promise<RevealPreimageResult> => {
     const link = links.get(hashlock) ?? await options.linkJournal.get(hashlock);
     if (!link) return { status: 'unknown' };
     const channel = options.channels.get(link.inChannelId);
     if (!channel) return { status: 'unknown' };
 
+    // OMN-006: record the preimage and the backward duty BEFORE changing signed
+    // state. A crash between fulfil and send must leave recovery something to
+    // replay, not a cleared link.
+    const pending: HtlcLink = {
+      ...link,
+      preimage,
+      status: 'preimage-revealed',
+      backwardNonce: link.backwardNonce ?? Date.now(),
+    };
+    links.set(hashlock, pending);
+    await options.linkJournal.record(pending);
+
     const result = await fulfillHTLC(channel, link.inHtlcId, preimage, options.leaseProvider, options.chainProvider, options.signer);
     options.channels.set(result.channel.channelId, result.channel);
 
     // Propagate the fulfilment (and the preimage) to the previous hop so the
     // backward settlement walk can continue to the payer.
-    const previousHop = channel.parties.find(
-      (p) => p.publicKeyDigest !== self.publicKeyDigest,
-    );
-    if (previousHop) {
-      const peer = await options.swarm.connectToPeer(previousHop.publicKeyDigest, channel.channelId);
-      await peer.sendMessage({
-        type: 'STATE_UPDATE',
-        channelId: result.channel.channelId,
-        nonce: Date.now(),
-        payload: { ...result.partialState, preimage },
-      });
+    try {
+      await sendBackward(pending);
+      const sent: HtlcLink = { ...pending, status: 'backward-sent' };
+      links.set(hashlock, sent);
+      await options.linkJournal.record(sent);
+    } catch {
+      // Keep `preimage-revealed`: recover() will retry the same nonce.
+      return { status: 'settled', inChannelId: link.inChannelId };
     }
-
-    links.delete(hashlock);
-    await options.linkJournal.remove(hashlock);
 
     options.onSettled?.({ hashlock, inChannelId: link.inChannelId, inHtlcId: link.inHtlcId });
     return { status: 'settled', inChannelId: link.inChannelId };
@@ -306,6 +344,22 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       // needed. An outgoing HTLC being fulfilled means "reveal the preimage to
       // the incoming side", not "settled backwards".
       const inTerminal = !inHtlc || inHtlc.status !== 'pending';
+
+      // OMN-006: the incoming HTLC being terminal does not mean the backward
+      // preimage reached the previous hop. Retry until it is sent, then clear
+      // on the next recovery pass.
+      if (inTerminal && link.preimage && link.status !== 'backward-sent') {
+        try {
+          await sendBackward(link);
+          const sent: HtlcLink = { ...link, status: 'backward-sent' };
+          links.set(link.hashlock, sent);
+          await options.linkJournal.record(sent);
+          unresolved.push(sent);
+        } catch {
+          unresolved.push(link);
+        }
+        continue;
+      }
       if (inTerminal) {
         links.delete(link.hashlock);
         await options.linkJournal.remove(link.hashlock);

@@ -12,12 +12,14 @@
   {
     "port": 162,
     "value": "1000",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 163,
     "value": "0",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 164,

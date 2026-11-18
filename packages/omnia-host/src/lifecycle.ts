@@ -4,10 +4,12 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
+import { atomsToAmount, coinAmountAtoms } from '@totemsdk/core';
 import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
+import type { SpliceExpectation } from './peer-guards.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
 import { createOmniaIntegration, createOmniaSwarm } from '@totemsdk/omnia';
 import { SqliteChannelStore } from './stores/sqlite-store.js';
@@ -42,6 +44,7 @@ import { channelLockKey, withChannelLock } from './channel-lock.js';
 import { createFactoryAuthorizer, type FactoryAuthorizer } from './factory-approval.js';
 import { createChannelWatchService, type ChannelWatchService } from './watch.js';
 import {
+  assertFactoryCloseSettlement,
   assertFactoryCommitment,
   assertFactorySettlementDraft,
   assertOffChainFactoryCommitment,
@@ -347,6 +350,8 @@ export function createOmniaHost(
       const spliceAcceptances = hostMap<SpliceAcceptance>('omnia:splice:acceptance:', dependencies.spliceAcceptances);
       /** VC proposals this host co-signed, awaiting VC_FINALIZED (CAN-007). */
       const vcAcceptances = new Map<string, PendingVcAcceptance>();
+      /** CAN-019: totals/split this host signed for an outstanding splice. */
+      const spliceExpectations = new Map<string, SpliceExpectation>();
       /** Funding digests this host already signed, so a retry cannot burn leaves (CAN-010). */
       const factoryFundingSignatures = new Map<string, string>();
 
@@ -378,6 +383,11 @@ export function createOmniaHost(
             }
             const acceptance = await acceptSplice(channel, proposal, spliceLeaseProvider);
             spliceAcceptances.set(proposal.spliceId, acceptance);
+            spliceExpectations.set(proposal.spliceId, {
+              channelId: proposal.channelId,
+              totalValue: proposal.params.newTotalValue,
+              balances: proposal.params.newBalances,
+            });
             await peer.sendMessage({
               type: 'SPLICE_ACCEPT',
               channelId: msg.channelId,
@@ -390,12 +400,27 @@ export function createOmniaHost(
             // CAN-007: a finalized splice is a claim, not a fact. It must match
             // the acceptance this host produced for that spliceId before any of
             // it reaches the channel store.
-            const { acceptance, channel } = assertSpliceFinalized(spliceAcceptances, payload);
+            const spliceId = String((payload as any).spliceId ?? '');
+            if (!spliceExpectations.has(spliceId)) {
+              const proposal = spliceProposals.get(spliceId);
+              if (proposal) {
+                spliceExpectations.set(spliceId, {
+                  channelId: proposal.channelId,
+                  totalValue: proposal.params.newTotalValue,
+                  balances: proposal.params.newBalances,
+                });
+              }
+            }
+            const { acceptance, channel } = assertSpliceFinalized(
+              spliceAcceptances,
+              payload,
+              spliceExpectations,
+            );
             channelStore.set(channel.channelId, channel);
             void observation?.emit({
               domain: 'splice', kind: 'splice.finalized', phase: 'confirmed',
               entity: { type: 'channel', id: channel.channelId },
-              amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, v.toString()])) },
+              amounts: { capacity: channel.totalValue !== undefined ? atomsToAmount(channel.totalValue) : undefined, balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, atomsToAmount(v)])) },
               data: { spliceId: (payload as any).spliceId, txId: (payload as any).txId },
             });
             if (typeof payload.txId === 'string') {
@@ -570,7 +595,10 @@ export function createOmniaHost(
             }
             if (msg.type === 'FACTORY_CLOSE_FINALIZED' && payload.factoryId) {
               const factory = factories.get(payload.factoryId);
-              if (factory) factories.set(payload.factoryId, { ...factory, status: 'closed' });
+              if (factory) {
+                assertFactoryCloseSettlement(factory, payload);
+                factories.set(payload.factoryId, { ...factory, status: 'closed' });
+              }
               return null;
             }
             return null;
@@ -668,7 +696,7 @@ export function createOmniaHost(
           entity: { type: 'channel', id: channel.channelId },
           parties: { local: localParticipant?.partyId, remote: channel.parties?.find((p: any) => p.partyId !== localParticipant?.partyId)?.partyId },
           token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
-          amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, v.toString()])) },
+          amounts: { capacity: channel.totalValue !== undefined ? atomsToAmount(channel.totalValue) : undefined, balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, atomsToAmount(v)])) },
           transitionHash: channelTransitionHash(channel),
           evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
         });
@@ -761,10 +789,17 @@ export function createOmniaHost(
               );
               // CAN-007: remember what we agreed to, so VC_FINALIZED can be
               // checked against it instead of being trusted outright.
+              const plan = payload.plan as { amounts?: Record<string, bigint>; newAllocations?: Record<string, bigint> };
+              const amounts = plan.amounts ?? {};
               vcAcceptances.set(payload.vcId, {
                 kind: 'vc-open',
                 factoryId: payload.factoryId,
                 localPartyId: signature.partyId,
+                expected: {
+                  balances: amounts,
+                  totalValue: Object.values(amounts).reduce((sum, value) => sum + value, 0n),
+                  factoryAllocations: plan.newAllocations,
+                },
               });
               return {
                 type: 'VC_ACCEPT',
@@ -779,10 +814,15 @@ export function createOmniaHost(
                 signature.reservationId,
                 `factory-vc-close-${payload.factoryId}`,
               );
+              const plan = payload.plan as { finalAllocations?: Record<string, bigint>; newAllocations?: Record<string, bigint> };
               vcAcceptances.set(payload.vcId, {
                 kind: 'vc-close',
                 factoryId: payload.factoryId,
                 localPartyId: signature.partyId,
+                expected: {
+                  finalAllocations: plan.finalAllocations,
+                  factoryAllocations: plan.newAllocations,
+                },
               });
               return {
                 type: 'VC_ACCEPT',
@@ -923,7 +963,7 @@ export function createOmniaHost(
                 tokenId: channel.tokenId,
               });
               const successor = coins.find(
-                (coin) => !coin.spent && BigInt(coin.amount) === channel.totalValue,
+                (coin) => !coin.spent && coinAmountAtoms(coin) === channel.totalValue,
               );
               return successor ? { coinId: successor.coinid } : null;
             },

@@ -209,7 +209,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
         coinid: COIN_ID,
         address: ALICE_ADDRESS,
         tokenid: TOKEN_ID,
-        amount:  AMOUNT.toString(),
+        amount:  AMOUNT,
         storestate: false,
       }),
       getProof: jest.fn(),

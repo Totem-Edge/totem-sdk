@@ -1,3 +1,4 @@
+use num_bigint::BigInt;
 use wasm_bindgen::prelude::*;
 
 use crate::capacity;
@@ -195,7 +196,7 @@ pub fn get_state_bigint_wasm(
         })?)
     };
     let fallback = fallback
-        .parse::<i128>()
+        .parse::<BigInt>()
         .map_err(|e| JsValue::from_str(&format!("Invalid fallback: {}", e)))?;
     state_vars::get_state_bigint(state.as_ref(), port, fallback)
         .map(|value| value.to_string())
@@ -205,7 +206,7 @@ pub fn get_state_bigint_wasm(
 #[wasm_bindgen]
 pub fn program_number_state_wasm(port: u32, value: &str) -> Result<JsValue, JsValue> {
     let value = value
-        .parse::<i128>()
+        .parse::<BigInt>()
         .map_err(|e| JsValue::from_str(&format!("Invalid value: {}", e)))?;
     let state = state_vars::program_number_state(port, value).map_err(|e| JsValue::from_str(&e))?;
     serde_wasm_bindgen::to_value(&state)

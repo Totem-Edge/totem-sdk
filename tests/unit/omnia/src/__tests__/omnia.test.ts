@@ -215,7 +215,7 @@ function makeConfirmingProvider(coinId: string, amount: bigint, tokenId: string,
   return {
     getCoin: jest.fn(async (id: string) => {
       if (id !== coinId) return null;
-      return { coinId, amount: amount.toString(), tokenid: tokenId, address, spent: false, created: '1' };
+      return { coinId, amount, tokenid: tokenId, address, spent: false, created: '1' };
     }),
     getTip: jest.fn(async () => ({ block: 2, hash: '0x02' })),
   };
@@ -3106,11 +3106,41 @@ describe('@totemsdk/omnia — chain truth', () => {
     fundingCoinId: '0x' + 'aa'.repeat(32),
   });
 
+  it('CAN-004: waits for the funding coin to be mined before rejecting the open', async () => {
+    jest.useFakeTimers();
+    try {
+      const { script, address } = buildAndHashEltooScript([alice, bob]);
+      let calls = 0;
+      const provider = {
+        getCoin: jest.fn(async () => {
+          calls += 1;
+          if (calls <= 2) return null;
+          return {
+            coinId: '0x' + 'aa'.repeat(32),
+            amount: 1000,
+            tokenid: '0x00',
+            address,
+            spent: false,
+            created: '1',
+          };
+        }),
+        getTip: jest.fn(async () => ({ block: 2, hash: '0x02' })),
+      };
+      const pending = acceptChannel(proposalFor(script) as any, provider as any);
+      await jest.advanceTimersByTimeAsync(2500);
+      const channel = await pending;
+      expect(provider.getCoin.mock.calls.length).toBeGreaterThanOrEqual(3);
+      expect(channel.status).toBe('active');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('treats a funding coin without a creation height as unconfirmed', async () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     const provider = {
       getCoin: jest.fn(async (coinId: string) => ({
-        coinId, amount: '1000', tokenid: '0x00', address, spent: false,
+        coinId, amount: 1000, tokenid: '0x00', address, spent: false,
       })),
       getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
     };
@@ -3122,7 +3152,7 @@ describe('@totemsdk/omnia — chain truth', () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     const provider = {
       getCoin: jest.fn(async (coinId: string) => ({
-        coinId, amount: '1000', tokenid: '0x00', address, spent: false, created: '10',
+        coinId, amount: 1000, tokenid: '0x00', address, spent: false, created: '10',
       })),
       getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
     };

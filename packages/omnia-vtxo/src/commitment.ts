@@ -183,20 +183,36 @@ export interface VtxoProofSet {
   proofs: Record<VtxoId, VtxoProof>;
 }
 
-export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
-  if (vtxos.length === 0) {
+/** A leaf committed by a pool membership set. */
+export interface VtxoCommitmentMember {
+  vtxoId: VtxoId;
+  leaf: string;
+  epoch: number;
+}
+
+/** Derive the commitment member record for a VTXO without changing its leaf. */
+export function vtxoCommitmentMember(vtxo: OmniaVtxo): VtxoCommitmentMember {
+  return { vtxoId: vtxo.vtxoId, leaf: computeVtxoLeaf(vtxo), epoch: vtxo.epoch };
+}
+
+/**
+ * Build one proof set over an existing membership set.
+ *
+ * Sorting is by `vtxoId`, so appending a member never changes the position of
+ * an existing member relative to the others and the leaf of an existing VTXO
+ * is never recomputed (OMN-002).
+ */
+export function buildVtxoProofSetFromMembers(
+  members: readonly VtxoCommitmentMember[],
+): VtxoProofSet {
+  if (members.length === 0) {
     return { root: EMPTY_LEAF, proofs: {} };
   }
 
-  const sorted = [...vtxos].sort((a, b) =>
+  const sorted = [...members].sort((a, b) =>
     a.vtxoId < b.vtxoId ? -1 : a.vtxoId > b.vtxoId ? 1 : 0
   );
-  const leafMap = new Map<string, string>();
-  const leaves: string[] = sorted.map(v => {
-    const leaf = computeVtxoLeaf(v);
-    leafMap.set(v.vtxoId, leaf);
-    return leaf;
-  });
+  const leaves: string[] = sorted.map(m => m.leaf);
 
   const size = nextPowerOfTwo(leaves.length);
   const paddedLeaves: string[] = [...leaves];
@@ -216,7 +232,7 @@ export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
   const root = current[0];
   const proofs: Record<VtxoId, VtxoProof> = {};
 
-  sorted.forEach((vtxo, idx) => {
+  sorted.forEach((member, idx) => {
     const siblings: string[] = [];
     const positions: Array<'left' | 'right'> = [];
     let pos = idx;
@@ -230,18 +246,21 @@ export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
       pos = Math.floor(pos / 2);
     }
 
-    const leaf = leafMap.get(vtxo.vtxoId)!;
-    proofs[vtxo.vtxoId] = {
-      leaf,
+    proofs[member.vtxoId] = {
+      leaf: member.leaf,
       root,
       siblings,
       positions,
-      epoch: vtxo.epoch,
+      epoch: member.epoch,
       batchId: root,
     };
   });
 
   return { root, proofs };
+}
+
+export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
+  return buildVtxoProofSetFromMembers(vtxos.map(vtxoCommitmentMember));
 }
 
 export function computeReceiptId(

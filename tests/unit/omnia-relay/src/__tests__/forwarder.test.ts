@@ -214,6 +214,10 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     expect(second.links().size).toBe(0);
     const revealed = await second.revealPreimage(hashlock, preimage);
     expect(revealed.status).toBe('settled');
+    // OMN-006: the link stays journaled as `backward-sent` until recovery has
+    // observed the terminal incoming HTLC; it is not cleared at send time.
+    expect((await journal.get(hashlock))?.status).toBe('backward-sent');
+    await second.recover();
     expect(await journal.get(hashlock)).toBeUndefined();
     expect(await journal.list()).toEqual([]);
   });

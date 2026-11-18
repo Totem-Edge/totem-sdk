@@ -128,6 +128,24 @@ const mockClient: LookupClientLike = {
 const provider = new LookupClientProvider(mockClient);
 ```
 
+## Amount units
+
+`Coin.amount` is exactly what the node reports: **decimal MINIMA text** (`"0.2"`).
+Every provider returns that form; the adapter never re-scales it. Minima's Java
+`MiniNumber` has 44 decimal places, so 1 MINIMA = 10^44 atoms, the smallest
+representable unit.
+
+```typescript
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
+
+amountToAtoms('0.2'); // 20000000000000000000000000000000000000000000n
+atomsToAmount(amountToAtoms('0.2')); // '0.2'
+```
+
+If a consumer needs integer maths (channel balances, HTLCs, coin selection in
+base units), convert once with `amountToAtoms()` and keep atoms internally. Do
+not assume a provider, RPC command or binary serializer shares that unit.
+
 ## See also
 
 - [`@totemsdk/minima-rpc`](https://www.npmjs.com/package/@totemsdk/minima-rpc) — the RPC client used by `MinimaRpcProvider`

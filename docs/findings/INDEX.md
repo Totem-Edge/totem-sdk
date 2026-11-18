@@ -1,35 +1,37 @@
 # Canary findings
 
-Generated 2026-11-18T04:08:53.384Z. 42 findings, 25 open.
+Generated 2026-11-18T08:17:34.559Z. 44 findings, 14 open.
 
-sdk-defect: 36 · environment-blocked: 1 · sdk-gap: 5
+sdk-defect: 38 · environment-blocked: 1 · sdk-gap: 5
 
 | id | severity | kind | status | packages | title |
 |---|---|---|---|---|---|
-| `CAN-006` | critical | sdk-defect | open | `@totemsdk/omnia-host` | A channel is stored as active and submit reports success before the counterparty has acknowledged |
-| `CAN-007` | critical | sdk-defect | in-progress | `@totemsdk/omnia-host` | Unsolicited SPLICE_FINALIZED and VC_FINALIZED messages overwrite trusted channel state |
-| `CAN-010` | critical | sdk-defect | in-progress | `@totemsdk/omnia-host` | FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest |
-| `CAN-018` | critical | sdk-defect | in-progress | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Factory proposal still signs a peer-controlled commitment |
+| `CAN-006` | critical | sdk-defect | fixed | `@totemsdk/omnia-host` | A channel is stored as active and submit reports success before the counterparty has acknowledged |
+| `CAN-007` | critical | sdk-defect | fixed | `@totemsdk/omnia-host` | Unsolicited SPLICE_FINALIZED and VC_FINALIZED messages overwrite trusted channel state |
+| `CAN-010` | critical | sdk-defect | fixed | `@totemsdk/omnia-host` | FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest |
+| `CAN-018` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Factory proposal still signs a peer-controlled commitment |
+| `CAN-024` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/chain-provider`, `@totemsdk/core` | Omnia writes atom amounts with MiniNumber scale 0, encoding channel values 10^44 times too large |
 | `OMN-001` → `CAN-019` | critical | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
-| `OMN-003` | critical | sdk-defect | open | `@totemsdk/omnia-vtxo` | A transferred VTXO keeps the previous owner's exit entitlement |
-| `OMN-008` | critical | sdk-defect | open | `@totemsdk/omnia-vtxo` | Vesting policy never enforces the vested amount before the end block |
+| `OMN-003` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | A transferred VTXO keeps the previous owner's exit entitlement |
+| `OMN-008` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Vesting policy never enforces the vested amount before the end block |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
 | `CAN-002` | high | sdk-defect | fixed | `@totemsdk/proof`, `@totemsdk/manifest` | Manifest proofs are not bound to the manifest they attest |
-| `CAN-004` | high | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Non-custodial channel open races the chain: the acceptor validates the funding coin before it can be mined |
-| `CAN-008` | high | sdk-defect | in-progress | `@totemsdk/omnia-relay` | Forwarder signs the outgoing HTLC before the link is durable |
-| `CAN-009` | high | sdk-defect | in-progress | `@totemsdk/omnia-relay` | Relay recovery discards a link when either side is terminal |
-| `CAN-011` | high | sdk-defect | in-progress | `@totemsdk/omnia-host`, `@totemsdk/omnia-splice` | Both live splice paths omit chainProvider, so a broadcast splice is marked active with a placeholder coin |
-| `CAN-013` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | withChannelLock only guards the direct pay path |
-| `CAN-014` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | The watchtower is implemented and exported but never started by the host |
-| `CAN-019` | high | sdk-defect | open | `@totemsdk/omnia-host` | Finalization guards validate identifiers, not the resulting state |
-| `CAN-020` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | Factory opening requests the funding signature before the proposal exists (regression from CAN-010) |
+| `CAN-004` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Non-custodial channel open races the chain: the acceptor validates the funding coin before it can be mined |
+| `CAN-008` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | Forwarder signs the outgoing HTLC before the link is durable |
+| `CAN-009` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | Relay recovery discards a link when either side is terminal |
+| `CAN-011` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-splice` | Both live splice paths omit chainProvider, so a broadcast splice is marked active with a placeholder coin |
+| `CAN-013` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | withChannelLock only guards the direct pay path |
+| `CAN-014` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | The watchtower is implemented and exported but never started by the host |
+| `CAN-019` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Finalization guards validate identifiers, not the resulting state |
+| `CAN-020` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Factory opening requests the funding signature before the proposal exists (regression from CAN-010) |
 | `CAN-023` | high | environment-blocked | in-progress | `hawk-node` | Hawk 0.3.0 cannot complete mainnet IBD: block proofs rejected, blocks skipped, tip parks ~1,000 behind |
-| `OMN-002` | high | sdk-defect | open | `@totemsdk/omnia-vtxo` | mintVtxo replaces the pool commitment root with a single-leaf tree |
-| `OMN-004` | high | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/omnia-host` | Pool payout settlement is an unverified caller assertion |
-| `OMN-005` | high | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | recordPoolFee trusts a caller-supplied `verified` flag |
-| `OMN-006` | high | sdk-defect | open | `@totemsdk/omnia-relay`, `@totemsdk/omnia-router`, `@totemsdk/omnia-host` | Multi-hop recovery does not journal the outstanding backward preimage duty |
-| `OMN-007` | high | sdk-defect | open | `@totemsdk/omnia-vtxo`, `@totemsdk/omnia-host` | VTXO claim verification accepts a caller-supplied signer list |
-| `OMN-010` | high | sdk-defect | open | `@totemsdk/omnia-vtxo` | verifyVtxo accepts a VTXO with no membership proof and never anchors the root |
+| `CAN-025` | high | sdk-defect | fixed | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-host` | Liquidity-bond passes an atom count as the verifier's decimal claimedAmount, rejecting every pool deposit |
+| `OMN-002` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | mintVtxo replaces the pool commitment root with a single-leaf tree |
+| `OMN-004` | high | sdk-defect | fixed | `@totemsdk/omnia-pool`, `@totemsdk/omnia-host` | Pool payout settlement is an unverified caller assertion |
+| `OMN-005` | high | sdk-defect | fixed | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | recordPoolFee trusts a caller-supplied `verified` flag |
+| `OMN-006` | high | sdk-defect | fixed | `@totemsdk/omnia-relay`, `@totemsdk/omnia-router`, `@totemsdk/omnia-host` | Multi-hop recovery does not journal the outstanding backward preimage duty |
+| `OMN-007` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo`, `@totemsdk/omnia-host` | VTXO claim verification accepts a caller-supplied signer list |
+| `OMN-010` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | verifyVtxo accepts a VTXO with no membership proof and never anchors the root |
 | `OMN-014` → `CAN-012` | high | sdk-defect | open | `@totemsdk/omnia-splice` | Splice recovery can attach one observed successor to several pending splices |
 | `OMN-015` → `CAN-021` | high | sdk-defect | open | `@totemsdk/omnia-host` | Watchtower callbacks only emit observations; nothing protects the channel |
 | `CAN-005` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The initiator discards the peer ERROR frame, so a rejected open reports only acknowledged=false |

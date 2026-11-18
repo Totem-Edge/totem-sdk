@@ -206,6 +206,16 @@ export {
 // MiniNumber class (matches Java MiniNumber/BigDecimal semantics)
 export { MiniNumber } from './MiniNumber.js';
 
+// Amount units: decimal MINIMA text (node JSON) <-> atoms (integer base units)
+export {
+  MINIMA_DECIMALS,
+  amountToAtoms,
+  atomsToAmount,
+  atomsToMiniNumber,
+  unscaledToAmount,
+  coinAmountAtoms,
+} from './amount.js';
+
 // Transaction types (from JS)
 export {
   type MinimaTransaction,

@@ -42,7 +42,7 @@ function activeObserver(fundingAddress: string, amount: bigint) {
   return {
     getCoins: async () => [{
       coinid: '0x' + '77'.repeat(32),
-      amount: amount.toString(),
+      amount,
       address: fundingAddress,
       tokenid: '0x00',
       spent: false,
@@ -649,7 +649,7 @@ describe('finalizeSplice', () => {
     const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
     const successor = {
       coinid: '0x' + '77'.repeat(32),
-      amount: '1500',
+      amount: 1500,
       address: q.fundingAddress,
       tokenid: '0x00',
       spent: false,

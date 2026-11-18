@@ -38,6 +38,11 @@ describe('CAN-001 — transaction conservation', () => {
     expect(result.serialized.length).toBeGreaterThan(0);
   });
 
+  it('builds a balanced transaction with fractional MINIMA amounts (R1)', () => {
+    const result = buildTransaction(params('0.2', ['0.1', '0.1']));
+    expect(result.serialized.length).toBeGreaterThan(0);
+  });
+
   it('allows an explicit burn (outputs below inputs)', () => {
     expect(() => buildTransaction(params('1000', ['900']))).not.toThrow();
   });

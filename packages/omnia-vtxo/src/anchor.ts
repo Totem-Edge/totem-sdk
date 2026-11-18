@@ -16,7 +16,7 @@ import {
   type StateValue,
 } from '@totemsdk/omnia';
 import { serializeTxBody, mineTxPoW, resolveTxPowTarget } from '@totemsdk/txpow';
-import { concatBytes } from '@totemsdk/core';
+import { amountToAtoms, coinAmountAtoms, concatBytes } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { EpochAuthority } from './epoch-authority.js';
 import type { VtxoOperatorReceipt } from './types.js';
@@ -247,7 +247,7 @@ export async function checkPoolFunding(
 
   const matches =
     coin.address === expected.address &&
-    String(coin.amount) === expected.amount &&
+    coinAmountAtoms(coin) === amountToAtoms(expected.amount) &&
     (coin.tokenid ?? '0x00') === expected.tokenId;
   if (!matches) return { ok: false, coinId, proofVerified: false, error: 'pool coin does not match expected address/amount/token' };
 

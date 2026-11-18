@@ -1,6 +1,10 @@
+import { amountToAtoms } from '@totemsdk/core';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
 import { channelGraphEdges, InProcessRoutingProvider } from '../router/routing-provider.js';
 import type { OmniaChannel } from '@totemsdk/omnia';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 function channel(): OmniaChannel {
   return {
@@ -13,12 +17,12 @@ function channel(): OmniaChannel {
     fundingAddress: '0x' + '11'.repeat(32),
     tokenId: '0x00',
     tokenScale: 0,
-    totalValue: 1000n,
+    totalValue: atoms('1000'),
     parties: [
       { partyId: 'alice', publicKeyDigest: '0x' + 'AA'.repeat(32), addressIndex: 0 },
       { partyId: 'bob', publicKeyDigest: '0x' + 'BB'.repeat(32), addressIndex: 0 },
     ],
-    balances: { alice: 600n, bob: 400n },
+    balances: { alice: atoms('600'), bob: atoms('400') },
     pendingHTLCs: [],
     currentSequence: 1,
     latestState: null,

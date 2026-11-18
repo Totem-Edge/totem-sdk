@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-18T04:08:53.384Z",
+  "generatedAt": "2026-11-18T08:17:34.559Z",
   "findings": [
     {
       "id": "CAN-006",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "A channel is stored as active and submit reports success before the counterparty has acknowledged",
       "packages": [
@@ -45,6 +45,9 @@
           "The initiator exposes a recoverable pending-ack channel that can be re-proposed and becomes active once the peer ACKs.",
           "A normal open still results in status active only after the ACK."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/prepare-submit-open.test.ts"
+        ],
         "verification": [
           "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia-host test"
         ],
@@ -63,13 +66,14 @@
         "autonomous-procurement"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8e2048b"
       }
     },
     {
       "id": "CAN-007",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "critical",
       "title": "Unsolicited SPLICE_FINALIZED and VC_FINALIZED messages overwrite trusted channel state",
       "packages": [
@@ -107,6 +111,9 @@
           "A VC_FINALIZED cannot delete a channel that has no outstanding close acceptance.",
           "A legitimate finalize still persists and becomes active."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ],
@@ -123,13 +130,14 @@
         "autonomous-maintenance-escrow"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-010",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "critical",
       "title": "FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest",
       "packages": [
@@ -166,6 +174,9 @@
           "A request with no outstanding funding round is rejected.",
           "The legitimate round still produces a valid signature."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ]
@@ -179,13 +190,14 @@
         "autonomous-microgrid-economies"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-018",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "critical",
       "title": "Factory proposal still signs a peer-controlled commitment",
       "packages": [
@@ -227,6 +239,9 @@
           "A legitimate proposal still produces an accepted factory with both opening signatures.",
           "Covered by a two-host prepare → sign → finalize test."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test",
           "pnpm --filter @totemsdk/omnia-factory test"
@@ -241,7 +256,91 @@
         "autonomous-microgrid-economies"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "5d8c427b"
+      }
+    },
+    {
+      "id": "CAN-024",
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "title": "Omnia writes atom amounts with MiniNumber scale 0, encoding channel values 10^44 times too large",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-host",
+        "@totemsdk/chain-provider",
+        "@totemsdk/core"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/chain-provider": "0.4.0",
+        "@totemsdk/core": "1.6.0"
+      },
+      "source": "two-host S4 run (`openChannel` threw `Cannot convert 0.2 to a BigInt`) reviewed against minima-global/Minima `objects/Coin.java`, `objects/base/MiniNumber.java` and `objects/Transaction.java`",
+      "summary": "Minima has one amount type, `MiniNumber`: JSON reports it as decimal MINIMA text (\"0.2\"), while the binary transaction stores `(unscaled, scale)` with value = unscaled x 10^-scale. Omnia kept channel maths in atoms but its canonical serializer wrote atom integers with scale 0, so a 0.2 MINIMA channel was encoded as 2x10^43 MINIMA. Separately, the RPC provider normalised its coin amounts to atoms while Hosted, Lookup and Composite providers stayed decimal, so `ChainStateProvider.getCoins/getCoin` no longer had a single unit contract.",
+      "impact": "Every non-trivial channel funding/update/settlement draft was invalid: `Transaction.checkValid()` requires 0 < amount <= 1,000,000,000 and rejects the encoded value as an invalid Minima amount. The S4 run failed earlier, at `BigInt(\"0.2\")`, which masked the encoding fault. Consumers that expected node decimal text (tx-builder coin selection and serialisation, the extension's `TOTEM_GET_COINS` and selection, edge-adapters and realtime balances) would have been inflated by 10^44 once a provider returned atoms; a composite fallback flipped the unit mid-application.",
+      "repro": {
+        "command": "build a funding draft for 0.2 MINIMA (`totalValue = 2e43` atoms) and decode the serialized coin amount: `buildFundingTx(...)` -> `omniaDraftToCanonicalMinimaBytes(...)`",
+        "expected": "input/output amount is `MiniNumber(unscaled = 2x10^43, scale = 44)`, which Java reads as 0.2 MINIMA and accepts.",
+        "actual": "the amount was written as `MiniNumber(unscaled = 2x10^43, scale = 0)`, which Java reads as 2x10^43 MINIMA; `isValidMinimaValue()` rejects it.",
+        "evidence": [
+          "minima-global/Minima objects/Coin.java:239 — `amount` JSON is `mAmount.toString()` (decimal text)",
+          "minima-global/Minima objects/base/MiniNumber.java:31-49 — MAX_DECIMAL_PLACES = 44, MINI_UNIT = 1E-44",
+          "minima-global/Minima objects/base/MiniNumber.java:287-299 — binary form is [scale][length][unscaled]",
+          "minima-global/Minima objects/Transaction.java:165 — `isValidMinimaValue()` requires 0 < amount <= 1e9",
+          "packages/omnia/src/transactions.ts: serializeCoinForMinima wrote `writeMiniNumberLocal(opts.amount)` with the default scale 0",
+          "packages/chain-provider/src/providers/minima-rpc.ts: getCoins/getCoin returned atoms while hosted.ts and lookup-client.ts returned decimal"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/core/src/amount.ts",
+          "packages/chain-provider/src/providers/minima-rpc.ts",
+          "packages/chain-provider/src/types.ts",
+          "packages/omnia/src/transactions.ts",
+          "packages/omnia/src/channel.ts",
+          "packages/omnia/src/state-vars.ts",
+          "packages/omnia/src/kissvm.ts",
+          "packages/omnia/rust/src/serialize.rs",
+          "packages/omnia/rust/src/commitment.rs"
+        ],
+        "approach": "Define one contract: providers return node-native decimal text; `@totemsdk/core` owns `amountToAtoms`/`atomsToAmount`/`coinAmountAtoms`; Omnia converts once at its boundary and writes every coin amount as `MiniNumber(unscaled = atoms, scale = 44)`. Value-bearing program state ports use the same scale and the scale is bound into the signed state commitment, so a signer cannot re-encode a port at scale 0. The Rust/WASM mirror uses arbitrary-precision integers and the same scale rules.",
+        "constraints": [
+          "Do not normalise units inside one ChainStateProvider implementation; the interface has one unit.",
+          "Do not write atom amounts with scale 0 anywhere.",
+          "Bind the state-port scale in the commitment; a signed state must not be re-encodable at a different scale."
+        ],
+        "acceptance": [
+          "getCoins/getCoin return decimal text from every provider and a composite fallback cannot change units.",
+          "A 0.2 MINIMA funding draft decodes to scale 44 with value 0.2 and passes the Java validity bound.",
+          "Value-bearing state ports round-trip at scale 44; counters/sequences stay scale 0.",
+          "Rust/WASM digest and commitment parity hold."
+        ],
+        "tests": [
+          "tests/unit/core/src/amount.test.ts",
+          "tests/unit/chain-provider/src/__tests__/chain-provider.test.ts",
+          "tests/unit/omnia/src/__tests__/amount-units.test.ts",
+          "tests/unit/omnia/src/__tests__/rust-parity.test.ts"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/core.cjs --runInBand",
+          "npx jest --config tests/jest/chain-provider.cjs --runInBand",
+          "npx jest --config tests/jest/omnia.cjs --runInBand",
+          "cargo test --all-targets --all-features --manifest-path packages/omnia/rust/Cargo.toml"
+        ]
+      },
+      "breaks": [
+        "channels",
+        "settlement",
+        "splicing"
+      ],
+      "blocks": [
+        "confidential-supplier-settlement"
+      ],
+      "links": {
+        "fixedIn": "9213dd32"
       }
     },
     {
@@ -314,7 +413,7 @@
     {
       "id": "OMN-003",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "A transferred VTXO keeps the previous owner's exit entitlement",
       "packages": [
@@ -368,7 +467,7 @@
     {
       "id": "OMN-008",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "Vesting policy never enforces the vested amount before the end block",
       "packages": [
@@ -577,7 +676,7 @@
     {
       "id": "CAN-004",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Non-custodial channel open races the chain: the acceptor validates the funding coin before it can be mined",
       "packages": [
@@ -624,6 +723,9 @@
           "The responder still rejects a proposal whose funding coin does not exist (no regression in the safety check).",
           "Offline and in-memory suites still pass."
         ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
         "verification": [
           "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia test",
           "pnpm --config.verify-deps-before-run=false --filter @totemsdk/omnia-host test"
@@ -644,13 +746,14 @@
         "dex-and-capital-markets"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8e2048b"
       }
     },
     {
       "id": "CAN-008",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "Forwarder signs the outgoing HTLC before the link is durable",
       "packages": [
@@ -687,6 +790,9 @@
           "recover() can reconstruct the link from the intent plus channel state.",
           "Normal forwarding writes the same number of journal entries."
         ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-relay test"
         ]
@@ -700,13 +806,14 @@
         "confidential-supplier-settlement"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-009",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "Relay recovery discards a link when either side is terminal",
       "packages": [
@@ -742,6 +849,9 @@
           "Those links settle backwards after recovery.",
           "A link whose incoming HTLC is settled is still removed."
         ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-relay test"
         ]
@@ -754,13 +864,14 @@
         "cold-chain-finance"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-011",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "Both live splice paths omit chainProvider, so a broadcast splice is marked active with a placeholder coin",
       "packages": [
@@ -800,6 +911,9 @@
           "finalizeSplice without observation yields funding_pending, never active.",
           "A splice becomes active only after the successor is found with the required confirmations."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/prepare-submit-splice.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test",
           "pnpm --filter @totemsdk/omnia-splice test"
@@ -814,13 +928,14 @@
         "confidential-supplier-settlement"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-013",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "withChannelLock only guards the direct pay path",
       "packages": [
@@ -856,6 +971,9 @@
           "All mutation entry points acquire the same per-channel lock.",
           "A concurrency test that interleaves two mutations yields a consistent sequence with no lost update."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/channel-lock.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ]
@@ -869,13 +987,14 @@
         "autonomous-procurement"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-014",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "The watchtower is implemented and exported but never started by the host",
       "packages": [
@@ -913,6 +1032,9 @@
           "A simulated unilateral close triggers the contest path before the deadline.",
           "A normal state update or splice does not mark the channel closed."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/watch.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ]
@@ -925,13 +1047,14 @@
         "curb-road-parking-markets"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-019",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Finalization guards validate identifiers, not the resulting state",
       "packages": [
@@ -968,6 +1091,9 @@
           "A VC finalization whose allocations differ from the signed plan is rejected.",
           "FACTORY_CLOSE_FINALIZED without settlement evidence does not close the factory."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ]
@@ -981,13 +1107,14 @@
         "autonomous-maintenance-escrow"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "5d8c427b"
       }
     },
     {
       "id": "CAN-020",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "high",
       "title": "Factory opening requests the funding signature before the proposal exists (regression from CAN-010)",
       "packages": [
@@ -1025,6 +1152,9 @@
           "A two-host prepare → sign → finalize run completes and both sides hold the same funding txid.",
           "An unsigned/unknown digest is still refused."
         ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/factory-guards.test.ts"
+        ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
         ]
@@ -1038,6 +1168,7 @@
         "confidential-supplier-settlement"
       ],
       "links": {
+        "fixedIn": "6d3b2d7a",
         "canaryCommit": "5d8c427b"
       }
     },
@@ -1102,9 +1233,70 @@
       }
     },
     {
+      "id": "CAN-025",
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "title": "Liquidity-bond passes an atom count as the verifier's decimal claimedAmount, rejecting every pool deposit",
+      "packages": [
+        "@totemsdk/liquidity-bond",
+        "@totemsdk/omnia-host"
+      ],
+      "versions": {
+        "@totemsdk/liquidity-bond": "0.3.3",
+        "@totemsdk/omnia-host": "0.14.0"
+      },
+      "source": "omnia-host pool test against the real deposit path (`depositToPool` -> `verifyDeposit`)",
+      "summary": "`VerifyDepositParams.claimedAmount` is decimal MINIMA text (chain-provider compares it with the node's decimal `coin.amount`). liquidity-bond built it from `commitment.amount.toString()`, and `commitment.amount` is an atom count, so the omnia-host verifier converted it to atoms a second time. A 100000 MINIMA deposit became 1e93 atoms at the comparison.",
+      "impact": "Every non-zero liquidity-pool deposit failed the amount gate with \"insufficient amount\", and `acceptLiquidityCommitment`/`confirmLiquidityCommitment` refused to accept or confirm funding. The failure looked like a funding problem, not a unit bug.",
+      "repro": {
+        "command": "npx jest --config tests/jest/omnia-host.cjs --runInBand tests/unit/omnia-host/src/__tests__/pool.test.ts",
+        "expected": "a commitment for a funded coin of 100000 MINIMA passes on-chain verification.",
+        "actual": "`insufficient amount`: coinAmountAtoms(coin) = 1e49 vs amountToAtoms(\"1\" + 49 zeros) = 1e93.",
+        "evidence": [
+          "packages/liquidity-bond/src/commitment.ts:59,123,162 — `claimedAmount: commitment.amount.toString()`",
+          "packages/liquidity-bond/src/types.ts:256 — `amount: bigint` (atoms)",
+          "packages/chain-provider/src/types.ts:83 — `claimedAmount` is decimal text",
+          "packages/omnia-host/src/api/methods.ts — verifier compares `coinAmountAtoms(coin)` with `amountToAtoms(request.claimedAmount)`"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/liquidity-bond/src/commitment.ts"
+        ],
+        "approach": "Render the commitment amount as decimal text at the verifier boundary with `atomsToAmount(commitment.amount)`; keep the verifier contract decimal and the internal ledger in atoms.",
+        "constraints": [
+          "Do not change `VerifyDepositParams.claimedAmount` to atoms; it compares against the node's decimal `coin.amount`.",
+          "Do not weaken the amount gate."
+        ],
+        "acceptance": [
+          "A 100000 MINIMA pool deposit verifies and is accepted.",
+          "An under-funded coin still fails.",
+          "The omnia-host pool lifecycle test passes unchanged in assertions."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/pool.test.ts",
+          "tests/unit/liquidity-bond/src/__tests__"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/omnia-host.cjs --runInBand",
+          "npx jest --config tests/jest/liquidity-bond.cjs --runInBand"
+        ]
+      },
+      "breaks": [
+        "liquidity"
+      ],
+      "blocks": [
+        "pool-deposits"
+      ],
+      "links": {
+        "fixedIn": "6d3b2d7a"
+      }
+    },
+    {
       "id": "OMN-002",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "mintVtxo replaces the pool commitment root with a single-leaf tree",
       "packages": [
@@ -1158,7 +1350,7 @@
     {
       "id": "OMN-004",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Pool payout settlement is an unverified caller assertion",
       "packages": [
@@ -1214,7 +1406,7 @@
     {
       "id": "OMN-005",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "recordPoolFee trusts a caller-supplied `verified` flag",
       "packages": [
@@ -1271,7 +1463,7 @@
     {
       "id": "OMN-006",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Multi-hop recovery does not journal the outstanding backward preimage duty",
       "packages": [
@@ -1333,7 +1525,7 @@
     {
       "id": "OMN-007",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "VTXO claim verification accepts a caller-supplied signer list",
       "packages": [
@@ -1389,7 +1581,7 @@
     {
       "id": "OMN-010",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "verifyVtxo accepts a VTXO with no membership proof and never anchors the root",
       "packages": [

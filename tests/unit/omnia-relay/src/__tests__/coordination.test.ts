@@ -116,7 +116,7 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
         chainProvider: {
           getCoins: async () => [{
             coinid: '0x' + '77'.repeat(32),
-            amount: '1500',
+            amount: 1500,
             address: ch.fundingAddress,
             tokenid: '0x00',
             spent: false,
@@ -171,7 +171,7 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
         chainProvider: {
           getCoins: async () => [{
             coinid: '0x' + '77'.repeat(32),
-            amount: '1500',
+            amount: 1500,
             address: ch.fundingAddress,
             tokenid: '0x00',
             spent: false,

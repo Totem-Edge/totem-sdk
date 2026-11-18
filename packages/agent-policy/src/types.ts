@@ -35,7 +35,10 @@ export type InferenceReceiptLike = IntelligenceReceipt;
 export interface PaymentIntent {
   /** Discriminator — what kind of operation this intent represents. */
   type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt' | 'inference';
-  /** Amount in the token's native unit (string to preserve precision). */
+  /**
+   * Amount in the token's base unit (atom integer string). Chain/RPC surfaces
+   * use decimal MINIMA text; convert before building an intent.
+   */
   amount?: string;
   /** Minima tokenId, or '0x00' for native Minima. */
   tokenId?: string;

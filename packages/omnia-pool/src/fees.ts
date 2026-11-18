@@ -4,9 +4,13 @@
 
 import {
   attachLiquidityFeeRecord,
+  assertSettledFeePayoutUsable,
   computePoolUtilisation,
+  consumeSettledFeePayout,
+  isEarnableSource,
   recordLiquidityFee,
   sumLpFeesForPosition,
+  verifyLiquidityFeeRecord,
   type FeeSource,
   type LiquidityBondRegistryState,
   type LiquidityFeeRecord,
@@ -27,21 +31,27 @@ function splitFee(
 
 /**
  * Record a fee against a pool position, splitting between LP and operator.
+ *
+ * `verified` is never accepted from the caller: for an earnable source the
+ * earn-proof is run through the supplied `feeProofVerifier` (the same verifier
+ * `verifyLiquidityFeeRecord` uses) and the record is marked earnable only when
+ * that verification passes. Without a verifier the record is stored unverified
+ * — visible for audit but never counted toward LP entitlement.
  */
-export function recordPoolFee(
+export async function recordPoolFee(
   params: RecordPoolFeeParams,
   registry: LiquidityBondRegistryState,
-): {
+): Promise<{
   feeRecord: LiquidityFeeRecord;
   registry: LiquidityBondRegistryState;
-} {
+}> {
   const gross = BigInt(params.grossAmount);
   const policy = params.pool.feePolicy;
   const lpBps = policy?.lpFeeBps ?? 0;
   const operatorBps = policy?.operatorFeeBps ?? 0;
   const { lp, operator } = splitFee(gross, lpBps, operatorBps);
 
-  const feeRecord = recordLiquidityFee({
+  const recorded = recordLiquidityFee({
     positionId: params.position.positionId,
     poolId: params.pool.poolId,
     feeAsset: params.pool.asset,
@@ -50,9 +60,18 @@ export function recordPoolFee(
     operatorFeeAmount: operator,
     source: params.source,
     earnProof: params.earnProof,
-    verified: params.verified,
     metadata: params.metadata,
   });
+
+  let feeRecord = recorded;
+  if (isEarnableSource(recorded.source)) {
+    const check = await verifyLiquidityFeeRecord({
+      record: recorded,
+      position: params.position,
+      feeProofVerifier: params.feeProofVerifier,
+    });
+    feeRecord = { ...recorded, verified: check.ok === true };
+  }
 
   const nextRegistry = attachLiquidityFeeRecord(registry, feeRecord);
   return { feeRecord, registry: nextRegistry };
@@ -73,6 +92,10 @@ export function computeUnclaimedFees(
  * Claim accrued LP fees. The claim is bound to a settled payout (`payoutRef`):
  * the LP fee balance is only reduced once a real payout (VTXO mint / channel
  * settlement) exists — preventing "claim then fail to pay" and double-claim.
+ *
+ * The payout must have been registered by `registerSettledFeePayout` (which
+ * requires a live settlement verifier) and is consumed exactly once: an
+ * unknown, mismatched or reused reference is rejected, not ignored.
  */
 export function claimFees(
   pool: LiquidityPoolManifest,
@@ -91,6 +114,9 @@ export function claimFees(
   if (requested > unclaimed) {
     throw new Error('claim amount exceeds unclaimed fees');
   }
+  if (requested <= 0n) {
+    throw new Error('claim amount must be positive');
+  }
 
   const feeRecord = recordLiquidityFee({
     positionId: position.positionId,
@@ -107,14 +133,20 @@ export function claimFees(
     },
   });
 
-  const nextRegistry = attachLiquidityFeeRecord(registry, feeRecord);
+  const consumed = consumeSettledFeePayout(registry, opts.payoutRef, {
+    positionId: position.positionId,
+    poolId: pool.poolId,
+    amount: requested,
+    consumedBy: feeRecord.feeRecordId,
+  });
+  const nextRegistry = attachLiquidityFeeRecord(consumed, feeRecord);
   return { claimedAmount: requested, registry: nextRegistry };
 }
 
 /**
  * Compound accrued LP fees back into the position's principal. Like claims,
- * compounding is bound to a settled payout so the entitlement is only zeroed
- * against a real execution.
+ * compounding is bound to a registered settled payout that it consumes
+ * (single-use), so the entitlement is only zeroed against a real execution.
  */
 export function compoundFees(
   pool: LiquidityPoolManifest,
@@ -131,6 +163,12 @@ export function compoundFees(
   }
   const unclaimed = computeUnclaimedFees(position, registry);
   if (unclaimed <= 0n) {
+    // Nothing to compound, but a forged or reused reference is still rejected
+    // rather than silently ignored.
+    assertSettledFeePayoutUsable(registry, opts.payoutRef, {
+      positionId: position.positionId,
+      poolId: pool.poolId,
+    });
     return { compoundedAmount: 0n, position, registry };
   }
 
@@ -146,7 +184,15 @@ export function compoundFees(
     metadata: { action: 'compound' },
   });
 
-  const feeReg = attachLiquidityFeeRecord(registry, feeRecord);
+  const feeReg = attachLiquidityFeeRecord(
+    consumeSettledFeePayout(registry, opts.payoutRef, {
+      positionId: position.positionId,
+      poolId: pool.poolId,
+      amount: unclaimed,
+      consumedBy: feeRecord.feeRecordId,
+    }),
+    feeRecord,
+  );
 
   const newAmount = position.amount + unclaimed;
   const updatedPosition: LiquidityPosition = {

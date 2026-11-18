@@ -46,6 +46,9 @@ import type {
   RegistryOperation,
   RegistrySignedTransition,
   RegistryTransitionSigner,
+  PayoutSettlementBinding,
+  PayoutSettlementEvidence,
+  PayoutSettlementVerifier,
 } from '@totemsdk/liquidity-bond';
 import type {
   AllocationStatus,
@@ -125,6 +128,12 @@ export interface OmniaPoolAllocationContext {
   signer?: PoolSigner;
   /** WOTS lease provider used for per-signing key reservations. */
   leaseProvider?: WotsLeaseProvider;
+  /**
+   * Verifier used to prove payout finality. Required to settle a payout (either
+   * here or as `ExecutePoolPayoutParams.settlementVerifier`); without it a
+   * supplied `settlement` is rejected and no accounting is mutated.
+   */
+  settlementVerifier?: PayoutSettlementVerifier;
 }
 
 /**
@@ -334,13 +343,18 @@ export interface ClaimFeesOptions {
   positionId: string;
   amount?: string;
   recipientAddress?: string;
-  /** Required: the settled payout (VTXO mint / channel settlement) the claim is bound to. */
+  /**
+   * Required: a settled payout recorded by
+   * `registerSettledFeePayout` (itself gated on a live settlement verifier).
+   * The claim consumes it — unknown, mismatched or reused references are
+   * rejected.
+   */
   payoutRef?: import('@totemsdk/liquidity-bond').FeePayoutRef;
 }
 
 export interface CompoundFeesOptions {
   positionId: string;
-  /** Required: the settled payout the compound is bound to. */
+  /** Required: a settled payout the compound consumes (single-use). */
   payoutRef?: import('@totemsdk/liquidity-bond').FeePayoutRef;
 }
 
@@ -380,10 +394,18 @@ export type RebalanceAllocationParams = {
   rooting?: RegistryRootingContext;
 };
 
-export type PayoutFinality =
-  | { status: 'confirmed'; evidenceRef: string; txpowId?: string; depth?: number }
-  | { status: 'offchain-final'; evidenceRef: string }
-  | { status: 'refunded' | 'exited'; evidenceRef: string };
+/**
+ * Finality evidence for a payout, bound to the exact payout it claims to settle.
+ * `status`/`evidenceRef`/`txpowId`/`depth` are the claim; `withdrawalId`,
+ * `poolId`, `positionId`, `recipientAddress` and `amount` are the binding that
+ * `executePoolPayout` checks locally and the verifier checks against its
+ * evidence source. Evidence that does not match the intent is rejected.
+ */
+export type PayoutFinality = PayoutSettlementEvidence &
+  PayoutSettlementBinding & {
+    /** Withdrawal intent this evidence settles — must equal `intent.withdrawalId`. */
+    withdrawalId: string;
+  };
 
 export type ExecutePoolPayoutParams = {
   pool: LiquidityPoolManifest;
@@ -394,11 +416,23 @@ export type ExecutePoolPayoutParams = {
   rooting?: RegistryRootingContext;
   /**
    * Finality evidence (RFC-048 §3.3). A payout produces only a *draft* until a
-   * verifiable settlement artifact is supplied; without `settlement` the intent
-   * stays `approved` and the position is NOT decremented. `confirmed` and
-   * `offchain-final` are distinct guarantees, both requiring a recovery policy.
+   * verifiable settlement artifact is supplied and verified; without
+   * `settlement` the intent stays `approved` and the position is NOT
+   * decremented. `confirmed` and `offchain-final` are distinct guarantees, both
+   * requiring a recovery policy.
+   *
+   * Supplying `settlement` REQUIRES `settlementVerifier` (or
+   * `ctx.settlementVerifier`): the evidence is checked against a real source
+   * bound to this intent, pool, position, recipient and amount. An unverified
+   * settlement throws and leaves the registry untouched.
    */
   settlement?: PayoutFinality;
+  /**
+   * Verifier for `settlement`. Required when `settlement` is supplied. The
+   * function is async and fails closed when it is missing or reports invalid
+   * evidence — a caller assertion can never settle funds.
+   */
+  settlementVerifier?: PayoutSettlementVerifier;
 };
 
 export type RecordPoolFeeParams = {
@@ -408,7 +442,12 @@ export type RecordPoolFeeParams = {
   source: FeeSource;
   /** Required for earnable sources — the payment proof backing the fee. */
   earnProof?: unknown;
-  /** Set when the earn-proof was verified (see liquidity-bond verifyLiquidityFeeRecord). */
-  verified?: boolean;
+  /**
+   * Required for earnable sources to become earnable. `recordPoolFee` calls
+   * `verifyFeeProof` and derives `verified` from the verdict; it never accepts
+   * a caller-supplied `verified` flag. Without a verifier (or with a failing
+   * proof) the record is stored unverified, visible for audit but non-earnable.
+   */
+  feeProofVerifier?: import('@totemsdk/liquidity-bond').FeeProofVerifier;
   metadata?: Record<string, unknown>;
 };

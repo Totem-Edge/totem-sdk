@@ -35,6 +35,7 @@ import {
   type StateValue,
 } from '@totemsdk/core/scripts';
 import type { EnhancedBuildParams } from './enhanced-types.js';
+import { parseDecimalToBigInt } from './coin-selection.js';
 
 export interface EnhancedBuildResult {
   transaction: MinimaTransaction;
@@ -122,7 +123,9 @@ export function buildTransaction(params: EnhancedBuildParams): EnhancedBuildResu
       const token = (coin.tokenId ?? '0x00').toLowerCase();
       let amount: bigint;
       try {
-        amount = BigInt(coin.amount ?? '0');
+        // Amounts are decimal MINIMA text (R1); parse them exactly instead of
+        // using BigInt, which rejects any fractional value.
+        amount = parseDecimalToBigInt(coin.amount ?? '0');
       } catch {
         throw new Error(`Invalid amount '${String(coin.amount)}' for token ${token}`);
       }

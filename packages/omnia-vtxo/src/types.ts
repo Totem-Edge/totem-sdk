@@ -19,6 +19,26 @@ export interface VtxoPoolPolicy {
   exitTimelockSeconds: number;
 }
 
+/** One VTXO leaf committed by the pool's membership set (OMN-002). */
+export interface VtxoPoolMember {
+  vtxoId: VtxoId;
+  /** `computeVtxoLeaf(vtxo)` — the exact leaf committed by the tree. */
+  leaf: string;
+  /** Epoch in which this leaf entered the pool set. */
+  epoch: number;
+}
+
+/**
+ * A published epoch root. The pool keeps every root it has published so a
+ * proof minted in an earlier epoch stays verifiable after later batches.
+ */
+export interface VtxoEpochRoot {
+  epoch: number;
+  root: string;
+  batchId: string;
+  vtxoIds: VtxoId[];
+}
+
 export interface OmniaVtxoPool {
   poolId: string;
   operator: string;
@@ -26,7 +46,18 @@ export interface OmniaVtxoPool {
   totalCapacity: bigint;
   availableCapacity: bigint;
   epoch: number;
+  /**
+   * Root of the pool-wide membership set (`members`). Appended to by every
+   * batch; earlier epoch roots are retained in `epochRoots`.
+   */
   commitmentRoot: string;
+  /**
+   * Append-only membership set. `mintVtxo` appends a member and rebuilds the
+   * tree instead of replacing the root with a single-leaf tree (OMN-002).
+   */
+  members: VtxoPoolMember[];
+  /** Every root the pool has published, oldest first. */
+  epochRoots: VtxoEpochRoot[];
   createdAt: number;
   policy: VtxoPoolPolicy;
 }
@@ -152,6 +183,14 @@ export interface TransferResult {
   output: OmniaVtxo;
   change?: OmniaVtxo;
   transfer: VtxoTransfer;
+  /**
+   * True only when `output.exitEntitlement` was verified against the *output*
+   * VTXO (recipient owner, output id, output amount) in this call. A transfer
+   * without an entitlement is never exit-ready (OMN-003).
+   */
+  exitReady: boolean;
+  /** The recipient-bound entitlement, when one was supplied and verified. */
+  exitEntitlement?: VtxoExitEntitlement;
 }
 
 export interface SplitResult {

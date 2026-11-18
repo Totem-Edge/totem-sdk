@@ -295,6 +295,7 @@ const POOL_COLLECTIONS = [
   'allocations',
   'feeRecords',
   'withdrawals',
+  'feePayouts',
 ] as const;
 
 function poolIdsOf(value: unknown): string[] {
@@ -322,8 +323,8 @@ export function changedPoolIds(
     if (canonicalJson(state.pools[id]) !== canonicalJson(next.pools[id])) changed.add(id);
   }
   for (const key of POOL_COLLECTIONS) {
-    const before = state[key] as Record<string, unknown>;
-    const after = next[key] as Record<string, unknown>;
+    const before = (state[key] ?? {}) as Record<string, unknown>;
+    const after = (next[key] ?? {}) as Record<string, unknown>;
     for (const id of new Set([...Object.keys(before), ...Object.keys(after)])) {
       if (canonicalJson(before[id]) === canonicalJson(after[id])) continue;
       for (const poolId of poolIdsOf(after[id] ?? before[id])) changed.add(poolId);

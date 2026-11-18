@@ -1,5 +1,9 @@
 /** H8 — concurrent VTXO mutation guard at the host boundary. */
+import { amountToAtoms } from '@totemsdk/core';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 describe('VTXO host hardening', () => {
   it('allows only one of two concurrent transfers of the same VTXO', async () => {
@@ -16,6 +20,8 @@ describe('VTXO host hardening', () => {
     const methods = createHostMethods(context);
     const created = await methods.get('omnia/createVtxoPool')!({
       poolId: 'h8-pool', tokenId: '0x00', totalCapacity: '1000000', nonce: 'h8',
+      // Pool policy limits are internal atom quantities.
+      policy: { maxAmount: atoms('1000000') },
     }) as any;
     const minted = await methods.get('omnia/mintVtxo')!({
       poolId: created.pool.poolId, owner: 'alice', amount: '100000', nonce: 'h8-mint',
