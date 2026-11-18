@@ -66,6 +66,7 @@ Branch naming conventions:
 - Update documentation as needed
 - Add a `CHANGELOG.md` entry for user-facing changes
 - Review the release process in [docs/RELEASE-PROCESS.md](docs/RELEASE-PROCESS.md)
+- Agent-facing SDK authoring notes (including release-train operation) live in [AGENTS.md](AGENTS.md)
 
 ### 4. Run Tests
 

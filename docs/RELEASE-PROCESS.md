@@ -72,6 +72,32 @@ bump does not promote a package by itself.
 9. Update `CHANGELOG.md` `[Unreleased]` to the released version if the project is
    maintaining dated sections.
 
+### 3.1 Multi-package release trains
+
+A train releases several interdependent packages. Run it level by level, not as
+one bulk `create-releases --create` pass: a dependent package whose workspace
+dependency is not yet on npm fails the **Consumer smoke install** step even
+when its own code is correct.
+
+- Release and approve one topological dependency level at a time; wait for every
+  package in the level to be visible on npm before creating the next level.
+- Approve independent packages in the same level concurrently instead of
+  waiting for one publish to finish before starting the next.
+- Cache `gh run list --workflow publish-totemsdk.yml --limit N` once per level
+  rather than once per package.
+- Poll every 3–5 seconds and use `npm view <pkg>@<version> version` as the
+  success signal; do not wait for post-publish workflow cleanup.
+- Optionally make `smoke-release-install.mjs` resolve same-train siblings from
+  the packed tarball/workspace, or run the registry smoke install only for the
+  top of each level, to allow fully parallel publishing.
+
+A publish step that failed after `resolve` is safe to retry with
+`gh run rerun <run-id>`; the publish step is idempotent. Never move or delete a
+release tag to recover a failed publish.
+
+See [AGENTS.md](../AGENTS.md#running-a-multi-package-release-train) for the
+agent-facing checklist.
+
 ---
 
 ## 4. Dist-tags
