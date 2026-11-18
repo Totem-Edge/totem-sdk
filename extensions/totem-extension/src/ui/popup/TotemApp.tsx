@@ -18,6 +18,7 @@ import { TotemActivity } from './pages/TotemActivity';
 import { TotemReceive } from './pages/TotemReceive';
 import { TotemSettings } from './pages/TotemSettings';
 import { TotemTokenDetail, TokenDetailData } from './pages/TotemTokenDetail';
+import { TotemTxDetail } from './pages/TotemTxDetail';
 
 // Import unlock modal components
 import { UnlockProvider, useUnlock } from './contexts/UnlockContext';
@@ -79,6 +80,7 @@ export function TotemApp() {
   const [inited, setInited] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
   const [sendToken, setSendToken] = useState<TokenDetailData | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [accountAddress, setAccountAddress] = useState<string | undefined>();
@@ -86,6 +88,36 @@ export function TotemApp() {
   const [walletAccounts, setWalletAccounts] = useState<{ address: string; index: number; name?: string }[]>([]);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>('offline');
   const [wotsHealth, setWotsHealth] = useState<'healthy' | 'warning' | 'critical'>('healthy');
+
+  // Deep links: the popup is a single page, so a transaction lives at
+  // #/0x<txid>. Parsed on mount (survives refresh/shared links) and on
+  // hashchange so the browser back button works.
+  useEffect(() => {
+    const parseHash = () => {
+      const match = window.location.hash.match(/^#\/?(0x[0-9a-fA-F]{64})$/);
+      if (match) {
+        setSelectedTxId(match[1]);
+        setActiveTab('tx-detail');
+      }
+    };
+    parseHash();
+    window.addEventListener('hashchange', parseHash);
+    return () => window.removeEventListener('hashchange', parseHash);
+  }, []);
+
+  const openTransaction = (txpowid: string) => {
+    setSelectedTxId(txpowid);
+    setActiveTab('tx-detail');
+    window.location.hash = `#/${txpowid}`;
+  };
+
+  const closeTransaction = () => {
+    setSelectedTxId(null);
+    setActiveTab('activity');
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
 
   useEffect(() => {
     console.log('[TotemApp] Initializing...');
@@ -350,7 +382,8 @@ export function TotemApp() {
           {activeTab === 'home' && <TotemHome activeAccountAddress={accountAddress} onNavigate={setActiveTab} onSelectToken={(token) => { setSelectedToken(token); setActiveTab('token-detail'); }} />}
           {activeTab === 'send' && <TotemSend activeAccountIndex={activeAccountIndex} initialToken={sendToken} onTokenConsumed={() => setSendToken(null)} />}
           {activeTab === 'receive' && <TotemReceive accountAddress={accountAddress} accounts={walletAccounts} />}
-          {activeTab === 'activity' && <TotemActivity activeAccountAddress={accountAddress} />}
+          {activeTab === 'activity' && <TotemActivity activeAccountAddress={accountAddress} onSelectTx={openTransaction} />}
+          {activeTab === 'tx-detail' && selectedTxId && <TotemTxDetail txpowid={selectedTxId} onBack={closeTransaction} />}
           {activeTab === 'settings' && <TotemSettings onAccountsUpdated={handleAccountsUpdated} />}
           {activeTab === 'token-detail' && selectedToken && <TotemTokenDetail token={selectedToken} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
         </main>
