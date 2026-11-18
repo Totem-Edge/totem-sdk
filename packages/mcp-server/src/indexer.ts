@@ -520,11 +520,30 @@ function packageDir(name: string): string | null {
 }
 
 /** Read a file from a package's `src/` directory (for the `read-source` tool). */
-export function readSourceFile(pkgName: string, filePath: string): string | null {
+export type SourceReadResult =
+  | { ok: true; content: string }
+  | { ok: false; reason: 'package-not-found' | 'source-not-shipped' | 'outside-src' | 'not-a-file' }
+
+/**
+ * Read a package source file with a reason for failure. Paths are accepted the
+ * way people paste them: `treekey.ts`, `./treekey.ts` and `src/treekey.ts` all
+ * address the same file.
+ */
+export function readSourceFileFrom(pkgName: string, filePath: string): SourceReadResult {
   const dir = packageDir(pkgName)
-  if (!dir) return null
+  if (!dir) return { ok: false, reason: 'package-not-found' }
   const base = path.resolve(dir, 'src')
-  const resolved = path.resolve(base, filePath)
-  if (resolved !== base && !resolved.startsWith(base + path.sep)) return null
-  return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf-8') : null
+  if (!fs.existsSync(base)) return { ok: false, reason: 'source-not-shipped' }
+  const relative = String(filePath).trim().replace(/^(\.\/)+/, '').replace(/^src\//, '').replace(/^\/+/, '')
+  if (!relative) return { ok: false, reason: 'not-a-file' }
+  const resolved = path.resolve(base, relative)
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) return { ok: false, reason: 'outside-src' }
+  if (!fs.existsSync(resolved)) return { ok: false, reason: 'not-a-file' }
+  if (!fs.statSync(resolved).isFile()) return { ok: false, reason: 'not-a-file' }
+  return { ok: true, content: fs.readFileSync(resolved, 'utf-8') }
+}
+
+export function readSourceFile(pkgName: string, filePath: string): string | null {
+  const result = readSourceFileFrom(pkgName, filePath)
+  return result.ok ? result.content : null
 }

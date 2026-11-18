@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T08:17:34.559Z",
+  "generatedAt": "2026-11-18T10:45:20.116Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -508,6 +508,119 @@
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-022",
+      "status": "open",
+      "severity": "critical",
+      "title": "The host signs peer-supplied virtual-channel plans without rebuilding them",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-factory"
+      ],
+      "summary": "VC_PROPOSAL passes payload.plan directly to signVirtualChannelOpen/signVirtualChannelClose. Those functions check that the local signer is a factory participant and sign plan.commitment, but never rebuild the plan from the factory allocations/channel state. omnia-factory/src/coordination.ts already rebuilds with buildVirtualChannelOpen, compares commitments and applies an approval policy; the production host bypasses that path.",
+      "impact": "A peer can obtain a WOTS signature over a virtual-channel commitment chosen by the peer, without proving it is an authorised transition of the factory this host holds. The host also commits the lease reservation immediately.",
+      "repro": {
+        "command": "node --test tests/unit/omnia-host/src/__tests__/factory-guards.test.ts",
+        "expected": "The host rebuilds the VC plan from local factory state, rejects a mismatched commitment, and signs only the locally derived commitment after approval.",
+        "actual": "lifecycle.ts passes payload.plan straight to signVirtualChannelOpen/Close; only signer membership is checked.",
+        "evidence": [
+          "packages/omnia-host/src/lifecycle.ts VC_PROPOSAL handler",
+          "packages/omnia-factory/src/virtual.ts signVirtualChannelOpen (membership + sign plan.commitment)",
+          "packages/omnia-factory/src/coordination.ts handleVcProposal (rebuild + compare + approval)"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/lifecycle.ts",
+          "packages/omnia-factory/src/virtual.ts"
+        ],
+        "approach": "Rebuild VC-open/close locally from the factory and channel state, compare commitments and ids, require an explicit approval decision, then sign the locally derived plan. Persist the approval and reservation so a retry cannot change the transaction.",
+        "constraints": [
+          "Never sign a commitment that only exists in the peer payload.",
+          "Bind factoryId, vcId, parties and amounts to local state.",
+          "Persist the approved plan before committing the lease."
+        ],
+        "acceptance": [
+          "A mismatched VC commitment is rejected before any leaf is reserved.",
+          "Signing uses the locally rebuilt plan.",
+          "Repeated proposals reuse the same approval/result."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-023",
+      "status": "open",
+      "severity": "critical",
+      "title": "Incoming splice proposals are co-signed without verifying the proposer signature or approval",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-splice"
+      ],
+      "summary": "onSpliceMessage calls acceptSplice directly. acceptSplice checks membership, quiescence, conservation and draft/params binding, but never verifies proposal.proposerSignature and has no spending approval. omnia-splice/src/coordination.ts verifies the proposer signature and enforces an approval decision; the host bypasses both.",
+      "impact": "A counterparty can submit a correctly formed splice-out that redirects value to an address of its choice, and the host may supply the missing signature automatically.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-splice test",
+        "expected": "acceptSplice verifies proposal.proposerSignature and requires an authorised withdrawal/reallocation before signing.",
+        "actual": "acceptSplice signs the splice digest after parameter checks; the host calls it for any inbound SPLICE_PROPOSAL.",
+        "evidence": [
+          "packages/omnia-host/src/lifecycle.ts onSpliceMessage",
+          "packages/omnia-splice/src/splice.ts acceptSplice (no proposer signature check / approval)",
+          "packages/omnia-splice/src/coordination.ts (signature + approval path)"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-splice/src/splice.ts",
+          "packages/omnia-host/src/lifecycle.ts"
+        ],
+        "approach": "Move proposer-signature verification and an explicit authorisation callback into the signing boundary. Require a withdrawal/reallocation authorisation when the local entitlement decreases.",
+        "constraints": [
+          "Do not rely on the coordinator for a security property the signer needs.",
+          "Verify the proposer signature over the same digest that is signed.",
+          "Reject unauthorised economic changes before reserving a leaf."
+        ],
+        "acceptance": [
+          "A proposal with an invalid/missing proposer signature is rejected before signing.",
+          "A splice-out that reduces the local entitlement requires explicit approval.",
+          "Honest proposals still complete."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-splice test",
+          "pnpm --filter @totemsdk/omnia-host test"
         ]
       },
       "origin": {
@@ -1736,6 +1849,224 @@
       }
     },
     {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-024",
+      "status": "open",
+      "severity": "high",
+      "title": "Payments report success before the counterparty co-signs",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia"
+      ],
+      "summary": "omnia/pay calls updateState (a locally signed partial state), stores it, emits committed, sends STATE_UPDATE and returns success. It never waits for the peer ACK or calls attachCounterpartySignature, even though the integration ACK already carries counterpartyPartialState and the close package.",
+      "impact": "The API can report a payment that only one party signed. Stored balances/sequence can diverge from the last jointly enforceable state, and a rejection/timeout is invisible to the caller.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "success is returned only after the peer co-signature is verified and durably stored.",
+        "actual": "methods.ts pay returns success immediately after sending the state update.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts omnia/pay",
+          "packages/omnia/src/channel.ts updateState (partial state)",
+          "packages/omnia/src/integration.ts ACK payload (partialState, counterpartyClosePackage)"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts",
+          "packages/omnia/src/channel.ts"
+        ],
+        "approach": "Add prepared → locally-signed → peer-signed → fully-validated → committed stages. Collect the ACK, merge with attachCounterpartySignature, verify the complete state/close package, persist, then report success.",
+        "constraints": [
+          "Never advertise a payment on a one-party state.",
+          "Do not advance the authoritative balance until both signatures are stored.",
+          "Keep failure/timeout explicit."
+        ],
+        "acceptance": [
+          "A payment succeeds only after the ACK signature is merged and verified.",
+          "A timeout/rejection returns a non-success result and leaves the prior state authoritative.",
+          "Retries are idempotent."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-025",
+      "status": "open",
+      "severity": "high",
+      "title": "Exit entitlements still do not prove the witness or the authoritative pool coin",
+      "packages": [
+        "@totemsdk/omnia-vtxo"
+      ],
+      "summary": "verifyVtxoExitEntitlement now checks the proof root/epoch, decodes the exit transaction, checks the payout address/amount and the funding input. It still does not decode/verify witness signatures or proofs, makes the digest optional (skipping transaction checks when absent), and never anchors the funding coin/exit delay to live or proven historical pool state.",
+      "impact": "A caller can still supply internally consistent metadata plus an unverified witness and have the helper accept an exit that does not actually provide the promised payout, unless a separate verifier checks the chain proof.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-vtxo test",
+        "expected": "The exit transaction and witness are rebuilt/verified against trusted pool and owner state, with a mandatory digest.",
+        "actual": "Transaction shape is checked only when digest is present; witnessHex only has to be non-empty.",
+        "evidence": [
+          "packages/omnia-vtxo/src/exit-entitlement.ts verifyVtxoExitEntitlement",
+          "packages/omnia-vtxo/src/exit.ts createExitDraft"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/exit-entitlement.ts",
+          "packages/omnia-vtxo/src/exit.ts"
+        ],
+        "approach": "Require a digest, rebuild the canonical exit transaction from trusted pool/owner state, compare every committed field, decode and verify the witness, and anchor the funding coin and exit delay to the pool (live or historical).",
+        "constraints": [
+          "Do not accept a missing digest as a bypass.",
+          "Do not trust the entitlement to describe its own pool state.",
+          "Keep historical-epoch proofs verifiable."
+        ],
+        "acceptance": [
+          "A missing/different digest is rejected.",
+          "The witness is verified and the funding coin/exit delay are anchored.",
+          "A valid pool exit still passes."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-026",
+      "status": "fixed",
+      "severity": "high",
+      "title": "An incoming message can overwrite the cached peer for an unrelated channel",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "The host cached channelPeers from any inbound message channelId before binding the peer to the channel counterparty. The cache is now updated only when the authenticated peer key is a registered party of the stored channel and is not the local identity.",
+      "impact": "A connected peer that names a channel id can no longer replace the routing cache and receive signed HTLC updates for that channel.",
+      "repro": {
+        "command": "npx jest --config tests/jest/omnia-host.cjs --runInBand tests/unit/omnia-host/src/__tests__/peer-guards.test.ts",
+        "expected": "Only a channel counterparty can be cached for the channel.",
+        "actual": "Fixed: isChannelPeer checks the peer key against channel.parties and excludes the local key.",
+        "evidence": [
+          "packages/omnia-host/src/lifecycle.ts onPeerMessage",
+          "packages/omnia-host/src/peer-guards.ts isChannelPeer"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/lifecycle.ts",
+          "packages/omnia-host/src/peer-guards.ts"
+        ],
+        "approach": "Derive the association from authenticated participant identity and verify it against the channel record before caching.",
+        "constraints": [
+          "Never update the cache merely because a message names a channel.",
+          "Exclude the local identity."
+        ],
+        "acceptance": [
+          "A foreign peer naming a channel cannot become its cached peer.",
+          "The real counterparty is still cached."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/omnia-host.cjs --runInBand"
+        ]
+      },
+      "links": {
+        "fixedIn": "b1b95d14"
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-027",
+      "status": "open",
+      "severity": "high",
+      "title": "The advertised N-party factory API coordinates with only one remote participant",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "Factory, prepared-factory, VC-open/close and factory-close paths select the first remote participant with find(partyId !== local). For N>2 the host never requests the remaining participants’ signatures, and the N-of-N assembler rejects the incomplete set.",
+      "impact": "N-party factories cannot complete; a host may also reuse the first remote signer callback for other parties, which cannot produce their signatures.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Every factory participant is coordinated by identity and every signature is verified.",
+        "actual": "methods.ts selects only the first remote participant in the factory/VC paths.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts lines around 1653, 1747, 3160, 3225, 3292"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts"
+        ],
+        "approach": "Iterate all remote participants, connect by identity, collect and verify each signature, and persist N-party progress so restarts can resume.",
+        "constraints": [
+          "Do not reuse one participant’s signer for another.",
+          "Fail closed when any participant is missing."
+        ],
+        "acceptance": [
+          "A 3-party factory gathers all three signatures.",
+          "Progress survives a restart."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
       "id": "CAN-005",
       "kind": "sdk-defect",
       "status": "open",
@@ -2442,6 +2773,116 @@
         "verification": [
           "pnpm --filter @totemsdk/omnia-factory test"
         ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-028",
+      "status": "in-progress",
+      "severity": "medium",
+      "title": "Repeated settlement requests can exhaust WOTS signing capacity",
+      "packages": [
+        "@totemsdk/omnia"
+      ],
+      "summary": "The peer settlement handler called signSettlementRequest on every matching request, allocating a fresh lease even for identical channel/sequence/digest. A replay cache keyed by channel/sequence/digest now reuses the response and rejects a conflicting settlement for the same sequence, with an optional durable store wired to the host state store. A dedicated regression test and full durable approval policy remain.",
+      "impact": "A counterparty could previously consume one-time signing capacity without completing a settlement.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "Identical requests reuse the stored co-signature; conflicting requests are rejected.",
+        "actual": "Replay defense implemented in integration.ts; regression test still to add.",
+        "evidence": [
+          "packages/omnia/src/integration.ts _handleSettlementProposal",
+          "packages/omnia/src/settlement.ts signSettlementRequest"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia/src/integration.ts"
+        ],
+        "approach": "Persist the signed response by canonical digest+participant, return the same response for idempotent retries, reject conflicting requests, and enforce a bounded signing policy.",
+        "constraints": [
+          "Do not burn a leaf for a replayed request.",
+          "Reject a different settlement for the same channel+sequence."
+        ],
+        "acceptance": [
+          "Repeat request returns the same signature.",
+          "Conflicting request is rejected.",
+          "Durable store survives restart."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "links": {
+        "fixedIn": "b1b95d14"
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
+      "id": "OMN-029",
+      "status": "fixed",
+      "severity": "medium",
+      "title": "VTXO transfer verification omits value and recipient binding",
+      "packages": [
+        "@totemsdk/omnia-vtxo"
+      ],
+      "summary": "verifyVtxoTransfer now requires a positive amount, binds from/to to the input/output owners, requires output.amount === transfer.amount, checks pool/token on the transfer record, and requires change with exact conservation for partial transfers.",
+      "impact": "A standalone transfer record can no longer verify while describing a different recipient, amount or pool than the supplied output.",
+      "repro": {
+        "command": "npx jest --config tests/jest/omnia-vtxo.cjs --runInBand tests/unit/omnia-vtxo/src/__tests__/verify.test.ts",
+        "expected": "Mismatched owner/amount/pool/token or a partial transfer without change is rejected.",
+        "actual": "Fixed in verifyVtxoTransfer.",
+        "evidence": [
+          "packages/omnia-vtxo/src/verify.ts verifyVtxoTransfer"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/verify.ts"
+        ],
+        "approach": "Enforce exact amount and owner binding, positive values, token/pool binding and conservation with change, while keeping the authoritative double-spend/operator-signature checks separate.",
+        "constraints": [
+          "Do not conflate this helper with the authoritative operator check."
+        ],
+        "acceptance": [
+          "Wrong owner/amount/pool is rejected.",
+          "Partial transfer requires change and conserves value."
+        ],
+        "tests": [
+          "tests/unit/omnia-vtxo/src/__tests__/verify.test.ts"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/omnia-vtxo.cjs --runInBand"
+        ]
+      },
+      "links": {
+        "fixedIn": "b1b95d14"
       },
       "origin": {
         "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
