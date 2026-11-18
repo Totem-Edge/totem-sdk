@@ -29,6 +29,19 @@ jobs:
           git status --short
           test -z "$(git status --porcelain)" || (echo "install modified the working tree" && exit 1)
 
+  findings-register:
+    name: Findings register
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+      # Report mode: the register is data, so CI records the open set rather than
+      # failing every PR. The release gate (publish-totemsdk.yml) is fatal.
+      - name: Summarise open findings
+        run: node scripts/verify-findings-gate.mjs --report
+
   supply-chain:
     name: Supply chain (dependency audit + SBOM)
     runs-on: ubuntu-latest

@@ -20,6 +20,32 @@ pnpm run findings --sdk <path-to-this-checkout> --write <path-to-this-checkout>/
 | `agent/<id>.md` | one self-contained brief per finding |
 | `README.md` | this protocol |
 
+## Ids
+
+- `CAN-###` — raised by a canary run or a canary check.
+- `OMN-###` — raised by an external audit, transcribed with `origin`
+  (audit name, audited commit) and a `verification` value: `code-confirmed`,
+  `reported` or `disputed`. A disputed entry records the disagreement in
+  `origin.note`; it is not silently dropped.
+- An audit id that names an issue already tracked under a `CAN-###` carries
+  `canonical` and is not counted twice by the gate. Follow the canonical row.
+
+## Release gate
+
+`scripts/verify-findings-gate.mjs` reads `findings.json` and blocks a publish
+while an open finding at or above the threshold names the package:
+
+```bash
+node scripts/verify-findings-gate.mjs --report                       # summary (CI)
+node scripts/verify-findings-gate.mjs --min-severity high \
+  --packages @totemsdk/omnia-vtxo                                   # gate (release)
+```
+
+Workspace CI runs it in report mode. `publish-totemsdk.yml` runs it for the
+package being released and fails the resolve job, so the publish job never
+starts. Resolve a finding in the canary registry, regenerate this directory,
+and the gate clears.
+
 ## How to take one
 
 1. Pick a brief from `agent/`. Start with `critical`, then `high`.
