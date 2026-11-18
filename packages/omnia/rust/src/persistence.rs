@@ -1,3 +1,5 @@
+use num_bigint::BigInt;
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashSet;
@@ -143,9 +145,9 @@ pub fn deserialize_channel_snapshot_value(
     Ok(snapshot)
 }
 
-fn parse_i128(value: &str, label: &str) -> Result<i128, String> {
+fn parse_bigint(value: &str, label: &str) -> Result<BigInt, String> {
     value
-        .parse::<i128>()
+        .parse::<BigInt>()
         .map_err(|_| format!("Invalid Omnia channel snapshot: invalid {}", label))
 }
 
@@ -254,19 +256,19 @@ pub fn assert_channel_shape(channel: &OmniaChannel) -> Result<(), String> {
     }
     assert_known_program(channel)?;
 
-    let mut balance_sum = 0i128;
+    let mut balance_sum = BigInt::zero();
     for balance in channel.balances.values() {
-        balance_sum += parse_i128(balance, "balance")?;
+        balance_sum += parse_bigint(balance, "balance")?;
     }
-    let mut htlc_sum = 0i128;
+    let mut htlc_sum = BigInt::zero();
     for htlc in channel
         .pending_htlcs
         .iter()
         .filter(|htlc| htlc.status == "pending")
     {
-        htlc_sum += parse_i128(&htlc.amount, "HTLC amount")?;
+        htlc_sum += parse_bigint(&htlc.amount, "HTLC amount")?;
     }
-    let total_value = parse_i128(&channel.total_value, "totalValue")?;
+    let total_value = parse_bigint(&channel.total_value, "totalValue")?;
     if total_value != balance_sum + htlc_sum {
         return Err("Invalid Omnia channel snapshot: balance conservation failed".to_string());
     }
@@ -492,6 +494,38 @@ mod tests {
         assert_eq!(
             deserialize_channel_snapshot(&json).unwrap_err(),
             "Invalid Omnia channel snapshot: balance conservation failed"
+        );
+    }
+
+    #[test]
+    fn accepts_atom_amounts_beyond_i128() {
+        // 10 MINIMA = 10^45 atoms, ~5.9e24 times the i128 ceiling.
+        let total = format!("1{}", "0".repeat(45));
+        let alice = format!("6{}", "0".repeat(44));
+        let bob = format!("4{}", "0".repeat(44));
+
+        let mut value = snapshot_value();
+        value["channel"]["totalValue"] = json!({ "__omniaBigInt": total });
+        value["channel"]["balances"]["alice"] = json!({ "__omniaBigInt": alice });
+        value["channel"]["balances"]["bob"] = json!({ "__omniaBigInt": bob });
+        value["channel"]["latestState"]["balances"]["alice"] = json!({ "__omniaBigInt": alice });
+        value["channel"]["latestState"]["balances"]["bob"] = json!({ "__omniaBigInt": bob });
+        let json = serde_json::to_string(&value).unwrap();
+
+        let snapshot = deserialize_channel_snapshot(&json).unwrap();
+        assert_eq!(snapshot.channel.total_value, total);
+        assert_eq!(snapshot.channel.balances["bob"], bob);
+    }
+
+    #[test]
+    fn rejects_malformed_atom_amounts() {
+        let mut value = snapshot_value();
+        value["channel"]["totalValue"] = json!({ "__omniaBigInt": "not-atoms" });
+        let json = serde_json::to_string(&value).unwrap();
+
+        assert_eq!(
+            deserialize_channel_snapshot(&json).unwrap_err(),
+            "Invalid Omnia channel snapshot: invalid totalValue"
         );
     }
 

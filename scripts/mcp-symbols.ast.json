@@ -3408,6 +3408,26 @@
           "kind": "class",
           "signature": "export class MiniNumber"
         },
+        "MINIMA_DECIMALS": {
+          "kind": "const",
+          "signature": "MINIMA_DECIMALS = 44",
+          "doc": "Minima has 44 decimal places: 1 MINIMA = 10^44 atoms."
+        },
+        "amountToAtoms": {
+          "kind": "function",
+          "signature": "amountToAtoms(value: string): bigint",
+          "doc": "Convert decimal MINIMA text (`\"0.2\"`) to atoms (`2000...0n`).\n\nExact by construction: a fraction longer than 44 places is rejected when it\ncarries value, and anything that is not a non-negative plain decimal is\nrejected. Fail closed — truncating here would silently change the amount."
+        },
+        "atomsToAmount": {
+          "kind": "function",
+          "signature": "atomsToAmount(atoms: bigint): string",
+          "doc": "Convert atoms back to decimal MINIMA text (`\"0.2\"`)."
+        },
+        "atomsToMiniNumber": {
+          "kind": "function",
+          "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
+          "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
+        },
         "MinimaTransaction": {
           "kind": "interface",
           "signature": "export interface MinimaTransaction"
@@ -11890,6 +11910,11 @@
           "signature": "channelContestDelay(channel: Pick<OmniaChannel, \"contestDelayBlocks\">): number",
           "doc": "The contest window this channel was actually opened with. The script embeds\n`contestDelayBlocks`; settlement logic must use the same value rather than the\nmodule default."
         },
+        "coinAmountAtoms": {
+          "kind": "function",
+          "signature": "coinAmountAtoms(coin: { amount: string | number | bigint; }): bigint",
+          "doc": "Read an on-chain coin amount as integer atoms.\n\n`ChainStateProvider` returns decimal MINIMA text, which is the production\nform. A `bigint` (or a safe integer `number`) can only be an atom count, so\nit is taken verbatim — useful for internal callers and test doubles. A\nfractional `number` is rejected rather than guessed at."
+        },
         "verifyStateWithRustMirror": {
           "kind": "function",
           "signature": "verifyStateWithRustMirror(channel: OmniaChannel, state: SignedChannelState): { valid: boolean; errors: string[]; }",
@@ -13049,6 +13074,31 @@
           "kind": "interface",
           "signature": "export interface SignerPolicy",
           "doc": "Hosted/KMS policy checks applied before delegating to the underlying port."
+        },
+        "createFactoryAuthorizer": {
+          "kind": "function",
+          "signature": "createFactoryAuthorizer(policy?: FactoryApprovalPolicy): FactoryAuthorizer"
+        },
+        "FactoryApprovalEvent": {
+          "kind": "interface",
+          "signature": "export interface FactoryApprovalEvent"
+        },
+        "FactoryApprovalKind": {
+          "kind": "type",
+          "signature": "export type FactoryApprovalKind = 'open' | 'close'",
+          "doc": "Authorization gate for peer-initiated factory signing.\n\nCryptographic validity is not authorization: a peer can present a correctly\nformed opening or close that this host never agreed to fund. Every signature\nrequest from a peer therefore passes through this gate before a WOTS leaf is\nreserved. The default is deny; unattended hosts opt into a bounded automated\npolicy explicitly (max total value and/or an allowlist of peer keys)."
+        },
+        "FactoryApprovalPolicy": {
+          "kind": "interface",
+          "signature": "export interface FactoryApprovalPolicy"
+        },
+        "FactoryAuthorizationRequest": {
+          "kind": "interface",
+          "signature": "export interface FactoryAuthorizationRequest"
+        },
+        "FactoryAuthorizer": {
+          "kind": "type",
+          "signature": "export type FactoryAuthorizer = (request: FactoryAuthorizationRequest) => Promise<void> | void"
         },
         "ObservationDomain": {
           "kind": "type",
@@ -18999,6 +19049,26 @@
         "MiniNumber": {
           "kind": "class",
           "signature": "export declare class MiniNumber"
+        },
+        "MINIMA_DECIMALS": {
+          "kind": "const",
+          "signature": "MINIMA_DECIMALS = 44",
+          "doc": "Minima has 44 decimal places: 1 MINIMA = 10^44 atoms."
+        },
+        "amountToAtoms": {
+          "kind": "function",
+          "signature": "amountToAtoms(value: string): bigint",
+          "doc": "Convert decimal MINIMA text (`\"0.2\"`) to atoms (`2000...0n`).\n\nExact by construction: a fraction longer than 44 places is rejected when it\ncarries value, and anything that is not a non-negative plain decimal is\nrejected. Fail closed — truncating here would silently change the amount."
+        },
+        "atomsToAmount": {
+          "kind": "function",
+          "signature": "atomsToAmount(atoms: bigint): string",
+          "doc": "Convert atoms back to decimal MINIMA text (`\"0.2\"`)."
+        },
+        "atomsToMiniNumber": {
+          "kind": "function",
+          "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
+          "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
         },
         "MinimaTransaction": {
           "kind": "interface",

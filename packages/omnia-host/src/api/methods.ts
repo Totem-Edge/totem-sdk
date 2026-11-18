@@ -72,6 +72,7 @@ import {
   type LiquidityPosition,
   type WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
+import { amountToAtoms } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -1898,7 +1899,7 @@ function registerPreparedPayMethods(
         if (!coin) return { valid: false, reason: 'coin not found' };
         if (coin.spent) return { valid: false, reason: 'coin is spent' };
         if (request.tokenId && coin.tokenid !== request.tokenId) return { valid: false, reason: 'token mismatch' };
-        if (request.claimedAmount && BigInt(coin.amount) < BigInt(request.claimedAmount)) {
+        if (request.claimedAmount && amountToAtoms(coin.amount) < amountToAtoms(request.claimedAmount)) {
           return { valid: false, reason: 'insufficient amount' };
         }
         return { valid: true };

@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { MINIMA_DECIMALS, atomsToAmount, sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
 import type { OmniaChannel, OmniaTxDraft, StateValue, TxOutputDraft, HTLCRecord, SignedChannelState } from './types.js';
 import { COINID_ELTOO } from './script.js';
@@ -589,7 +589,8 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
   const inputs: TxBuilderInput[] = draft.inputs.map(inp => ({
     coinId: inp.coinId,
     address: inp.address,
-    amount: inp.amount.toString(),
+    // tx-builder/core take decimal MINIMA text; drafts hold atoms.
+    amount: atomsToAmount(inp.amount),
     tokenId: inp.tokenId,
     scriptDescriptor: { type: 'RETURN_TRUE' },
     coinProofHex: inp.scriptHex || undefined,
@@ -597,7 +598,7 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
 
   const outputs: TxBuilderOutput[] = draft.outputs.map(out => ({
     address: out.address,
-    amount: out.amount.toString(),
+    amount: atomsToAmount(out.amount),
     tokenId: out.tokenId,
     storeState: out.storeState,
     state: out.storeState ? draft.stateVariables.map(sv => ({
@@ -664,7 +665,9 @@ function serializeCoinForMinima(opts: {
   const parts = [
     writeHashToStreamLocal(opts.coinId),
     writeHashToStreamLocal(opts.address),
-    writeMiniNumberLocal(opts.amount),
+    // Coin amounts are integer atoms: Java reads `MiniNumber(unscaled, scale)`
+    // as unscaled x 10^-scale, so scale 44 turns 2e43 back into 0.2 MINIMA.
+    writeMiniNumberLocal(opts.amount, MINIMA_DECIMALS),
     writeHashToStreamLocal(opts.tokenId),
     writeMiniByteLocal(opts.storeState),
     writeMMREntryNumberLocal(opts.mmrEntry ?? 0n),

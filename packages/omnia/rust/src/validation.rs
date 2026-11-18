@@ -1,14 +1,24 @@
 use std::collections::HashMap;
 
+use num_bigint::BigInt;
+use num_traits::Zero;
+
 use crate::capacity::flat_signing_index;
 use crate::types::{
     HTLCRecord, OmniaChannel, SignedChannelState, ValidationResult, VerifyStateResult,
 };
 
-fn parse_amount(value: &str, label: &str) -> Result<i128, String> {
+/// Amounts inside Omnia are integer base units ("atoms"), so every amount is an
+/// arbitrary-precision signed integer. `i128` would cap a channel at ~1.7e20
+/// atoms, while 1 MINIMA alone is 1e44 atoms.
+fn parse_amount(value: &str, label: &str) -> Result<BigInt, String> {
     value
-        .parse::<i128>()
+        .parse::<BigInt>()
         .map_err(|_| format!("Invalid {}: {value:?}", label))
+}
+
+fn amount_from_draft(value: &serde_json::Value) -> Result<BigInt, String> {
+    crate::serialize::parse_amount(value).map(BigInt::from)
 }
 
 pub fn validate_balance_conservation(
@@ -27,7 +37,7 @@ pub fn validate_balance_conservation(
     };
 
     // Strict parsing: a malformed value must fail, not contribute zero.
-    let mut balance_sum: i128 = 0;
+    let mut balance_sum: BigInt = BigInt::zero();
     for (party_id, balance) in balances {
         let parsed = match parse_amount(balance, &format!("balance for {party_id}")) {
             Ok(v) => v,
@@ -38,7 +48,7 @@ pub fn validate_balance_conservation(
                 }
             }
         };
-        if parsed < 0 {
+        if parsed < BigInt::zero() {
             return ValidationResult {
                 valid: false,
                 reason: Some(format!("Negative balance for {party_id}: {parsed}")),
@@ -47,7 +57,7 @@ pub fn validate_balance_conservation(
         balance_sum += parsed;
     }
 
-    let mut htlc_total: i128 = 0;
+    let mut htlc_total: BigInt = BigInt::zero();
     for htlc in pending_htlcs.iter().filter(|h| h.status == "pending") {
         let parsed = match parse_amount(&htlc.amount, &format!("HTLC amount for {}", htlc.htlc_id))
         {
@@ -59,7 +69,7 @@ pub fn validate_balance_conservation(
                 }
             }
         };
-        if parsed < 0 {
+        if parsed < BigInt::zero() {
             return ValidationResult {
                 valid: false,
                 reason: Some(format!(
@@ -71,7 +81,7 @@ pub fn validate_balance_conservation(
         htlc_total += parsed;
     }
 
-    if balance_sum + htlc_total != tv {
+    if &balance_sum + &htlc_total != tv {
         return ValidationResult {
             valid: false,
             reason: Some(format!(
@@ -168,17 +178,18 @@ fn settlement_variables(
         .collect()
 }
 
-fn raw_total(channel: &OmniaChannel) -> Result<u128, String> {
-    let total =
-        crate::serialize::parse_amount(&serde_json::Value::String(channel.total_value.clone()))?;
+/// `totalValue` in whole token units: atoms divided by `10^tokenScale`.
+///
+/// The division must be exact — a total that is not a whole number of tokens is
+/// a malformed channel, not something to round.
+fn raw_total(channel: &OmniaChannel) -> Result<BigInt, String> {
+    let total = amount_from_draft(&serde_json::Value::String(channel.total_value.clone()))?;
     let scale = channel.token_scale;
     if scale == 0 {
         return Ok(total);
     }
-    let divisor = 10u128
-        .checked_pow(scale)
-        .ok_or_else(|| "tokenScale out of range".to_string())?;
-    if total % divisor != 0 {
+    let divisor = BigInt::from(10u32).pow(scale);
+    if &total % &divisor != BigInt::zero() {
         return Err(format!(
             "totalValue {total} is not divisible by tokenScale {scale}"
         ));
@@ -226,9 +237,9 @@ fn verify_artifact(
         Err(error) => errors.push(error),
         Ok(total) => {
             if settlement {
-                let mut output_total: u128 = 0;
+                let mut output_total = BigInt::zero();
                 for output in &draft.outputs {
-                    match crate::serialize::parse_amount(&output.amount) {
+                    match amount_from_draft(&output.amount) {
                         Ok(amount) => output_total += amount,
                         Err(error) => {
                             errors.push(format!("settlement output amount invalid: {error}"))
@@ -251,7 +262,7 @@ fn verify_artifact(
                     {
                         errors.push("update output is not the channel script address".to_string());
                     }
-                    if crate::serialize::parse_amount(&output.amount).ok() != Some(total) {
+                    if amount_from_draft(&output.amount).ok() != Some(total.clone()) {
                         errors.push(
                             "update output amount does not equal the channel total".to_string(),
                         );
@@ -463,14 +474,14 @@ pub fn validate_state_transition(
     // A fulfilment or timeout shrinks the pending total, so the delta may be negative.
     let delta = parse_amount(pending_htlc_delta, "pendingHTLCDelta")?;
 
-    let mut htlc_total: i128 = delta;
+    let mut htlc_total: BigInt = delta;
     for htlc in channel
         .pending_htlcs
         .iter()
         .filter(|h| h.status == "pending")
     {
         let amount = parse_amount(&htlc.amount, &format!("HTLC amount for {}", htlc.htlc_id))?;
-        if amount < 0 {
+        if amount < BigInt::zero() {
             return Err(format!(
                 "Negative HTLC amount for {}: {amount}",
                 htlc.htlc_id
@@ -479,19 +490,19 @@ pub fn validate_state_transition(
         htlc_total += amount;
     }
 
-    let mut balance_sum: i128 = 0;
+    let mut balance_sum: BigInt = BigInt::zero();
     for (party_id, balance) in new_balances {
         let parsed = parse_amount(balance, &format!("balance for {party_id}"))?;
-        if parsed < 0 {
+        if parsed < BigInt::zero() {
             return Err(format!("Negative balance for {party_id}: {parsed}"));
         }
         balance_sum += parsed;
     }
 
-    if balance_sum + htlc_total != tv {
+    if &balance_sum + &htlc_total != tv {
         return Err(format!(
             "Balance conservation violated: totalValue={tv}, sum(balances+htlcs)={}",
-            balance_sum + htlc_total
+            &balance_sum + &htlc_total
         ));
     }
 
@@ -516,4 +527,63 @@ pub fn verify_htlc_preimage(preimage: &str, hashlock: &str) -> bool {
     let mut hasher = Sha3_256::new();
     hasher.update(&bytes);
     hex::encode(hasher.finalize()).eq_ignore_ascii_case(&strip(hashlock))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `n * 10^44` atoms, i.e. `n` whole MINIMA.
+    fn minima(n: u32) -> String {
+        format!("{n}{}", "0".repeat(44))
+    }
+
+    fn htlc(status: &str) -> HTLCRecord {
+        HTLCRecord {
+            htlc_id: "htlc-1".to_string(),
+            amount: minima(1),
+            hashlock: "0xabc".to_string(),
+            timeout_block: "100".to_string(),
+            status: status.to_string(),
+            direction: "alice->bob".to_string(),
+            htlc_address: "0xaddress".to_string(),
+            sender_public_key_digest: "0xaaaa".to_string(),
+            recipient_public_key_digest: "0xbbbb".to_string(),
+        }
+    }
+
+    #[test]
+    fn conserves_balances_far_beyond_i128() {
+        let total = minima(3);
+        let balances = HashMap::from([
+            ("alice".to_string(), minima(2)),
+            ("bob".to_string(), minima(1)),
+        ]);
+        assert!(validate_balance_conservation(&total, &balances, &[]).valid);
+
+        // 3 MINIMA is 3e44 atoms: ~1.7e24 times the i128 ceiling.
+        let mut skewed = balances.clone();
+        skewed.insert("bob".to_string(), format!("{}1", minima(1)));
+        let result = validate_balance_conservation(&total, &skewed, &[]);
+        assert!(!result.valid);
+        assert!(result
+            .reason
+            .as_deref()
+            .unwrap_or_default()
+            .starts_with("Balance conservation failed:"));
+    }
+
+    #[test]
+    fn counts_pending_htlc_atoms_in_conservation() {
+        let total = minima(2);
+        let balances = HashMap::from([("alice".to_string(), minima(1))]);
+        let pending = [htlc("pending")];
+        assert!(validate_balance_conservation(&total, &balances, &pending).valid);
+
+        let settled = [htlc("fulfilled")];
+        assert!(
+            !validate_balance_conservation(&total, &balances, &settled).valid,
+            "non-pending HTLCs must not count toward the total"
+        );
+    }
 }

@@ -9,6 +9,7 @@
  * between broadcast and confirmation can finish or retry safely.
  */
 
+import { amountToAtoms } from '@totemsdk/core';
 import type { ChannelStatus } from '@totemsdk/omnia';
 
 /** Minimal chain surface needed by splice observation. */
@@ -87,7 +88,7 @@ export async function observeSpliceSuccessor(
       !coin.spent
       && coin.address.toLowerCase() === options.address.toLowerCase()
       && coin.tokenid.toLowerCase() === options.tokenId.toLowerCase()
-      && BigInt(coin.amount) === options.amount,
+      && amountToAtoms(coin.amount) === options.amount,
     );
     // CAN-012: the channel input floats (COINID_ELTOO), so the coin id cannot be
     // predicted from the transaction. Two coins matching the same address, token

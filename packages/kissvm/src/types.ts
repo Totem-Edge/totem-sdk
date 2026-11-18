@@ -65,7 +65,13 @@ export interface ScriptWitness {
 
 /** A single input coin */
 export interface CoinData {
-  amount: number;
+  /**
+   * Amount in the transaction's unit. Decimal MINIMA text (`"0.2"`) and atom
+   * integer text (`"2000...0"`) are both valid: the evaluator parses them with
+   * `MiniNumber`, so the caller must keep every amount in the same context in
+   * the same unit.
+   */
+  amount: string | number;
   tokenId: string;
   coinId: string;
   address: string;
@@ -78,7 +84,8 @@ export interface CoinData {
 /** A transaction output */
 export interface OutputData {
   address: string;
-  amount: number;
+  /** Same unit rule as {@link CoinData.amount}. */
+  amount: string | number;
   tokenId: string;
   keepState: boolean;
 }

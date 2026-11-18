@@ -215,7 +215,7 @@ function makeConfirmingProvider(coinId: string, amount: bigint, tokenId: string,
   return {
     getCoin: jest.fn(async (id: string) => {
       if (id !== coinId) return null;
-      return { coinId, amount: amount.toString(), tokenid: tokenId, address, spent: false, created: '1' };
+      return { coinId, amount, tokenid: tokenId, address, spent: false, created: '1' };
     }),
     getTip: jest.fn(async () => ({ block: 2, hash: '0x02' })),
   };
@@ -3110,7 +3110,7 @@ describe('@totemsdk/omnia — chain truth', () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     const provider = {
       getCoin: jest.fn(async (coinId: string) => ({
-        coinId, amount: '1000', tokenid: '0x00', address, spent: false,
+        coinId, amount: 1000, tokenid: '0x00', address, spent: false,
       })),
       getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
     };
@@ -3122,7 +3122,7 @@ describe('@totemsdk/omnia — chain truth', () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     const provider = {
       getCoin: jest.fn(async (coinId: string) => ({
-        coinId, amount: '1000', tokenid: '0x00', address, spent: false, created: '10',
+        coinId, amount: 1000, tokenid: '0x00', address, spent: false, created: '10',
       })),
       getTip: jest.fn(async () => ({ block: 10, hash: '0x0a' })),
     };

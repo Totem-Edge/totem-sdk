@@ -1,1 +1,0 @@
-../../../../packages/chain-provider/src/amount.ts

@@ -206,6 +206,8 @@ export {
 
 export { coinCreatedBlock, confirmationsAt, channelContestDelay } from './chain-truth.js';
 
+export { coinAmountAtoms } from './units.js';
+
 export {
   verifyStateWithRustMirror,
   serializeChannelForMirror,

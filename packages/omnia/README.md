@@ -293,6 +293,26 @@ const closing = markChannelClosing(channel);
 const closed  = markChannelClosed(closing);
 ```
 
+## Amount units
+
+Chain providers return the node's **decimal MINIMA text** (`"0.2"`). Omnia keeps
+all channel, HTLC and funding maths in integer **atoms** (1 MINIMA = 10^44 atoms)
+and converts once at the boundary with `coinAmountAtoms()` / `amountToAtoms()`.
+
+The binary transaction form is Java's
+`MiniNumber(unscaled, scale)` with value = `unscaled × 10^-scale`; every coin
+amount is written as `(unscaled = atoms, scale = 44)`, so 0.2 MINIMA travels as
+`(2×10^43, 44)` and reads back as `0.2`. Writing atoms with scale 0 would encode
+an amount 10^44 times too large that the node rejects as an invalid Minima
+amount.
+
+```typescript
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
+
+const atoms = amountToAtoms('0.2'); // 20000000000000000000000000000000000000000000n
+atomsToAmount(atoms);               // '0.2'
+```
+
 ## Channel lifecycle statuses
 
 ```

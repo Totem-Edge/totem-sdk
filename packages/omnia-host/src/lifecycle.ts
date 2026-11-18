@@ -4,6 +4,7 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
+import { amountToAtoms } from '@totemsdk/core';
 import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
@@ -923,7 +924,7 @@ export function createOmniaHost(
                 tokenId: channel.tokenId,
               });
               const successor = coins.find(
-                (coin) => !coin.spent && BigInt(coin.amount) === channel.totalValue,
+                (coin) => !coin.spent && amountToAtoms(coin.amount) === channel.totalValue,
               );
               return successor ? { coinId: successor.coinid } : null;
             },

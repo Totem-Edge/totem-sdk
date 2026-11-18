@@ -18,11 +18,11 @@ audit fixes (CAN-008..CAN-017) reach npm. All are `rc` or below except `core` an
 | `@totemsdk/core` | 1.5.0 | new `buildHTLCScript`; time-bounded HTLC claim branch; canonical contract addresses |
 | `@totemsdk/core-wasm` | 1.0.6 | reproducible, digest-pinned WASM artifacts |
 | `@totemsdk/kissvm` | 1.4.0 | HTLC/channel VM templates; `act-core` rename (export surface unchanged) |
-| `@totemsdk/chain-provider` | 0.3.3 | decimal-MINIMA → atom normalisation at the adapter boundary; lookup identity/ticket fixes |
+| `@totemsdk/chain-provider` | 0.3.3 | node-native decimal amounts preserved across every provider; unit contract documented; lookup identity/ticket fixes |
 | `@totemsdk/manifest` | 2.2.0 | `computeManifestContentId`; proofs bind to manifest content, not just version |
 | `@totemsdk/tx-builder` | 0.3.3 | audit fixes (CAN-008..CAN-017) |
 | `@totemsdk/wots-lease` | 1.0.3 | signature/key-state binding fix |
-| `@totemsdk/omnia` | 2.4.4 | funding-change owner guard; remaining audit fixes |
+| `@totemsdk/omnia` | 2.4.4 | atom-based channel maths with `MiniNumber(atoms, scale 44)` wire encoding; funding-change owner guard; remaining audit fixes |
 | `@totemsdk/omnia-factory` | 0.7.2 | one plan/one id, proposal-first opening, finalized-transition verification |
 | `@totemsdk/omnia-host` | 0.13.6 | factory protocol unification; default-deny peer signing authorization |
 | `@totemsdk/omnia-pool` | 0.5.5 | signing/settlement fixes |
@@ -44,11 +44,17 @@ default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt i
 
 ### Fixed
 
-- **Chain amounts are atoms.** `MinimaRpcProvider.getCoins`/`getCoin` now convert
-  the node's decimal MINIMA `amount` (`"0.2"`) to raw atoms (`2e43`). Previously
-  `openChannel` threw `Cannot convert 0.2 to a BigInt` after the host had already
-  committed to the channel. `verifyDeposit` keeps the node's decimal values, as
-  its `claimedAmount` contract is decimal.
+- **One amount contract, end to end.** Minima has exactly one amount type,
+  `MiniNumber`. JSON reports it as decimal MINIMA text (`"0.2"`); the binary
+  transaction form is `(unscaled, scale)` with value = `unscaled x 10^-scale`.
+  `chain-provider` now returns the node's decimal text unchanged from every
+  provider (no per-provider unit switch); `amountToAtoms()` in `@totemsdk/core`
+  converts once where integer maths is required (1 MINIMA = 10^44 atoms).
+  `@totemsdk/omnia` keeps channel/HTLC/funding maths in atoms and serializes
+  every coin amount as `MiniNumber(unscaled = atoms, scale = 44)`. The previous
+  code of writing atom values with scale 0 encoded an amount 10^44 times too
+  large, which the node rejects as an invalid Minima amount, and normalising
+  only the RPC provider split the unit contract across providers and packages.
 
 ### Added
 

@@ -253,6 +253,8 @@ dependencies = [
  "console_error_panic_hook",
  "hex",
  "js-sys",
+ "num-bigint",
+ "num-traits",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

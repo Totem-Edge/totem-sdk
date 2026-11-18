@@ -160,9 +160,10 @@ export interface OmniaChannel {
   fundingAddress: string;
   tokenId: string;
   /**
-   * Scale factor for coloured coins: `tokenAmount = minimaRawAmount × 10^tokenScale`.
-   * For native Minima (tokenId=0x00) this is always 0.
-   * Balances are stored in scaled token units; TX builders convert to raw Minima.
+   * Scale factor for coloured coins: `tokenAmount = rawAtoms × 10^tokenScale`.
+   * For native Minima (tokenId=0x00) this is always 0 and every amount is atoms.
+   * Channel amounts are atoms of `1 MINIMA = 10^44`; this is the only additional
+   * factor. Every serialized coin amount is `MiniNumber(unscaled = atoms, scale = 44)`.
    */
   tokenScale: number;
   totalValue: bigint;
