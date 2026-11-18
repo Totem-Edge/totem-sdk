@@ -181,6 +181,8 @@ export function buildSpliceInProposal(
   additionalAmount: bigint,
   proposerPublicKeyDigest: string,
   newBalances?: Record<string, bigint>,
+  /** OMN-052: address of the coin being added; required by the builder. */
+  additionalCoinAddress?: string,
 ): UnsignedSpliceProposal {
   validateChannelQuiesced(channel);
   const newTotal = channel.totalValue + additionalAmount;
@@ -191,6 +193,7 @@ export function buildSpliceInProposal(
     newBalances: effectiveNewBalances,
     additionalCoinId,
     additionalAmount,
+    ...(additionalCoinAddress ? { additionalCoinAddress } : {}),
   }, proposerPublicKeyDigest);
 }
 
@@ -266,6 +269,11 @@ export async function proposeSpliceIn(
   additionalAmount: bigint,
   leaseProvider: SpliceLeaseProvider,
   newBalances?: Record<string, bigint>,
+  /**
+   * OMN-052: the address of the coin being added. Required by the transaction
+   * builder because an empty address serializes to a placeholder.
+   */
+  additionalCoinAddress?: string,
 ): Promise<SpliceProposal> {
   validateChannelQuiesced(channel);
 
@@ -279,6 +287,7 @@ export async function proposeSpliceIn(
     newBalances: effectiveNewBalances,
     additionalCoinId,
     additionalAmount,
+    ...(additionalCoinAddress ? { additionalCoinAddress } : {}),
   };
 
   const draft = buildSpliceTx(channel as OmniaChannel, params);

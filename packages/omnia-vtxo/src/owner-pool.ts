@@ -181,6 +181,7 @@ export function buildOwnerExitDraft(params: OwnerExitParams): OmniaTxDraft {
 import {
   computeOmniaTxDigest,
   omniaDraftToMinimaBytes,
+  assertBroadcastProofs,
   serializeOmniaWitness,
   serializeTxDraft,
 } from '@totemsdk/omnia';
@@ -229,6 +230,8 @@ async function assembleOwnerPoolTx(
   };
 
   if (deps.chainProvider) {
+    // OMN-062: a broadcast needs proofs for every spending input.
+    assertBroadcastProofs({ coinProofs: deps.coinProofs, scriptProofs: deps.scriptProofs });
     const draftBytes = omniaDraftToMinimaBytes(draft);
     if (typeof deps.chainProvider.submitTransaction === 'function') {
       const submitted = await deps.chainProvider.submitTransaction(draftBytes, witness);

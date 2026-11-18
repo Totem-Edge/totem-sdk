@@ -99,6 +99,11 @@ export interface ComputeVtxoIdParams {
   amount: bigint;
   tokenId: string;
   nonce: string;
+  /**
+   * OMN-046: replacement outputs include the epoch so a refresh can never
+   * reproduce its own input id (which would overwrite the consumed record).
+   */
+  epoch?: number;
 }
 
 export function computeVtxoId(params: ComputeVtxoIdParams): string {
@@ -109,6 +114,8 @@ export function computeVtxoId(params: ComputeVtxoIdParams): string {
     params.amount.toString(),
     params.tokenId,
     params.nonce,
+    // Only replacement outputs carry an epoch; mint ids stay stable.
+    ...(params.epoch !== undefined ? [params.epoch.toString()] : []),
   ].join(':');
   return sha3hex(input);
 }

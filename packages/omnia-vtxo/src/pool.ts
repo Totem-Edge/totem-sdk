@@ -198,3 +198,74 @@ export function poolPublishedRoots(pool: OmniaVtxoPool): string[] {
 export function poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined {
   return (pool.epochRoots ?? []).find((entry) => entry.epoch === epoch);
 }
+
+/**
+ * OMN-055: atomically consume members and add replacement members, publishing a
+ * new root at the target epoch. Transfer and refresh outputs become real pool
+ * members only through this transition.
+ */
+export function transitionPoolMembers(
+  pool: OmniaVtxoPool,
+  params: {
+    consume: readonly string[];
+    add: readonly OmniaVtxo[];
+    epoch?: number;
+  },
+): { pool: OmniaVtxoPool; proofs: Record<string, VtxoProof> } {
+  const epoch = params.epoch ?? pool.epoch + 1;
+  if (!Number.isInteger(epoch) || epoch <= pool.epoch) {
+    throw new VtxoPolicyError(
+      `Transition epoch ${epoch} must be an integer greater than the pool epoch ${pool.epoch}`,
+    );
+  }
+  const consumed = new Set(pool.consumedVtxoIds ?? []);
+  const existingIds = new Set((pool.members ?? []).map((member) => member.vtxoId));
+  for (const id of params.consume) {
+    if (!existingIds.has(id)) {
+      throw new VtxoPolicyError(`Cannot consume ${id}: it is not a current pool member`);
+    }
+    if (consumed.has(id)) {
+      throw new VtxoPolicyError(`VTXO ${id} was already consumed`);
+    }
+  }
+  const consumedSet = new Set(params.consume);
+  const members: VtxoPoolMember[] = (pool.members ?? []).filter(
+    (member) => !consumedSet.has(member.vtxoId),
+  );
+  const byId = new Map(members.map((member) => [member.vtxoId, member]));
+  for (const vtxo of params.add) {
+    if (vtxo.poolId !== pool.poolId) {
+      throw new VtxoPolicyError(`VTXO ${vtxo.vtxoId} belongs to pool ${vtxo.poolId}`);
+    }
+    if (vtxo.tokenId !== pool.tokenId) {
+      throw new VtxoPolicyError(`VTXO ${vtxo.vtxoId} token does not match the pool`);
+    }
+    if (consumed.has(vtxo.vtxoId) || consumedSet.has(vtxo.vtxoId)) {
+      throw new VtxoPolicyError(`VTXO ${vtxo.vtxoId} was already consumed`);
+    }
+    const member = vtxoCommitmentMember({ ...vtxo, epoch });
+    byId.set(member.vtxoId, member);
+  }
+  const nextMembers = [...byId.values()];
+  const { root, proofs } = buildVtxoProofSetFromMembers(nextMembers);
+  const epochRoots: VtxoEpochRoot[] = [
+    ...(pool.epochRoots ?? []).filter((entry) => entry.epoch !== epoch),
+    {
+      epoch,
+      root,
+      batchId: root,
+      vtxoIds: params.add.map((vtxo) => vtxo.vtxoId),
+    },
+  ];
+  return {
+    pool: {
+      ...pool,
+      epoch,
+      commitmentRoot: root,
+      members: nextMembers,
+      epochRoots,
+      consumedVtxoIds: [...consumed, ...params.consume],
+    },
+    proofs,
+  };
+}

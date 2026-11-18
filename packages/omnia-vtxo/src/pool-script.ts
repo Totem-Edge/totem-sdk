@@ -97,6 +97,11 @@ export function buildPoolScript(params: PoolScriptParams): string {
       lines.push(`      ASSERT STATE(${POOL_SHARE_PORT_BASE + j}) EQ PREVSTATE(${POOL_SHARE_PORT_BASE + j})`);
     }
     lines.push(`      ASSERT STATE(${port}) EQ 0`);
+    // OMN-059: the successor must keep the authorized commitment root and
+    // epoch. Without this a unilateral exit can leave a residual pool whose
+    // membership no longer matches any published state.
+    lines.push('      ASSERT STATE(100) EQ PREVSTATE(100)');
+    lines.push('      ASSERT STATE(101) EQ PREVSTATE(101)');
     // Remainder (other holders' shares) stays in the pool; skip it when the
     // withdrawing holder's share is the whole pool (no room for another output).
     lines.push(`      IF @AMOUNT GT share THEN`);

@@ -102,6 +102,11 @@ export interface FinalizeChannelOpeningOptions {
   };
   /** Funding coin address script; the SDK derives its ScriptProof. */
   fundingScript?: string;
+  /**
+   * OMN-063: confirmations required before the initiator marks the channel
+   * active. Default 1; 0 only for tests that never touch a chain.
+   */
+  minConfirmations?: number;
 }
 
 /**
@@ -287,7 +292,25 @@ export async function finalizeChannelOpening(
       fundingOnChain = await chainProvider.getCoin(plan.outputCoinId);
     }
   }
-  const initialStatus = fundingOnChain && !fundingOnChain.spent ? 'active' : 'opening';
+  // OMN-063: the initiating side applies the same finality bar as the receiver.
+  // Submission is not confirmation; an unobserved depth keeps the channel in
+  // 'opening' so no value can move against unconfirmed funding.
+  let fundingConfirmed = false;
+  if (fundingOnChain && !fundingOnChain.spent) {
+    const required = opts.minConfirmations ?? 1;
+    if (required > 0) {
+      try {
+        const tip = await chainProvider.getTip();
+        const confirmations = confirmationsAt(fundingOnChain, tip.block);
+        fundingConfirmed = confirmations !== null && confirmations >= required;
+      } catch {
+        fundingConfirmed = false;
+      }
+    } else {
+      fundingConfirmed = true;
+    }
+  }
+  const initialStatus = fundingConfirmed ? 'active' : 'opening';
 
   const channel: OmniaChannel = {
     ...plan.channel,

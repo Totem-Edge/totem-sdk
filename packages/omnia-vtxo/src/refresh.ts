@@ -27,13 +27,22 @@ export function refreshVtxo(
     );
   }
 
+  // OMN-046: the id must include the epoch, otherwise reusing the original mint
+  // nonce produces the same id as the input and the "consumed" record is
+  // overwritten by the replacement.
   const refreshedId = computeVtxoId({
     poolId: vtxo.poolId,
     owner: vtxo.owner,
     amount: vtxo.amount,
     tokenId: vtxo.tokenId,
     nonce: params.nonce,
+    epoch: params.newEpoch,
   });
+  if (refreshedId === vtxo.vtxoId) {
+    throw new VtxoPolicyError(
+      `Refresh of ${vtxo.vtxoId} produced the same id; choose a different nonce`,
+    );
+  }
 
   const oldVtxo: OmniaVtxo = {
     ...vtxo,

@@ -35,7 +35,9 @@ describe('pool host API', () => {
           tokenid: '0x00',
           spent: false,
           mmrentry: '1',
+          created: '1',
         })),
+        getTip: async () => ({ block: 10, hash: '0x01' }),
       },
       custodyMode: 'self',
       settlementVerifier: {

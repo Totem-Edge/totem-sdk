@@ -886,6 +886,62 @@ describe('bindPeerIntegration', () => {
     peerA.disconnect();
     peerB.disconnect();
   });
+
+  it('OMN-048: identical retries reuse the signed reply without a second signature', async () => {
+    const [sideA, sideB] = createInMemoryPair();
+    const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });
+    const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xCLI' });
+
+    mockVerifyStateForCoSign.mockResolvedValue({ valid: true, errors: [] });
+    mockSignState.mockResolvedValue({
+      signatures: { alice: new Uint8Array([1, 2, 3]) },
+      signingIndices: { alice: { addressIndex: 0, l1: 7, l2: 0 } },
+      sequence: 2,
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+    });
+    mockAttachCounterpartySignature.mockReturnValue({ channel: { channelId: 'ch-048' } });
+
+    const channel = {
+      channelId: 'ch-048',
+      totalValue: 1000n,
+      parties: [
+        { partyId: 'alice', publicKeyDigest: '0x' + '11'.repeat(32), addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: '0x' + '22'.repeat(32), addressIndex: 1 },
+      ],
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      currentSequence: 1,
+      latestState: null,
+    };
+    const store: ChannelStore = new Map([['ch-048', channel as any]]);
+    const acks: OmniaMessage[] = [];
+    peerB.onMessage((msg) => { if (msg.type === 'ACK') acks.push(msg); });
+    bindPeerIntegration(peerA, store, {
+      leaseProvider: {} as never,
+      signer: { publicKeyDigest: '0x' + '11'.repeat(32), sign: async () => new Uint8Array() },
+    });
+
+    const state = {
+      sequence: 2,
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      signatures: { bob: new Uint8Array([9]) },
+      signingIndices: { bob: { addressIndex: 0, l1: 3, l2: 0 } },
+    };
+    await peerB.sendMessage({ type: 'STATE_UPDATE', channelId: 'ch-048', nonce: 10, payload: { ...state } });
+    await waitNextTick(8);
+    await peerB.sendMessage({ type: 'STATE_UPDATE', channelId: 'ch-048', nonce: 11, payload: { ...state } });
+    await waitNextTick(8);
+
+    expect(mockSignState).toHaveBeenCalledTimes(1);
+    expect(acks).toHaveLength(2);
+    expect(acks[1].nonce).toBe(11);
+
+    peerA.disconnect();
+    peerB.disconnect();
+  });
+
   it('STATE_UPDATE: invalid state sends ERROR', async () => {
     const [sideA, sideB] = createInMemoryPair();
     const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });

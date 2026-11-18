@@ -26,11 +26,13 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
       address: '0x' + 'dd'.repeat(32),
       tokenid: '0x00',
       spent: false,
+      created: '1',
     }));
     const submitTransaction = jest.fn(async () => ({ success: true, txpowid: 'tx-funding' }));
     const chainProvider = {
       getCoin,
       getToken: jest.fn(async () => ({ script: 'RETURN TRUE' })),
+      getTip: jest.fn(async () => ({ block: 10, hash: '0x01' })),
       submitTransaction,
     };
     const context = {

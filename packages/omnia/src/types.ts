@@ -421,6 +421,16 @@ export interface ChannelSigner {
 
 export interface VerifyStateOptions {
   kissvm?: boolean | import('./kissvm.js').KissvmValidationOptions;
+  /**
+   * OMN-061: preimage revealed with this state. Required to authorize a
+   * `pending → fulfilled` HTLC transition.
+   */
+  preimage?: string | Uint8Array;
+  /**
+   * OMN-061: authoritative chain height. Required to authorize a
+   * `pending → timed_out` HTLC transition.
+   */
+  chainHeight?: number | bigint;
 }
 
 export interface UpdateDelta {

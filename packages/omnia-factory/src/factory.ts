@@ -18,7 +18,16 @@ import type {
   WotsLeaseBundle,
   FactoryLogEntry,
 } from './types.js';
-import { buildAndHashFactoryScript, factoryBalanceStateVariables, factoryEscapeStateVariable, FACTORY_ESCAPE_DELAY_BLOCKS } from './script.js';
+import {
+  buildAndHashFactoryScript,
+  computeFactoryBalanceRoot,
+  computeFactoryPartyRoot,
+  factoryBalanceRootStateVariable,
+  factoryBalanceStateVariables,
+  factoryEscapeStateVariable,
+  factoryPartyRootStateVariable,
+  FACTORY_ESCAPE_DELAY_BLOCKS,
+} from './script.js';
 import { computeFactoryStateCommitment } from './commitment.js';
 
 // ─── Balance conservation ────────────────────────────────────────────────────
@@ -253,6 +262,8 @@ export interface FactoryOpeningPlan {
   fundingDigest?: Uint8Array;
   fundingCoinId?: string;
   fundingMaterials?: FactoryFundingMaterial[];
+  /** State variables seeded into the funding output (OMN-060 roots included). */
+  fundingStateVariables?: Array<{ port: number; value: string | bigint; type: string }>;
   onChain: boolean;
 }
 
@@ -261,6 +272,12 @@ export interface FinalizeFactoryOpeningOptions {
   fundingSignatures?: Record<string, Uint8Array>;
   /** Factory opening signatures to record on the proposal. */
   openingSignatures: Record<string, Uint8Array>;
+  /**
+   * OMN-063: confirmations required before an on-chain factory becomes active.
+   * Default 1. A factory whose funding cannot be observed at depth stays
+   * `opening` instead of being advertised as operational.
+   */
+  minConfirmations?: number;
 }
 
 /**
@@ -287,6 +304,7 @@ export async function buildFactoryOpening(
   let fundingDigest: Uint8Array | undefined;
   let fundingCoinId: string | undefined;
   let pendingCommitment: Uint8Array;
+  let seededStateVariables: FactoryOpeningPlan['fundingStateVariables'];
 
   const allHaveCoinId = participants.every(p => p.fundingCoinId);
   if (allHaveCoinId && chainProvider) {
@@ -302,6 +320,15 @@ export async function buildFactoryOpening(
     }
     const tip = await chainProvider.getTip();
     const escapeBlock = tip.block + FACTORY_ESCAPE_DELAY_BLOCKS;
+    const fundingStateVariables = [
+      ...factoryBalanceStateVariables(participants),
+      factoryEscapeStateVariable(escapeBlock),
+      // OMN-060: the covenant asserts SAMESTATE over these roots, so they must
+      // exist in the funding output or the assertion is vacuous.
+      factoryPartyRootStateVariable(computeFactoryPartyRoot(participants)),
+      factoryBalanceRootStateVariable(computeFactoryBalanceRoot(allocations)),
+    ];
+    seededStateVariables = fundingStateVariables;
     const fundingDraft = buildFundingTx(
       script,
       address,
@@ -311,7 +338,7 @@ export async function buildFactoryOpening(
       participants.map(p => p.fundingCoinId!),
       participants.map(p => p.contributionAmount),
       inputAddresses,
-      [...factoryBalanceStateVariables(participants), factoryEscapeStateVariable(escapeBlock)],
+      fundingStateVariables,
     );
     fundingDigest = computeOmniaTxDigest(fundingDraft);
     fundingTxBytes = omniaDraftToMinimaBytes(fundingDraft);
@@ -346,7 +373,15 @@ export async function buildFactoryOpening(
     pendingCommitment: Buffer.from(pendingCommitment).toString('hex'),
     pendingSignatures: {},
   };
-  return { factory, fundingTxBytes, fundingDigest, fundingCoinId, fundingMaterials: funding, onChain: fundingTxBytes !== undefined };
+  return {
+    factory,
+    fundingTxBytes,
+    fundingDigest,
+    fundingCoinId,
+    fundingMaterials: funding,
+    ...(seededStateVariables ? { fundingStateVariables: seededStateVariables } : {}),
+    onChain: fundingTxBytes !== undefined,
+  };
 }
 
 /**
@@ -400,6 +435,22 @@ export async function finalizeFactoryOpening(
       fundingTxId,
       fundingCoinId: plan.fundingCoinId,
     };
+
+    // OMN-063: submission is not finality. Only a coin observed at the required
+    // depth may become an active factory.
+    const required = opts.minConfirmations ?? 1;
+    if (required > 0) {
+      let confirmed = false;
+      if (plan.fundingCoinId && typeof chainProvider.getTip === 'function') {
+        const coin = await chainProvider.getCoin(plan.fundingCoinId);
+        const tip = await chainProvider.getTip();
+        const created = Number((coin as { created?: unknown } | null)?.created ?? 0);
+        confirmed = Boolean(coin && !coin.spent && created > 0 && tip.block - created + 1 >= required);
+      }
+      if (!confirmed) {
+        return { ...factory, pendingSignatures: { ...opts.openingSignatures } };
+      }
+    }
   }
 
   factory = { ...factory, pendingSignatures: { ...opts.openingSignatures } };

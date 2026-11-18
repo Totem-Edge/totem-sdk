@@ -80,6 +80,11 @@ export interface OmniaVtxoPool {
   policy: VtxoPoolPolicy;
   /** OMN-041: verified on-chain coin backing this pool's capacity. */
   backing?: VtxoPoolBacking;
+  /**
+   * OMN-055: ids consumed by a transfer/refresh/exit. A consumed VTXO can
+   * never re-enter the membership set.
+   */
+  consumedVtxoIds?: string[];
 }
 
 export interface VtxoProof {

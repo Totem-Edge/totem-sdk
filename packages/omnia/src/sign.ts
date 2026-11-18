@@ -1,4 +1,4 @@
-import { hexToBytes } from '@totemsdk/core';
+import { hexToBytes, sha3_256 } from '@totemsdk/core';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
@@ -448,6 +448,23 @@ function validateBalanceShape(
 
 const HTLC_HASHLOCK = /^(0x)?[0-9a-fA-F]{64}$/;
 
+function normalizePreimage(preimage: string | Uint8Array | undefined): string | undefined {
+  if (!preimage) return undefined;
+  if (preimage instanceof Uint8Array) {
+    return Buffer.from(preimage).toString('hex');
+  }
+  const raw = preimage.replace(/^0x/i, '').toLowerCase();
+  return /^[0-9a-f]{64}$/.test(raw) ? raw : undefined;
+}
+
+function normalizeHashlock(hashlock: string): string {
+  return hashlock.replace(/^0x/i, '').toLowerCase();
+}
+
+function sha3HexNormalized(preimageHex: string): string {
+  return Buffer.from(sha3_256(Uint8Array.from(Buffer.from(preimageHex, 'hex')))).toString('hex');
+}
+
 /**
  * Structural and lifecycle validation for peer-supplied pending HTLCs.
  *
@@ -459,6 +476,7 @@ function validateHtlcSet(
   channel: OmniaChannel,
   state: SignedChannelState,
   errors: string[],
+  opts?: VerifyStateOptions,
 ): void {
   const partyDigests = new Set(channel.parties.map(p => p.publicKeyDigest));
   const seen = new Set<string>();
@@ -502,6 +520,22 @@ function validateHtlcSet(
           errors.push(`HTLC ${h.htlcId} terms changed while still pending`);
         }
       }
+      // OMN-061: a terminal transition releases the lock, so it needs proof.
+      if (prior.status === 'pending' && h.status === 'fulfilled') {
+        const revealed = normalizePreimage(opts?.preimage);
+        if (!revealed) {
+          errors.push(`HTLC ${h.htlcId} cannot be fulfilled without a revealed preimage`);
+        } else if (sha3HexNormalized(revealed) !== normalizeHashlock(h.hashlock)) {
+          errors.push(`HTLC ${h.htlcId} preimage does not match its hashlock`);
+        }
+      }
+      if (prior.status === 'pending' && h.status === 'timed_out') {
+        if (opts?.chainHeight === undefined) {
+          errors.push(`HTLC ${h.htlcId} cannot time out without authoritative chain height`);
+        } else if (BigInt(opts.chainHeight) < h.timeoutBlock) {
+          errors.push(`HTLC ${h.htlcId} timed out before block ${h.timeoutBlock}`);
+        }
+      }
     } else if (h.status !== 'pending') {
       errors.push(`new HTLC ${h.htlcId} cannot appear already '${h.status}'`);
     }
@@ -534,7 +568,7 @@ export async function verifyState(
   }
 
   validateBalanceShape(channel, state, errors);
-  validateHtlcSet(channel, state, errors);
+  validateHtlcSet(channel, state, errors, opts);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');
@@ -602,7 +636,7 @@ export async function verifyState(
  * path. It intentionally does not require every channel party to have signed.
  * After co-signing and merging, use `verifyState()` on the completed state.
  */
-export interface ValidateStateForCoSignOptions {
+export interface ValidateStateForCoSignOptions extends VerifyStateOptions {
   /**
    * Require `state.sequence > channel.currentSequence` (the co-signer's view).
    * The initiator attaching a counterparty signature already advanced its own
@@ -637,7 +671,7 @@ export function validateStateForCoSign(
   }
 
   validateBalanceShape(channel, state, errors);
-  validateHtlcSet(channel, state, errors);
+  validateHtlcSet(channel, state, errors, opts);
 
   if (!stateCommitmentV2Matches(channel, state, false)) {
     errors.push('state commitment v2 mismatch');
@@ -687,6 +721,7 @@ export function validateStateForCoSign(
 export async function verifyStateForCoSign(
   channel: OmniaChannel,
   state: SignedChannelState,
+  opts?: ValidateStateForCoSignOptions,
 ): Promise<{ valid: boolean; errors: string[] }> {
-  return validateStateForCoSign(channel, state);
+  return validateStateForCoSign(channel, state, opts);
 }

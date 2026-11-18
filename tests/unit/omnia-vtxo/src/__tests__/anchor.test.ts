@@ -120,10 +120,20 @@ describe('anchorBatch (RFC-038 V1)', () => {
     expect(result.witnessHex).not.toBe(Buffer.from(signatures[0]).toString('hex'));
   });
 
+  it('OMN-062: refuses to broadcast without spending proofs', async () => {
+    await expect(anchorBatch(params(), {
+      signDigest: async () => new Uint8Array(1088).fill(1),
+      chainProvider: { broadcastTxPoW: jest.fn(async () => ({ success: true })) } as unknown as ChainStateProvider,
+      mine: async () => ({ minedHeaderBytes: new Uint8Array(80).fill(1), txpowId: new Uint8Array(32).fill(2) }),
+    })).rejects.toThrow(/proof/i);
+  });
+
   it('signs, mines and broadcasts when a chain provider is supplied', async () => {
     const broadcastTxPoW = jest.fn(async () => ({ success: true }));
     const result = await anchorBatch(params(), {
       signDigest: async () => new Uint8Array(1088).fill(1),
+      coinProofs: [new Uint8Array([1])],
+      scriptProofs: [new Uint8Array([2])],
       chainProvider: {
         broadcastTxPoW,
         getCoin: async () => ({ coinid: '0x' + '11'.repeat(32), address: params().fundingAddress, amount: params().amount.toString(), tokenid: params().tokenId, spent: false, created: '1' }),
@@ -294,6 +304,8 @@ describe('anchorBatch — spend-state authority integration', () => {
       signDigest: async () => new Uint8Array(1088).fill(1),
       chainProvider,
       authority: auth,
+      coinProofs: [new Uint8Array([1])],
+      scriptProofs: [new Uint8Array([2])],
     });
 
     expect(result.txpowId).toBe('0x' + '33'.repeat(32));
@@ -317,6 +329,8 @@ describe('anchorBatch — spend-state authority integration', () => {
       authority: auth,
       confirmations: 1,
       confirmationTimeoutMs: 50,
+      coinProofs: [new Uint8Array([1])],
+      scriptProofs: [new Uint8Array([2])],
     })).rejects.toThrow(/not confirmed/);
     expect((await auth.current()).publishedEpoch).toBe(0);
   });

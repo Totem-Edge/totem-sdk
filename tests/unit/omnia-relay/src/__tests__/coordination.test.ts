@@ -142,6 +142,7 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
     await alice.splice.propose(A, alice.coordination, ch, {
       type: 'in',
       additionalCoinId: NEW_COIN_ID,
+      additionalCoinAddress: 'Mx' + 'dd'.repeat(20),
       additionalAmount: 500n,
     });
 
@@ -198,6 +199,7 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
     await alice.splice.propose(A, alice.coordination, ch, {
       type: 'in',
       additionalCoinId: NEW_COIN_ID,
+      additionalCoinAddress: 'Mx' + 'dd'.repeat(20),
       additionalAmount: 500n,
     });
     await new Promise((r) => setTimeout(r, 300));

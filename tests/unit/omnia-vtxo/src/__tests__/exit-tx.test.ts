@@ -83,10 +83,20 @@ describe('exit transaction (RFC-038 V3 — per-share)', () => {
     expect(result.txpowId).toBeUndefined();
   });
 
+  it('OMN-062: refuses to broadcast without spending proofs', async () => {
+    await expect(buildExitTransaction(params(), {
+      signDigest: async () => new Uint8Array(1088).fill(1),
+      chainProvider: { broadcastTxPoW: jest.fn(async () => ({ success: true })) } as unknown as ChainStateProvider,
+      mine: async () => ({ minedHeaderBytes: new Uint8Array(80).fill(1), txpowId: new Uint8Array(32).fill(2) }),
+    })).rejects.toThrow(/proof/i);
+  });
+
   it('mines + broadcasts when a chain provider is supplied', async () => {
     const broadcastTxPoW = jest.fn(async () => ({ success: true }));
     const result = await buildExitTransaction(params(), {
       signDigest: async () => new Uint8Array(1088).fill(1),
+      coinProofs: [new Uint8Array([1])],
+      scriptProofs: [new Uint8Array([2])],
       chainProvider: { broadcastTxPoW } as unknown as ChainStateProvider,
       mine: async () => ({ minedHeaderBytes: new Uint8Array(80).fill(1), txpowId: new Uint8Array(32).fill(2) }),
     });

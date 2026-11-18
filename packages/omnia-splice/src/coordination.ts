@@ -67,6 +67,8 @@ export interface SpliceProposeParams {
   type: 'in' | 'out';
   additionalCoinId?: string;
   additionalAmount?: bigint;
+  /** OMN-052: address of the coin being added; required for splice-in. */
+  additionalCoinAddress?: string;
   withdrawAmount?: bigint;
   withdrawAddress?: string;
 }
@@ -205,7 +207,14 @@ export function createSpliceCoordination(deps: SpliceCoordinationDeps): SpliceCo
     channels.set(local.channelId, local);
     const proposal =
       params.type === 'in'
-        ? await proposeSpliceIn(local, params.additionalCoinId!, params.additionalAmount!, leaseProvider)
+        ? await proposeSpliceIn(
+            local,
+            params.additionalCoinId!,
+            params.additionalAmount!,
+            leaseProvider,
+            undefined,
+            params.additionalCoinAddress,
+          )
         : await proposeSpliceOut(local, params.withdrawAmount!, params.withdrawAddress!, leaseProvider);
     await coordination.sendProposal({
       peer,

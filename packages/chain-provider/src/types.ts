@@ -83,6 +83,13 @@ export interface VerifyDepositParams {
   claimedAmount?: string;
   /** When true, only chain-confirmed coins pass (mmrentry != '0'). */
   requireConfirmed?: boolean;
+  /**
+   * OMN-054: required confirmation depth. Needs `chainTip` to compute
+   * `tip - created + 1`; when depth cannot be established the check fails.
+   */
+  minConfirmations?: number;
+  /** Authoritative chain tip, required with `minConfirmations`. */
+  chainTip?: number;
 }
 
 /** Granular result of a deposit-funding check. `valid` is the all-gates AND. */
@@ -99,6 +106,8 @@ export interface DepositVerification {
   tokenMatches: boolean;
   /** Coin amount covers the claimed amount. */
   amountSufficient: boolean;
+  /** Observed confirmation depth when it could be computed (OMN-054). */
+  confirmations?: number;
   reason?: string;
   /** The coin as observed on-chain. */
   coin?: Coin;

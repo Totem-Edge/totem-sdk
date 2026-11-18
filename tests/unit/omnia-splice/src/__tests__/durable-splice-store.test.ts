@@ -113,11 +113,13 @@ async function quiesce(ch: OmniaChannel): Promise<QuiescedChannel> {
 
 
 
+const SPLICE_COIN_ADDRESS = 'Mx' + 'dd'.repeat(20);
+
 describe('createDurableSpliceStore', () => {
   describe('MemoryStore (volatile) — parity', () => {
     it('persists and reads back a splice proposal', async () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
-      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE));
+      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE), undefined, SPLICE_COIN_ADDRESS);
       await store.saveProposal(proposal);
       const record = await store.getSplice(proposal.spliceId);
       expect(record).toBeDefined();
@@ -129,7 +131,7 @@ describe('createDurableSpliceStore', () => {
     it('records real acceptance signatures and lists pending/accepted splices', async () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
-      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
       const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       await store.saveProposal(proposal);
       await store.saveAcceptance(acceptance);
@@ -144,7 +146,7 @@ describe('createDurableSpliceStore', () => {
     it('rejects an acceptance for an unknown splice', async () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
-      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
       const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       const acceptanceForUnknown: SpliceAcceptance = { ...acceptance, spliceId: 'no-such-splice' };
       await expect(store.saveAcceptance(acceptanceForUnknown)).rejects.toMatchObject({ code: 'write-failed' });
@@ -153,7 +155,7 @@ describe('createDurableSpliceStore', () => {
     it('marks a splice finalized', async () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
-      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
       const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       await store.saveProposal(proposal);
       await store.saveAcceptance(acceptance);
@@ -179,8 +181,7 @@ describe('createDurableSpliceStore', () => {
       // ── Phase 1: proposer signs; host persists the proposal. ──
       const channel = await quiesce(makeChannel());
       const proposal: SpliceProposal = await proposeSpliceIn(
-        channel, NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE), { alice: 900n, bob: 600n },
-      );
+        channel, NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE), { alice: 900n, bob: 600n }, SPLICE_COIN_ADDRESS);
 
       let store = createDurableSpliceStore(adapter);
       await store.saveProposal(proposal);
@@ -211,7 +212,7 @@ describe('createDurableSpliceStore', () => {
     it('does not fail-open on a corrupt splice record (strict)', async () => {
       const adapter: StorageAdapterWithCapabilities & CasStore = new FileStore(dir);
       const store = createDurableSpliceStore(adapter);
-      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE));
+      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE), undefined, SPLICE_COIN_ADDRESS);
       await store.saveProposal(proposal);
 
       await adapter.set('totem_omnia_splice:v1:snapshot', { shreds: true });
@@ -221,7 +222,7 @@ describe('createDurableSpliceStore', () => {
 
     it('rejects an unsupported snapshot version instead of reinitialising', async () => {
       const adapter: StorageAdapterWithCapabilities & CasStore = new FileStore(dir);
-      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE));
+      const proposal = await proposeSpliceIn(await quiesce(makeChannel()), NEW_COIN_ID, 500n, makeLeaseProvider(PKD_ALICE), undefined, SPLICE_COIN_ADDRESS);
       const store = createDurableSpliceStore(adapter);
       await store.saveProposal(proposal);
 

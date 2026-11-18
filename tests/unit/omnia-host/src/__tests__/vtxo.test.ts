@@ -69,7 +69,7 @@ describe('VTXO host API', () => {
       const prepared = await methods.get('omnia/prepareVtxoReceipt')!({
         receiptId,
         root,
-        epoch: typeof extra.epoch === 'number' ? extra.epoch : 1,
+        ...(typeof extra.epoch === 'number' ? { epoch: extra.epoch } : {}),
         ...extra,
       });
       const request = (prepared as any).requests.receipt;
@@ -107,16 +107,16 @@ describe('VTXO host API', () => {
 
     const refreshed = await methods.get('omnia/refreshVtxo')!({
       vtxoId: transfer.output.vtxoId,
-      newEpoch: 2,
+      newEpoch: 3,
       nonce: 'refresh-1',
     });
     const refresh = refreshed as any;
-    expect(refresh.refreshed.epoch).toBe(2);
+    expect(refresh.refreshed.epoch).toBe(3);
     const refreshPrepared = await methods.get('omnia/prepareVtxoReceipt')!({
       receiptId: refresh.receipt.receiptId,
       root: refresh.refreshed.proof.root,
-      epoch: 2,
-      previousEpoch: 1,
+      epoch: 3,
+      previousEpoch: 2,
       inputsAmount: '40000',
     });
     const refreshRequest = (refreshPrepared as any).requests.receipt;

@@ -71,8 +71,17 @@ export function evaluateDeposit(coin: Coin, spent: boolean, params: VerifyDeposi
   const tokenMatches = params.tokenId ? coin.tokenid === params.tokenId : coin.tokenid === '0x00' || coin.tokenid === '0x01';
   const amountSufficient = params.claimedAmount === undefined || compareAmounts(coin.amount, params.claimedAmount) >= 0;
   const confirmed = isConfirmed(coin);
+  // OMN-054: depth is computed from the coin's creation block and the tip. If
+  // either is missing, the depth gate cannot pass.
+  const created = Number(coin.created ?? 0);
+  const depth = params.chainTip !== undefined && created > 0
+    ? params.chainTip - created + 1
+    : undefined;
+  const depthSufficient = params.minConfirmations === undefined
+    ? true
+    : depth !== undefined && depth >= params.minConfirmations;
 
-  const gates = [unspent, ownedByOwner, tokenMatches, amountSufficient];
+  const gates = [unspent, ownedByOwner, tokenMatches, amountSufficient, depthSufficient];
   if (params.requireConfirmed) gates.push(confirmed);
 
   return {
@@ -83,7 +92,14 @@ export function evaluateDeposit(coin: Coin, spent: boolean, params: VerifyDeposi
     ownedByOwner,
     tokenMatches,
     amountSufficient,
-    reason: gates.every(Boolean) ? undefined : 'deposit funding check failed',
+    ...(depth !== undefined ? { confirmations: depth } : {}),
+    reason: gates.every(Boolean)
+      ? undefined
+      : !confirmed && params.requireConfirmed
+        ? 'coin is not chain-confirmed'
+        : !depthSufficient
+          ? 'coin does not meet the required confirmation depth'
+          : 'deposit funding check failed',
     coin,
   };
 }

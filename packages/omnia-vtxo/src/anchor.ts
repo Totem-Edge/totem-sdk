@@ -11,6 +11,7 @@
 import {
   computeOmniaTxDigest,
   minimaOutputCoinIdsForDraft,
+  assertBroadcastProofs,
   serializeOmniaWitness,
   omniaDraftToMinimaBytes,
   type OmniaTxDraft,
@@ -183,6 +184,8 @@ export async function anchorBatch(
   };
 
   if (deps.chainProvider) {
+    // OMN-062: a broadcast needs proofs for every spending input.
+    assertBroadcastProofs({ coinProofs: deps.coinProofs, scriptProofs: deps.scriptProofs });
     const draftBytes = omniaDraftToMinimaBytes(draft);
     // Prefer the node's explicit-mining path. A pre-mined TxPoW posted through
     // sendtransaction has a placeholder header and is not reliably promoted.

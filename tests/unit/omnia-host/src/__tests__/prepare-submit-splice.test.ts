@@ -20,6 +20,7 @@ const atoms = (value: string | number) => amountToAtoms(String(value));
 const ALICE_SEED = '0x' + 'ab'.repeat(32);
 const BOB_SEED = '0x' + 'cd'.repeat(32);
 const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const ADDITIONAL_COIN_ADDRESS = 'Mx' + 'aa'.repeat(20);
 const aliceDb = `${os.tmpdir()}/omnia-prepare-splice-alice-${suffix}.sqlite`;
 const bobDb = `${os.tmpdir()}/omnia-prepare-splice-bob-${suffix}.sqlite`;
 const hex = (u8: Uint8Array) => '0x' + Buffer.from(u8).toString('hex');
@@ -103,6 +104,15 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       created: '1',
     }]);
     const getTip = jest.fn(async () => ({ block: 100 }));
+    const getCoin = jest.fn(async (coinId: string) => ({
+      coinid: coinId,
+      amount: '500',
+      address: ADDITIONAL_COIN_ADDRESS,
+      tokenid: '0x00',
+      spent: false,
+      mmrentry: '1',
+      created: '1',
+    }));
     const context = {
       channels: new Map([[channel.channelId, channel]]),
       preparedSplice: new Map(),
@@ -115,7 +125,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       },
       signer: alice.signer,
       leaseProvider: alice.leaseProvider,
-      chainProvider: { broadcastTxPoW, getCoins, getTip },
+      chainProvider: { broadcastTxPoW, getCoins, getCoin, getTip },
       localParticipant: { partyId: 'alice', publicKeyDigest: alice.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
       swarm: { connectToPeer: jest.fn(async () => peer) },
@@ -127,6 +137,9 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       channelId: channel.channelId,
       additionalCoinId: '0x' + '99'.repeat(32),
       additionalAmount: '500',
+      additionalCoinAddress: ADDITIONAL_COIN_ADDRESS,
+      // OMN-056: explicit decimal balance maps are converted at the boundary.
+      newBalances: { alice: '900', bob: '600' },
     });
 
     expect(prepared).toMatchObject({ success: true, status: 'signature-required', spliceType: 'in' });
@@ -151,6 +164,8 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       spliceIntentSignature: hex(spliceIntentSignature),
       spliceSignature: hex(spliceSignature),
       spliceIndices,
+      coinProofsHex: ['0x010203'],
+      scriptProofsHex: ['0x040506'],
     });
 
     expect(submitted).toMatchObject({ success: true, spliceId: (prepared as any).spliceId, spliceType: 'splice_in' });

@@ -14,6 +14,7 @@
 
 import {
   computeOmniaTxDigest,
+  assertBroadcastProofs,
   serializeOmniaWitness,
   omniaDraftToMinimaBytes,
   serializeTxDraft,
@@ -151,6 +152,8 @@ export async function buildExitTransaction(params: ExitTxParams, deps: ExitTxDep
   };
 
   if (deps.chainProvider) {
+    // OMN-062: a broadcast needs proofs for every spending input.
+    assertBroadcastProofs({ coinProofs: deps.coinProofs, scriptProofs: deps.scriptProofs });
     const draftBytes = omniaDraftToMinimaBytes(draft);
     if (typeof deps.chainProvider.submitTransaction === 'function') {
       const submitted = await deps.chainProvider.submitTransaction(draftBytes, witness);

@@ -1,4 +1,5 @@
 import { computeScriptAddress } from '@totemsdk/core/scripts';
+import { sha3_256 } from '@totemsdk/core';
 import { MINIMA_DECIMALS, MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript, wotsAddressData } from '@totemsdk/core';
 import type { FactoryParticipant } from './types.js';
 
@@ -201,6 +202,36 @@ export function buildFactoryDistributionScript(config: FactoryDistributionScript
     `ENDIF`,
     `RETURN FALSE`,
   ].join('\n');
+}
+
+/**
+ * OMN-060: deterministic party-set root committed by STATE(111).
+ * Canonical: parties sorted by id, `id:pubkeyDigest`.
+ */
+export function computeFactoryPartyRoot(participants: FactoryParticipant[]): string {
+  const canonical = [...participants]
+    .map((p) => `${p.partyId}:${p.publicKeyDigest.replace(/^0x/i, '').toLowerCase()}`)
+    .sort()
+    .join('|');
+  return '0x' + bytesToHex(sha3_256(new TextEncoder().encode('totemsdk/factory/party-root/v1|' + canonical))).toLowerCase();
+}
+
+/** OMN-060: deterministic balance root committed by STATE(112). */
+export function computeFactoryBalanceRoot(allocations: Record<string, bigint>): string {
+  const canonical = Object.entries(allocations)
+    .map(([partyId, amount]) => `${partyId}:${amount.toString()}`)
+    .sort()
+    .join('|');
+  return '0x' + bytesToHex(sha3_256(new TextEncoder().encode('totemsdk/factory/balance-root/v1|' + canonical))).toLowerCase();
+}
+
+/** Committed balance-set root state variable (STATE(112)) for the funding output. */
+export function factoryBalanceRootStateVariable(root: string): { port: number; value: string; type: 'hex' } {
+  const raw = root.replace(/^0x/i, '');
+  if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+    throw new Error(`factoryBalanceRootStateVariable: root must be 32 bytes of hex; got ${JSON.stringify(root)}`);
+  }
+  return { port: FACTORY_BALANCE_ROOT_PORT, value: '0x' + raw, type: 'hex' };
 }
 
 /** Committed party-set root state variable (STATE(111)) for the factory funding output. */

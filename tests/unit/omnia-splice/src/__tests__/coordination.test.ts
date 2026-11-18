@@ -124,6 +124,8 @@ async function waitFor(cond: () => boolean, ms = 5000): Promise<void> {
 
 const tick = () => new Promise((r) => setTimeout(r, 10));
 
+const SPLICE_COIN_ADDRESS = 'Mx' + 'dd'.repeat(20);
+
 describe('splice coordination round-trip (RFC-035 B1)', () => {
   beforeEach(() => {
     _resetChannelWatermarks();
@@ -177,6 +179,7 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
       type: 'in',
       additionalCoinId: NEW_COIN_ID,
       additionalAmount: 500n,
+      additionalCoinAddress: SPLICE_COIN_ADDRESS,
     });
 
     await waitFor(() => finalized !== undefined);
@@ -230,7 +233,7 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
     aliceCoord.bindPeer(A);
     bobCoord.bindPeer(B);
 
-    await aliceSplice.propose(A, aliceCoord, ch, { type: 'in', additionalCoinId: NEW_COIN_ID, additionalAmount: 500n });
+    await aliceSplice.propose(A, aliceCoord, ch, { type: 'in', additionalCoinId: NEW_COIN_ID, additionalAmount: 500n, additionalCoinAddress: SPLICE_COIN_ADDRESS });
     await tick();
 
     expect(finalized).toBeUndefined();
@@ -252,7 +255,7 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
     bobCoord.bindPeer(B);
 
     const q = await quiesceChannel(ch, alice.lp);
-    const bad = await proposeSpliceIn(q, NEW_COIN_ID, 500n, alice.lp);
+    const bad = await proposeSpliceIn(q, NEW_COIN_ID, 500n, alice.lp, undefined, SPLICE_COIN_ADDRESS);
     bad.proposerSignature = new Uint8Array([9, 9, 9]);
 
     emit('B', { type: 'SPLICE_PROPOSAL', channelId: ch.channelId, correlationId: bad.spliceId, nonce: 1, payload: bad });

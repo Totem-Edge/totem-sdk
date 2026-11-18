@@ -130,10 +130,66 @@ export interface OmniaIntegrationConfig {
    */
   allowUnverifiedChannelProposal?: boolean;
   /**
+   * OMN-061: authoritative chain height for validating `pending → timed_out`
+   * HTLC transitions. Without it, an inbound state cannot time out an HTLC.
+   */
+  chainHeight?: number | bigint;
+  /**
    * Test/dev: accept a contest delay below the default floor. The script embeds
    * the proposed delay, so settlement is only fast when this is set deliberately.
    */
   allowShortContestDelay?: boolean;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-048 — inbound state updates are serialized per channel and identical
+// retries reuse the reply instead of reserving fresh WOTS leaves.
+// ─────────────────────────────────────────────────────────────────────────────
+const stateUpdateChain = new WeakMap<object, Map<string, Promise<void>>>();
+const stateUpdateReplies = new WeakMap<object, Map<string, unknown>>();
+
+function stateReplyCache(config: OmniaIntegrationConfig): Map<string, unknown> {
+  let cache = stateUpdateReplies.get(config);
+  if (!cache) {
+    cache = new Map();
+    stateUpdateReplies.set(config, cache);
+  }
+  return cache;
+}
+
+function withChannelSerialization<T>(
+  config: OmniaIntegrationConfig,
+  channelId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  let chains = stateUpdateChain.get(config);
+  if (!chains) {
+    chains = new Map();
+    stateUpdateChain.set(config, chains);
+  }
+  const previous = chains.get(channelId) ?? Promise.resolve();
+  const run = previous.then(fn, fn);
+  chains.set(channelId, run.then(() => undefined, () => undefined));
+  return run;
+}
+
+/**
+ * Identity of an inbound state: the commitment the peer signed. Two messages
+ * with the same identity must produce one signature, not two.
+ */
+function stateRequestKey(channelId: string, state: SignedChannelState): string {
+  const htlcs = [...(Array.isArray(state.pendingHTLCs) ? state.pendingHTLCs : [])]
+    .map((h) => [h.htlcId, h.amount.toString(), h.hashlock.toLowerCase(), h.timeoutBlock.toString(), h.status].join(':'))
+    .sort();
+  const balances = Object.entries(state.balances ?? {}).map(([k, v]) => `${k}:${String(v)}`).sort();
+  const commitment = bytesToHex(sha3_256(new TextEncoder().encode([
+    channelId,
+    String(state.sequence),
+    balances.join(','),
+    htlcs.join(','),
+  ].join('|'))));
+  return `${channelId}:${state.sequence}:${commitment}`;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -367,6 +423,19 @@ async function _handleStateUpdate(
 
   const signedState = msg.payload as SignedChannelState;
   signedState.programTransition = canonicalizeProgramTransition(signedState.programTransition);
+
+  // OMN-048: an identical retry gets the recorded reply; it must not reserve a
+  // second pair of WOTS leaves for the same sequence and commitment.
+  const cachedReply = stateReplyCache(config).get(stateRequestKey(msg.channelId, signedState));
+  if (cachedReply) {
+    await peer.sendMessage({
+      type: 'ACK',
+      channelId: msg.channelId,
+      nonce: msg.nonce,
+      payload: cachedReply,
+    });
+    return;
+  }
   // STATE_UPDATE may carry new pending HTLCs that the receiver does not have yet.
   // Apply them to the working channel before verification/signing so the co-sign
   // commitment matches the sender's payload.
@@ -376,9 +445,18 @@ async function _handleStateUpdate(
   // OMN-038: verify against the PERSISTED channel, never the proposed state.
   // The proposed HTLC set is only used for digest/signature construction; using
   // it for verification would compare changed HTLC terms with themselves.
+  // OMN-061: a terminal HTLC transition needs the preimage (fulfilled) or the
+  // authoritative height (timed out); both travel with the message.
+  const revealedPreimage = (signedState as unknown as { preimage?: unknown }).preimage;
+  const verifyOptions = {
+    ...(typeof revealedPreimage === 'string' || revealedPreimage instanceof Uint8Array
+      ? { preimage: revealedPreimage }
+      : {}),
+    ...(config.chainHeight !== undefined ? { chainHeight: config.chainHeight } : {}),
+  };
   const result = config.leaseProvider
-    ? await verifyStateForCoSign(channel, signedState)
-    : await verifyState(channel, signedState);
+    ? await verifyStateForCoSign(channel, signedState, verifyOptions)
+    : await verifyState(channel, signedState, verifyOptions);
   if (!result.valid) {
     if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE invalid', msg.channelId, result.errors);
     _sendError(
@@ -416,6 +494,8 @@ async function _handleStateUpdate(
   }
 
   if (config.leaseProvider) {
+    const requestKey = stateRequestKey(msg.channelId, signedState);
+    return await withChannelSerialization(config, msg.channelId, async () => {
     try {
       const partialState = await signState(
         channelForState,
@@ -454,16 +534,18 @@ async function _handleStateUpdate(
         updatedAt: Date.now(),
       };
       store.set(msg.channelId, nextChannel);
+      const ackPayload = {
+        ok: true,
+        partialState,
+        counterpartyPartialState: partialState,
+        counterpartyClosePackage: partialState.closePackage,
+      };
+      stateReplyCache(config).set(requestKey, ackPayload);
       await peer.sendMessage({
         type: 'ACK',
         channelId: msg.channelId,
         nonce: msg.nonce,
-        payload: {
-          ok: true,
-          partialState,
-          counterpartyPartialState: partialState,
-          counterpartyClosePackage: partialState.closePackage,
-        },
+        payload: ackPayload,
       });
       if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE merged', msg.channelId, nextChannel.currentSequence, nextChannel.pendingHTLCs.length);
       config.onStateUpdated?.(nextChannel, peer);
@@ -487,6 +569,7 @@ async function _handleStateUpdate(
       _sendError(peer, msg.channelId, msg.nonce, `signState failed: ${String(err)}`);
       return;
     }
+    });
   } else {
     _sendAck(peer, msg.channelId, msg.nonce);
   }

@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { atomsToAmount, sha3_256 } from '@totemsdk/core';
 import {
   serializeTransaction,
   type StateVariable as CoreStateVariable,
@@ -73,9 +73,14 @@ export function buildSpliceTx(
   ];
 
   if (params.type === 'splice_in' && params.additionalCoinId && params.additionalAmount) {
+    // OMN-052: an unspecified address serializes to a placeholder, so the
+    // transaction would not describe the coin being added. Fail closed.
+    if (!params.additionalCoinAddress) {
+      throw new Error('splice-in requires the additional coin address');
+    }
     inputs.push({
       coinId: params.additionalCoinId,
-      address: params.additionalCoinAddress ?? '',
+      address: params.additionalCoinAddress,
       amount: params.additionalAmount,
       tokenId,
     });
@@ -179,7 +184,10 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
 
   const inputs = draft.inputs.map(inp => ({
     coinid: inp.coinId,
-    amount: inp.amount.toString(),
+    // OMN-051: draft amounts are atoms; core's JSON serializer parses decimal
+    // MINIMA. An integer string here means scale-zero MiniNumber (10^44x too
+    // large), so convert at the boundary.
+    amount: atomsToAmount(inp.amount),
     address: inp.address,
     tokenid: inp.tokenId,
     storestate: false,
@@ -190,7 +198,7 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
   }));
 
   const outputs = draft.outputs.map(out => ({
-    amount: out.amount.toString(),
+    amount: atomsToAmount(out.amount),
     address: out.address,
     tokenid: out.tokenId,
     storestate: out.storeState ?? false,

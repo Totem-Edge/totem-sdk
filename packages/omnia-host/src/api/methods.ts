@@ -55,6 +55,7 @@ import {
   type OmniaVtxo,
   type OmniaVtxoPool,
   type VtxoOperatorReceipt,
+  transitionPoolMembers,
 } from '@totemsdk/omnia-vtxo';
 import {
   createOmniaPool,
@@ -170,6 +171,12 @@ export interface HostApiContext {
    * entitlement. Without it the host refuses to certify an entitlement.
    */
   vtxoExitWitnessVerifier?: import('@totemsdk/omnia-vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  /**
+   * OMN-049: durable record of consumed WOTS leaves (`addressIndex:l1:l2` →
+   * digest hex). Supplied by deployments so prepared-signature submissions can
+   * reject a leaf reused for a different digest.
+   */
+  consumedSigningLeaves?: Map<string, string>;
   /**
    * OMN-043: live execution ports for pool capital allocation. The host
    * supplies `router` and `vtxo` itself; `channel`/`factory` still require the
@@ -908,6 +915,30 @@ function registerPreparedPayMethods(
       if (!verifyChannelSignature(settlementSignature, entry.unsigned.settlementDigest, localPkd)) {
         throw new Error('settlement signature does not verify');
       }
+      // OMN-049: a one-time WOTS leaf must never sign two different digests —
+      // including the update and its pre-signed settlement in the same package.
+      const leafKey = (indices: { addressIndex: number; l1: number; l2: number }): string =>
+        `${indices.addressIndex}:${indices.l1}:${indices.l2}`;
+      if (leafKey(updateIndices) === leafKey(settlementIndices)) {
+        throw new Error('update and settlement signatures must use different WOTS leaves');
+      }
+      const consumedLeaves = context.consumedSigningLeaves;
+      if (consumedLeaves) {
+        const used = [
+          { indices: updateIndices, digest: entry.unsigned.updateDigest },
+          { indices: settlementIndices, digest: entry.unsigned.settlementDigest },
+        ];
+        for (const leaf of used) {
+          const prior = consumedLeaves.get(leafKey(leaf.indices));
+          const digestHex = Buffer.from(leaf.digest).toString('hex');
+          if (prior !== undefined && prior !== digestHex) {
+            throw new Error(`WOTS leaf ${leafKey(leaf.indices)} was already used for a different digest`);
+          }
+        }
+        for (const leaf of used) {
+          consumedLeaves.set(leafKey(leaf.indices), Buffer.from(leaf.digest).toString('hex'));
+        }
+      }
 
       const state = finalizeStateUpdateWithIndices(
         entry.unsigned,
@@ -1399,6 +1430,25 @@ function registerPreparedPayMethods(
       updatedAt: Date.now(),
     };
     const parsedBalances = amountRecord(params, 'newBalances');
+    let additionalCoinAddress: string | undefined;
+    if (type === 'in') {
+      // OMN-052: the added coin's address is part of the transaction, so it
+      // must be supplied and match the coin on chain.
+      additionalCoinAddress = requiredString(params, 'additionalCoinAddress');
+      const chain = context.chainProvider;
+      const coinId = requiredString(params, 'additionalCoinId');
+      if (chain?.getCoin) {
+        const coin = await chain.getCoin(coinId);
+        if (!coin) throw new Error(`splice-in coin ${coinId} not found on chain`);
+        if (coin.spent) throw new Error(`splice-in coin ${coinId} is already spent`);
+        if (coin.address !== additionalCoinAddress && coin.miniaddress !== additionalCoinAddress) {
+          throw new Error(`splice-in coin ${coinId} is not owned by ${additionalCoinAddress}`);
+        }
+        if (requiredAmount(params, 'additionalAmount') !== coinAmountAtoms(coin)) {
+          throw new Error(`splice-in amount does not match coin ${coinId}`);
+        }
+      }
+    }
     const unsigned = type === 'in'
       ? buildSpliceInProposal(
           quiescedChannel,
@@ -1406,6 +1456,7 @@ function registerPreparedPayMethods(
           requiredAmount(params, 'additionalAmount'),
           localPkd,
           parsedBalances,
+          additionalCoinAddress,
         )
       : buildSpliceOutProposal(
           quiescedChannel,
@@ -1597,10 +1648,19 @@ function registerPreparedPayMethods(
         proposerSigningIndices: spliceIndices,
         proposedAt: Date.now(),
       };
+      // OMN-053: broadcasting needs the spending proofs for every input.
+      const proofList = (value: unknown, name: string): Uint8Array[] => {
+        if (!Array.isArray(value) || value.length === 0) {
+          throw new Error(`submitSplice requires ${name} for every spending input`);
+        }
+        return value.map((entry, index) => hexBytes(entry, `${name}[${index}]`));
+      };
       const spliced = await finalizeSplice(quiescedChannel, proposal, entry.acceptance, {
         broadcast: (txHex) => context.chainProvider!.broadcastTxPoW!(txHex),
         // CAN-011: without on-chain observation a splice cannot be active.
         chainProvider: context.chainProvider,
+        coinProofs: proofList(params.coinProofsHex, 'coinProofsHex'),
+        scriptProofs: proofList(params.scriptProofsHex, 'scriptProofsHex'),
       });
       context.channels.set(entry.channelId, spliced as unknown as OmniaChannel);
       if (context.swarm) {
@@ -1929,6 +1989,16 @@ function registerPreparedPayMethods(
       nonce: requiredString(params, 'nonce'),
       ...(params.policy && typeof params.policy === 'object' ? { policy: params.policy as Record<string, unknown> } : {}),
     }, typeof params.now === 'number' ? params.now : Date.now());
+    // OMN-045: creation is create-only. Repeating the request must not reset
+    // capacity, epoch or the membership set of a pool that already issued
+    // claims.
+    const existing = context.vtxoPools.get(pool.poolId);
+    if (existing) {
+      if (existing.totalCapacity !== pool.totalCapacity || existing.tokenId !== pool.tokenId) {
+        throw new Error(`VTXO pool ${pool.poolId} already exists with different terms`);
+      }
+      return { success: true, pool: jsonSafe(existing), existed: true };
+    }
     const backedPool = { ...pool, backing };
     context.vtxoPools.set(backedPool.poolId, backedPool);
     return { success: true, pool: jsonSafe(backedPool) };
@@ -2076,16 +2146,35 @@ function registerPreparedPayMethods(
       ...(context.vtxoExitWitnessVerifier ? { verifyExitWitness: context.vtxoExitWitnessVerifier } : {}),
       allowUnverifiedExit: params.unsafeLedgerTransfer === true,
     });
+    // OMN-055: transfer outputs are only real claims once the pool consumes the
+    // input and republishes its member root.
+    const pool = context.vtxoPools?.get(vtxo.poolId);
+    let output = result.output;
+    let change = result.change;
+    let receipt = result.receipt;
+    if (pool) {
+      const added = [result.output, ...(result.change ? [result.change] : [])];
+      const transition = transitionPoolMembers(pool, {
+        consume: [result.input.vtxoId],
+        add: added,
+      });
+      output = { ...result.output, epoch: transition.pool.epoch, proof: transition.proofs[result.output.vtxoId] };
+      change = result.change
+        ? { ...result.change, epoch: transition.pool.epoch, proof: transition.proofs[result.change.vtxoId] }
+        : undefined;
+      receipt = { ...result.receipt, epoch: transition.pool.epoch };
+      context.vtxoPools!.set(transition.pool.poolId, transition.pool);
+    }
     context.vtxos.set(result.input.vtxoId, result.input);
-    context.vtxos.set(result.output.vtxoId, result.output);
-    if (result.change) context.vtxos.set(result.change.vtxoId, result.change);
-    context.vtxoReceipts.set(result.receipt.receiptId, result.receipt);
+    context.vtxos.set(output.vtxoId, output);
+    if (change) context.vtxos.set(change.vtxoId, change);
+    context.vtxoReceipts.set(receipt.receiptId, receipt);
     return {
       success: true,
       input: jsonSafe(result.input),
-      output: jsonSafe(result.output),
-      change: result.change ? jsonSafe(result.change) : undefined,
-      receipt: jsonSafe(result.receipt),
+      output: jsonSafe(output),
+      change: change ? jsonSafe(change) : undefined,
+      receipt: jsonSafe(receipt),
       exitReady: (result as { exitReady?: boolean }).exitReady,
     };
   };
@@ -2101,14 +2190,25 @@ function registerPreparedPayMethods(
       newEpoch: Number(params.newEpoch),
       nonce: requiredString(params, 'nonce'),
     }, typeof params.now === 'number' ? params.now : undefined);
-    context.vtxos.set(result.old.vtxoId, result.old);
-    context.vtxos.set(result.refreshed.vtxoId, result.refreshed);
+    let refreshed = result.refreshed;
     if (context.vtxoPools) {
       const pool = context.vtxoPools.get(vtxo.poolId);
-      if (pool) context.vtxoPools.set(pool.poolId, { ...pool, epoch: result.refreshed.epoch });
+      if (pool) {
+        // OMN-055: the refresh output must join the pool membership set at the
+        // new epoch, and the consumed input leaves it.
+        const transition = transitionPoolMembers(pool, {
+          consume: [result.old.vtxoId],
+          add: [result.refreshed],
+          epoch: result.refreshed.epoch,
+        });
+        refreshed = { ...result.refreshed, proof: transition.proofs[result.refreshed.vtxoId] };
+        context.vtxoPools.set(pool.poolId, transition.pool);
+      }
     }
+    context.vtxos.set(result.old.vtxoId, result.old);
+    context.vtxos.set(refreshed.vtxoId, refreshed);
     context.vtxoReceipts.set(result.receipt.receiptId, result.receipt);
-    return { success: true, old: jsonSafe(result.old), refreshed: jsonSafe(result.refreshed), receipt: jsonSafe(result.receipt) };
+    return { success: true, old: jsonSafe(result.old), refreshed: jsonSafe(refreshed), receipt: jsonSafe(result.receipt) };
   };
   methods.set('totem_omniaRefreshVtxo', refreshVtxoMethod);
   methods.set('omnia/refreshVtxo', refreshVtxoMethod);
@@ -2181,11 +2281,20 @@ function registerPreparedPayMethods(
       if (!vtxo) throw new Error(`VTXO ${id} referenced by receipt is not stored`);
       return vtxo;
     });
-    const root = typeof params.root === 'string' ? params.root : outputs[0]?.proof.root;
-    const epoch = typeof params.epoch === 'number' ? params.epoch : receipt.epoch;
+    // The receipt's own epoch is authoritative; a caller may not relabel it.
+    if (typeof params.epoch === 'number' && params.epoch !== receipt.epoch) {
+      throw new Error(`receipt epoch ${receipt.epoch} does not match the requested epoch ${params.epoch}`);
+    }
+    const epoch = receipt.epoch;
+    const pool = context.vtxoPools?.get(receipt.poolId) ?? context.vtxoPools?.get(outputs[0]?.poolId ?? '');
+    const root = pool?.commitmentRoot
+      ?? (typeof params.root === 'string' ? params.root : outputs[0]?.proof.root);
     if (!root) throw new Error('VTXO receipt root is required');
     const payload = buildVtxoReceiptPayload(receipt, {
       outputs,
+      // OMN-047: pool roots commit every member, so the receipt is verified
+      // against the pool's authoritative member set.
+      ...(pool?.members?.length ? { poolMembers: pool.members } : {}),
       root,
       epoch,
       previousEpoch: typeof params.previousEpoch === 'number' ? params.previousEpoch : undefined,
@@ -2250,8 +2359,19 @@ function registerPreparedPayMethods(
   const createLiquidityPool: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     if (!context.pools) throw new Error('Pool stores are not configured');
+    const poolId = requiredString(params, 'poolId');
+    // OMN-050: a fresh registry must never overwrite an existing pool's
+    // deposits, allocations, withdrawals or receipts.
+    const existingPool = context.pools.get(poolId);
+    if (existingPool) {
+      const requestedCapacity = String(requiredAmount(params, 'capacity'));
+      if (String(existingPool.manifest.totalCapacity ?? '') !== requestedCapacity) {
+        throw new Error(`liquidity pool ${poolId} already exists with different capacity`);
+      }
+      return { success: true, pool: jsonSafe(existingPool.manifest), registry: jsonSafe(existingPool.registry), existed: true };
+    }
     const created = createOmniaPool({
-      poolId: requiredString(params, 'poolId'),
+      poolId,
       operatorAddress: requiredString(params, 'operatorAddress'),
       tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
       purpose: requiredString(params, 'purpose') as never,
@@ -2309,15 +2429,27 @@ function registerPreparedPayMethods(
         const depositVerifier = chain as unknown as {
           verifyDeposit?: (params: {
             coinId: string; ownerAddress: string; tokenId?: string; claimedAmount?: string;
-          }) => Promise<{ valid: boolean; reason?: string }>;
+            requireConfirmed?: boolean; minConfirmations?: number; chainTip?: number;
+          }) => Promise<{ valid: boolean; reason?: string; confirmed?: boolean }>;
         };
+        const chainTip = typeof chain.getTip === 'function'
+          ? (await chain.getTip()).block
+          : undefined;
         if (typeof depositVerifier.verifyDeposit === 'function') {
-          return depositVerifier.verifyDeposit({
+          // OMN-054: a liquidity deposit must be chain-confirmed at depth.
+          const result = await depositVerifier.verifyDeposit({
             coinId: request.coinId,
             ownerAddress: lpAddress,
             tokenId: request.tokenId,
             claimedAmount: request.claimedAmount,
+            requireConfirmed: true,
+            minConfirmations: 1,
+            ...(chainTip !== undefined ? { chainTip } : {}),
           });
+          if (result.valid && result.confirmed === false) {
+            return { valid: false, reason: 'coin is not chain-confirmed' };
+          }
+          return result;
         }
         const coin = await chain.getCoin(request.coinId);
         if (!coin) return { valid: false, reason: 'coin not found' };
@@ -2326,6 +2458,12 @@ function registerPreparedPayMethods(
           return { valid: false, reason: 'coin is not owned by the claimed LP address' };
         }
         if (!coin.mmrentry || coin.mmrentry === '0') return { valid: false, reason: 'coin is not chain-confirmed' };
+        // OMN-054: require a real confirmation depth, not just a positive MMR entry.
+        const created = Number(coin.created ?? 0);
+        const tip = typeof chain.getTip === 'function' ? (await chain.getTip()).block : undefined;
+        if (tip === undefined || created <= 0 || tip - created + 1 < 1) {
+          return { valid: false, reason: 'coin confirmation depth cannot be established' };
+        }
         if (request.tokenId && coin.tokenid !== request.tokenId) return { valid: false, reason: 'token mismatch' };
         if (request.claimedAmount && coinAmountAtoms(coin) < amountToAtoms(request.claimedAmount)) {
           return { valid: false, reason: 'insufficient amount' };

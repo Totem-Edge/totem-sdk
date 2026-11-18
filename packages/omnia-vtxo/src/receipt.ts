@@ -15,6 +15,12 @@ import type { OmniaVtxo, OmniaVtxoOperator, OmniaVtxoPool, VtxoOperatorReceipt }
 export interface VtxoReceiptBatch {
   /** The VTXOs committed in this epoch's batch. */
   outputs: OmniaVtxo[];
+  /**
+   * OMN-047: the pool's authoritative member set. Pool-wide mint roots commit
+   * every accumulated member, so a receipt must be verified against that set
+   * rather than a root rebuilt from only the new outputs.
+   */
+  poolMembers?: Array<{ vtxoId: string; leaf: string }>;
   /** The batch root the receipt claims (the operator recomputes and compares). */
   root: string;
   /** The batch epoch. */
@@ -46,9 +52,24 @@ export function buildVtxoReceiptPayload(
     if (!idSet.has(id)) throw new Error(`receipt output '${id}' is not a VTXO in the batch`);
   }
 
-  const recomputedRoot = computeCommitmentRoot(batch.outputs.map(computeVtxoLeaf));
-  if (recomputedRoot !== batch.root) {
-    throw new Error('batch root does not commit the batch leaves');
+  if (batch.poolMembers) {
+    // OMN-047: each output must be committed by the pool and the claimed root
+    // must commit the full member set.
+    const leafById = new Map(batch.poolMembers.map((member) => [member.vtxoId, member.leaf]));
+    for (const output of batch.outputs) {
+      if (leafById.get(output.vtxoId) !== computeVtxoLeaf(output)) {
+        throw new Error(`receipt output '${output.vtxoId}' is not committed by the pool`);
+      }
+    }
+    const poolRoot = computeCommitmentRoot(batch.poolMembers.map((member) => member.leaf));
+    if (poolRoot !== batch.root) {
+      throw new Error('pool root does not commit the full member set');
+    }
+  } else {
+    const recomputedRoot = computeCommitmentRoot(batch.outputs.map(computeVtxoLeaf));
+    if (recomputedRoot !== batch.root) {
+      throw new Error('batch root does not commit the batch leaves');
+    }
   }
 
   const outputSum = batch.outputs.reduce((sum, v) => sum + v.amount, 0n);

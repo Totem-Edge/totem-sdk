@@ -194,6 +194,7 @@ function makeMockChainProvider() {
       confirmed: 0n,
       unconfirmed: 0n,
     })),
+    getTip: jest.fn(async () => ({ block: 10, hash: '0x01' })),
     getTokensByCreator: jest.fn(async (_address: string) => []),
   };
 }
@@ -699,6 +700,31 @@ describe('@totemsdk/omnia — createChannel', () => {
     await expect(createChannel(params, chainProvider as any)).rejects.toThrow('fundingWitnessBytes');
     expect(chainProvider.broadcastTxPoW).not.toHaveBeenCalled();
   });
+
+  it('OMN-063: stays opening until the funding coin reaches the required depth', async () => {
+    const shallow = makeMockChainProvider();
+    (shallow as any).getTip = jest.fn(async () => ({ block: 1, hash: '0x01' }));
+    const params: CreateChannelParams = {
+      localParty: alice,
+      remoteParty: bob,
+      localAmount: 600n,
+      remoteAmount: 400n,
+      tokenId: '0x00',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
+      fundingWitnessBytes: new Uint8Array([0x09, 0x09]),
+      minConfirmations: 3,
+    };
+    await expect(createChannel(params, shallow as any)).resolves.toMatchObject({
+      channel: { status: 'opening' },
+    });
+
+    const deep = makeMockChainProvider();
+    (deep as any).getTip = jest.fn(async () => ({ block: 10, hash: '0x01' }));
+    await expect(createChannel(params, deep as any)).resolves.toMatchObject({
+      channel: { status: 'active' },
+    });
+  });
+
 });
 
 describe('@totemsdk/omnia — ChannelProgram', () => {

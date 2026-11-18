@@ -1,6 +1,6 @@
 import { concatBytes } from '@totemsdk/core';
 import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
-import { verifyChannelSignature } from '@totemsdk/omnia';
+import { serializeOmniaWitness, verifyChannelSignature } from '@totemsdk/omnia';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {
@@ -78,36 +78,40 @@ export interface FinalizeSpliceOptions {
   successorPollMs?: number;
   /** Durable journal written before broadcast, cleared after confirmation. */
   pendingSpliceStore?: PendingSpliceStore;
+  /** Serialized Minima CoinProof for every spending input (OMN-053). */
+  coinProofs?: Uint8Array[];
+  /** Serialized Minima ScriptProof for every spending input (OMN-053). */
+  scriptProofs?: Uint8Array[];
 }
 
 function defaultWotsVerify(sig: Uint8Array, digest: Uint8Array, pkd: string): boolean {
   return verifyChannelSignature(sig, digest, pkd);
 }
 
-function assembleSpliceWitness(sig1: Uint8Array, sig2: Uint8Array): Uint8Array {
-  const encodeMiniNumber = (n: number): Uint8Array => {
-    const buf = new Uint8Array(4);
-    new DataView(buf.buffer).setInt32(0, n, false);
-    return buf;
-  };
-  const encodeVarBytes = (b: Uint8Array): Uint8Array => {
-    const lenBuf = new Uint8Array(4);
-    new DataView(lenBuf.buffer).setInt32(0, b.length, false);
-    return concatBytes(lenBuf, b);
-  };
-  return concatBytes(
-    concatBytes(
-      concatBytes(
-        concatBytes(
-          encodeMiniNumber(2),
-          encodeVarBytes(sig1),
-        ),
-        encodeVarBytes(sig2),
-      ),
-      encodeMiniNumber(0),
-    ),
-    encodeMiniNumber(0),
-  );
+function assembleSpliceWitness(
+  channel: OmniaChannel | QuiescedChannel,
+  proposal: SpliceProposal,
+  acceptance: SpliceAcceptance,
+  proofs: { coinProofs?: Uint8Array[]; scriptProofs?: Uint8Array[] },
+): Uint8Array {
+  // OMN-053: use the shared canonical witness encoder (MiniNumber counts and
+  // serialized proof objects) instead of a bespoke 4-byte layout.
+  // Minima's MULTISIG verification reads witnesses in key order.
+  const byParty = new Map<string, Uint8Array>([
+    [proposal.proposerPublicKeyDigest, proposal.proposerSignature],
+    [acceptance.acceptorPublicKeyDigest, acceptance.acceptorSignature],
+  ]);
+  const signatures = channel.parties
+    .map((party) => byParty.get(party.publicKeyDigest))
+    .filter((signature): signature is Uint8Array => Boolean(signature));
+  if (signatures.length !== 2) {
+    throw new SpliceSignatureMismatchError('splice witness requires both party signatures');
+  }
+  return serializeOmniaWitness({
+    signatures,
+    coinProofs: proofs.coinProofs ?? [],
+    scriptProofs: proofs.scriptProofs ?? [],
+  });
 }
 
 /**
@@ -279,10 +283,14 @@ export async function finalizeSplice(
   const committed = new Set<string>();
 
   const txBytes = spliceDraftToMinimaBytes(proposal.spliceTxDraft);
-  const witnessBytes = assembleSpliceWitness(
-    proposal.proposerSignature,
-    acceptance.acceptorSignature,
-  );
+  // OMN-053: a broadcast splice must carry proof material for its inputs.
+  if (options?.broadcast && (!options.coinProofs?.length || !options.scriptProofs?.length)) {
+    throw new Error('finalizeSplice requires coin and script proofs before broadcasting');
+  }
+  const witnessBytes = assembleSpliceWitness(channel, proposal, acceptance, {
+    ...(options?.coinProofs ? { coinProofs: options.coinProofs } : {}),
+    ...(options?.scriptProofs ? { scriptProofs: options.scriptProofs } : {}),
+  });
 
   let spliceFundingTxId: string;
 

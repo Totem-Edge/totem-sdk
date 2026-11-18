@@ -61,6 +61,7 @@ describe('omnia preparePay / submitPay', () => {
       custodyMode: 'self',
     } as unknown as HostApiContext;
 
+    context.consumedSigningLeaves = new Map();
     const methods = createHostMethods(context);
     expect(methods.has('omnia/preparePay')).toBe(true);
     expect(methods.has('omnia/submitPay')).toBe(true);
@@ -126,6 +127,7 @@ describe('omnia preparePay / submitPay', () => {
       chainProvider: {},
       localParticipant: { partyId: 'alice', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
+      consumedSigningLeaves: new Map<string, string>(),
       swarm: { connectToPeer: jest.fn(async () => peer) },
     } as unknown as HostApiContext;
 
@@ -188,5 +190,73 @@ describe('omnia preparePay / submitPay', () => {
     expect(submittedUpdate).toMatchObject({ success: true, sequence: 3 });
     expect(context.channels.get(channel.channelId)!.balances).toEqual({ alice: atoms('450'), bob: atoms('550') });
     expect(sent).toHaveLength(2);
+  });
+
+  it('OMN-049: rejects one leaf signing both the update and the settlement', async () => {
+    const config = loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: dbPath });
+    const signing = createHostSigning(config);
+    const channel: OmniaChannel = {
+      channelId: '0x' + '99'.repeat(32),
+      fundingTxId: '0x' + '11'.repeat(32),
+      fundingCoinId: '0x' + '22'.repeat(32),
+      fundingScript: 'RETURN TRUE',
+      programId: DefaultEltooPaymentProgram.id,
+      programVersion: DefaultEltooPaymentProgram.version,
+      fundingAddress: '0x' + 'dd'.repeat(32),
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: atoms('1000'),
+      parties: [
+        { partyId: 'alice', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1 },
+      ],
+      balances: { alice: atoms('600'), bob: atoms('400') },
+      pendingHTLCs: [],
+      currentSequence: 1,
+      latestState: null,
+      stateLog: [],
+      status: 'active',
+      channelType: 'direct',
+      createdAt: 1_000,
+      updatedAt: 1_000,
+    };
+    const context = {
+      channels: new Map([[channel.channelId, channel]]),
+      preparedPay: new Map(),
+      operations: {
+        get: () => undefined,
+        create: () => ({ operationId: 'op', status: 'pending' }),
+        transition: () => ({ operationId: 'op', status: 'committed' }),
+        listByStatus: () => [],
+      },
+      signer: signing.signer,
+      leaseProvider: signing.leaseProvider,
+      chainProvider: {},
+      localParticipant: { partyId: 'alice', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
+      custodyMode: 'self',
+      consumedSigningLeaves: new Map<string, string>(),
+      swarm: { connectToPeer: jest.fn(async () => ({ sendMessage: jest.fn(), onMessage: () => () => undefined })) },
+    } as unknown as HostApiContext;
+    const methods = createHostMethods(context);
+    const prepared = await methods.get('omnia/preparePay')!({
+      operationId: 'prep-leaf-reuse',
+      channelId: channel.channelId,
+      amount: '1',
+    });
+    const requests = (prepared as any).requests;
+    const indices = { addressIndex: 0, l1: 1, l2: 0 };
+    const intentSignature = await signing.signer.sign(signRequestPayload(requests.intent), indices);
+    const updateSignature = await signing.signer.sign(requests.update.digest, indices);
+    const settlementSignature = await signing.signer.sign(requests.settlement.digest, indices);
+
+    await expect(methods.get('omnia/submitPay')!({
+      operationId: 'submit-leaf-reuse',
+      preparedOperationId: 'prep-leaf-reuse',
+      intentSignature: hex(intentSignature),
+      updateSignature: hex(updateSignature),
+      updateIndices: indices,
+      settlementSignature: hex(settlementSignature),
+      settlementIndices: indices,
+    })).rejects.toThrow(/different WOTS leaves/);
   });
 });
