@@ -14,6 +14,7 @@ import { computeCommitmentRoot, computeVtxoLeaf } from '../commitment.js';
 import { signVtxoReceipt } from '../receipt.js';
 import { EpochAuthority, type EpochEvent } from '../epoch-authority.js';
 import { MemoryStore, createJournal } from '@totemsdk/storage';
+import { amountToAtoms } from '@totemsdk/core';
 import type { OmniaVtxo, OmniaVtxoOperator, VtxoOperatorReceipt } from '../types.js';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
@@ -75,12 +76,15 @@ describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
   });
 
   it('carries root + epoch + exit block + per-holder shares as state', () => {
+    const fractional = poolStateVariables('0xdead', 3, 500, [amountToAtoms('0.2')]);
+    expect(fractional[3]).toMatchObject({ value: amountToAtoms('0.2'), scale: 44 });
+
     expect(poolStateVariables('0xdead', 3, 500, [1000n, 250n])).toEqual([
       { port: 100, value: '0xdead', type: 'string' },
       { port: 101, value: 3n, type: 'number' },
       { port: 102, value: 500n, type: 'number' },
-      { port: POOL_SHARE_PORT_BASE, value: 1000n, type: 'number' },
-      { port: POOL_SHARE_PORT_BASE + 1, value: 250n, type: 'number' },
+      { port: POOL_SHARE_PORT_BASE, value: 1000n, type: 'number', scale: 44 },
+      { port: POOL_SHARE_PORT_BASE + 1, value: 250n, type: 'number', scale: 44 },
     ]);
   });
 });

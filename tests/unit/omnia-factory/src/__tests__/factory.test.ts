@@ -1,4 +1,4 @@
-import { wotsAddressData } from '@totemsdk/core';
+import { amountToAtoms, wotsAddressData } from '@totemsdk/core';
 import {
   createFactory,
   createFactoryFromPlan,
@@ -196,9 +196,18 @@ describe('buildFactoryScript', () => {
   });
 
   test('seeds per-party allocation + escape-block state', () => {
+    const fractional = factoryBalanceStateVariables([
+      { ...ALICE, contributionAmount: amountToAtoms('0.2') },
+    ]);
+    expect(fractional[0]).toMatchObject({
+      port: 128,
+      value: amountToAtoms('0.2'),
+      scale: 44,
+    });
+
     expect(factoryBalanceStateVariables([ALICE, BOB])).toEqual([
-      { port: 128, value: 1000n, type: 'number' },
-      { port: 129, value: 500n, type: 'number' },
+      { port: 128, value: 1000n, type: 'number', scale: 44 },
+      { port: 129, value: 500n, type: 'number', scale: 44 },
     ]);
     expect(factoryEscapeStateVariable(5000)).toEqual({ port: 103, value: 5000n, type: 'number' });
     expect(() => factoryEscapeStateVariable(-1)).toThrow(/escapeBlock/);

@@ -34,6 +34,7 @@ describe('pool host API', () => {
           address: 'MxLP',
           tokenid: '0x00',
           spent: false,
+          mmrentry: '1',
         })),
       },
       custodyMode: 'self',
@@ -107,4 +108,51 @@ describe('pool host API', () => {
     expect(paid).toMatchObject({ success: true, position: { amount: '99000' } });
     expect((paid as any).signedTransition).toBeDefined();
   });
-});
+
+  it('OMN-030: rejects a funding coin that is not owned by the claimed LP', async () => {
+    const signing = createHostSigning(loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: `${dbPath}-owner` }));
+    const context = {
+      channels: new Map(),
+      pools: new Map(),
+      poolPositions: new Map(),
+      operations: {
+        get: () => undefined,
+        create: () => ({ operationId: 'op', status: 'pending' }),
+        transition: () => ({ operationId: 'op', status: 'committed' }),
+        listByStatus: () => [],
+      },
+      signer: signing.signer,
+      leaseProvider: signing.leaseProvider,
+      localParticipant: { partyId: 'operator', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
+      chainProvider: {
+        getCoin: jest.fn(async () => ({
+          coinid: '0x' + '22'.repeat(32),
+          amount: '100000',
+          address: 'MxSOMEONE_ELSE',
+          tokenid: '0x00',
+          spent: false,
+          mmrentry: '1',
+        })),
+      },
+      custodyMode: 'self',
+    } as unknown as HostApiContext;
+    const methods = createHostMethods(context);
+    await methods.get('omnia/createLiquidityPool')!({
+      poolId: 'pool-owner',
+      operatorAddress: 'MxOPERATOR',
+      tokenId: '0x00',
+      purpose: 'omnia-channel-capital',
+      poolType: 'community-pool',
+      capacity: '1000000',
+      feePolicy: { feeModel: 'pro-rata', lpFeeBps: 50, operatorFeeBps: 10 },
+    });
+
+    await expect(methods.get('omnia/depositToPool')!({
+      poolId: 'pool-owner',
+      lpAddress: 'MxLP',
+      amount: '100000',
+      purpose: 'omnia-channel-capital',
+      underlyingUtxoRef: '0x' + '22'.repeat(32),
+    })).rejects.toThrow(/claimed LP|owner|verification/i);
+  });
+ });

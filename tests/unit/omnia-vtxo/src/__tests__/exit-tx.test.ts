@@ -53,8 +53,8 @@ describe('exit transaction (RFC-038 V3 — per-share)', () => {
     expect(draft.outputs[1].amount).toBe(500n);
     // remainder state zeroes the exiting holder's share, keeps the others'
     const st = draft.outputs[1].stateVariables;
-    expect(st).toContainEqual({ port: POOL_SHARE_PORT_BASE, value: 0n, type: 'number' });
-    expect(st).toContainEqual({ port: POOL_SHARE_PORT_BASE + 1, value: 500n, type: 'number' });
+    expect(st).toContainEqual({ port: POOL_SHARE_PORT_BASE, value: 0n, type: 'number', scale: 44 });
+    expect(st).toContainEqual({ port: POOL_SHARE_PORT_BASE + 1, value: 500n, type: 'number', scale: 44 });
   });
 
   it('omits the remainder output when the share is the whole pool', () => {

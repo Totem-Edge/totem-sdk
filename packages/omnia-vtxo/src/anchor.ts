@@ -16,7 +16,7 @@ import {
   type StateValue,
 } from '@totemsdk/omnia';
 import { serializeTxBody, mineTxPoW, resolveTxPowTarget } from '@totemsdk/txpow';
-import { amountToAtoms, coinAmountAtoms, concatBytes } from '@totemsdk/core';
+import { amountToAtoms, coinAmountAtoms, concatBytes, MINIMA_DECIMALS } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { EpochAuthority } from './epoch-authority.js';
 import type { VtxoOperatorReceipt } from './types.js';
@@ -57,7 +57,9 @@ export function poolStateVariables(
     { port: 100, value: root, type: 'string' },
     { port: 101, value: BigInt(epoch), type: 'number' },
     { port: 102, value: BigInt(exitBlock), type: 'number' },
-    ...shares.map((share, k) => ({ port: POOL_SHARE_PORT_BASE + k, value: share, type: 'number' as const })),
+    // OMN-034: the exit script pays each holder by PREVSTATE(300+k), so shares
+    // must use the same MiniNumber scale as coin amounts (44).
+    ...shares.map((share, k) => ({ port: POOL_SHARE_PORT_BASE + k, value: share, type: 'number' as const, scale: MINIMA_DECIMALS })),
   ];
 }
 

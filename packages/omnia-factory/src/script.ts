@@ -1,5 +1,5 @@
 import { computeScriptAddress } from '@totemsdk/core/scripts';
-import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript, wotsAddressData } from '@totemsdk/core';
+import { MINIMA_DECIMALS, MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript, wotsAddressData } from '@totemsdk/core';
 import type { FactoryParticipant } from './types.js';
 
 /**
@@ -237,11 +237,14 @@ export interface FactoryScriptOptions {
  */
 export function factoryBalanceStateVariables(
   participants: FactoryParticipant[],
-): { port: number; value: bigint; type: 'number' }[] {
+): { port: number; value: bigint; type: 'number'; scale: number }[] {
+  // OMN-034: these ports are used as exact payout amounts by the unilateral
+  // escape script, so they must carry MiniNumber scale 44 like every coin amount.
   return participants.map((p, k) => ({
     port: FACTORY_BALANCE_PORT_BASE + k,
     value: p.contributionAmount,
     type: 'number' as const,
+    scale: MINIMA_DECIMALS,
   }));
 }
 

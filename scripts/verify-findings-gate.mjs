@@ -64,7 +64,7 @@ if (!findings) {
   process.exit(2);
 }
 
-const ids = new Set(findings.map((finding) => finding.id));
+const byId = new Map(findings.map((finding) => [finding.id, finding]));
 const open = findings.filter((finding) => BLOCKING.has(finding.status));
 const blocked = [];
 const aliases = [];
@@ -72,10 +72,19 @@ const below = [];
 const outOfScope = [];
 
 for (const finding of open) {
-  // An audit id that aliases an existing register entry is counted once.
-  if (finding.canonical && ids.has(finding.canonical)) {
-    aliases.push(finding);
-    continue;
+  // OMN-031: an alias may only be suppressed when its canonical entry is itself
+  // blocking at the same or higher severity. A fixed canonical row must never
+  // hide an open alias.
+  if (finding.canonical) {
+    const canonical = byId.get(finding.canonical);
+    if (
+      canonical
+      && BLOCKING.has(canonical.status)
+      && SEVERITY[canonical.severity] >= SEVERITY[finding.severity]
+    ) {
+      aliases.push(finding);
+      continue;
+    }
   }
   if (packages.length > 0 && !finding.packages?.some((pkg) => packages.includes(pkg))) {
     outOfScope.push(finding);

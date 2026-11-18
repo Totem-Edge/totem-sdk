@@ -72,7 +72,7 @@ import {
   type LiquidityPosition,
   type WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
-import { amountToAtoms, atomsToAmount, coinAmountAtoms, MINIMA_DECIMALS, unscaledToAmount } from '@totemsdk/core';
+import { amountToAtoms, atomsToAmount, coinAmountAtoms, decodeMx, MINIMA_DECIMALS, unscaledToAmount } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { PayoutSettlementStatus, PayoutSettlementVerifier } from '@totemsdk/liquidity-bond';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
@@ -2108,12 +2108,43 @@ function registerPreparedPayMethods(
     const poolId = requiredString(params, 'poolId');
     const stored = context.pools.get(poolId);
     if (!stored) throw new Error(`Pool ${poolId} not found`);
+    const lpAddress = requiredString(params, 'lpAddress');
+    const normalizeAddress = (value: string | undefined): string => (value ?? '').replace(/^0x/i, '').toLowerCase();
+    const sameAddress = (a: string | undefined, b: string | undefined): boolean => {
+      if (!a || !b) return false;
+      if (a === b || normalizeAddress(a) === normalizeAddress(b)) return true;
+      try {
+        return Buffer.from(decodeMx(a)).equals(Buffer.from(decodeMx(b)));
+      } catch {
+        return false;
+      }
+    };
     const verifier = {
       verifyDeposit: async (request: { coinId: string; tokenId?: string; claimedAmount?: string }) => {
-        if (!context.chainProvider) return { valid: false, reason: 'no chain provider' };
-        const coin = await context.chainProvider.getCoin(request.coinId);
+        const chain = context.chainProvider;
+        if (!chain) return { valid: false, reason: 'no chain provider' };
+        // OMN-030: use the real deposit contract when the provider implements
+        // it; it checks owner, token, amount and confirmation evidence.
+        const depositVerifier = chain as unknown as {
+          verifyDeposit?: (params: {
+            coinId: string; ownerAddress: string; tokenId?: string; claimedAmount?: string;
+          }) => Promise<{ valid: boolean; reason?: string }>;
+        };
+        if (typeof depositVerifier.verifyDeposit === 'function') {
+          return depositVerifier.verifyDeposit({
+            coinId: request.coinId,
+            ownerAddress: lpAddress,
+            tokenId: request.tokenId,
+            claimedAmount: request.claimedAmount,
+          });
+        }
+        const coin = await chain.getCoin(request.coinId);
         if (!coin) return { valid: false, reason: 'coin not found' };
         if (coin.spent) return { valid: false, reason: 'coin is spent' };
+        if (!sameAddress(coin.address, lpAddress) && !sameAddress(coin.miniaddress, lpAddress)) {
+          return { valid: false, reason: 'coin is not owned by the claimed LP address' };
+        }
+        if (!coin.mmrentry || coin.mmrentry === '0') return { valid: false, reason: 'coin is not chain-confirmed' };
         if (request.tokenId && coin.tokenid !== request.tokenId) return { valid: false, reason: 'token mismatch' };
         if (request.claimedAmount && coinAmountAtoms(coin) < amountToAtoms(request.claimedAmount)) {
           return { valid: false, reason: 'insufficient amount' };
@@ -2123,7 +2154,7 @@ function registerPreparedPayMethods(
     };
     const deposited = await depositToPool({
       pool: stored.manifest,
-      lpAddress: requiredString(params, 'lpAddress'),
+      lpAddress,
       amount: String(requiredAmount(params, 'amount')),
       purpose: requiredString(params, 'purpose') as never,
       underlyingUtxoRef: typeof params.underlyingUtxoRef === 'string' ? params.underlyingUtxoRef : undefined,

@@ -83,8 +83,11 @@ export function verifyVtxoExitEntitlement(
   if (entitlement.epoch !== vtxo.epoch) errors.push('epoch mismatch');
   if (!entitlement.txHex) errors.push('missing exit transaction');
   if (!entitlement.witnessHex) errors.push('missing exit witness');
+  // OMN-025: a digest is mandatory; otherwise the transaction checks below
+  // would be skipped entirely.
+  if (!entitlement.digest) errors.push('missing exit digest');
 
-  if (entitlement.txHex && entitlement.digest) {
+  if (entitlement.txHex) {
     try {
       const draft = deserializeTxDraft(entitlement.txHex);
       const digest = Buffer.from(exitTransactionDigest(draft)).toString('hex');

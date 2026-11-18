@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T10:45:20.116Z",
+  "generatedAt": "2026-11-18T11:09:18.681Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -622,6 +622,72 @@
           "pnpm --filter @totemsdk/omnia-splice test",
           "pnpm --filter @totemsdk/omnia-host test"
         ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-034",
+      "status": "fixed",
+      "severity": "critical",
+      "title": "Factory and VTXO unilateral escape share ports were serialized at scale zero",
+      "packages": [
+        "@totemsdk/omnia-factory",
+        "@totemsdk/omnia-vtxo",
+        "@totemsdk/omnia"
+      ],
+      "summary": "factoryBalanceStateVariables and poolStateVariables stored share/contribution atoms at state ports 128+k with no MiniNumber scale. The escape scripts use those ports as exact payout amounts, so a 0.2 MINIMA share was read as 2e43 MINIMA and the unilateral exit could not be satisfied. Both builders now emit scale 44, matching coin amounts.",
+      "impact": "Unilateral escape is the recovery path when counterparties disappear; a fractional share made it unsatisfiable.",
+      "repro": {
+        "command": "npx jest --config tests/jest/omnia-factory.cjs --runInBand tests/unit/omnia-factory/src/__tests__/factory.test.ts && npx jest --config tests/jest/omnia-vtxo.cjs --runInBand tests/unit/omnia-vtxo/src/__tests__/anchor.test.ts",
+        "expected": "Share state serializes with scale 44 so PREVSTATE(128+k) equals the coin amount.",
+        "actual": "Fixed in both state builders; fractional-scale assertions added.",
+        "evidence": [
+          "packages/omnia-factory/src/script.ts factoryBalanceStateVariables",
+          "packages/omnia-vtxo/src/anchor.ts poolStateVariables",
+          "packages/omnia/src/transactions.ts state scale default"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-factory/src/script.ts",
+          "packages/omnia-vtxo/src/anchor.ts"
+        ],
+        "approach": "Apply MINIMA_DECIMALS to every on-chain state port representing a monetary amount, and add fractional KISSVM/escape tests.",
+        "constraints": [
+          "Do not change script wire formats beyond the state scale.",
+          "Every value port must share the coin amount scale."
+        ],
+        "acceptance": [
+          "Fractional factory shares serialize at scale 44.",
+          "Fractional VTXO pool shares serialize at scale 44."
+        ],
+        "tests": [
+          "tests/unit/omnia-factory/src/__tests__/factory.test.ts",
+          "tests/unit/omnia-vtxo/src/__tests__/anchor.test.ts"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/omnia-factory.cjs --runInBand",
+          "npx jest --config tests/jest/omnia-vtxo.cjs --runInBand"
+        ]
+      },
+      "links": {
+        "fixedIn": "b1b95d14"
       },
       "origin": {
         "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
@@ -1576,7 +1642,7 @@
     {
       "id": "OMN-006",
       "kind": "sdk-defect",
-      "status": "fixed",
+      "status": "in-progress",
       "severity": "high",
       "title": "Multi-hop recovery does not journal the outstanding backward preimage duty",
       "packages": [
@@ -1591,7 +1657,7 @@
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-006",
       "summary": "revealPreimage fulfils the incoming HTLC (changing signed state) before sending the update to the previous hop. If the send fails, the journal survives — but recover() clears any link whose incoming HTLC is no longer pending, which is now true, so the duty to propagate the preimage backwards is lost. Separately, the host multi-hop RPC throws on failure and discards the router's structured `pendingRefunds`.",
-      "impact": "A payment can be settled on the outgoing side and never settled backwards, leaving liquidity locked and the payer's HTLC stuck until timeout. Refund obligations are not reported to the caller.",
+      "impact": "Reopened by the deeper audit: the final-recipient branch of forwardIncoming still fulfils the incoming HTLC and sends the preimage upstream without first journaling the delivery obligation, so a crash between fulfil and send is unrecoverable. A payment can be settled on the outgoing side and never settled backwards, leaving liquidity locked and the payer's HTLC stuck until timeout. Refund obligations are not reported to the caller.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-relay test",
         "expected": "After a failed backward send, restart recovery still knows the preimage must be delivered to the previous hop.",
@@ -2058,6 +2124,292 @@
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-030",
+      "status": "fixed",
+      "severity": "high",
+      "title": "Liquidity deposits can be credited against a coin that does not belong to the claimed LP",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-pool",
+        "@totemsdk/liquidity-bond"
+      ],
+      "summary": "The host deposit verifier checked existence, spent state, token and amount only. It now delegates to chainProvider.verifyDeposit when available (owner address, token, amount, confirmation) and otherwise checks owner address and a positive MMR entry before accepting the commitment.",
+      "impact": "A claimant could previously present an unrelated observable coin and receive a position/receipt without proving ownership.",
+      "repro": {
+        "command": "npx jest --config tests/jest/omnia-host.cjs --runInBand tests/unit/omnia-host/src/__tests__/pool.test.ts",
+        "expected": "A coin whose address is not the claimed LP address is rejected.",
+        "actual": "Fixed: the deposit verifier compares the coin owner and requires chain confirmation.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts depositToLiquidityPool",
+          "packages/liquidity-bond/src/commitment.ts claimedAmount/lpAddress contract"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts"
+        ],
+        "approach": "Use the real chain-provider deposit contract (owner/token/amount/confirmation) and fail closed; do not substitute a narrower check through a cast.",
+        "constraints": [
+          "Never accept a coin without matching ownership and confirmation evidence."
+        ],
+        "acceptance": [
+          "Wrong-owner coin is rejected before a position is created.",
+          "The honest LP coin still deposits."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "npx jest --config tests/jest/omnia-host.cjs --runInBand"
+        ]
+      },
+      "links": {
+        "fixedIn": "b1b95d14"
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-031",
+      "status": "in-progress",
+      "severity": "high",
+      "title": "The release gate can ignore an unresolved critical finding through an alias",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-factory"
+      ],
+      "summary": "The SDK gate skipped any finding with a canonical id, without checking whether the canonical row was still blocking at the same or higher severity. OMN-001 (critical, open) was hidden behind CAN-019 (high, fixed). The gate now suppresses an alias only when its canonical row is blocking at the same or higher severity; a regression test is still pending.",
+      "impact": "A critical unresolved finding could be excluded from the release-blocking calculation.",
+      "repro": {
+        "command": "node scripts/verify-findings-gate.mjs --report",
+        "expected": "An open alias blocks at its own severity unless a blocking canonical row covers it.",
+        "actual": "Fixed in verify-findings-gate.mjs and the canary gate; OMN-001 now appears in the blocking set. Regression test pending.",
+        "evidence": [
+          "scripts/verify-findings-gate.mjs alias loop",
+          "artifacts/canary/src/findings/gate.ts alias loop",
+          "OMN-001 canonical CAN-019"
+        ]
+      },
+      "fix": {
+        "where": [
+          "scripts/verify-findings-gate.mjs",
+          "artifacts/canary/src/findings/gate.ts"
+        ],
+        "approach": "An alias inherits blocking status from the most restrictive unresolved row in its equivalence group; a fixed canonical row never suppresses an open alias.",
+        "constraints": [
+          "Do not weaken the gate to make a release pass."
+        ],
+        "acceptance": [
+          "OMN-001 blocks while open.",
+          "A genuinely duplicated alias is counted once."
+        ],
+        "verification": [
+          "node scripts/verify-findings-gate.mjs --report"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-032",
+      "status": "open",
+      "severity": "high",
+      "title": "Pool accounting can diverge between liquidity positions",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "The host stores a registry in the pool record and a copy in every position. Deposits update both, but allocation, release, withdrawal, approval and payout update only the position copy. Later deposits start from the older pool registry and can hold incompatible accounting versions at once.",
+      "impact": "Divergent registry versions can misstate capital and may enable double payouts depending on the settlement backend.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "A single authoritative, versioned pool registry drives every position mutation.",
+        "actual": "Mutations update position.registry only; pool.registry is stale after the first non-deposit mutation.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts pool mutation handlers (deposit/allocate/release/withdraw/approve/payout)"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts",
+          "packages/omnia-pool/src"
+        ],
+        "approach": "Maintain one authoritative registry per pool, apply mutations through atomic versioned updates, and derive position views from it instead of copying.",
+        "constraints": [
+          "Do not silently fork a pool registry per position."
+        ],
+        "acceptance": [
+          "A second deposit sees the latest allocation/withdraw state.",
+          "Concurrent mutations fail on version conflict rather than overwrite."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test",
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-033",
+      "status": "open",
+      "severity": "high",
+      "title": "One unspent funding coin can support multiple LP commitments",
+      "packages": [
+        "@totemsdk/omnia-pool",
+        "@totemsdk/liquidity-bond"
+      ],
+      "summary": "depositToPool verifies that the referenced coin is currently unspent but does not reserve or consume it, and the registry indexes commitments by commitment id rather than unique funding coin. The same UTXO can satisfy multiple deposits.",
+      "impact": "The same economic collateral can be counted multiple times, inflating pool capital and LP entitlements.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "A funding coin can back at most one active commitment.",
+        "actual": "A second deposit with the same underlyingUtxoRef creates a second position/receipt.",
+        "evidence": [
+          "packages/omnia-pool/src/deposit.ts",
+          "packages/liquidity-bond/src/commitment.ts",
+          "packages/liquidity-bond/src/registry.ts"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/liquidity-bond/src/registry.ts",
+          "packages/liquidity-bond/src/commitment.ts",
+          "packages/omnia-pool/src/deposit.ts"
+        ],
+        "approach": "Add a durable unique funding-coin reservation/consumption index scoped by chain and asset; reject duplicate active commitments and reconcile if the coin is spent/reorged.",
+        "constraints": [
+          "Do not rely on a transient unspent lookup as uniqueness."
+        ],
+        "acceptance": [
+          "A duplicate funding coin is rejected across pools/positions.",
+          "A spent/reorged coin invalidates the reservation."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test",
+          "pnpm --filter @totemsdk/liquidity-bond test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0",
+        "@totemsdk/omnia-host": "0.14.0",
+        "@totemsdk/omnia-factory": "0.7.2",
+        "@totemsdk/omnia-splice": "0.3.4",
+        "@totemsdk/omnia-vtxo": "0.9.0",
+        "@totemsdk/omnia-pool": "0.6.0",
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/chain-provider": "0.4.0"
+      },
+      "source": "Deeper Omnia host audit, 2026-11-18 (verified against 41106016 / 997b7f4)",
+      "id": "OMN-035",
+      "status": "open",
+      "severity": "high",
+      "title": "VTXO epochs are marked published after broadcast, not chain confirmation",
+      "packages": [
+        "@totemsdk/omnia-vtxo",
+        "@totemsdk/chain-provider"
+      ],
+      "summary": "anchorBatch calls authority.markPublished(epoch) as soon as submission reports success. MinimaRpcProvider.submitTransaction reports mining/submission, not accepted-chain inclusion at depth, so the journal can record an epoch as published without confirmation and without reorg handling.",
+      "impact": "Downstream consumers may treat a locally recorded root as chain-backed settlement evidence when the anchor was never confirmed.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-vtxo test",
+        "expected": "signed/submitted/included/confirmed/published are distinct and confirmation is checked on-chain.",
+        "actual": "published is set immediately after submitTransaction succeeds.",
+        "evidence": [
+          "packages/omnia-vtxo/src/anchor.ts anchorBatch",
+          "packages/omnia-vtxo/src/epoch-authority.ts",
+          "packages/chain-provider/src/providers/minima-rpc.ts submitTransaction"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/anchor.ts",
+          "packages/omnia-vtxo/src/epoch-authority.ts"
+        ],
+        "approach": "Separate the publication states; confirm on-chain at the required depth before markPublished; reconcile/invalidate on reorg.",
+        "constraints": [
+          "Do not equate submission with confirmation."
+        ],
+        "acceptance": [
+          "An unconfirmed/rejected/reorged anchor is not published.",
+          "A confirmed anchor advances only after depth is verified."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test"
         ]
       },
       "origin": {
