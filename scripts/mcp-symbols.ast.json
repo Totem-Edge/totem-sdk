@@ -9337,6 +9337,31 @@
           "signature": "export interface FeePayoutRef",
           "doc": "A settled payout that a claim/compound is bound to (prevents claim-then-fail)."
         },
+        "PayoutSettlementStatus": {
+          "kind": "type",
+          "signature": "export type PayoutSettlementStatus = 'confirmed' | 'offchain-final' | 'refunded' | 'exited'",
+          "doc": "Finality of a payout, as reported by an external evidence source."
+        },
+        "PayoutSettlementEvidence": {
+          "kind": "interface",
+          "signature": "export interface PayoutSettlementEvidence",
+          "doc": "A finality claim for a payout. This is evidence, not proof: it is only\ntrustworthy once a `PayoutSettlementVerifier` has checked it against the\nchain or the channel/factory."
+        },
+        "PayoutSettlementBinding": {
+          "kind": "interface",
+          "signature": "export interface PayoutSettlementBinding",
+          "doc": "The exact payout a piece of settlement evidence must be bound to. A\nsettlement that does not match all of these is rejected before any\naccounting is mutated."
+        },
+        "PayoutSettlementVerifier": {
+          "kind": "interface",
+          "signature": "export interface PayoutSettlementVerifier",
+          "doc": "Verifier that confirms a payout actually settled. Implementations read a\nreal evidence source — an on-chain transaction at the required depth, or a\nsigned channel/factory settlement — and must bind the result to the exact\npayout identity they are given."
+        },
+        "SettledFeePayout": {
+          "kind": "interface",
+          "signature": "export interface SettledFeePayout extends FeePayoutRef",
+          "doc": "A payout that a verifier confirmed as settled, recorded in the registry so a\nfee claim/compound can consume it. Single-use: `consumedBy` is set by the fee\nrecord that released the entitlement."
+        },
         "LiquidityBondVerifyResult": {
           "kind": "interface",
           "signature": "export interface LiquidityBondVerifyResult"
@@ -9863,6 +9888,39 @@
         "verifyLiquidityFeeRecord": {
           "kind": "function",
           "signature": "verifyLiquidityFeeRecord(params: VerifyLiquidityFeeRecordParams): Promise<LiquidityBondVerifyResult>"
+        },
+        "isEarnableSource": {
+          "kind": "function",
+          "signature": "isEarnableSource(source: string): source is EarnableFeeSource"
+        },
+        "computeFeePayoutKey": {
+          "kind": "function",
+          "signature": "computeFeePayoutKey(ref: Pick<FeePayoutRef, \"payoutId\" | \"nonce\">): string",
+          "doc": "Stable key for a payout reference (payoutId + nonce are both required)."
+        },
+        "getSettledFeePayout": {
+          "kind": "function",
+          "signature": "getSettledFeePayout(registry: LiquidityBondRegistryState, ref: Pick<FeePayoutRef, \"payoutId\" | \"nonce\">): SettledFeePayout | undefined",
+          "doc": "Look up a registered settled payout without consuming it."
+        },
+        "registerSettledFeePayout": {
+          "kind": "function",
+          "signature": "registerSettledFeePayout(registry: LiquidityBondRegistryState, params: RegisterSettledFeePayoutParams): Promise<{ registry: LiquidityBondRegistryState; payout: SettledFeePayout; }>",
+          "doc": "Record a payout as settled, bound to the exact position, pool, LP and amount.\nRegistration requires a live settlement verifier: an unverified reference can\nnever become a payout that a fee claim/compound is allowed to release. The\nreference is unique — a reused payoutId/nonce is rejected."
+        },
+        "assertSettledFeePayoutUsable": {
+          "kind": "function",
+          "signature": "assertSettledFeePayoutUsable(registry: LiquidityBondRegistryState, ref: FeePayoutRef, binding: { positionId: string; poolId: string; }): SettledFeePayout",
+          "doc": "Validate that a payout reference is a known, unconsumed, correctly bound\nsettled payout — without consuming it. Unknown, mismatched and reused\nreferences are rejected."
+        },
+        "consumeSettledFeePayout": {
+          "kind": "function",
+          "signature": "consumeSettledFeePayout(registry: LiquidityBondRegistryState, ref: FeePayoutRef, binding: { positionId: string; poolId: string; amount: bigint; consumedBy: string; }): LiquidityBondRegistryState",
+          "doc": "Consume a settled payout for a fee claim/compound. Unknown references,\nreferences bound to another position/pool, and already-consumed references\nare rejected — a payout is single-use and cannot release fees twice."
+        },
+        "RegisterSettledFeePayoutParams": {
+          "kind": "interface",
+          "signature": "export interface RegisterSettledFeePayoutParams"
         },
         "createWithdrawalIntent": {
           "kind": "function",
@@ -13332,8 +13390,8 @@
         },
         "recordPoolFee": {
           "kind": "function",
-          "signature": "recordPoolFee(params: RecordPoolFeeParams, registry: LiquidityBondRegistryState): { feeRecord: LiquidityFeeRecord; registry: LiquidityBondRegistryState; }",
-          "doc": "Record a fee against a pool position, splitting between LP and operator."
+          "signature": "recordPoolFee(params: RecordPoolFeeParams, registry: LiquidityBondRegistryState): Promise<{ feeRecord: LiquidityFeeRecord; registry: LiquidityBondRegistryState; }>",
+          "doc": "Record a fee against a pool position, splitting between LP and operator.\n\n`verified` is never accepted from the caller: for an earnable source the\nearn-proof is run through the supplied `feeProofVerifier` (the same verifier\n`verifyLiquidityFeeRecord` uses) and the record is marked earnable only when\nthat verification passes. Without a verifier the record is stored unverified\n— visible for audit but never counted toward LP entitlement."
         },
         "computeUnclaimedFees": {
           "kind": "function",
@@ -13343,12 +13401,12 @@
         "claimFees": {
           "kind": "function",
           "signature": "claimFees(pool: LiquidityPoolManifest, position: LiquidityPosition, registry: LiquidityBondRegistryState, opts: ClaimFeesOptions): { claimedAmount: bigint; registry: LiquidityBondRegistryState; }",
-          "doc": "Claim accrued LP fees. The claim is bound to a settled payout (`payoutRef`):\nthe LP fee balance is only reduced once a real payout (VTXO mint / channel\nsettlement) exists — preventing \"claim then fail to pay\" and double-claim."
+          "doc": "Claim accrued LP fees. The claim is bound to a settled payout (`payoutRef`):\nthe LP fee balance is only reduced once a real payout (VTXO mint / channel\nsettlement) exists — preventing \"claim then fail to pay\" and double-claim.\n\nThe payout must have been registered by `registerSettledFeePayout` (which\nrequires a live settlement verifier) and is consumed exactly once: an\nunknown, mismatched or reused reference is rejected, not ignored."
         },
         "compoundFees": {
           "kind": "function",
           "signature": "compoundFees(pool: LiquidityPoolManifest, position: LiquidityPosition, registry: LiquidityBondRegistryState, opts: CompoundFeesOptions): { compoundedAmount: bigint; position: LiquidityPosition; registry: LiquidityBondRegistryState; }",
-          "doc": "Compound accrued LP fees back into the position's principal. Like claims,\ncompounding is bound to a settled payout so the entitlement is only zeroed\nagainst a real execution."
+          "doc": "Compound accrued LP fees back into the position's principal. Like claims,\ncompounding is bound to a registered settled payout that it consumes\n(single-use), so the entitlement is only zeroed against a real execution."
         },
         "getUtilisation": {
           "kind": "function",
@@ -13425,7 +13483,7 @@
         "executePoolPayout": {
           "kind": "function",
           "signature": "executePoolPayout(params: ExecutePoolPayoutParams, registry: LiquidityBondRegistryState): Promise<{ intent: WithdrawalIntent; position: LiquidityPosition; registry: LiquidityBondRegistryState; execution?: unknown; signedTransition?: import(\"@totemsdk/liquidity-bond\").RegistrySignedTransition; }>",
-          "doc": "Execute a payout for an approved withdrawal intent.\nFor VTXO-backed positions this creates an exit draft; for channel-backed\npositions it requests a settlement payload. Pure-record positions return the\nintent only and expect the caller to handle settlement externally."
+          "doc": "Execute a payout for an approved withdrawal intent.\nFor VTXO-backed positions this creates an exit draft; for channel-backed\npositions it requests a settlement payload. Pure-record positions return the\nintent only and expect the caller to handle settlement externally.\n\nRFC-048 §3.3: a prepared draft is not a payout. When `settlement` is supplied\nit is verified *before* any execution side effect; only verified evidence may\nmark the intent settled, decrement LP capital and consume the receipt."
         },
         "DepositToPoolResult": {
           "kind": "interface",
@@ -13541,7 +13599,8 @@
         },
         "PayoutFinality": {
           "kind": "type",
-          "signature": "export type PayoutFinality = | { status: 'confirmed'"
+          "signature": "export type PayoutFinality = PayoutSettlementEvidence & PayoutSettlementBinding & { /** Withdrawal intent this evidence settles — must equal `intent.withdrawalId`. */ withdrawalId: string",
+          "doc": "Finality evidence for a payout, bound to the exact payout it claims to settle.\n`status`/`evidenceRef`/`txpowId`/`depth` are the claim; `withdrawalId`,\n`poolId`, `positionId`, `recipientAddress` and `amount` are the binding that\n`executePoolPayout` checks locally and the verifier checks against its\nevidence source. Evidence that does not match the intent is rejected."
         },
         "RecordPoolFeeParams": {
           "kind": "type",
@@ -14262,6 +14321,16 @@
           "kind": "interface",
           "signature": "export interface VtxoPoolPolicy"
         },
+        "VtxoPoolMember": {
+          "kind": "interface",
+          "signature": "export interface VtxoPoolMember",
+          "doc": "One VTXO leaf committed by the pool's membership set (OMN-002)."
+        },
+        "VtxoEpochRoot": {
+          "kind": "interface",
+          "signature": "export interface VtxoEpochRoot",
+          "doc": "A published epoch root. The pool keeps every root it has published so a\nproof minted in an earlier epoch stays verifiable after later batches."
+        },
         "OmniaVtxoPool": {
           "kind": "interface",
           "signature": "export interface OmniaVtxoPool"
@@ -14441,6 +14510,16 @@
           "kind": "function",
           "signature": "verifyMerkleProof(leaf: string, proof: MerkleProofNode[], root: string): boolean"
         },
+        "vtxoCommitmentMember": {
+          "kind": "function",
+          "signature": "vtxoCommitmentMember(vtxo: OmniaVtxo): VtxoCommitmentMember",
+          "doc": "Derive the commitment member record for a VTXO without changing its leaf."
+        },
+        "buildVtxoProofSetFromMembers": {
+          "kind": "function",
+          "signature": "buildVtxoProofSetFromMembers(members: readonly VtxoCommitmentMember[]): VtxoProofSet",
+          "doc": "Build one proof set over an existing membership set.\n\nSorting is by `vtxoId`, so appending a member never changes the position of\nan existing member relative to the others and the leaf of an existing VTXO\nis never recomputed (OMN-002)."
+        },
         "buildVtxoProofSet": {
           "kind": "function",
           "signature": "buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet"
@@ -14498,6 +14577,11 @@
         "VtxoProofSet": {
           "kind": "interface",
           "signature": "export interface VtxoProofSet"
+        },
+        "VtxoCommitmentMember": {
+          "kind": "interface",
+          "signature": "export interface VtxoCommitmentMember",
+          "doc": "A leaf committed by a pool membership set."
         },
         "vtxoOperatorTreeId": {
           "kind": "function",
@@ -14782,6 +14866,29 @@
           "kind": "function",
           "signature": "advancePoolEpoch(pool: OmniaVtxoPool, newEpoch: number): OmniaVtxoPool"
         },
+        "commitPoolMembers": {
+          "kind": "function",
+          "signature": "commitPoolMembers(pool: OmniaVtxoPool, vtxos: readonly OmniaVtxo[], options?: CommitPoolMembersOptions): CommitPoolMembersResult",
+          "doc": "Append VTXOs to the pool's membership set and rebuild the commitment tree\n(OMN-002).\n\nThe pool's `commitmentRoot` commits to the whole set (`members`), not to a\nsingle leaf: appending a member never removes an earlier member, and the\nprevious root is retained in `epochRoots` so proofs issued in earlier epochs\nstay verifiable. Every batch advances `epoch`; `batchId` tracks the root.\n\nIdempotent for a member already present with the same leaf; a conflicting\nleaf for an existing `vtxoId` is rejected."
+        },
+        "poolPublishedRoots": {
+          "kind": "function",
+          "signature": "poolPublishedRoots(pool: OmniaVtxoPool): string[]",
+          "doc": "Every root the pool has published (current + historical epochs)."
+        },
+        "poolEpochRoot": {
+          "kind": "function",
+          "signature": "poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined",
+          "doc": "The published epoch record for `epoch`, if the pool has one."
+        },
+        "CommitPoolMembersOptions": {
+          "kind": "interface",
+          "signature": "export interface CommitPoolMembersOptions"
+        },
+        "CommitPoolMembersResult": {
+          "kind": "interface",
+          "signature": "export interface CommitPoolMembersResult"
+        },
         "isVtxoActive": {
           "kind": "function",
           "signature": "isVtxoActive(vtxo: OmniaVtxo): boolean"
@@ -14798,13 +14905,18 @@
         },
         "transferVtxo": {
           "kind": "function",
-          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number): TransferResult & { receipt: VtxoOperatorReceipt; }",
-          "doc": "Transfers a VTXO (fully or partially) to a recipient.\n\n**Offline safety.** The returned output VTXOs are new claims. A Merkle proof\nestablishes membership in a committed set; it does NOT prove the input was\nnever spent elsewhere. The local host rejects a second transfer through its\nshared state, but disconnected receivers do not share that state. Treat a\nreceived VTXO as final only after an anti-double-spend check (online/operator\nspend check, operator-co-signed transfer, or an explicitly risk-bounded\npolicy), and have the operator commit the new outputs — they do not\nautomatically belong to the previous pool root."
+          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number): TransferOutcome",
+          "doc": "Transfers a VTXO (fully or partially) to a recipient.\n\n**Offline safety.** The returned output VTXOs are new claims. A Merkle proof\nestablishes membership in a committed set; it does NOT prove the input was\nnever spent elsewhere. The local host rejects a second transfer through its\nshared state, but disconnected receivers do not share that state. Treat a\nreceived VTXO as final only after an anti-double-spend check (online/operator\nspend check, operator-co-signed transfer, or an explicitly risk-bounded\npolicy), and have the operator commit the new outputs — they do not\nautomatically belong to the previous pool root.\n\n**Exit entitlements (OMN-003).** An exit entitlement binds owner, vtxoId,\namount and holder index. The previous owner's entitlement therefore cannot\nauthorize the recipient, so this function never copies one forward: a\nsupplied `exitEntitlement` is verified against the *new output* and the\ntransfer is rejected unless it verifies. A transfer without an entitlement\nreturns `exitReady: false`. Use {@link transferVtxoWithEntitlement} to build a\nrecipient-bound exit."
         },
         "transferVtxoWithExit": {
           "kind": "function",
-          "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferResult & { receipt: VtxoOperatorReceipt; exitEntitlement: VtxoExitEntitlement; }>",
-          "doc": "V1 transfer: build the recipient's independent exit before moving the claim,\nthen transfer only if the exit package verifies against the input VTXO."
+          "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferOutcome & { exitEntitlement: VtxoExitEntitlement; }>",
+          "doc": "V1 transfer: build the *recipient's* independent exit before moving the\nclaim, then transfer only if the rebuilt entitlement verifies against the\noutput VTXO (OMN-003).\n\n`exitParams` describes the pool coin and holder share set for the input.\nThe helper rebinds it to the recipient: the holder at `holderIndex` becomes\nthe recipient, the exit VTXO becomes the output and the root/epoch become\nthe output's proof root/epoch. The exit transaction therefore pays the\nrecipient, not the previous owner."
+        },
+        "transferVtxoWithEntitlement": {
+          "kind": "const",
+          "signature": "transferVtxoWithEntitlement = transferVtxoWithExit",
+          "doc": "Alias for {@link transferVtxoWithExit}: derive a fresh entitlement for the recipient."
         },
         "splitVtxo": {
           "kind": "function",
@@ -14843,7 +14955,12 @@
         },
         "verifyVtxo": {
           "kind": "function",
-          "signature": "verifyVtxo(vtxo: OmniaVtxo): VerifyVtxoResult"
+          "signature": "verifyVtxo(vtxo: OmniaVtxo, options?: VerifyVtxoOptions): VerifyVtxoResult"
+        },
+        "verifyVtxoMembership": {
+          "kind": "function",
+          "signature": "verifyVtxoMembership(vtxo: OmniaVtxo, pool: OmniaVtxoPool): VerifyVtxoResult",
+          "doc": "Anchor a VTXO proof to a pool: the proof must be present, its root must be\na root the pool published, and (when the pool records membership) the VTXO\nmust be a member with the matching leaf.\n\nAccepts historical epoch roots, so a VTXO minted in an earlier epoch remains\nverifiable after later batches (OMN-002 + OMN-010)."
         },
         "verifyVtxoProof": {
           "kind": "function",
@@ -14857,6 +14974,10 @@
           "kind": "function",
           "signature": "verifyConservation(params: ConservationInput): VerifyVtxoResult",
           "doc": "Verifies amount conservation across a set of inputs and outputs.\n\nDefault mode (`'lte'`): `sum(outputs) <= sum(inputs)` — allows exits, fees, and burn flows.\nStrict mode (`'strict'`): `sum(outputs) === sum(inputs)` — required for transfer, split, merge.\n\nAlways requires: same `poolId` and `tokenId` across all inputs and outputs."
+        },
+        "VerifyVtxoOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyVtxoOptions"
         },
         "ConservationInput": {
           "kind": "interface",
@@ -14923,9 +15044,20 @@
           "signature": "claimPolicyOf(vtxo: OmniaVtxo): VtxoClaimPolicy",
           "doc": "Resolve the policy attached to a VTXO, defaulting to its single owner."
         },
+        "computeVtxoClaimPreimage": {
+          "kind": "function",
+          "signature": "computeVtxoClaimPreimage(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, signer: string): Uint8Array",
+          "doc": "The canonical bytes a claimant must sign. Binds the VTXO identity, the\nclaimed signer, the policy context (block, path, scope, HTLC, preimage) and\nthe vesting amount so a signature cannot be replayed in another context."
+        },
+        "verifyVtxoClaimSignatures": {
+          "kind": "function",
+          "signature": "verifyVtxoClaimSignatures(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, verifySignature: VtxoClaimSignatureVerifier): Promise<{ valid: boolean; signers: string[]; errors: string[]; }>",
+          "doc": "Verify every supplied signature over its canonical claim preimage and return\nthe identities actually backed by a valid signature.\n\nThis is deliberately separate from {@link verifyClaimPolicy}: the policy\ndecides *who* may claim; this decides *whether they proved it*."
+        },
         "verifyVtxoClaim": {
           "kind": "function",
-          "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult"
+          "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext, options: VerifyVtxoClaimOptions): Promise<VtxoClaimResult>",
+          "doc": "Authoritative claim verification.\n\nRequires cryptographic signature proof for the claimed signer(s) — a bare\n`witness.signers` list is rejected. The policy is then evaluated with only\nthe verified signer identities. Callers must supply a real signature\nverifier (e.g. WOTS verification against the signer's public key) and, on\nthe authoritative path, the chain tip so a caller-chosen future block is\nrejected (OMN-007)."
         },
         "VtxoPolicyBinding": {
           "kind": "interface",
@@ -14939,13 +15071,41 @@
           "kind": "interface",
           "signature": "export interface VtxoClaimWitness"
         },
+        "VtxoClaimSignature": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimSignature",
+          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
+        },
+        "VtxoClaimSignatureProof": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimSignatureProof"
+        },
+        "VtxoClaimSignatureVerifier": {
+          "kind": "type",
+          "signature": "export type VtxoClaimSignatureVerifier = ( proof: VtxoClaimSignatureProof, ) => boolean | Promise<boolean>",
+          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
+        },
+        "VerifyVtxoClaimOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyVtxoClaimOptions",
+          "doc": "The verifier is the trust boundary: it MUST resolve `signer` to the trusted\nkey/address itself (or check that a supplied `publicKey` derives to\n`signer`). `publicKey` comes from the untrusted witness and must never be\naccepted merely because it verifies its own signature."
+        },
         "VtxoClaimContext": {
           "kind": "interface",
           "signature": "export interface VtxoClaimContext"
         },
+        "VtxoVestingSchedule": {
+          "kind": "interface",
+          "signature": "export interface VtxoVestingSchedule"
+        },
         "VtxoClaimResult": {
           "kind": "interface",
           "signature": "export interface VtxoClaimResult"
+        },
+        "VTXO_CLAIM_PREIMAGE_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_CLAIM_PREIMAGE_DOMAIN = 'totemsdk/omnia-vtxo/claim/v1'",
+          "doc": "Domain separator for the canonical claim preimage."
         },
         "distributeYield": {
           "kind": "function",
