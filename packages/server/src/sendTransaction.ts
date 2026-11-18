@@ -12,6 +12,7 @@
  * Use a WatermarkStore from `@totemsdk/core` to track used indices.
  */
 
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
 import { httpFetch as fetch } from './http-fetch.js';
 import {
   phraseToSeed,
@@ -277,18 +278,14 @@ async function submitMinedTxPoW(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fixed-point arithmetic (10^8 scale — Minima max 8 decimal places)
+// Fixed-point arithmetic — Minima MiniNumber has 44 decimal places, not 8.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _SCALE = 100_000_000n;
 function _toScaled(s: string): bigint {
-  const [i, f = ''] = s.split('.');
-  return BigInt(i || '0') * _SCALE + BigInt(f.padEnd(8, '0').slice(0, 8));
+  return amountToAtoms(s);
 }
 function _fromScaled(n: bigint): string {
-  if (n === 0n) return '0';
-  const frac = (n % _SCALE).toString().padStart(8, '0').replace(/0+$/, '');
-  return frac ? `${n / _SCALE}.${frac}` : `${n / _SCALE}`;
+  return n < 0n ? `-${atomsToAmount(-n)}` : atomsToAmount(n);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

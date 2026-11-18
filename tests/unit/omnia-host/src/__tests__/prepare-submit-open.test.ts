@@ -126,6 +126,27 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
       remoteAmount: '100',
       fundingCoinId: '0x' + 'cc'.repeat(32),
     })).rejects.toThrow(/looks like an atom integer/);
+
+    // Boundary: exactly the node ceiling is accepted by the amount guard (it
+    // fails later for lack of a funding coin), one atom above is rejected.
+    await expect(methods.get('omnia/prepareOpenChannel')!({
+      operationId: 'prep-ceiling-ok',
+      remotePartyId: 'bob',
+      remotePublicKeyDigest: '0x' + 'bb'.repeat(32),
+      remoteAddressIndex: 1,
+      localAmount: '1000000000',
+      remoteAmount: '1',
+      fundingCoinId: '0x' + 'cc'.repeat(32),
+    })).rejects.not.toThrow(/looks like an atom integer/);
+    await expect(methods.get('omnia/prepareOpenChannel')!({
+      operationId: 'prep-ceiling-over',
+      remotePartyId: 'bob',
+      remotePublicKeyDigest: '0x' + 'bb'.repeat(32),
+      remoteAddressIndex: 1,
+      localAmount: '1000000001',
+      remoteAmount: '1',
+      fundingCoinId: '0x' + 'cc'.repeat(32),
+    })).rejects.toThrow(/looks like an atom integer/);
   });
 
   it('CAN-006: an unacknowledged open is persisted pending and can be re-proposed', async () => {

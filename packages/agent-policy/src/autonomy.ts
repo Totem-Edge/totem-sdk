@@ -8,6 +8,7 @@
  * authority remains in the signed mandate.
  */
 
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
 import type {
   AutonomyProfile,
   CanonicalAgentAction,
@@ -365,25 +366,18 @@ function tokenMatches(action: string, pattern: string): boolean {
   return action === pattern;
 }
 
-const DECIMAL = /^[0-9]+(?:\.[0-9]+)?$/;
-const SCALE = 100_000_000n;
-
-/** Exact scaled bigint of an amount string (whole or fractional). */
+/** Exact scaled bigint of an amount string (MiniNumber precision, 44dp). */
 function toScaled(v: string): bigint {
-  if (!DECIMAL.test(v)) return 0n;
-  const [whole, frac] = v.split('.');
-  const fracPadded = (frac ?? '').padEnd(8, '0').slice(0, 8);
-  return BigInt(whole) * SCALE + BigInt(fracPadded || '0');
+  try {
+    return amountToAtoms(v);
+  } catch {
+    return 0n;
+  }
 }
 
 /** Render a scaled bigint back to a decimal string. */
 function fromScaled(n: bigint): string {
-  const neg = n < 0n;
-  const abs = neg ? -n : n;
-  const whole = abs / SCALE;
-  const frac = (abs % SCALE).toString().padStart(8, '0');
-  const trimmed = (whole.toString() + '.' + frac).replace(/\.?0+$/, '');
-  return (neg ? '-' : '') + (trimmed === '' ? '0' : trimmed);
+  return n < 0n ? `-${atomsToAmount(-n)}` : atomsToAmount(n);
 }
 
 function gt(a: string, b: string): boolean {

@@ -5,6 +5,7 @@
  * operation effects ∩ current run state.
  */
 
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
 import { evaluateAuthority, snapshotFromUsage, type AuthorityIdentityResolver, type MandateStatusSnapshot } from '@totemsdk/authority';
 import type { SignedProof } from '@totemsdk/proof';
 import {
@@ -416,20 +417,17 @@ export class GrantBoundAutonomyPolicy {
   }
 }
 
-/** Token→amount accumulation (decimal-safe). */
-const DECIMAL = /^[0-9]+(?:\.[0-9]+)?$/;
-const SCALE = 100_000_000n;
-
+/** Token→amount accumulation (MiniNumber precision, 44dp). */
 function toScaled(v: string): bigint {
-  if (!DECIMAL.test(v)) return 0n;
-  const [whole, frac] = v.split('.');
-  return BigInt(whole) * SCALE + BigInt((frac ?? '').padEnd(8, '0').slice(0, 8) || '0');
+  try {
+    return amountToAtoms(v);
+  } catch {
+    return 0n;
+  }
 }
 
 function fromScaled(n: bigint): string {
-  const whole = n / SCALE;
-  const frac = (n % SCALE).toString().padStart(8, '0');
-  return (whole.toString() + '.' + frac).replace(/\.?0+$/, '') || '0';
+  return n < 0n ? `-${atomsToAmount(-n)}` : atomsToAmount(n);
 }
 
 export function accumulateAmount(a: string | undefined, b: string): string {

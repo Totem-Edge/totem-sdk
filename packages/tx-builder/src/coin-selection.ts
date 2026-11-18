@@ -1,3 +1,4 @@
+import { MINIMA_DECIMALS } from '@totemsdk/core';
 import type { StoragePort, CoinFetcher, SpendableCoin } from './adapters.js';
 export type { SpendableCoin } from './adapters.js';
 
@@ -30,10 +31,9 @@ export interface CoinSelectionOptions {
   excludedAddresses?: string[];
 }
 
-const MINIMA_DECIMALS = 44;
 const SCALE = BigInt(10) ** BigInt(MINIMA_DECIMALS);
 
-const DECIMAL_RE = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]{1,44})?$/;
+const DECIMAL_RE = new RegExp(`^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,${MINIMA_DECIMALS}})?$`);
 
 export function parseDecimalToBigInt(value: string): bigint {
   const clean = (value || '0').trim();
