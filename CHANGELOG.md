@@ -19,9 +19,14 @@ This is a wire- and state-format break: Omnia 3.0.0 supersedes 2.x.
 | `@totemsdk/kissvm` | 1.4.1 | `TxContext` amounts accept decimal text or a number (no `Number()` truncation) |
 | `@totemsdk/omnia` | 3.0.0 | atoms + `MiniNumber(scale 44)` coin amounts; scale-44 value state ports bound in the state commitment; Rust/WASM mirror uses arbitrary-precision integers |
 | `@totemsdk/omnia-host` | 0.14.0 | JSON-RPC takes and returns decimal amounts for channels, splice, factory, pool, VTXO and routes |
-| `@totemsdk/liquidity-bond` | 0.3.3 | pool funding verification passes decimal `claimedAmount` |
+| `@totemsdk/liquidity-bond` | 0.4.0 | pool funding verification passes decimal `claimedAmount`; verifier-backed settled-payout ledger for fee claims |
 | `@totemsdk/statechain` | 0.3.3 | provider coin amount converted to atoms at the boundary |
 | `@totemsdk/omnia-splice` | 0.3.4 | successor amount match in atoms |
+| `@totemsdk/omnia-vtxo` | 0.9.0 | append-only pool membership root, transfer-bound exit entitlements, vesting enforcement, cryptographic claim proof, anchored verification |
+| `@totemsdk/omnia-pool` | 0.6.0 | payout finality requires a verifier; fee records are verified and claims consume settled payouts |
+| `@totemsdk/omnia-relay` | 0.8.0 | durable backward-preimage duty across restart recovery |
+| `@totemsdk/tx-builder` | 0.3.4 | fractional MINIMA amounts parse correctly in conservation checks |
+| `@totemsdk/edge-adapters` | 0.4.1 | liquidity balances parse MINIMA at 44 decimals |
 | `@totemsdk/omnia-vtxo` | 0.8.2 | pool funding amount compared exactly |
 
 Compatibility impact: `@totemsdk/omnia` 3.0.0 changes the signed state and
@@ -33,7 +38,11 @@ there is no migration because the SDK has no production users yet.
 `@totemsdk/omnia-host` 0.14.0 changes every JSON-RPC amount from integer atoms to
 decimal MINIMA/token text, in both requests and responses.
 `@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 RPC-only normalisation so all
-providers share the node's unit.
+providers share the node's unit. `@totemsdk/omnia-pool` 0.6.0 requires a
+settlement verifier to settle a payout and a fee verifier to earn fees;
+`@totemsdk/omnia-vtxo` 0.9.0 requires an anchored membership proof and a claim
+signature verifier; `@totemsdk/omnia-host` now fails closed when those verifiers
+are not configured.
 
 #### Fixed
 
@@ -58,7 +67,8 @@ providers share the node's unit.
   non-zero pool deposit fail the amount gate.
 
   (CAN-024: scale-0 atom encoding; CAN-025: pool `claimedAmount` double
-  conversion.)
+  conversion.) The same train closes the release-blocking audit findings
+  CAN-004/006/007/010/011/013/014/018/019/020 and OMN-002/003/004/005/006/007/008/010.
 
 ### Released 2026-11-17 — SDK train
 

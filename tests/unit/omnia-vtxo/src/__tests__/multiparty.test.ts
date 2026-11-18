@@ -34,7 +34,7 @@ function newPool(nonce: string, capacity = 1_000_000n) {
 
 function assertClaimable(vtxo: OmniaVtxo, owner: string) {
   expect(vtxo.owner).toBe(owner);
-  expect(verifyVtxo(vtxo).valid).toBe(true);
+  expect(verifyVtxo(vtxo, { allowUnanchored: true }).valid).toBe(true);
   expect(verifyVtxoProof(vtxo, vtxo.proof).valid).toBe(true);
   const exit = createExitDraft(vtxo, NOW + 10);
   expect(exit.draft.draftType).toBe('vtxo-exit');
@@ -83,7 +83,7 @@ describe('multiparty VTXO — M2 split + change conservation', () => {
     expect(outputs.reduce((sum, output) => sum + output.amount, 0n)).toBe(100_000n);
     expect(outputs[6].owner).toBe('operator-1');
     outputs.forEach((output) => {
-      expect(verifyVtxo(output).valid).toBe(true);
+      expect(verifyVtxo(output, { allowUnanchored: true }).valid).toBe(true);
       expect(verifyVtxoProof(output, output.proof).valid).toBe(true);
     });
   });
@@ -288,14 +288,20 @@ describe('multiparty VTXO — M16 collateral release', () => {
 });
 
 describe('multiparty VTXO — M17 vesting/payroll', () => {
-  it('enforces beneficiary, cliff, and a positive claim amount', () => {
+  it('enforces beneficiary, cliff, and the linear vested amount', () => {
     const policy: VtxoClaimPolicy = {
-      type: 'vesting', owner: 'employer', beneficiary: 'alice', startBlock: 10, cliffBlock: 20, endBlock: 100,
+      type: 'vesting', owner: 'employer', beneficiary: 'alice',
+      startBlock: 10, cliffBlock: 20, endBlock: 100, totalAmount: 1_000n,
     };
+    // At block 20 the linear schedule vests floor(1000 * 10 / 90) = 111.
     expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 100n }, { block: 20 }).valid).toBe(true);
+    expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 111n }, { block: 20 }).valid).toBe(true);
+    expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 112n }, { block: 20 }).valid).toBe(false);
     expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 100n }, { block: 19 }).valid).toBe(false);
     expect(verifyClaimPolicy(policy, { signers: ['bob'], claimAmount: 100n }, { block: 30 }).valid).toBe(false);
     expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 0n }, { block: 30 }).valid).toBe(false);
+    // At/after endBlock the whole allocation is claimable.
+    expect(verifyClaimPolicy(policy, { signers: ['alice'], claimAmount: 1_000n }, { block: 100 }).valid).toBe(true);
   });
 });
 
@@ -339,10 +345,16 @@ describe('VTXO V1 — transferable exit entitlement', () => {
     expect(verifyVtxoExitEntitlement({ ...entitlement, amount: '1' }, vtxo).valid).toBe(false);
     expect(verifyVtxoExitEntitlement({ ...entitlement, digest: '0x' + '00'.repeat(32) }, vtxo).valid).toBe(false);
 
-    const transferred = transferVtxo(vtxo, {
+    // OMN-003: alice's entitlement binds alice/the input id, so it must never be
+    // attached to bob's output.
+    expect(() => transferVtxo(vtxo, {
       recipient: 'bob', amount: vtxo.amount, nonce: 'v1-x', exitEntitlement: entitlement,
+    }, NOW + 1)).toThrow(/entitlement/);
+    const withoutExit = transferVtxo(vtxo, {
+      recipient: 'bob', amount: vtxo.amount, nonce: 'v1-x',
     }, NOW + 1);
-    expect(transferred.output.exitEntitlement).toEqual(entitlement);
+    expect(withoutExit.exitReady).toBe(false);
+    expect(withoutExit.output.exitEntitlement).toBeUndefined();
     expect(() => transferVtxo(vtxo, {
       recipient: 'mallory', amount: vtxo.amount, nonce: 'v1-bad',
       exitEntitlement: { ...entitlement, owner: 'mallory' },
@@ -377,7 +389,11 @@ describe('VTXO V1 — guarded transfer builder', () => {
       recipient: 'bob', amount: 3_000n, nonce: 'v1g-x',
     }, exitParams, deps, NOW + 1);
     expect(result.output.owner).toBe('bob');
+    expect(result.exitReady).toBe(true);
     expect(result.output.exitEntitlement).toEqual(result.exitEntitlement);
-    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo).valid).toBe(true);
+    expect(result.exitEntitlement.owner).toBe('bob');
+    expect(result.exitEntitlement.vtxoId).toBe(result.output.vtxoId);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, result.output).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo).valid).toBe(false);
   });
 });

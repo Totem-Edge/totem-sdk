@@ -37,6 +37,25 @@ describe('pool host API', () => {
         })),
       },
       custodyMode: 'self',
+      settlementVerifier: {
+        verifySettlement: async ({ settlement, amount, recipientAddress, poolId, positionId, withdrawalId }) => {
+          const evidence = settlement as {
+            status?: string; evidenceRef?: string; amount?: string;
+            recipientAddress?: string; poolId?: string; positionId?: string; withdrawalId?: string;
+          };
+          // R4: the host must derive the binding from stored state (atoms),
+          // never from caller-supplied settlement fields.
+          const bound = evidence.amount === amount.toString()
+            && evidence.recipientAddress === recipientAddress
+            && evidence.poolId === poolId
+            && evidence.positionId === positionId
+            && evidence.withdrawalId === withdrawalId;
+          return {
+            valid: evidence.status === 'confirmed' && Boolean(evidence.evidenceRef) && bound,
+            reason: bound ? 'verified' : 'settlement binding was not derived locally',
+          };
+        },
+      },
     } as unknown as HostApiContext;
     const methods = createHostMethods(context);
 

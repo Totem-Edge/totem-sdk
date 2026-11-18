@@ -113,6 +113,80 @@ export interface FeePayoutRef {
   kind: 'vtxo-mint' | 'channel-settlement' | 'external';
 }
 
+/** Finality of a payout, as reported by an external evidence source. */
+export type PayoutSettlementStatus = 'confirmed' | 'offchain-final' | 'refunded' | 'exited';
+
+/**
+ * A finality claim for a payout. This is evidence, not proof: it is only
+ * trustworthy once a `PayoutSettlementVerifier` has checked it against the
+ * chain or the channel/factory.
+ */
+export interface PayoutSettlementEvidence {
+  status: PayoutSettlementStatus;
+  /** Reference into the evidence source (indexer id, channel settlement id, ...). */
+  evidenceRef: string;
+  /** On-chain transaction id when the evidence is a confirmed transaction. */
+  txpowId?: string;
+  /** Observed confirmation depth for `confirmed` evidence. */
+  depth?: number;
+}
+
+/**
+ * The exact payout a piece of settlement evidence must be bound to. A
+ * settlement that does not match all of these is rejected before any
+ * accounting is mutated.
+ */
+export interface PayoutSettlementBinding {
+  poolId: string;
+  positionId: string;
+  /** Destination address of the payout. */
+  recipientAddress: string;
+  /**
+   * Payout amount in atoms, as an integer string (tolerates JSON transport).
+   * This is an internal evidence binding derived by the host from the stored
+   * withdrawal intent; callers never supply it. RPC amount fields use decimal
+   * MINIMA text.
+   */
+  amount: string;
+}
+
+/**
+ * Verifier that confirms a payout actually settled. Implementations read a
+ * real evidence source — an on-chain transaction at the required depth, or a
+ * signed channel/factory settlement — and must bind the result to the exact
+ * payout identity they are given.
+ */
+export interface PayoutSettlementVerifier {
+  verifySettlement(params: {
+    settlement: PayoutSettlementEvidence;
+    poolId: string;
+    positionId: string;
+    /** Present for withdrawal payouts. */
+    withdrawalId?: string;
+    recipientAddress: string;
+    amount: bigint;
+  }): Promise<{ valid: boolean; reason?: string }>;
+}
+
+/**
+ * A payout that a verifier confirmed as settled, recorded in the registry so a
+ * fee claim/compound can consume it. Single-use: `consumedBy` is set by the fee
+ * record that released the entitlement.
+ */
+export interface SettledFeePayout extends FeePayoutRef {
+  positionId: string;
+  poolId: string;
+  /** Amount actually paid to the LP, in atoms. */
+  amount: bigint;
+  /** Evidence reference that proved the payout settled. */
+  evidenceRef: string;
+  settlementStatus: PayoutSettlementStatus;
+  settledAt: number;
+  /** Fee record id that consumed this payout (a settled payout is single-use). */
+  consumedBy?: string;
+  consumedAt?: number;
+}
+
 export interface LiquidityBondVerifyResult {
   ok: boolean;
   reason?: string;
@@ -371,6 +445,13 @@ export interface LiquidityBondRegistryState {
   allocations: Record<string, LiquidityAllocation[]>;
   feeRecords: Record<string, LiquidityFeeRecord[]>;
   withdrawals: Record<string, WithdrawalIntent[]>;
+  /**
+   * Verified, settled payouts available to back a fee claim/compound. Keyed by
+   * `payoutId:nonce` (see `computeFeePayoutKey`). Only written by
+   * `registerSettledFeePayout`, which requires a live settlement verifier, and
+   * consumed exactly once by `consumeSettledFeePayout`.
+   */
+  feePayouts?: Record<string, SettledFeePayout>;
   updatedAt?: number;
   /**
    * The accepted registry anchor root — advanced only through signed transitions

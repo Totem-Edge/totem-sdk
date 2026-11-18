@@ -114,7 +114,17 @@ export async function executeIntent(
     throw new Error('Signer is not a channel participant');
   }
 
-  const transferAmount = BigInt(intent.amount);
+  // PaymentIntent.amount is a token base-unit (atom) integer string for Omnia
+  // channels. Decimal MINIMA text belongs at the RPC/chain boundary and must be
+  // converted before it reaches an intent.
+  let transferAmount: bigint;
+  try {
+    transferAmount = BigInt(intent.amount);
+  } catch {
+    throw new Error(
+      `PaymentIntent.amount must be an atom integer string for an Omnia channel, received '${intent.amount}'`,
+    );
+  }
   if (transferAmount <= 0n) {
     throw new Error(`Transfer amount must be positive: ${transferAmount}`);
   }

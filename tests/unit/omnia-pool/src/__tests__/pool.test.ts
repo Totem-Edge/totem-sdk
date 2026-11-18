@@ -5,6 +5,7 @@
 import {
   createEmptyLiquidityBondRegistryState,
   computeRegistryRoot,
+  registerSettledFeePayout,
   type LiquidityBondRegistryState,
   type RegistryTransitionSigner,
 } from '@totemsdk/liquidity-bond';
@@ -40,6 +41,52 @@ describe('omnia-pool', () => {
   const passFundingVerifier = {
     verifyDeposit: jest.fn(async () => ({ valid: true })),
   };
+
+  const passFeeProofVerifier = {
+    verifyFeeProof: jest.fn(async () => ({ valid: true })),
+  };
+
+  const passSettlementVerifier = {
+    verifySettlement: jest.fn(async () => ({ valid: true })),
+  };
+
+  /** Build finality evidence bound to the exact payout it settles. */
+  function settlementFor(
+    manifest: { poolId: string },
+    position: { positionId: string },
+    intent: { withdrawalId: string; amount: bigint },
+    recipientAddress: string,
+    overrides: Record<string, unknown> = {},
+  ) {
+    return {
+      status: 'confirmed' as const,
+      evidenceRef: 'idx-1',
+      txpowId: 'tx-1',
+      withdrawalId: intent.withdrawalId,
+      poolId: manifest.poolId,
+      positionId: position.positionId,
+      recipientAddress,
+      amount: intent.amount.toString(),
+      ...overrides,
+    };
+  }
+
+  /** Register a verified settled payout so a claim/compound can consume it. */
+  function registerPayout(
+    reg: LiquidityBondRegistryState,
+    params: {
+      payoutRef: { payoutId: string; nonce: string; kind: 'vtxo-mint' | 'channel-settlement' | 'external' };
+      positionId: string;
+      amount: bigint;
+    },
+  ) {
+    return registerSettledFeePayout(reg, {
+      ...params,
+      poolId: 'pool-1',
+      settlement: { status: 'confirmed', evidenceRef: `ev-${params.payoutRef.payoutId}`, txpowId: 'tx-fee' },
+      verifier: passSettlementVerifier,
+    });
+  }
 
   let fundingCoinSeq = 0;
 
@@ -369,7 +416,15 @@ describe('omnia-pool', () => {
     );
     const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
     const result = await executePoolPayout(
-      { pool: manifest, position, intent: approved, recipientAddress: lp, settlement: { status: 'confirmed', evidenceRef: 'idx-1', txpowId: 'tx-1' }, rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 1 } } },
+      {
+        pool: manifest,
+        position,
+        intent: approved,
+        recipientAddress: lp,
+        settlement: settlementFor(manifest, position, approved, lp),
+        settlementVerifier: passSettlementVerifier,
+        rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 1 } },
+      },
       approvedReg,
     );
 
@@ -532,27 +587,49 @@ describe('omnia-pool', () => {
       reg,
     );
 
-    const { feeRecord, registry: feeReg } = recordPoolFee(
-      { pool: manifest, position, grossAmount: '10000', source: 'route-fee', earnProof: { htlcId: 'h-1' }, verified: true },
+    const { feeRecord, registry: feeReg } = await recordPoolFee(
+      {
+        pool: manifest,
+        position,
+        grossAmount: '10000',
+        source: 'route-fee',
+        earnProof: { htlcId: 'h-1' },
+        feeProofVerifier: passFeeProofVerifier,
+      },
       state,
     );
     expect(feeRecord.grossFeeAmount).toBe(10000n);
     expect(feeRecord.lpFeeAmount).toBe(50n);
     expect(feeRecord.operatorFeeAmount).toBe(10n);
+    expect(feeRecord.verified).toBe(true);
 
     const view = toOmniaPoolFeeRecord(feeRecord);
     expect(view.amount).toBe('10000');
     expect(view.positionId).toBe(position.positionId);
 
     const payoutRef = { payoutId: 'p-1', nonce: 'n1', kind: 'vtxo-mint' as const };
-    const claimed = claimFees(manifest, position, feeReg, {
+    const { registry: withPayout } = await registerPayout(feeReg, {
+      payoutRef,
+      positionId: position.positionId,
+      amount: 50n,
+    });
+    const claimed = claimFees(manifest, position, withPayout, {
       positionId: position.positionId,
       amount: '20',
       payoutRef,
     });
     expect(claimed.claimedAmount).toBe(20n);
 
-    const compounded = compoundFees(manifest, position, claimed.registry, { positionId: position.positionId, payoutRef });
+    const compoundRef = { payoutId: 'p-2', nonce: 'n2', kind: 'channel-settlement' as const };
+    const { registry: withCompoundPayout } = await registerPayout(claimed.registry, {
+      payoutRef: compoundRef,
+      positionId: position.positionId,
+      amount: 30n,
+    });
+    const compounded = compoundFees(manifest, position, withCompoundPayout, {
+      positionId: position.positionId,
+      payoutRef: compoundRef,
+    });
     expect(compounded.compoundedAmount).toBe(30n);
     expect(compounded.position.amount).toBe(100030n);
   });
@@ -563,8 +640,15 @@ describe('omnia-pool', () => {
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
-    const { registry: feeReg } = recordPoolFee(
-      { pool: manifest, position, grossAmount: '10000', source: 'route-fee', earnProof: { htlcId: 'h-1' } },
+    const { registry: feeReg } = await recordPoolFee(
+      {
+        pool: manifest,
+        position,
+        grossAmount: '10000',
+        source: 'route-fee',
+        earnProof: { htlcId: 'h-1' },
+        feeProofVerifier: passFeeProofVerifier,
+      },
       state,
     );
     expect(() =>
@@ -581,8 +665,15 @@ describe('omnia-pool', () => {
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
-    const { registry: afterFee } = recordPoolFee(
-      { pool: manifest, position, grossAmount: '20000', source: 'route-fee', earnProof: { htlcId: 'h-1' }, verified: true },
+    const { registry: afterFee } = await recordPoolFee(
+      {
+        pool: manifest,
+        position,
+        grossAmount: '20000',
+        source: 'route-fee',
+        earnProof: { htlcId: 'h-1' },
+        feeProofVerifier: passFeeProofVerifier,
+      },
       state,
     );
 
@@ -623,7 +714,14 @@ describe('omnia-pool', () => {
     expect(approved.status).toBe('approved');
 
     const result = await executePoolPayout(
-      { pool: manifest, position, intent: approved, recipientAddress: lp, settlement: { status: 'confirmed', evidenceRef: 'idx-1', txpowId: 'tx-1' } },
+      {
+        pool: manifest,
+        position,
+        intent: approved,
+        recipientAddress: lp,
+        settlement: settlementFor(manifest, position, approved, lp),
+        settlementVerifier: passSettlementVerifier,
+      },
       approvedReg,
     );
     expect(result.intent.status).toBe('settled-externally');
@@ -677,7 +775,12 @@ describe('omnia-pool', () => {
         intent: approved,
         recipientAddress: lp,
         ctx: { omnia: port, loadChannel, saveChannelSnapshot },
-        settlement: { status: 'confirmed', evidenceRef: 'idx-2', txpowId: 'tx-2' },
+        settlement: settlementFor(manifest, position, approved, lp, {
+          evidenceRef: 'idx-2',
+          txpowId: 'tx-2',
+          status: 'offchain-final',
+        }),
+        settlementVerifier: passSettlementVerifier,
       },
       approvedReg,
     );

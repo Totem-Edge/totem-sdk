@@ -18,6 +18,7 @@ export function createEmptyLiquidityBondRegistryState(): LiquidityBondRegistrySt
     allocations: {},
     feeRecords: {},
     withdrawals: {},
+    feePayouts: {},
     updatedAt: Date.now(),
   };
 }

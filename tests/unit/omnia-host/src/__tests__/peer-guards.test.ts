@@ -2,11 +2,13 @@ import type { ChannelFactory } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance } from '@totemsdk/omnia-splice';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import {
+  assertFactoryCloseSettlement,
   assertFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
   resolveFactoryFundingTarget,
   type PendingVcAcceptance,
+  type SpliceExpectation,
 } from '../peer-guards.js';
 
 const PKD_A = '0x' + '11'.repeat(32);
@@ -136,6 +138,36 @@ describe('assertSpliceFinalized (CAN-007)', () => {
     })).toThrow(/does not match the channel funding transaction/);
   });
 
+  it('CAN-019: rejects a finalization whose totals or split differ from the signed proposal', () => {
+    const expectations = new Map<string, SpliceExpectation>([[
+      SPLICE_ID,
+      { channelId: CHANNEL_ID, totalValue: 100n, balances: { A: 60n, B: 40n } },
+    ]]);
+    expect(() => assertSpliceFinalized(acceptances, {
+      spliceId: SPLICE_ID,
+      txId: '0xdeadbeef',
+      channel: channel({ totalValue: 100n, balances: { A: 50n, B: 50n } }),
+    }, expectations)).toThrow(/balances do not match/);
+    expect(() => assertSpliceFinalized(acceptances, {
+      spliceId: SPLICE_ID,
+      txId: '0xdeadbeef',
+      channel: channel({ totalValue: 90n, balances: { A: 60n, B: 40n } }),
+    }, expectations)).toThrow(/totalValue does not match/);
+    expect(() => assertSpliceFinalized(acceptances, {
+      spliceId: SPLICE_ID,
+      txId: '0xdeadbeef',
+      channel: channel({ totalValue: 100n, balances: { A: 60n, B: 40n } }),
+    }, expectations)).not.toThrow();
+  });
+
+  it('CAN-019: requires a locally signed expectation for a finalized splice', () => {
+    expect(() => assertSpliceFinalized(acceptances, {
+      spliceId: SPLICE_ID,
+      txId: '0xdeadbeef',
+      channel: channel({ totalValue: 100n, balances: { A: 60n, B: 40n } }),
+    }, new Map())).toThrow(/no locally signed expectation/);
+  });
+
   it('rejects a finalization with no channel or no spliceId', () => {
     expect(() => assertSpliceFinalized(acceptances, { spliceId: SPLICE_ID }))
       .toThrow(/without a channel/);
@@ -224,6 +256,37 @@ describe('assertVcFinalized (CAN-007)', () => {
     })).toThrow(/does not contain/);
   });
 
+  it('CAN-019: rejects a vc-open whose finalized balances differ from the signed proposal', () => {
+    expect(() => assertVcFinalized({
+      acceptances: pending({
+        expected: { totalValue: 100n, balances: { A: 60n, B: 40n } },
+      }),
+      factories: new Map([['factory-1', factory()]]),
+      hasChannel: () => false,
+      payload: {
+        kind: 'vc-open',
+        factory: factory({ currentSequence: 5, virtualChannels: [{ channelId: 'vc-1' } as never] }),
+        channel: { channelId: 'vc-1', totalValue: 90n, balances: { A: 50n, B: 40n } } as unknown as OmniaChannel,
+      },
+    })).toThrow(/totalValue does not match/);
+  });
+
+  it('CAN-019: rejects a vc-close whose factory allocations differ from the signed plan', () => {
+    expect(() => assertVcFinalized({
+      acceptances: pending({
+        kind: 'vc-close',
+        expected: { factoryAllocations: { A: 60n, B: 40n } },
+      }),
+      factories: new Map([['factory-1', factory({ allocations: { A: 60n, B: 40n } } as never)]]),
+      hasChannel: () => true,
+      payload: {
+        kind: 'vc-close',
+        factory: factory({ currentSequence: 5, allocations: { A: 10n, B: 90n } } as never),
+        channelId: 'vc-1',
+      },
+    })).toThrow(/factory allocations do not match/);
+  });
+
   it('rejects a vc-close for a channel the host does not have', () => {
     expect(() => assertVcFinalized({
       acceptances: pending({ kind: 'vc-close' }),
@@ -251,5 +314,35 @@ describe('assertFactoryCommitment (CAN-018)', () => {
   it('rejects a proposal with no commitment or no rebuildable transaction', () => {
     expect(() => assertFactoryCommitment(undefined, commitment)).toThrow(/no pending commitment/);
     expect(() => assertFactoryCommitment(commitment, undefined)).toThrow(/could not be rebuilt/);
+  });
+});
+
+
+// ─── CAN-019: factory close settlement ──────────────────────────────────────
+
+describe('assertFactoryCloseSettlement (CAN-019)', () => {
+  it('accepts a close whose allocations match the local factory', () => {
+    expect(() => assertFactoryCloseSettlement(
+      factory({ allocations: { A: 60n, B: 40n } } as never),
+      { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 60n, B: 40n } },
+    )).not.toThrow();
+  });
+
+  it('rejects a close with different allocations', () => {
+    expect(() => assertFactoryCloseSettlement(
+      factory({ allocations: { A: 60n, B: 40n } } as never),
+      { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 10n, B: 90n } },
+    )).toThrow(/allocations do not match/);
+  });
+
+  it('rejects a close with no settlement tx or allocations', () => {
+    expect(() => assertFactoryCloseSettlement(
+      factory({ allocations: { A: 60n, B: 40n } } as never),
+      { factoryId: 'factory-1', txId: '', finalAllocations: { A: 60n, B: 40n } },
+    )).toThrow(/settlement txId/);
+    expect(() => assertFactoryCloseSettlement(
+      factory({ allocations: { A: 60n, B: 40n } } as never),
+      { factoryId: 'factory-1', txId: '0xabc' },
+    )).toThrow(/final allocations/);
   });
 });

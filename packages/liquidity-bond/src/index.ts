@@ -15,6 +15,11 @@ export type {
   EarnableFeeSource,
   FeeProofVerifier,
   FeePayoutRef,
+  PayoutSettlementStatus,
+  PayoutSettlementEvidence,
+  PayoutSettlementBinding,
+  PayoutSettlementVerifier,
+  SettledFeePayout,
   LiquidityBondVerifyResult,
   ProviderBondRef,
   LiquidityLockTerms,
@@ -174,7 +179,14 @@ export {
   sumFeesForPosition,
   sumLpFeesForPosition,
   verifyLiquidityFeeRecord,
+  isEarnableSource,
+  computeFeePayoutKey,
+  getSettledFeePayout,
+  registerSettledFeePayout,
+  assertSettledFeePayoutUsable,
+  consumeSettledFeePayout,
 } from './fees.js';
+export type { RegisterSettledFeePayoutParams } from './fees.js';
 
 export {
   createWithdrawalIntent,

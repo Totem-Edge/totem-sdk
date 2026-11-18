@@ -1,8 +1,13 @@
 import type {
   EarnableFeeSource,
+  FeePayoutRef,
+  LiquidityBondRegistryState,
   LiquidityFeeRecord,
   LiquidityBondVerifyResult,
+  PayoutSettlementEvidence,
+  PayoutSettlementVerifier,
   RecordLiquidityFeeParams,
+  SettledFeePayout,
   VerifyLiquidityFeeRecordParams,
 } from './types.js';
 
@@ -102,4 +107,170 @@ export async function verifyLiquidityFeeRecord(
   }
 
   return { ok: true, code: 'OK' };
+}
+
+/** Stable key for a payout reference (payoutId + nonce are both required). */
+export function computeFeePayoutKey(ref: Pick<FeePayoutRef, 'payoutId' | 'nonce'>): string {
+  return `${ref.payoutId}:${ref.nonce}`;
+}
+
+/** Look up a registered settled payout without consuming it. */
+export function getSettledFeePayout(
+  registry: LiquidityBondRegistryState,
+  ref: Pick<FeePayoutRef, 'payoutId' | 'nonce'>,
+): SettledFeePayout | undefined {
+  return registry.feePayouts?.[computeFeePayoutKey(ref)];
+}
+
+export interface RegisterSettledFeePayoutParams {
+  payoutRef: FeePayoutRef;
+  positionId: string;
+  poolId: string;
+  /** Amount actually paid to the LP, in atoms. */
+  amount: bigint;
+  settlement: PayoutSettlementEvidence;
+  /**
+   * Required: verifies the settlement against a real evidence source. Absent or
+   * failing verification means the payout is never recorded (fail closed).
+   */
+  verifier: PayoutSettlementVerifier;
+}
+
+/**
+ * Record a payout as settled, bound to the exact position, pool, LP and amount.
+ * Registration requires a live settlement verifier: an unverified reference can
+ * never become a payout that a fee claim/compound is allowed to release. The
+ * reference is unique — a reused payoutId/nonce is rejected.
+ */
+export async function registerSettledFeePayout(
+  registry: LiquidityBondRegistryState,
+  params: RegisterSettledFeePayoutParams,
+): Promise<{ registry: LiquidityBondRegistryState; payout: SettledFeePayout }> {
+  const { payoutRef, settlement, verifier } = params;
+  if (!payoutRef?.payoutId || !payoutRef?.nonce) {
+    throw new Error('a settled fee payout requires both a payoutId and a nonce');
+  }
+  if (!settlement || typeof settlement.evidenceRef !== 'string' || settlement.evidenceRef.length === 0) {
+    throw new Error('a settled fee payout requires a settlement evidenceRef');
+  }
+  if (!verifier || typeof verifier.verifySettlement !== 'function') {
+    throw new Error('a settled fee payout requires a settlement verifier (no unverified payout may back a claim)');
+  }
+  const position = registry.positions[params.positionId];
+  if (!position) {
+    throw new Error(`position ${params.positionId} is not registered`);
+  }
+  if (position.poolId !== params.poolId) {
+    throw new Error(`position ${params.positionId} does not belong to pool ${params.poolId}`);
+  }
+  if (params.amount <= 0n) {
+    throw new Error('a settled fee payout amount must be positive');
+  }
+
+  const key = computeFeePayoutKey(payoutRef);
+  if (registry.feePayouts?.[key]) {
+    throw new Error(`payoutRef ${key} is already registered as a settled payout`);
+  }
+  // One settlement can back exactly one payout: replaying the same evidence
+  // under a fresh payoutId/nonce would mint a second entitlement.
+  const replay = Object.values(registry.feePayouts ?? {}).find(
+    (existing) => existing.evidenceRef === settlement.evidenceRef,
+  );
+  if (replay) {
+    throw new Error(
+      `settlement evidence ${settlement.evidenceRef} already backs payoutRef ${computeFeePayoutKey(replay)}`,
+    );
+  }
+
+  const verdict = await verifier.verifySettlement({
+    settlement,
+    poolId: params.poolId,
+    positionId: params.positionId,
+    recipientAddress: position.lpAddress,
+    amount: params.amount,
+  });
+  if (!verdict || verdict.valid !== true) {
+    throw new Error(`fee payout settlement not verified: ${verdict?.reason ?? 'unknown'}`);
+  }
+
+  const payout: SettledFeePayout = {
+    payoutId: payoutRef.payoutId,
+    nonce: payoutRef.nonce,
+    kind: payoutRef.kind,
+    positionId: params.positionId,
+    poolId: params.poolId,
+    amount: params.amount,
+    evidenceRef: settlement.evidenceRef,
+    settlementStatus: settlement.status,
+    settledAt: Date.now(),
+  };
+  return {
+    payout,
+    registry: {
+      ...registry,
+      feePayouts: { ...(registry.feePayouts ?? {}), [key]: payout },
+      updatedAt: Date.now(),
+    },
+  };
+}
+
+/**
+ * Validate that a payout reference is a known, unconsumed, correctly bound
+ * settled payout — without consuming it. Unknown, mismatched and reused
+ * references are rejected.
+ */
+export function assertSettledFeePayoutUsable(
+  registry: LiquidityBondRegistryState,
+  ref: FeePayoutRef,
+  binding: { positionId: string; poolId: string },
+): SettledFeePayout {
+  const key = computeFeePayoutKey(ref);
+  const payout = registry.feePayouts?.[key];
+  if (!payout) {
+    throw new Error(`unknown payoutRef ${key}: no settled payout is recorded for this reference`);
+  }
+  if (payout.kind !== ref.kind) {
+    throw new Error(`payoutRef ${key} kind ${ref.kind} does not match the settled payout kind ${payout.kind}`);
+  }
+  if (payout.positionId !== binding.positionId) {
+    throw new Error(`payoutRef ${key} is bound to position ${payout.positionId}, not ${binding.positionId}`);
+  }
+  if (payout.poolId !== binding.poolId) {
+    throw new Error(`payoutRef ${key} is bound to pool ${payout.poolId}, not ${binding.poolId}`);
+  }
+  if (payout.consumedBy || payout.consumedAt !== undefined) {
+    throw new Error(`payoutRef ${key} has already been consumed by ${payout.consumedBy ?? 'an earlier claim'}`);
+  }
+  return payout;
+}
+
+/**
+ * Consume a settled payout for a fee claim/compound. Unknown references,
+ * references bound to another position/pool, and already-consumed references
+ * are rejected — a payout is single-use and cannot release fees twice.
+ */
+export function consumeSettledFeePayout(
+  registry: LiquidityBondRegistryState,
+  ref: FeePayoutRef,
+  binding: { positionId: string; poolId: string; amount: bigint; consumedBy: string },
+): LiquidityBondRegistryState {
+  const key = computeFeePayoutKey(ref);
+  const payout = assertSettledFeePayoutUsable(registry, ref, binding);
+  if (binding.amount <= 0n) {
+    throw new Error('a claim or compound must release a positive amount');
+  }
+  if (binding.amount > payout.amount) {
+    throw new Error(`claim amount ${binding.amount} exceeds settled payout amount ${payout.amount}`);
+  }
+
+  const consumed: SettledFeePayout = {
+    ...payout,
+    consumedBy: binding.consumedBy,
+    consumedAt: Date.now(),
+  };
+  return {
+    ...registry,
+    feePayouts: { ...(registry.feePayouts ?? {}), [key]: consumed },
+    updatedAt: Date.now(),
+  };
 }

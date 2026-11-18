@@ -1,7 +1,20 @@
-import { OmniaVtxoPool, CreatePoolParams, VtxoPoolPolicy } from './types.js';
+import {
+  OmniaVtxo,
+  OmniaVtxoPool,
+  CreatePoolParams,
+  VtxoPoolPolicy,
+  VtxoPoolMember,
+  VtxoEpochRoot,
+  VtxoProof,
+  VtxoId,
+} from './types.js';
 import { VtxoPoolCapacityError, VtxoPolicyError } from './errors.js';
 import { DEFAULT_POLICY, EMPTY_TREE_ROOT, EPOCH_ZERO } from './constants.js';
-import { computePoolId } from './commitment.js';
+import {
+  computePoolId,
+  buildVtxoProofSetFromMembers,
+  vtxoCommitmentMember,
+} from './commitment.js';
 
 export function createPool(params: CreatePoolParams, now: number): OmniaVtxoPool {
   const policy: VtxoPoolPolicy = {
@@ -30,6 +43,8 @@ export function createPool(params: CreatePoolParams, now: number): OmniaVtxoPool
     availableCapacity: params.totalCapacity,
     epoch: EPOCH_ZERO,
     commitmentRoot: EMPTY_TREE_ROOT,
+    members: [],
+    epochRoots: [],
     createdAt: now,
     policy,
   };
@@ -69,4 +84,117 @@ export function advancePoolEpoch(pool: OmniaVtxoPool, newEpoch: number): OmniaVt
     );
   }
   return { ...pool, epoch: newEpoch };
+}
+
+export interface CommitPoolMembersOptions {
+  /** Epoch for the new batch. Must be strictly greater than `pool.epoch`. Defaults to `pool.epoch + 1`. */
+  epoch?: number;
+}
+
+export interface CommitPoolMembersResult {
+  pool: OmniaVtxoPool;
+  /** Proofs for every member of the pool set, rebuilt against the new root. */
+  proofs: Record<VtxoId, VtxoProof>;
+}
+
+/**
+ * Append VTXOs to the pool's membership set and rebuild the commitment tree
+ * (OMN-002).
+ *
+ * The pool's `commitmentRoot` commits to the whole set (`members`), not to a
+ * single leaf: appending a member never removes an earlier member, and the
+ * previous root is retained in `epochRoots` so proofs issued in earlier epochs
+ * stay verifiable. Every batch advances `epoch`; `batchId` tracks the root.
+ *
+ * Idempotent for a member already present with the same leaf; a conflicting
+ * leaf for an existing `vtxoId` is rejected.
+ */
+export function commitPoolMembers(
+  pool: OmniaVtxoPool,
+  vtxos: readonly OmniaVtxo[],
+  options: CommitPoolMembersOptions = {},
+): CommitPoolMembersResult {
+  if (vtxos.length === 0) {
+    throw new VtxoPolicyError('commitPoolMembers requires at least one VTXO');
+  }
+  const epoch = options.epoch ?? pool.epoch + 1;
+  if (!Number.isInteger(epoch) || epoch <= pool.epoch) {
+    throw new VtxoPolicyError(
+      `Batch epoch ${epoch} must be an integer greater than the pool epoch ${pool.epoch}`
+    );
+  }
+
+  const members: VtxoPoolMember[] = [...(pool.members ?? [])];
+  const byId = new Map(members.map((member) => [member.vtxoId, member]));
+  const incoming: VtxoPoolMember[] = [];
+
+  for (const vtxo of vtxos) {
+    if (vtxo.poolId !== pool.poolId) {
+      throw new VtxoPolicyError(
+        `VTXO ${vtxo.vtxoId} belongs to pool ${vtxo.poolId}, not ${pool.poolId}`
+      );
+    }
+    if (vtxo.tokenId !== pool.tokenId) {
+      throw new VtxoPolicyError(
+        `VTXO ${vtxo.vtxoId} token ${vtxo.tokenId} does not match pool token ${pool.tokenId}`
+      );
+    }
+    const member = vtxoCommitmentMember(vtxo);
+    if (member.epoch !== epoch) {
+      throw new VtxoPolicyError(
+        `VTXO ${vtxo.vtxoId} epoch ${member.epoch} does not match batch epoch ${epoch}`
+      );
+    }
+    const existing = byId.get(member.vtxoId);
+    if (existing) {
+      if (existing.leaf !== member.leaf) {
+        throw new VtxoPolicyError(
+          `VTXO ${member.vtxoId} already committed with a different leaf`
+        );
+      }
+      continue;
+    }
+    byId.set(member.vtxoId, member);
+    members.push(member);
+    incoming.push(member);
+  }
+
+  const { root, proofs } = buildVtxoProofSetFromMembers(members);
+  const epochRoots: VtxoEpochRoot[] = [...(pool.epochRoots ?? [])];
+  const previous = epochRoots.find((entry) => entry.epoch === epoch);
+  if (previous && previous.root !== root) {
+    throw new VtxoPolicyError(`Conflicting root for epoch ${epoch}`);
+  }
+  if (!previous) {
+    epochRoots.push({
+      epoch,
+      root,
+      batchId: root,
+      vtxoIds: incoming.map((member) => member.vtxoId),
+    });
+  }
+
+  return {
+    pool: {
+      ...pool,
+      epoch,
+      commitmentRoot: root,
+      members,
+      epochRoots,
+    },
+    proofs,
+  };
+}
+
+/** Every root the pool has published (current + historical epochs). */
+export function poolPublishedRoots(pool: OmniaVtxoPool): string[] {
+  const roots = new Set<string>();
+  if (pool.commitmentRoot) roots.add(pool.commitmentRoot);
+  for (const entry of pool.epochRoots ?? []) roots.add(entry.root);
+  return [...roots];
+}
+
+/** The published epoch record for `epoch`, if the pool has one. */
+export function poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined {
+  return (pool.epochRoots ?? []).find((entry) => entry.epoch === epoch);
 }

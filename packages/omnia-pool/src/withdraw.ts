@@ -131,10 +131,96 @@ function addressFromPkDigestHex(pkDigestHex: string): string {
 }
 
 /**
+ * Parse the settlement's bound amount. Strings are accepted because finality
+ * evidence often arrives over JSON RPC; anything that is not an integer atom
+ * amount is rejected (fail closed).
+ */
+function settlementAmount(settlement: import('./types.js').PayoutFinality): bigint {
+  try {
+    const amount = BigInt(settlement.amount);
+    if (amount < 0n) throw new Error('negative');
+    return amount;
+  } catch {
+    throw new Error(`payout settlement amount ${String(settlement.amount)} is not a valid atom amount`);
+  }
+}
+
+/**
+ * Local binding check: the evidence must name this exact payout before it is
+ * even handed to the verifier. This catches cross-withdrawal / cross-pool /
+ * redirected-destination evidence without trusting the verifier's coverage.
+ */
+function assertSettlementBinding(params: ExecutePoolPayoutParams): void {
+  const settlement = params.settlement!;
+  if (!settlement.evidenceRef) {
+    throw new Error('payout settlement evidenceRef is required');
+  }
+  if (settlement.withdrawalId !== params.intent.withdrawalId) {
+    throw new Error(
+      `payout settlement is for withdrawal ${settlement.withdrawalId}, not ${params.intent.withdrawalId}`,
+    );
+  }
+  if (settlement.poolId !== params.pool.poolId) {
+    throw new Error(`payout settlement is for pool ${settlement.poolId}, not ${params.pool.poolId}`);
+  }
+  if (settlement.positionId !== params.position.positionId) {
+    throw new Error(
+      `payout settlement is for position ${settlement.positionId}, not ${params.position.positionId}`,
+    );
+  }
+  if (settlement.recipientAddress !== params.recipientAddress) {
+    throw new Error(
+      `payout settlement pays ${settlement.recipientAddress}, not the requested recipient ${params.recipientAddress}`,
+    );
+  }
+  const amount = settlementAmount(settlement);
+  if (amount !== params.intent.amount) {
+    throw new Error(`payout settlement amount ${amount} does not match the withdrawal amount ${params.intent.amount}`);
+  }
+  // The withdrawal intent fixes who may be paid; evidence for a redirected
+  // payout must not settle it.
+  if (params.recipientAddress !== params.intent.ownerAddress) {
+    throw new Error(
+      `payout recipient ${params.recipientAddress} does not match the withdrawal intent owner ${params.intent.ownerAddress}`,
+    );
+  }
+}
+
+/**
+ * Verify a payout's finality against a real evidence source. Returns normally
+ * only when the caller-supplied verifier confirms the settled payout; throws
+ * (leaving the registry untouched) otherwise. No settlement path bypasses this.
+ */
+async function verifyPayoutFinality(params: ExecutePoolPayoutParams): Promise<void> {
+  const verifier = params.settlementVerifier ?? params.ctx?.settlementVerifier;
+  if (!verifier || typeof verifier.verifySettlement !== 'function') {
+    throw new Error(
+      'executePoolPayout refuses to settle without a settlement verifier (finality evidence cannot be self-asserted)',
+    );
+  }
+  assertSettlementBinding(params);
+  const verdict = await verifier.verifySettlement({
+    settlement: params.settlement!,
+    poolId: params.pool.poolId,
+    positionId: params.position.positionId,
+    withdrawalId: params.intent.withdrawalId,
+    recipientAddress: params.recipientAddress,
+    amount: params.intent.amount,
+  });
+  if (!verdict || verdict.valid !== true) {
+    throw new Error(`payout settlement not verified: ${verdict?.reason ?? 'unknown'}`);
+  }
+}
+
+/**
  * Execute a payout for an approved withdrawal intent.
  * For VTXO-backed positions this creates an exit draft; for channel-backed
  * positions it requests a settlement payload. Pure-record positions return the
  * intent only and expect the caller to handle settlement externally.
+ *
+ * RFC-048 §3.3: a prepared draft is not a payout. When `settlement` is supplied
+ * it is verified *before* any execution side effect; only verified evidence may
+ * mark the intent settled, decrement LP capital and consume the receipt.
  */
 export async function executePoolPayout(
   params: ExecutePoolPayoutParams,
@@ -148,6 +234,12 @@ export async function executePoolPayout(
 }> {
   if (params.intent.status !== 'approved') {
     throw new Error('withdrawal intent must be approved before payout');
+  }
+
+  // Verify finality first: a forged or unverifiable settlement must not reach
+  // any channel/VTXO side effect, let alone the accounting mutation below.
+  if (params.settlement) {
+    await verifyPayoutFinality(params);
   }
 
   let execution: unknown;

@@ -19,7 +19,7 @@ function setup() {
 describe('verifyVtxo', () => {
   it('returns valid for a well-formed vtxo', () => {
     const { vtxo } = setup();
-    const result = verifyVtxo(vtxo);
+    const result = verifyVtxo(vtxo, { expectedRoot: vtxo.proof.root });
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -27,7 +27,7 @@ describe('verifyVtxo', () => {
   it('returns invalid for zero amount', () => {
     const { vtxo } = setup();
     const bad: OmniaVtxo = { ...vtxo, amount: BigInt(0) };
-    const result = verifyVtxo(bad);
+    const result = verifyVtxo(bad, { expectedRoot: bad.proof.root });
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('Amount'))).toBe(true);
   });
@@ -36,13 +36,13 @@ describe('verifyVtxo', () => {
     const { vtxo } = setup();
     const withExpiry: OmniaVtxo = { ...vtxo, expiresAt: 1 };
     expect(computeVtxoLeaf(withExpiry)).toBe(computeVtxoLeaf(vtxo));
-    expect(verifyVtxo(withExpiry).valid).toBe(true);
+    expect(verifyVtxo(withExpiry, { expectedRoot: withExpiry.proof.root }).valid).toBe(true);
   });
 
   it('returns invalid for missing owner', () => {
     const { vtxo } = setup();
     const bad: OmniaVtxo = { ...vtxo, owner: '' };
-    const result = verifyVtxo(bad);
+    const result = verifyVtxo(bad, { expectedRoot: bad.proof.root });
     expect(result.valid).toBe(false);
   });
 });
