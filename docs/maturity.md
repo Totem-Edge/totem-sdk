@@ -36,33 +36,33 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 
 | Package | Version | Level | Support tier | Directory |
 |---|---|---|---|---|
-| `@totemsdk/core` | 1.5.0 | v1 | 0 | `packages/core` |
+| `@totemsdk/core` | 1.6.0 | v1 | 0 | `packages/core` |
 | `@totemsdk/core-wasm` | 1.0.6 | v1 | 0 | `packages/core-wasm` |
-| `@totemsdk/kissvm` | 1.4.0 | rc | 0 | `packages/kissvm` |
+| `@totemsdk/kissvm` | 1.4.1 | rc | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.3.1 | v1 | 1 | `packages/edge-mqtt` |
 | `@totemsdk/act-core` | 0.6.0 | rc | 1 | `packages/act-core` |
 | `@totemsdk/lookup-client` | 0.4.1 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
-| `@totemsdk/omnia` | 2.4.4 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.13.6 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia` | 3.0.0 | rc | 1 | `packages/omnia` |
+| `@totemsdk/omnia-host` | 0.14.0 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.3 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
 | `@totemsdk/agent-policy` | 0.5.0 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
-| `@totemsdk/chain-provider` | 0.3.3 | rc | 2 | `packages/chain-provider` |
+| `@totemsdk/chain-provider` | 0.4.0 | rc | 2 | `packages/chain-provider` |
 | `@totemsdk/edge` | 1.6.0 | rc | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.1.1 | rc | 2 | `packages/identity` |
-| `@totemsdk/liquidity-bond` | 0.3.2 | rc | 2 | `packages/liquidity-bond` |
+| `@totemsdk/liquidity-bond` | 0.3.3 | rc | 2 | `packages/liquidity-bond` |
 | `@totemsdk/manifest` | 2.2.0 | rc | 2 | `packages/manifest` |
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.7.2 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.5.5 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.2 | rc | 2 | `packages/omnia-router` |
-| `@totemsdk/omnia-splice` | 0.3.3 | rc | 2 | `packages/omnia-splice` |
-| `@totemsdk/omnia-vtxo` | 0.8.1 | rc | 2 | `packages/omnia-vtxo` |
+| `@totemsdk/omnia-splice` | 0.3.4 | rc | 2 | `packages/omnia-splice` |
+| `@totemsdk/omnia-vtxo` | 0.8.2 | rc | 2 | `packages/omnia-vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
@@ -102,7 +102,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/recursive-mast` | 0.3.2 | rc | outside | `packages/recursive-mast` |
 | `@totemsdk/se-server` | 0.5.3 | rc | outside | `packages/se-server` |
 | `@totemsdk/server` | 1.0.5 | rc | outside | `packages/server` |
-| `@totemsdk/statechain` | 0.3.2 | rc | outside | `packages/statechain` |
+| `@totemsdk/statechain` | 0.3.3 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.2 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
 | `@totemsdk/edge-mesh` | 0.2.0 | beta | outside | `packages/edge-mesh` |

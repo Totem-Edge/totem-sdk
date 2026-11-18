@@ -1,8 +1,8 @@
 # Canary findings
 
-Generated 2026-11-18T04:08:53.384Z. 42 findings, 25 open.
+Generated 2026-11-18T06:04:42.000Z. 44 findings, 25 open.
 
-sdk-defect: 36 · environment-blocked: 1 · sdk-gap: 5
+sdk-defect: 38 · environment-blocked: 1 · sdk-gap: 5
 
 | id | severity | kind | status | packages | title |
 |---|---|---|---|---|---|
@@ -11,6 +11,7 @@ sdk-defect: 36 · environment-blocked: 1 · sdk-gap: 5
 | `CAN-010` | critical | sdk-defect | in-progress | `@totemsdk/omnia-host` | FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest |
 | `CAN-018` | critical | sdk-defect | in-progress | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Factory proposal still signs a peer-controlled commitment |
 | `OMN-001` → `CAN-019` | critical | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
+| `CAN-024` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/chain-provider`, `@totemsdk/core` | Omnia writes atom amounts with MiniNumber scale 0, encoding channel values 10^44 times too large |
 | `OMN-003` | critical | sdk-defect | open | `@totemsdk/omnia-vtxo` | A transferred VTXO keeps the previous owner's exit entitlement |
 | `OMN-008` | critical | sdk-defect | open | `@totemsdk/omnia-vtxo` | Vesting policy never enforces the vested amount before the end block |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
@@ -24,6 +25,7 @@ sdk-defect: 36 · environment-blocked: 1 · sdk-gap: 5
 | `CAN-019` | high | sdk-defect | open | `@totemsdk/omnia-host` | Finalization guards validate identifiers, not the resulting state |
 | `CAN-020` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | Factory opening requests the funding signature before the proposal exists (regression from CAN-010) |
 | `CAN-023` | high | environment-blocked | in-progress | `hawk-node` | Hawk 0.3.0 cannot complete mainnet IBD: block proofs rejected, blocks skipped, tip parks ~1,000 behind |
+| `CAN-025` | high | sdk-defect | fixed | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-host` | Liquidity-bond passes an atom count as the verifier's decimal claimedAmount, rejecting every pool deposit |
 | `OMN-002` | high | sdk-defect | open | `@totemsdk/omnia-vtxo` | mintVtxo replaces the pool commitment root with a single-leaf tree |
 | `OMN-004` | high | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/omnia-host` | Pool payout settlement is an unverified caller assertion |
 | `OMN-005` | high | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | recordPoolFee trusts a caller-supplied `verified` flag |

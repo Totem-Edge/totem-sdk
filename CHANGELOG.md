@@ -7,42 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Released 2026-11-17 — SDK train
+### Released 2026-11-18 — amount-unit train
 
-Twenty packages are released together so the factory/approval hardening and the
-audit fixes (CAN-008..CAN-017) reach npm. All are `rc` or below except `core` and
-`core-wasm` (`v1`), so they publish to `next`/`alpha`, not `latest`.
+Nine packages carry the corrected Minima amount contract (CAN-024/CAN-025).
+This is a wire- and state-format break: Omnia 3.0.0 supersedes 2.x.
 
 | Package | Version | Change |
 |---|---|---|
-| `@totemsdk/core` | 1.5.0 | new `buildHTLCScript`; time-bounded HTLC claim branch; canonical contract addresses |
-| `@totemsdk/core-wasm` | 1.0.6 | reproducible, digest-pinned WASM artifacts |
-| `@totemsdk/kissvm` | 1.4.0 | HTLC/channel VM templates; `act-core` rename (export surface unchanged) |
-| `@totemsdk/chain-provider` | 0.3.3 | node-native decimal amounts preserved across every provider; unit contract documented; lookup identity/ticket fixes |
-| `@totemsdk/manifest` | 2.2.0 | `computeManifestContentId`; proofs bind to manifest content, not just version |
-| `@totemsdk/tx-builder` | 0.3.3 | audit fixes (CAN-008..CAN-017) |
-| `@totemsdk/wots-lease` | 1.0.3 | signature/key-state binding fix |
-| `@totemsdk/omnia` | 2.4.4 | atom-based channel maths with `MiniNumber(atoms, scale 44)` wire encoding; funding-change owner guard; remaining audit fixes |
-| `@totemsdk/omnia-factory` | 0.7.2 | one plan/one id, proposal-first opening, finalized-transition verification |
-| `@totemsdk/omnia-host` | 0.13.6 | factory protocol unification; default-deny peer signing authorization |
-| `@totemsdk/omnia-pool` | 0.5.5 | signing/settlement fixes |
-| `@totemsdk/omnia-relay` | 0.7.2 | durable forwarding audit fixes |
-| `@totemsdk/omnia-router` | 0.4.2 | signature/proposal binding audit fixes |
-| `@totemsdk/omnia-splice` | 0.3.3 | splice confirmation and ambiguous-successor fixes |
-| `@totemsdk/realtime` | 0.2.3 | portfolio normalisation/stream fixes |
-| `@totemsdk/server` | 1.0.5 | `getBalance` uses the canonical `/v1/portfolio` endpoint |
-| `@totemsdk/qvac` | 0.2.1 | vendored SDK type surface is a real module |
-| `@totemsdk/edge-ble` | 0.3.0 | `BleMeshLink` over `BleTransportPort` |
-| `@totemsdk/edge-mesh` | 0.2.0 | typed errors, framing fuzz, integration evidence |
-| `@totemsdk/edge-can` | 0.3.1 | sidecar `read(2)`/`sockaddr_can` fixes |
+| `@totemsdk/core` | 1.6.0 | `amountToAtoms` / `atomsToAmount` / `unscaledToAmount` / `coinAmountAtoms` |
+| `@totemsdk/chain-provider` | 0.4.0 | every provider returns node-native decimal amounts; `Coin.amount` contract documented |
+| `@totemsdk/kissvm` | 1.4.1 | `TxContext` amounts accept decimal text or a number (no `Number()` truncation) |
+| `@totemsdk/omnia` | 3.0.0 | atoms + `MiniNumber(scale 44)` coin amounts; scale-44 value state ports bound in the state commitment; Rust/WASM mirror uses arbitrary-precision integers |
+| `@totemsdk/omnia-host` | 0.14.0 | JSON-RPC takes and returns decimal amounts for channels, splice, factory, pool, VTXO and routes |
+| `@totemsdk/liquidity-bond` | 0.3.3 | pool funding verification passes decimal `claimedAmount` |
+| `@totemsdk/statechain` | 0.3.3 | provider coin amount converted to atoms at the boundary |
+| `@totemsdk/omnia-splice` | 0.3.4 | successor amount match in atoms |
+| `@totemsdk/omnia-vtxo` | 0.8.2 | pool funding amount compared exactly |
 
-Compatibility impact: `@totemsdk/core` 1.5.0 changes the HTLC locking script and
-the contract-address derivation for a given parameter set (security fix). HTLC
-coins funded with 1.4.x scripts must be spent with 1.4.x; new HTLCs should use
-1.5.0. `@totemsdk/omnia-host` 0.13.6 rejects peer-initiated factory signing by
-default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt in.
+Compatibility impact: `@totemsdk/omnia` 3.0.0 changes the signed state and
+transaction encoding. Coin amounts are written as
+`MiniNumber(unscaled = atoms, scale = 44)`, value-bearing program state ports use
+the same scale, and the scale is included in the state commitment. Signed
+states, close packages and transactions produced by 2.x are not compatible;
+there is no migration because the SDK has no production users yet.
+`@totemsdk/omnia-host` 0.14.0 changes every JSON-RPC amount from integer atoms to
+decimal MINIMA/token text, in both requests and responses.
+`@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 RPC-only normalisation so all
+providers share the node's unit.
 
-### Fixed
+#### Fixed
 
 - **One amount contract, end to end.** Minima has exactly one amount type,
   `MiniNumber`. JSON reports it as decimal MINIMA text (`"0.2"`); the binary
@@ -63,6 +56,44 @@ default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt i
   across providers and packages. `liquidity-bond` now hands the chain verifier
   a decimal `claimedAmount` instead of an atom integer, which made every
   non-zero pool deposit fail the amount gate.
+
+  (CAN-024: scale-0 atom encoding; CAN-025: pool `claimedAmount` double
+  conversion.)
+
+### Released 2026-11-17 — SDK train
+
+Twenty packages are released together so the factory/approval hardening and the
+audit fixes (CAN-008..CAN-017) reach npm. All are `rc` or below except `core` and
+`core-wasm` (`v1`), so they publish to `next`/`alpha`, not `latest`.
+
+| Package | Version | Change |
+|---|---|---|
+| `@totemsdk/core` | 1.5.0 | new `buildHTLCScript`; time-bounded HTLC claim branch; canonical contract addresses |
+| `@totemsdk/core-wasm` | 1.0.6 | reproducible, digest-pinned WASM artifacts |
+| `@totemsdk/kissvm` | 1.4.0 | HTLC/channel VM templates; `act-core` rename (export surface unchanged) |
+| `@totemsdk/chain-provider` | 0.3.3 | decimal-MINIMA → atom normalisation at the adapter boundary; lookup identity/ticket fixes |
+| `@totemsdk/manifest` | 2.2.0 | `computeManifestContentId`; proofs bind to manifest content, not just version |
+| `@totemsdk/tx-builder` | 0.3.3 | audit fixes (CAN-008..CAN-017) |
+| `@totemsdk/wots-lease` | 1.0.3 | signature/key-state binding fix |
+| `@totemsdk/omnia` | 2.4.4 | funding-change owner guard; remaining audit fixes |
+| `@totemsdk/omnia-factory` | 0.7.2 | one plan/one id, proposal-first opening, finalized-transition verification |
+| `@totemsdk/omnia-host` | 0.13.6 | factory protocol unification; default-deny peer signing authorization |
+| `@totemsdk/omnia-pool` | 0.5.5 | signing/settlement fixes |
+| `@totemsdk/omnia-relay` | 0.7.2 | durable forwarding audit fixes |
+| `@totemsdk/omnia-router` | 0.4.2 | signature/proposal binding audit fixes |
+| `@totemsdk/omnia-splice` | 0.3.3 | splice confirmation and ambiguous-successor fixes |
+| `@totemsdk/realtime` | 0.2.3 | portfolio normalisation/stream fixes |
+| `@totemsdk/server` | 1.0.5 | `getBalance` uses the canonical `/v1/portfolio` endpoint |
+| `@totemsdk/qvac` | 0.2.1 | vendored SDK type surface is a real module |
+| `@totemsdk/edge-ble` | 0.3.0 | `BleMeshLink` over `BleTransportPort` |
+| `@totemsdk/edge-mesh` | 0.2.0 | typed errors, framing fuzz, integration evidence |
+| `@totemsdk/edge-can` | 0.3.1 | sidecar `read(2)`/`sockaddr_can` fixes |
+
+Compatibility impact: `@totemsdk/core` 1.5.0 changes the HTLC locking script and
+the contract-address derivation for a given parameter set (security fix). HTLC
+coins funded with 1.4.x scripts must be spent with 1.4.x; new HTLCs should use
+1.5.0. `@totemsdk/omnia-host` 0.13.6 rejects peer-initiated factory signing by
+default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt in.
 
 ### Added
 
