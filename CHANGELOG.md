@@ -26,7 +26,11 @@ This is a wire- and state-format break: Omnia 3.0.0 supersedes 2.x.
 | `@totemsdk/omnia-pool` | 0.6.0 | payout finality requires a verifier; fee records are verified and claims consume settled payouts |
 | `@totemsdk/omnia-relay` | 0.8.0 | durable backward-preimage duty across restart recovery |
 | `@totemsdk/tx-builder` | 0.3.4 | fractional MINIMA amounts parse correctly in conservation checks |
-| `@totemsdk/edge-adapters` | 0.4.1 | liquidity balances parse MINIMA at 44 decimals |
+| `@totemsdk/edge-adapters` | 0.4.2 | liquidity and L2 payment amounts parse MINIMA at 44 decimals; declares the core dependency |
+| `@totemsdk/server` | 1.0.6 | sendTransaction parses amounts at MiniNumber precision (44dp), not 8 |
+| `@totemsdk/realtime` | 0.2.4 | lookup portfolio balances parse MINIMA at 44 decimals |
+| `@totemsdk/agent-policy` | 0.5.1 | mandate spend accounting uses 44-decimal amounts |
+| `@totemsdk/tx-builder` | 0.3.5 | MINIMA precision is imported from core, not redeclared |
 | `@totemsdk/omnia-vtxo` | 0.8.2 | pool funding amount compared exactly |
 
 Compatibility impact: `@totemsdk/omnia` 3.0.0 changes the signed state and

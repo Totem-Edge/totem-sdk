@@ -50,7 +50,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.3 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
-| `@totemsdk/agent-policy` | 0.5.0 | rc | 2 | `packages/agent-policy` |
+| `@totemsdk/agent-policy` | 0.5.1 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/authority` | 1.0.2 | rc | 2 | `packages/authority` |
 | `@totemsdk/chain-provider` | 0.4.0 | rc | 2 | `packages/chain-provider` |
 | `@totemsdk/edge` | 1.6.0 | rc | 2 | `packages/edge` |
@@ -66,7 +66,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
-| `@totemsdk/tx-builder` | 0.3.4 | rc | 2 | `packages/tx-builder` |
+| `@totemsdk/tx-builder` | 0.3.5 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
 | `@totemsdk/edge-can` | 0.3.1 | v1 | outside | `packages/edge-can` |
@@ -81,7 +81,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
 | `@totemsdk/connect` | 3.1.3 | rc | outside | `packages/connect` |
-| `@totemsdk/edge-adapters` | 0.4.1 | rc | outside | `packages/edge-adapters` |
+| `@totemsdk/edge-adapters` | 0.4.2 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.3.0 | rc | outside | `packages/edge-ble` |
 | `@totemsdk/edge-email` | 0.2.2 | rc | outside | `packages/edge-email` |
@@ -98,10 +98,10 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/mcp-server` | 0.5.1 | rc | outside | `packages/mcp-server` |
 | `@totemsdk/pear` | 0.3.0 | rc | outside | `packages/pear` |
 | `@totemsdk/provider-bond` | 0.2.2 | rc | outside | `packages/provider-bond` |
-| `@totemsdk/realtime` | 0.2.3 | rc | outside | `packages/realtime` |
+| `@totemsdk/realtime` | 0.2.4 | rc | outside | `packages/realtime` |
 | `@totemsdk/recursive-mast` | 0.3.2 | rc | outside | `packages/recursive-mast` |
 | `@totemsdk/se-server` | 0.5.3 | rc | outside | `packages/se-server` |
-| `@totemsdk/server` | 1.0.5 | rc | outside | `packages/server` |
+| `@totemsdk/server` | 1.0.6 | rc | outside | `packages/server` |
 | `@totemsdk/statechain` | 0.3.3 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.2 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |

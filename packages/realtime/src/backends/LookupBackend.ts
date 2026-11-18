@@ -25,18 +25,15 @@
  * ```
  */
 
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
 import type { PortfolioEntry, PortfolioBackend, BackendUnsubscribe } from '../types.js';
 import { toPortfolioEntry } from '../normalize.js';
 
-const _SCALE = 100_000_000n;
 function _toScaled(s: string): bigint {
-  const [i, f = ''] = s.split('.');
-  return BigInt(i || '0') * _SCALE + BigInt(f.padEnd(8, '0').slice(0, 8));
+  return amountToAtoms(s);
 }
 function _fromScaled(n: bigint): string {
-  if (n === 0n) return '0';
-  const frac = (n % _SCALE).toString().padStart(8, '0').replace(/0+$/, '');
-  return frac ? `${n / _SCALE}.${frac}` : `${n / _SCALE}`;
+  return n < 0n ? `-${atomsToAmount(-n)}` : atomsToAmount(n);
 }
 
 /** Minimal coin shape returned by LookupClient.getCoins(). */

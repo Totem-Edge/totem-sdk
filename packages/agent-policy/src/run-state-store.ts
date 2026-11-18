@@ -8,6 +8,7 @@
  * a durable implementation (SQLite/Postgres) is a drop-in replacement.
  */
 
+import { amountToAtoms, atomsToAmount } from '@totemsdk/core';
 import type { CanonicalAgentAction } from './run.js';
 import {
   assertSettlementInstruction,
@@ -497,20 +498,17 @@ export class MemoryRunStateStore implements RunStateStore {
   }
 }
 
-/** Decimal-safe token/amount accumulation (whole + 8dp fractional). */
-const DECIMAL = /^[0-9]+(?:\.[0-9]+)?$/;
-const SCALE = 100_000_000n;
-
+/** Decimal-safe token/amount accumulation (MiniNumber precision, 44dp). */
 function toScaled(v: string): bigint {
-  if (!DECIMAL.test(v)) return 0n;
-  const [whole, frac] = v.split('.');
-  return BigInt(whole) * SCALE + BigInt((frac ?? '').padEnd(8, '0').slice(0, 8) || '0');
+  try {
+    return amountToAtoms(v);
+  } catch {
+    return 0n;
+  }
 }
 
 function fromScaled(n: bigint): string {
-  const whole = n / SCALE;
-  const frac = (n % SCALE).toString().padStart(8, '0');
-  return (whole.toString() + '.' + frac).replace(/\.?0+$/, '') || '0';
+  return n < 0n ? `-${atomsToAmount(-n)}` : atomsToAmount(n);
 }
 
 export function accumulate(a: string | undefined, b: string): string {

@@ -1,14 +1,9 @@
+import { amountToAtoms } from '@totemsdk/core';
 import {
   findRoute,
   buildPaymentRequest,
   executeMultiHopPayment,
 } from '@totemsdk/omnia-router';
-
-const _SCALE = 100_000_000n;
-function _toScaled(s: string): bigint {
-  const [i, f = ''] = s.split('.');
-  return BigInt(i || '0') * _SCALE + BigInt(f.padEnd(8, '0').slice(0, 8));
-}
 import type {
   ChannelGraph,
   ChannelOps,
@@ -67,7 +62,7 @@ export function createOmniaL2PaymentPort(config: OmniaL2PaymentPortConfig): Edge
     }): Promise<EdgeOperationResult<{ txpowId?: string }>> {
       try {
         const tokenId = params.tokenId ?? '0x00';
-        const amount = _toScaled(params.amount);
+        const amount = amountToAtoms(params.amount);
 
         const route = findRoute(
           config.graph,
