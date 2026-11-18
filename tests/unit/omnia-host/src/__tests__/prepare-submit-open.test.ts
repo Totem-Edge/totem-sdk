@@ -3,10 +3,14 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import { signRequestPayload } from '@totemsdk/omnia';
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-prepare-open-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
@@ -85,7 +89,7 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
     const channel = context.channels.get((submitted as any).channelId)!;
     expect(channel.status).toBe('active');
     expect(channel.fundingTxId).toBe('tx-funding');
-    expect(channel.balances).toEqual({ alice: 600n, bob: 400n });
+    expect(channel.balances).toEqual({ alice: atoms('600'), bob: atoms('400') });
     expect(submitTransaction).toHaveBeenCalledTimes(1);
   });
 });

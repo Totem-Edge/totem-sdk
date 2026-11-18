@@ -3,10 +3,14 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import { verifyChannelSignature } from '@totemsdk/omnia';
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-vtxo-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
@@ -32,6 +36,8 @@ describe('VTXO host API', () => {
       tokenId: '0x00',
       totalCapacity: '1000000',
       nonce: 'pool-1',
+      // Pool policy limits are internal atom quantities.
+      policy: { maxAmount: atoms('1000000') },
     });
     expect(created).toMatchObject({ success: true });
     const storePoolId = (created as any).pool.poolId;

@@ -827,6 +827,12 @@ Query spendable UTXOs. Requires `utxo_read` permission.
 
 All Omnia methods use the `totem_` prefix and camelCase naming. Every method that modifies state requires `origin` as the first parameter.
 
+**Amount units.** Every amount in a request or response is decimal MINIMA/token
+text — the same form the Minima node reports (`"0.2"`, `"1500"`). Omnia converts
+to integer atoms internally (1 MINIMA = 10^44 atoms) and serializes coin amounts
+as `MiniNumber(unscaled = atoms, scale = 44)`. Never send atom integers to these
+methods and never treat a returned amount as a JS number.
+
 ### 7.1 `totem_omniaGetChannels`
 
 List active payment channels.
@@ -850,9 +856,9 @@ List active payment channels.
     channelId: string;
     status: string;          // 'opening' | 'active' | 'closing_mutual' | 'closing_unilateral' | 'disputing' | 'closed' | 'spliced'
     tokenId: string;
-    totalValue: string;
-    localBalance: string;
-    remoteBalance: string;
+    totalValue: string;      // decimal MINIMA/token text, e.g. '1500'
+    localBalance: string;    // decimal text
+    remoteBalance: string;   // decimal text
     currentSequence: number;
   }>;
 }
@@ -869,8 +875,8 @@ Open a new eltoo payment channel with a remote party.
   params: {
     origin: string;
     remotePartyId: string;     // remote party's public key or identity
-    localAmount: string;       // decimal string
-    remoteAmount: string;      // decimal string
+    localAmount: string;       // decimal MINIMA/token text, e.g. '600'
+    remoteAmount: string;      // decimal MINIMA/token text, e.g. '400'
     tokenId?: string;          // defaults to '0x00'
     fundingCoinId: string;     // coin to fund the channel from
   }
@@ -899,7 +905,7 @@ Make a payment within an existing channel.
   params: {
     origin: string;
     channelId: string;
-    amount: string;        // decimal string
+    amount: string;        // decimal MINIMA/token text, e.g. '1.5'
     tokenId?: string;
     memo?: string;
   }
@@ -912,8 +918,8 @@ Make a payment within an existing channel.
   success: boolean;
   channelId?: string;
   sequence?: number;         // new channel sequence number
-  localBalance?: string;
-  remoteBalance?: string;
+  localBalance?: string;     // decimal text
+  remoteBalance?: string;    // decimal text
   error?: string;
   errorCode?: string;
 }
@@ -940,7 +946,7 @@ Settle a channel cooperatively.
   success: boolean;
   channelId?: string;
   settlementTxId?: string;
-  finalBalances?: Record<string, string>;
+  finalBalances?: Record<string, string>;   // decimal text per party
   error?: string;
   errorCode?: string;
 }
@@ -985,7 +991,7 @@ Find a multi-hop payment route through the channel network.
     origin: string;
     fromPartyId: string;
     toPartyId: string;
-    amount: string;
+    amount: string;           // decimal MINIMA/token text
     tokenId: string;
     targetTokenId?: string;    // for cross-token swaps
     maxHops?: number;
@@ -999,7 +1005,7 @@ Find a multi-hop payment route through the channel network.
   success: boolean;
   route?: {
     hops: Array<RoutingHop | SwapHop>;
-    totalFees: string;
+    totalFees: string;        // decimal text
     tokenIn: string;
     tokenOut: string;
     estimatedBlocks: number;
@@ -1015,7 +1021,7 @@ Find a multi-hop payment route through the channel network.
   channelId: string;
   from: string;
   to: string;
-  amount: string;
+  amount: string;             // decimal text
   tokenId: string;
   htlcId?: string;
 }
@@ -1027,15 +1033,15 @@ Find a multi-hop payment route through the channel network.
   channelId: string;
   from: string;
   to: string;
-  amount: string;
+  amount: string;             // decimal text
   tokenId: string;
   htlcId?: string;
   isSwap: true;
   tokenIn: string;
   tokenOut: string;
-  amountIn: string;
-  amountOut: string;
-  rate: string;
+  amountIn: string;           // decimal text
+  amountOut: string;          // decimal text
+  rate: string;               // amountOut per amountIn, decimal text
   inboundChannelId: string;
   outboundChannelId: string;
 }
@@ -1114,7 +1120,7 @@ Create an N-of-N channel factory. One on-chain UTXO backs multiple virtual chann
   params: {
     origin: string;
     partyIds: string[];          // all participant public keys
-    amounts: string[];           // corresponding funding amounts
+    amounts: string[];           // corresponding funding amounts, decimal text
     tokenId?: string;
     fundingCoinIds?: string[];   // coins to fund the factory
   }
@@ -1144,8 +1150,8 @@ Open a virtual channel between two participants within a factory.
     origin: string;
     factoryId: string;
     remotePartyId: string;
-    localAmount: string;
-    remoteAmount: string;
+    localAmount: string;     // decimal MINIMA/token text
+    remoteAmount: string;    // decimal MINIMA/token text
     tokenId?: string;
   }
 }
@@ -1182,7 +1188,7 @@ Close a channel factory and settle all virtual channels.
   success: boolean;
   factoryId?: string;
   settlementTxId?: string;
-  finalAllocations?: Record<string, string>;
+  finalAllocations?: Record<string, string>;   // decimal text per party
   error?: string;
   errorCode?: string;
 }
@@ -1199,9 +1205,9 @@ Add funds to an active channel without closing it.
   params: {
     origin: string;
     channelId: string;
-    newTotalValue: string;
-    newBalances: Record<string, string>;
-    additionalCoinId: string;    // coin providing the additional funds
+    newTotalValue: string;                 // decimal MINIMA/token text
+    newBalances: Record<string, string>;   // decimal text per party
+    additionalCoinId: string;              // coin providing the additional funds
   }
 }
 ```
@@ -1211,7 +1217,7 @@ Add funds to an active channel without closing it.
 {
   success: boolean;
   channelId?: string;
-  newTotalValue?: string;
+  newTotalValue?: string;      // decimal text
   updatedChannelState?: string;
   spliceTxId?: string;
   error?: string;
@@ -1230,10 +1236,10 @@ Withdraw funds from an active channel without closing it.
   params: {
     origin: string;
     channelId: string;
-    newTotalValue: string;
-    newBalances: Record<string, string>;
-    withdrawAmount: string;
-    withdrawAddress: string;     // Mx-prefixed on-chain address
+    newTotalValue: string;                 // decimal MINIMA/token text
+    newBalances: Record<string, string>;   // decimal text per party
+    withdrawAmount: string;                // decimal MINIMA/token text
+    withdrawAddress: string;               // Mx-prefixed on-chain address
   }
 }
 ```
@@ -1243,7 +1249,7 @@ Withdraw funds from an active channel without closing it.
 {
   success: boolean;
   channelId?: string;
-  newTotalValue?: string;
+  newTotalValue?: string;      // decimal text
   updatedChannelState?: string;
   spliceTxId?: string;
   error?: string;
@@ -1396,7 +1402,7 @@ Simulate a KISSVM script against a transaction context. Returns pass/fail, execu
       block: number;
       inputIndex: number;
       inputs: Array<{
-        amount: number;
+        amount: string;            // decimal MINIMA/token text, e.g. '0.2'
         tokenId: string;
         coinId: string;
         address: string;
@@ -1405,10 +1411,12 @@ Simulate a KISSVM script against a transaction context. Returns pass/fail, execu
       }>;
       outputs: Array<{
         address: string;
-        amount: number;
+        amount: string;            // decimal MINIMA/token text
         tokenId: string;
         keepState: boolean;
       }>;
+      // Encoded state values. Amount-bearing ports (Omnia program ports) are
+      // decimal text; counters/sequences are integer text.
       state: Record<number, string>;
       prevState: Record<number, string>;
       txDigest?: string;

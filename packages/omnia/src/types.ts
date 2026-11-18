@@ -89,6 +89,13 @@ export interface StateValue {
   port: number;
   value: string | bigint | boolean;
   type: 'bool' | 'number' | 'hex' | 'string';
+  /**
+   * Decimal places used when this number is serialized as a `MiniNumber`.
+   * Omitted/0 for counts, sequences and indexes. Amount ports use
+   * `MINIMA_DECIMALS` (44) so `STATE(port)` reads the same decimal value as
+   * `AMOUNT` (e.g. 0.2), not 2e43 atoms.
+   */
+  scale?: number;
 }
 
 export interface SignedChannelState {

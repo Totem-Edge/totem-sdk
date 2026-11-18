@@ -5,10 +5,14 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import { DefaultEltooPaymentProgram, type OmniaChannel } from '@totemsdk/omnia';
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-pay-concurrency-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
@@ -26,12 +30,12 @@ describe('concurrent host payments', () => {
       fundingAddress: '0x' + 'dd'.repeat(32),
       tokenId: '0x00',
       tokenScale: 0,
-      totalValue: 1000n,
+      totalValue: atoms('1000'),
       parties: [
         { partyId: 'alice', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1 },
       ],
-      balances: { alice: 600n, bob: 400n },
+      balances: { alice: atoms('600'), bob: atoms('400') },
       pendingHTLCs: [],
       currentSequence: 1,
       latestState: null,
@@ -68,7 +72,7 @@ describe('concurrent host payments', () => {
     }
     const updated = context.channels.get(channel.channelId)!;
     expect(updated.currentSequence).toBe(6);
-    expect(updated.balances).toEqual({ alice: 450n, bob: 550n });
+    expect(updated.balances).toEqual({ alice: atoms('450'), bob: atoms('550') });
     expect(new Set(results.map((r) => (r as { sequence: number }).sequence))).toEqual(new Set([2, 3, 4, 5, 6]));
   });
 });

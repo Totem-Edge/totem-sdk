@@ -313,6 +313,21 @@ const atoms = amountToAtoms('0.2'); // 20000000000000000000000000000000000000000
 atomsToAmount(atoms);               // '0.2'
 ```
 
+### Value-bearing state ports
+
+Programs that hold a channel amount in a state variable (HTLC locked amount,
+vault locked value, treasury cap/spent, membership dividend pool, asset
+balances, meter unit price/payment) use `programAmountState()`. Those values are
+stored in atoms like every other Omnia amount, but are serialized with scale 44,
+so a KISSVM comparison such as `ASSERT AMOUNT EQ STATE(141)` compares equal
+decimals instead of 0.2 against 2×10^43. Counters, sequence numbers and indexes
+stay scale 0. The scale is part of the signed state commitment, so a signer
+cannot re-encode a value port with a different scale.
+
+When the evaluator builds a script context, amount ports are presented as
+decimal text (`stateValuesToContext`), matching what the node would read from
+the coin.
+
 ## Channel lifecycle statuses
 
 ```

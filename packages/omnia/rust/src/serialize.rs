@@ -181,8 +181,11 @@ fn write_state_value(value: &StateValue) -> Result<Vec<u8>, String> {
         }
         "number" => {
             out.push(2);
-            // State values are integers (counts, sequences, flags): scale 0.
-            out.extend_from_slice(&write_mini_number(&parse_amount(&value.value)?, 0)?);
+            // Counts/sequences use scale 0; amount ports declare scale 44.
+            out.extend_from_slice(&write_mini_number(
+                &parse_amount(&value.value)?,
+                value.scale.unwrap_or(0),
+            )?);
         }
         "hex" => {
             out.push(1);

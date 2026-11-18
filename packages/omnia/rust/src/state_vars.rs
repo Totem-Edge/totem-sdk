@@ -70,6 +70,16 @@ pub fn program_number_state(port: u32, value: impl Into<BigInt>) -> Result<State
         port,
         value: json!(value.into().to_string()),
         value_type: "number".to_string(),
+        scale: None,
+    })
+}
+
+/// A number state value that carries a MINIMA/token amount: stored in atoms,
+/// serialized with scale 44 so KISSVM sees the decimal value.
+pub fn program_amount_state(port: u32, value: impl Into<BigInt>) -> Result<StateValue, String> {
+    Ok(StateValue {
+        scale: Some(crate::serialize::COIN_AMOUNT_SCALE),
+        ..program_number_state(port, value)?
     })
 }
 
@@ -79,6 +89,7 @@ pub fn program_bool_state(port: u32, value: bool) -> Result<StateValue, String> 
         port,
         value: json!(value),
         value_type: "bool".to_string(),
+        scale: None,
     })
 }
 
@@ -95,6 +106,7 @@ pub fn program_hex_state(port: u32, value: &str) -> Result<StateValue, String> {
         port,
         value: json!(value.to_string()),
         value_type: "hex".to_string(),
+        scale: None,
     })
 }
 
@@ -104,6 +116,7 @@ pub fn program_string_state(port: u32, value: &str) -> Result<StateValue, String
         port,
         value: json!(value.to_string()),
         value_type: "string".to_string(),
+        scale: None,
     })
 }
 
@@ -201,6 +214,7 @@ mod tests {
                 port: 120,
                 value: json!(true),
                 value_type: "bool".to_string(),
+                scale: None,
             }],
             transaction_hex: "0xupdate".to_string(),
             signatures: HashMap::new(),

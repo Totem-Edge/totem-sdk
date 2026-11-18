@@ -1,3 +1,4 @@
+import { MINIMA_DECIMALS } from '@totemsdk/core';
 import type { SignedChannelState, StateValue } from './types.js';
 
 export const PROGRAM_STATE_PORT_MIN = 120;
@@ -56,6 +57,15 @@ export function getStateHex(
 export function programNumberState(port: number, value: bigint): StateValue {
   assertProgramStatePort(port);
   return { port, value, type: 'number' };
+}
+
+/**
+ * A number state value that carries a MINIMA/token amount. It is stored in
+ * atoms like every other Omnia amount, but serialized with scale 44 so a
+ * KISSVM `STATE(port)` comparison against `AMOUNT` sees the same decimal.
+ */
+export function programAmountState(port: number, value: bigint): StateValue {
+  return { ...programNumberState(port, value), scale: MINIMA_DECIMALS };
 }
 
 export function programBoolState(port: number, value: boolean): StateValue {

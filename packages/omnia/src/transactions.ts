@@ -147,7 +147,10 @@ function writeStateValueLocal(sv: StateValue): Uint8Array {
       break;
     case 'number':
       type = 2;
-      data = writeMiniNumberLocal(typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value)));
+      data = writeMiniNumberLocal(
+        typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value)),
+        sv.scale ?? 0,
+      );
       break;
     case 'hex':
       type = 1;
@@ -177,14 +180,20 @@ interface NormalizedStateValueForCommitment {
   port: number;
   type: StateValue['type'];
   value: string;
+  /** MiniNumber scale, bound for number values so it cannot be re-encoded. */
+  scale?: number;
 }
 
 function normalizeStateValueForCommitment(sv: StateValue): NormalizedStateValueForCommitment {
-  return {
+  const base = {
     port: sv.port,
     type: sv.type,
     value: typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
   };
+  // Bind the wire scale for numbers: without it a signed state could be
+  // re-encoded with a different scale (e.g. 0 instead of 44) and change the
+  // on-chain value while keeping the signature valid.
+  return sv.type === 'number' ? { ...base, scale: sv.scale ?? 0 } : base;
 }
 
 export function computeStateCommitmentV2(

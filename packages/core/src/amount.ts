@@ -73,15 +73,25 @@ export function coinAmountAtoms(coin: { amount: string | number | bigint }): big
   return amountToAtoms(amount);
 }
 
+/**
+ * Render an unscaled integer at a given MiniNumber scale as decimal text.
+ * `unscaledToAmount(2e43, 44)` → `"0.2"`.
+ */
+export function unscaledToAmount(unscaled: bigint, scale: number): string {
+  if (unscaled < 0n) throw new Error(`unscaled value must be non-negative, received ${unscaled}`);
+  if (!Number.isInteger(scale) || scale < 0 || scale > 255) {
+    throw new Error(`scale must be an integer in 0..255, received ${scale}`);
+  }
+  if (scale === 0) return unscaled.toString();
+  const divisor = 10n ** BigInt(scale);
+  const whole = unscaled / divisor;
+  const fraction = (unscaled % divisor).toString().padStart(scale, '0').replace(/0+$/, '');
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
 /** Convert atoms back to decimal MINIMA text (`"0.2"`). */
 export function atomsToAmount(atoms: bigint): string {
-  if (atoms < 0n) throw new Error(`atoms must be non-negative, received ${atoms}`);
-  const whole = atoms / ATOMS_PER_MINIMA;
-  const fraction = (atoms % ATOMS_PER_MINIMA)
-    .toString()
-    .padStart(MINIMA_DECIMALS, '0')
-    .replace(/0+$/, '');
-  return fraction ? `${whole}.${fraction}` : whole.toString();
+  return unscaledToAmount(atoms, MINIMA_DECIMALS);
 }
 
 /**

@@ -3,6 +3,7 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import {
   DefaultEltooPaymentProgram,
   signRequestPayload,
@@ -12,6 +13,9 @@ import { computeSpliceTxDigest } from '@totemsdk/omnia-splice';
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const ALICE_SEED = '0x' + 'ab'.repeat(32);
 const BOB_SEED = '0x' + 'cd'.repeat(32);
@@ -34,12 +38,12 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       fundingAddress: '0x' + 'dd'.repeat(32),
       tokenId: '0x00',
       tokenScale: 0,
-      totalValue: 1000n,
+      totalValue: atoms('1000'),
       parties: [
         { partyId: 'alice', publicKeyDigest: alice.publicKeyDigest, addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: bob.publicKeyDigest, addressIndex: 1 },
       ],
-      balances: { alice: 600n, bob: 400n },
+      balances: { alice: atoms('600'), bob: atoms('400') },
       pendingHTLCs: [],
       currentSequence: 1,
       onChainSequence: 0,
@@ -92,7 +96,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
     // active, so the chain mock must answer like a node.
     const getCoins = jest.fn(async () => [{
       coinid: '0x' + '77'.repeat(32),
-      amount: 1500,
+      amount: '1500',
       address: channel.fundingAddress,
       tokenid: '0x00',
       spent: false,
@@ -153,8 +157,8 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
     expect((submitted as any).totalValue).toBe('1500');
     const spliced = context.channels.get(channel.channelId)!;
     expect(spliced.status).toBe('active');
-    expect(spliced.totalValue).toBe(1500n);
-    expect(spliced.balances).toEqual({ alice: 900n, bob: 600n });
+    expect(spliced.totalValue).toBe(atoms('1500'));
+    expect(spliced.balances).toEqual({ alice: atoms('900'), bob: atoms('600') });
     expect(broadcastTxPoW).toHaveBeenCalledTimes(1);
   }, 60_000);
 });

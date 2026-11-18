@@ -51,10 +51,18 @@ default; configure `OMNIA_FACTORY_AUTO_APPROVE*` or the authorizer port to opt i
   provider (no per-provider unit switch); `amountToAtoms()` in `@totemsdk/core`
   converts once where integer maths is required (1 MINIMA = 10^44 atoms).
   `@totemsdk/omnia` keeps channel/HTLC/funding maths in atoms and serializes
-  every coin amount as `MiniNumber(unscaled = atoms, scale = 44)`. The previous
-  code of writing atom values with scale 0 encoded an amount 10^44 times too
-  large, which the node rejects as an invalid Minima amount, and normalising
-  only the RPC provider split the unit contract across providers and packages.
+  every coin amount as `MiniNumber(unscaled = atoms, scale = 44)`. Value-bearing
+  program state ports (HTLC locked amount, vault value, treasury cap/spent,
+  membership pool, asset balances, meter unit price/payment) are also written
+  with scale 44, so scripts can compare `STATE(port)` to `AMOUNT`; the scale is
+  bound into the signed state commitment. `@totemsdk/omnia-host`'s JSON-RPC now
+  takes and returns decimal MINIMA/token text for every amount, converting once
+  at the boundary. The previous code of writing atom values with scale 0
+  encoded an amount 10^44 times too large, which the node rejects as an invalid
+  Minima amount, and normalising only the RPC provider split the unit contract
+  across providers and packages. `liquidity-bond` now hands the chain verifier
+  a decimal `claimedAmount` instead of an atom integer, which made every
+  non-zero pool deposit fail the amount gate.
 
 ### Added
 

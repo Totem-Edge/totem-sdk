@@ -162,16 +162,19 @@ fn settlement_variables(
                 port: value.port,
                 value: serde_json::Value::Bool(true),
                 value_type: "bool".to_string(),
+                scale: None,
             },
             PORT_SEQUENCE => crate::types::StateValue {
                 port: value.port,
                 value: serde_json::Value::String(format!("__bigint__{}", state.sequence)),
                 value_type: "number".to_string(),
+                scale: None,
             },
             PORT_COMMITMENT => crate::types::StateValue {
                 port: value.port,
                 value: serde_json::Value::String(commitment.clone()),
                 value_type: "hex".to_string(),
+                scale: None,
             },
             _ => value.clone(),
         })

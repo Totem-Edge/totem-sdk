@@ -3428,6 +3428,11 @@
           "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
           "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
         },
+        "unscaledToAmount": {
+          "kind": "function",
+          "signature": "unscaledToAmount(unscaled: bigint, scale: number): string",
+          "doc": "Render an unscaled integer at a given MiniNumber scale as decimal text.\n`unscaledToAmount(2e43, 44)` → `\"0.2\"`."
+        },
         "coinAmountAtoms": {
           "kind": "function",
           "signature": "coinAmountAtoms(coin: { amount: string | number | bigint; }): bigint",
@@ -11853,6 +11858,11 @@
           "kind": "function",
           "signature": "programNumberState(port: number, value: bigint): StateValue"
         },
+        "programAmountState": {
+          "kind": "function",
+          "signature": "programAmountState(port: number, value: bigint): StateValue",
+          "doc": "A number state value that carries a MINIMA/token amount. It is stored in\natoms like every other Omnia amount, but serialized with scale 44 so a\nKISSVM `STATE(port)` comparison against `AMOUNT` sees the same decimal."
+        },
         "assertBroadcastProofs": {
           "kind": "function",
           "signature": "assertBroadcastProofs(proofs?: Partial<OmniaWitnessProofs>): asserts proofs is OmniaWitnessProofs"
@@ -19074,6 +19084,11 @@
           "kind": "function",
           "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
           "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
+        },
+        "unscaledToAmount": {
+          "kind": "function",
+          "signature": "unscaledToAmount(unscaled: bigint, scale: number): string",
+          "doc": "Render an unscaled integer at a given MiniNumber scale as decimal text.\n`unscaledToAmount(2e43, 44)` → `\"0.2\"`."
         },
         "coinAmountAtoms": {
           "kind": "function",

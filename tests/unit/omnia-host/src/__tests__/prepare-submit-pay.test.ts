@@ -3,6 +3,7 @@
  */
 
 import os from 'node:os';
+import { amountToAtoms } from '@totemsdk/core';
 import {
   DefaultEltooPaymentProgram,
   signRequestPayload,
@@ -11,6 +12,9 @@ import {
 import { loadConfigFromEnv } from '../config.js';
 import { createHostSigning } from '../signing.js';
 import { createHostMethods, type HostApiContext } from '../api/methods.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
 const dbPath = `${os.tmpdir()}/omnia-prepare-pay-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
@@ -28,12 +32,12 @@ describe('omnia preparePay / submitPay', () => {
       fundingAddress: '0x' + 'dd'.repeat(32),
       tokenId: '0x00',
       tokenScale: 0,
-      totalValue: 1000n,
+      totalValue: atoms('1000'),
       parties: [
         { partyId: 'alice', publicKeyDigest: '0x' + 'aa'.repeat(32), addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1 },
       ],
-      balances: { alice: 600n, bob: 400n },
+      balances: { alice: atoms('600'), bob: atoms('400') },
       pendingHTLCs: [],
       currentSequence: 1,
       latestState: null,
@@ -82,12 +86,12 @@ describe('omnia preparePay / submitPay', () => {
       fundingAddress: '0x' + 'dd'.repeat(32),
       tokenId: '0x00',
       tokenScale: 0,
-      totalValue: 1000n,
+      totalValue: atoms('1000'),
       parties: [
         { partyId: 'alice', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1 },
       ],
-      balances: { alice: 600n, bob: 400n },
+      balances: { alice: atoms('600'), bob: atoms('400') },
       pendingHTLCs: [],
       currentSequence: 1,
       latestState: null,
@@ -153,7 +157,7 @@ describe('omnia preparePay / submitPay', () => {
     expect(submitted).toMatchObject({ success: true, channelId: channel.channelId, sequence: 2 });
     const updated = context.channels.get(channel.channelId)!;
     expect(updated.currentSequence).toBe(2);
-    expect(updated.balances).toEqual({ alice: 500n, bob: 500n });
+    expect(updated.balances).toEqual({ alice: atoms('500'), bob: atoms('500') });
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ type: 'STATE_UPDATE', channelId: channel.channelId });
 
@@ -182,7 +186,7 @@ describe('omnia preparePay / submitPay', () => {
     });
 
     expect(submittedUpdate).toMatchObject({ success: true, sequence: 3 });
-    expect(context.channels.get(channel.channelId)!.balances).toEqual({ alice: 450n, bob: 550n });
+    expect(context.channels.get(channel.channelId)!.balances).toEqual({ alice: atoms('450'), bob: atoms('550') });
     expect(sent).toHaveLength(2);
   });
 });

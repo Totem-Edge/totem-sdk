@@ -212,6 +212,7 @@ export {
   amountToAtoms,
   atomsToAmount,
   atomsToMiniNumber,
+  unscaledToAmount,
   coinAmountAtoms,
 } from './amount.js';
 

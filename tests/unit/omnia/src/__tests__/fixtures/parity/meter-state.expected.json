@@ -12,11 +12,13 @@
   {
     "port": 132,
     "value": "2",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   },
   {
     "port": 133,
     "value": "20",
-    "type": "number"
+    "type": "number",
+    "scale": 44
   }
 ]

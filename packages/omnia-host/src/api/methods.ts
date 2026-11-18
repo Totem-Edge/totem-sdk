@@ -72,7 +72,7 @@ import {
   type LiquidityPosition,
   type WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
-import { amountToAtoms, coinAmountAtoms } from '@totemsdk/core';
+import { amountToAtoms, atomsToAmount, coinAmountAtoms, unscaledToAmount } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -210,21 +210,50 @@ function channelSummary(channel: OmniaChannel): Record<string, unknown> {
     channelId: channel.channelId,
     status: channel.status,
     tokenId: channel.tokenId,
-    totalValue: channel.totalValue.toString(),
-    localBalance: (channel.balances[parties[0]] ?? 0n).toString(),
-    remoteBalance: (channel.balances[parties[1]] ?? 0n).toString(),
+    totalValue: atomsToAmount(channel.totalValue),
+    localBalance: atomsToAmount(channel.balances[parties[0]] ?? 0n),
+    remoteBalance: atomsToAmount(channel.balances[parties[1]] ?? 0n),
     currentSequence: channel.currentSequence,
   };
 }
 
-/** Recursively JSON-safe: bigint → decimal string, bytes → 0x-hex. */
-function jsonSafe(value: unknown): unknown {
+/**
+ * Response keys that carry MINIMA/token amounts. Bigints under these keys are
+ * atoms internally and are rendered as decimal text at the RPC boundary.
+ * Anything else bigint-shaped (sequence numbers, block heights, hashes) keeps
+ * its plain integer string form.
+ */
+const AMOUNT_FIELDS = new Set([
+  'amount', 'amounts', 'changeAmount', 'minAmount', 'maxAmount',
+  'allocatedAmount', 'availableAmount', 'reservedAmount', 'effectiveAmount',
+  'compoundedAmount', 'grossAmount', 'grossFeeAmount', 'lpFeeAmount',
+  'operatorFeeAmount', 'claimAmount', 'claimedAmount', 'inputsAmount',
+  'totalCapacity', 'availableCapacity', 'capacity',
+  'totalCommitted', 'totalAllocated', 'totalReserved', 'totalAvailable',
+  'accruedFees', 'nav', 'verifiedShare',
+  'totalValue', 'localAmount', 'remoteAmount', 'withdrawAmount', 'additionalAmount',
+  'principal', 'allocated', 'allocations', 'available', 'withdrawn', 'payout', 'dividend',
+  'lockedValue', 'spendCap', 'spent', 'dividendPool', 'balances', 'balance',
+]);
+
+function amountFieldJson(value: unknown): unknown {
+  if (typeof value === 'bigint') return atomsToAmount(value);
+  if (Array.isArray(value)) return value.map(amountFieldJson);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, amountFieldJson(v)]));
+  }
+  return value;
+}
+
+/** Recursively JSON-safe: amounts → decimal text, other bigints → integer string, bytes → 0x-hex. */
+function jsonSafe(value: unknown, key?: string): unknown {
+  if (key && AMOUNT_FIELDS.has(key)) return amountFieldJson(value);
   if (typeof value === 'bigint') return value.toString();
   if (value instanceof Uint8Array) return `0x${Buffer.from(value).toString('hex')}`;
-  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (Array.isArray(value)) return value.map((entry) => jsonSafe(entry));
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value as Record<string, unknown>)) out[key] = jsonSafe(val);
+    for (const [k, val] of Object.entries(value as Record<string, unknown>)) out[k] = jsonSafe(val, k);
     return out;
   }
   return value;
@@ -241,7 +270,7 @@ export function channelStateView(channel: OmniaChannel): Record<string, unknown>
     channelType: channel.channelType,
     tokenId: channel.tokenId,
     tokenScale: channel.tokenScale ?? 0,
-    totalValue: channel.totalValue,
+    totalValue: atomsToAmount(channel.totalValue),
     currentSequence: channel.currentSequence,
     fundingAddress: channel.fundingAddress,
     fundingScript: channel.fundingScript,
@@ -249,14 +278,14 @@ export function channelStateView(channel: OmniaChannel): Record<string, unknown>
     fundingCoinId: channel.fundingCoinId,
     contestDelayBlocks: channel.contestDelayBlocks,
     parties: channel.parties,
-    balances: channel.balances,
-    pendingHTLCs: channel.pendingHTLCs,
+    balances: amountRecordJson(channel.balances),
+    pendingHTLCs: channel.pendingHTLCs.map(htlcView),
     latestState: channel.latestState
       ? {
           sequence: channel.latestState.sequence,
-          balances: channel.latestState.balances,
+          balances: amountRecordJson(channel.latestState.balances),
           pendingHTLCs: channel.latestState.pendingHTLCs?.length ?? 0,
-          stateVariables: channel.latestState.stateVariables,
+          stateVariables: (channel.latestState.stateVariables ?? []).map(stateVariableView),
           transactionHex: channel.latestState.transactionHex,
           signatures: Object.keys(channel.latestState.signatures ?? {}),
           signingIndices: channel.latestState.signingIndices,
@@ -288,18 +317,34 @@ function requiredBigInt(params: Record<string, unknown>, key: string): bigint {
   }
 }
 
-function operationId(params: Record<string, unknown>): string {
-  return requiredString(params, 'operationId');
+/**
+ * Amount parameters are decimal MINIMA/token text at the RPC boundary (the
+ * node's own convention). Internally the channel works in atoms.
+ */
+function requiredAmount(params: Record<string, unknown>, key: string): bigint {
+  const value = requiredString(params, key);
+  try {
+    return amountToAtoms(value);
+  } catch {
+    throw new Error(`${key} must be a non-negative decimal amount string`);
+  }
 }
 
-function bigintRecord(params: Record<string, unknown>, key: string): Record<string, bigint> | undefined {
+function amountRecord(params: Record<string, unknown>, key: string): Record<string, bigint> | undefined {
   const value = params[key];
   if (value === undefined) return undefined;
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${key} must be an object`);
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([partyId, balance]) => [
-    partyId,
-    BigInt(String(balance)),
-  ]));
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([partyId, amount]) => {
+    try {
+      return [partyId, amountToAtoms(String(amount))];
+    } catch {
+      throw new Error(`${key}.${partyId} must be a non-negative decimal amount string`);
+    }
+  }));
+}
+
+function operationId(params: Record<string, unknown>): string {
+  return requiredString(params, 'operationId');
 }
 
 function optionalStringRecord(params: Record<string, unknown>, key: string): Record<string, string> | undefined {
@@ -312,19 +357,48 @@ function optionalStringRecord(params: Record<string, unknown>, key: string): Rec
   }));
 }
 
+const TRANSITION_AMOUNT_KEYS = new Set(['amount', 'unitPrice', 'holderABalance', 'holderBBalance', 'spendCap']);
+
 function optionalTransitionInputs(params: Record<string, unknown>): ProgramTransition['inputs'] {
   const value = params.inputs;
   if (value === undefined) return undefined;
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('inputs must be an object');
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([name, nested]) => {
+    if (TRANSITION_AMOUNT_KEYS.has(name)) {
+      if (typeof nested !== 'string' && typeof nested !== 'number') {
+        throw new Error(`inputs.${name} must be a decimal amount`);
+      }
+      try {
+        return [name, amountToAtoms(String(nested))];
+      } catch {
+        throw new Error(`inputs.${name} must be a non-negative decimal amount string`);
+      }
+    }
     if (typeof nested === 'string' || typeof nested === 'boolean') return [name, nested];
     if (typeof nested === 'number' && Number.isSafeInteger(nested)) return [name, BigInt(nested)];
     throw new Error(`inputs.${name} must be a string, boolean, or safe integer`);
   }));
 }
 
+/** Channel balances in the RPC unit: decimal MINIMA/token text. */
 function balancesJson(channel: OmniaChannel): Record<string, string> {
-  return Object.fromEntries(Object.entries(channel.balances).map(([partyId, balance]) => [partyId, balance.toString()]));
+  return Object.fromEntries(Object.entries(channel.balances).map(([partyId, balance]) => [partyId, atomsToAmount(balance)]));
+}
+
+function amountRecordJson(balances: Record<string, bigint>): Record<string, string> {
+  return Object.fromEntries(Object.entries(balances).map(([partyId, amount]) => [partyId, atomsToAmount(amount)]));
+}
+
+function htlcView(htlc: OmniaChannel['pendingHTLCs'][number]): Record<string, unknown> {
+  return { ...htlc, amount: atomsToAmount(htlc.amount), timeoutBlock: htlc.timeoutBlock.toString() };
+}
+
+function stateVariableView(sv: { port: number; value: unknown; type: string; scale?: number }): Record<string, unknown> {
+  const isScaled = sv.type === 'number' && sv.scale !== undefined && sv.scale > 0;
+  const value = typeof sv.value === 'bigint'
+    ? (isScaled ? unscaledToAmount(sv.value, sv.scale!) : sv.value.toString())
+    : sv.value;
+  return { port: sv.port, value, type: sv.type, ...(sv.scale !== undefined ? { scale: sv.scale } : {}) };
 }
 
 async function withOperation<T>(
@@ -584,7 +658,7 @@ function registerPreparedPayMethods(
   const preparePay: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     const channelId = requiredString(params, 'channelId');
-    const amount = requiredBigInt(params, 'amount');
+    const amount = requiredAmount(params, 'amount');
     const localPartyId = context.localParticipant?.partyId;
     const localPkd = context.localParticipant?.publicKeyDigest;
     if (!localPartyId || !localPkd) throw new Error('Local participant is not configured');
@@ -627,7 +701,7 @@ function registerPreparedPayMethods(
         requestId: `${preparedOperationId}:intent`,
         kind: 'intent',
         digest: unsigned.updateDigest,
-        context: { summary: `Authorize payment of ${amount.toString()} on channel ${channelId}` },
+        context: { summary: `Authorize payment of ${atomsToAmount(amount)} on channel ${channelId}` },
       };
       const update: import('@totemsdk/omnia').SignRequest = {
         ...base,
@@ -674,12 +748,7 @@ function registerPreparedPayMethods(
       throw new Error('prepareChannelUpdate requires an explicit hosted custody disclosure context (not yet configured)');
     }
 
-    const rawBalances = params.newBalances;
-    const newBalances = rawBalances && typeof rawBalances === 'object'
-      ? Object.fromEntries(
-          Object.entries(rawBalances as Record<string, unknown>).map(([partyId, value]) => [partyId, BigInt(String(value))]),
-        )
-      : channel.balances;
+    const newBalances = amountRecord(params, 'newBalances') ?? channel.balances;
     const programTransition = params.programTransition as ProgramTransition | undefined;
 
     return withOperation(context, params, async () => {
@@ -991,8 +1060,8 @@ function registerPreparedPayMethods(
         transportPubkey: localParticipant.transportPubkey ?? context.transportPubkey,
       },
       remoteParty: remote,
-      localAmount: requiredBigInt(params, 'localAmount'),
-      remoteAmount: requiredBigInt(params, 'remoteAmount'),
+      localAmount: requiredAmount(params, 'localAmount'),
+      remoteAmount: requiredAmount(params, 'remoteAmount'),
       tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
       fundingCoinId: requiredString(params, 'fundingCoinId'),
       contestDelayBlocks: typeof params.contestDelayBlocks === 'number' ? params.contestDelayBlocks : undefined,
@@ -1009,7 +1078,7 @@ function registerPreparedPayMethods(
         custody: makeSelfCustody(),
         expiresAt,
       };
-      const summary = `Open channel ${plan.channel.channelId} (${plan.channel.totalValue} units)`;
+      const summary = `Open channel ${plan.channel.channelId} (${atomsToAmount(plan.channel.totalValue)} units)`;
       const intent: import('@totemsdk/omnia').SignRequest = {
         ...base,
         requestId: `${preparedOperationId}:intent`,
@@ -1017,7 +1086,7 @@ function registerPreparedPayMethods(
         digest: plan.fundingDigest,
         context: {
           summary: `Authorize ${summary}`,
-          amount: plan.channel.totalValue.toString(),
+          amount: atomsToAmount(plan.channel.totalValue),
           asset: plan.channel.tokenId,
           terms: `Counterparty ${remote.partyId}; channel ${plan.channel.channelId}`,
         },
@@ -1047,7 +1116,7 @@ function registerPreparedPayMethods(
         fundingAddress: plan.fundingAddress,
         fundingCoinId: plan.outputCoinId,
         inputCoinId: plan.inputCoinId,
-        totalValue: plan.channel.totalValue.toString(),
+        totalValue: atomsToAmount(plan.channel.totalValue),
         requests: { intent, funding },
         expiresAt,
       };
@@ -1164,22 +1233,18 @@ function registerPreparedPayMethods(
       quiesceSignedState: quiesceUnsigned.unsignedClosePackage,
       updatedAt: Date.now(),
     };
-    const parsedBalances = params.newBalances && typeof params.newBalances === 'object'
-      ? Object.fromEntries(
-          Object.entries(params.newBalances as Record<string, unknown>).map(([partyId, value]) => [partyId, BigInt(String(value))]),
-        )
-      : undefined;
+    const parsedBalances = amountRecord(params, 'newBalances');
     const unsigned = type === 'in'
       ? buildSpliceInProposal(
           quiescedChannel,
           requiredString(params, 'additionalCoinId'),
-          requiredBigInt(params, 'additionalAmount'),
+          requiredAmount(params, 'additionalAmount'),
           localPkd,
           parsedBalances,
         )
       : buildSpliceOutProposal(
           quiescedChannel,
-          requiredBigInt(params, 'withdrawAmount'),
+          requiredAmount(params, 'withdrawAmount'),
           requiredString(params, 'withdrawAddress'),
           localPkd,
           parsedBalances,
@@ -1399,8 +1464,8 @@ function registerPreparedPayMethods(
         channelId: entry.channelId,
         spliceId: entry.unsigned.spliceId,
         spliceType: spliced.spliceType,
-        totalValue: spliced.totalValue.toString(),
-        balances: Object.fromEntries(Object.entries(spliced.balances).map(([partyId, amount]) => [partyId, amount.toString()])),
+        totalValue: atomsToAmount(spliced.totalValue),
+        balances: amountRecordJson(spliced.balances),
         fundingCoinId: spliced.spliceFundingCoinId,
       };
     });
@@ -1475,7 +1540,7 @@ function registerPreparedPayMethods(
         digest: commitment,
         context: {
           summary: `Authorize factory opening (${plan.factory.totalValue} units)`,
-          amount: plan.factory.totalValue.toString(),
+          amount: atomsToAmount(plan.factory.totalValue),
           asset: plan.factory.tokenId,
         },
       };
@@ -1503,7 +1568,7 @@ function registerPreparedPayMethods(
         factoryId: plan.factory.factoryId,
         onChain: plan.onChain,
         fundingCoinId: plan.fundingCoinId,
-        totalValue: plan.factory.totalValue.toString(),
+        totalValue: atomsToAmount(plan.factory.totalValue),
         requests: { intent, commitment: commitmentRequest },
         expiresAt,
       };
@@ -1634,7 +1699,7 @@ function registerPreparedPayMethods(
     const pool = createVtxoPoolSdk({
       operator,
       tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
-      totalCapacity: requiredBigInt(params, 'totalCapacity'),
+      totalCapacity: requiredAmount(params, 'totalCapacity'),
       nonce: requiredString(params, 'nonce'),
       ...(params.policy && typeof params.policy === 'object' ? { policy: params.policy as Record<string, unknown> } : {}),
     }, typeof params.now === 'number' ? params.now : Date.now());
@@ -1651,7 +1716,7 @@ function registerPreparedPayMethods(
     if (!pool) throw new Error(`VTXO pool ${String(params.poolId)} not found`);
     const minted = mintVtxo(pool, {
       owner: requiredString(params, 'owner'),
-      amount: requiredBigInt(params, 'amount'),
+      amount: requiredAmount(params, 'amount'),
       nonce: requiredString(params, 'nonce'),
       expiresAt: typeof params.expiresAt === 'number' ? params.expiresAt : undefined,
       fundingProof: params.fundingProof,
@@ -1687,7 +1752,7 @@ function registerPreparedPayMethods(
       preimage: typeof params.preimage === 'string' ? params.preimage : undefined,
       path: params.path === 'refund' ? 'refund' : params.path === 'claim' ? 'claim' : undefined,
       scope: params.scope === 'transfer' ? 'transfer' : params.scope === 'claim' ? 'claim' : undefined,
-      claimAmount: params.claimAmount !== undefined ? BigInt(String(params.claimAmount)) : undefined,
+      claimAmount: params.claimAmount !== undefined ? amountToAtoms(String(params.claimAmount)) : undefined,
     }, {
       block,
       poolId: typeof params.poolId === 'string' ? params.poolId : vtxo.poolId,
@@ -1726,7 +1791,7 @@ function registerPreparedPayMethods(
     }
     const result = transferVtxo(vtxo, {
       recipient: requiredString(params, 'recipient'),
-      amount: requiredBigInt(params, 'amount'),
+      amount: requiredAmount(params, 'amount'),
       nonce: requiredString(params, 'nonce'),
       changeNonce: typeof params.changeNonce === 'string' ? params.changeNonce : undefined,
       ...(params.exitEntitlement && typeof params.exitEntitlement === 'object'
@@ -1821,7 +1886,7 @@ function registerPreparedPayMethods(
       root,
       epoch,
       previousEpoch: typeof params.previousEpoch === 'number' ? params.previousEpoch : undefined,
-      inputsAmount: params.inputsAmount !== undefined ? BigInt(String(params.inputsAmount)) : undefined,
+      inputsAmount: params.inputsAmount !== undefined ? amountToAtoms(String(params.inputsAmount)) : undefined,
     });
     const request: SignRequest = {
       requestId: `vtxo-receipt-${receipt.receiptId}`,
@@ -1873,7 +1938,7 @@ function registerPreparedPayMethods(
       tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
       purpose: requiredString(params, 'purpose') as never,
       poolType: requiredString(params, 'poolType') as never,
-      capacity: String(requiredBigInt(params, 'capacity')),
+      capacity: String(requiredAmount(params, 'capacity')),
       feePolicy: params.feePolicy as never,
       riskPolicy: params.riskPolicy as never,
       lockTerms: params.lockTerms as never,
@@ -1908,7 +1973,7 @@ function registerPreparedPayMethods(
     const deposited = await depositToPool({
       pool: stored.manifest,
       lpAddress: requiredString(params, 'lpAddress'),
-      amount: String(requiredBigInt(params, 'amount')),
+      amount: String(requiredAmount(params, 'amount')),
       purpose: requiredString(params, 'purpose') as never,
       underlyingUtxoRef: typeof params.underlyingUtxoRef === 'string' ? params.underlyingUtxoRef : undefined,
       underlyingRefs: params.underlyingRefs as never,
@@ -1936,7 +2001,7 @@ function registerPreparedPayMethods(
     if (!stored) throw new Error(`Pool position ${positionId} not found`);
     const allocated = await allocatePositionCapital({
       position: stored.position,
-      amount: String(requiredBigInt(params, 'amount')),
+      amount: String(requiredAmount(params, 'amount')),
       allocationType: requiredString(params, 'allocationType') as never,
       purpose: requiredString(params, 'purpose') as never,
       target: params.target as never,
@@ -1977,7 +2042,7 @@ function registerPreparedPayMethods(
     if (!pool) throw new Error(`Pool ${stored.position.poolId} not found`);
     const withdrawn = withdrawLiquidity(pool.manifest, stored.position, {
       positionId,
-      amount: String(requiredBigInt(params, 'amount')),
+      amount: String(requiredAmount(params, 'amount')),
       recipientAddress: requiredString(params, 'recipientAddress'),
       reason: typeof params.reason === 'string' ? params.reason : undefined,
     }, stored.registry);
@@ -2169,7 +2234,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const route = await context.routing.getRoute({
       from: normalizeRouteNode(requiredString(params, 'fromPartyId')),
       to: normalizeRouteNode(requiredString(params, 'toPartyId')),
-      amount: requiredBigInt(params, 'amount'),
+      amount: requiredAmount(params, 'amount'),
       tokenId: requiredString(params, 'tokenId'),
       targetTokenId: typeof params.targetTokenId === 'string' ? params.targetTokenId : undefined,
       maxHops: typeof params.maxHops === 'number' ? params.maxHops : undefined,
@@ -2284,8 +2349,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       transportPubkey: typeof params.remoteTransportPubkey === 'string' ? params.remoteTransportPubkey : undefined,
     };
     const result = await withOperation(context, params, async () => {
-      const localAmount = requiredBigInt(params, 'localAmount');
-      const remoteAmount = requiredBigInt(params, 'remoteAmount');
+      const localAmount = requiredAmount(params, 'localAmount');
+      const remoteAmount = requiredAmount(params, 'remoteAmount');
       const tokenId = typeof params.tokenId === 'string' ? params.tokenId : undefined;
 
       let fundingCoinId = typeof params.fundingCoinId === 'string' ? params.fundingCoinId : undefined;
@@ -2402,7 +2467,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         entity: { type: 'channel', id: created.channel.channelId },
         parties: { local: context.localParticipant?.partyId, remote: remotePartyId },
         token: { tokenId: created.channel.tokenId, scale: created.channel.tokenScale ?? 0 },
-        amounts: { capacity: created.channel.totalValue.toString(), balances: balancesJson(created.channel) },
+        amounts: { capacity: atomsToAmount(created.channel.totalValue), balances: balancesJson(created.channel) },
         chain: { fundingCoinId: created.channel.fundingCoinId, txpowId: created.channel.fundingTxId },
         transitionHash: channelTransitionHash(created.channel),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
@@ -2418,7 +2483,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const params = paramsObject(raw);
     requireMutationContext(context);
     const channelId = requiredString(params, 'channelId');
-    const amount = requiredBigInt(params, 'amount');
+    const amount = requiredAmount(params, 'amount');
     return withChannelLock(channelId, () => withOperation(context, params, async () => {
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
@@ -2443,7 +2508,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
         before: { balances: beforeBalances, sequence: channel.currentSequence },
         after: { balances: balancesJson(result.channel), sequence: result.channel.currentSequence },
-        amounts: { amountAtoms: amount.toString(), balances: balancesJson(result.channel) },
+        amounts: { amount: atomsToAmount(amount), balances: balancesJson(result.channel) },
         transitionHash: channelTransitionHash(result.channel),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
       });
@@ -2476,7 +2541,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
       const added = await addHTLC(channel, {
-        amount: requiredBigInt(params, 'amount'),
+        amount: requiredAmount(params, 'amount'),
         hashlock: requiredString(params, 'hashlock'),
         timeoutBlock: requiredBigInt(params, 'timeoutBlock'),
         direction: (typeof params.direction === 'string' ? params.direction : 'offered') as 'offered' | 'received',
@@ -2487,7 +2552,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       await context.observe?.emit({
         domain: 'payment', kind: 'htlc.added', phase: 'committed',
         entity: { type: 'channel', id: channelId },
-        amounts: { amountAtoms: requiredBigInt(params, 'amount').toString(), balances: balancesJson(added.channel) },
+        amounts: { amount: atomsToAmount(requiredAmount(params, 'amount')), balances: balancesJson(added.channel) },
         transitionHash: channelTransitionHash(added.channel),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
         data: { htlcId: added.htlcId, hashlock: params.hashlock, timeoutBlock: String(params.timeoutBlock), direction: params.direction },
@@ -2560,7 +2625,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       witness: optionalStringRecord(params, 'witness'),
       metadata: optionalStringRecord(params, 'metadata'),
     };
-    const balances = bigintRecord(params, 'balances');
+    const balances = amountRecord(params, 'balances');
     return withOperation(context, params, async () => persistProgramUpdate(
       context,
       channelId,
@@ -2597,7 +2662,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       (channel) => recordMeterReading(
         channel,
         requiredBigInt(params, 'reading'),
-        requiredBigInt(params, 'unitPrice'),
+        requiredAmount(params, 'unitPrice'),
         context.leaseProvider,
         context.signer,
       ),
@@ -2673,11 +2738,11 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         domain: 'settlement', kind: 'settlement.committed', phase: 'confirmed',
         entity: { type: 'channel', id: channelId },
         chain: { txpowId: settlement.settlementPayload.txpowId },
-        amounts: { balances: Object.fromEntries(Object.entries(settlement.settlementPayload.balances).map(([k, v]) => [k, v.toString()])) },
+        amounts: { balances: amountRecordJson(settlement.settlementPayload.balances) },
         transitionHash: hashTransition(['settlement', channelId, settlement.settlementPayload.txpowId]),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
       });
-      return { success: true, channelId, settlementTxId: settlement.settlementPayload.txpowId, finalBalances: Object.fromEntries(Object.entries(settlement.settlementPayload.balances).map(([key, value]) => [key, value.toString()])) };
+      return { success: true, channelId, settlementTxId: settlement.settlementPayload.txpowId, finalBalances: amountRecordJson(settlement.settlementPayload.balances) };
     });
   };
   register('totem_omniaSettle', settle, 'omnia/settle');
@@ -2887,7 +2952,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       await context.observe?.emit({
         domain: 'factory', kind: 'factory.opened', phase: 'accepted',
         entity: { type: 'factory', id: factory.factoryId },
-        amounts: { balances: Object.fromEntries(Object.entries(factory.allocations ?? {}).map(([k, v]) => [k, v.toString()])) },
+        amounts: { balances: amountRecordJson(factory.allocations ?? {}) },
         transitionHash: hashTransition(['factory', factory.factoryId, factory.status]),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
         data: { participants: factory.participants },
@@ -2907,7 +2972,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     if (!Array.isArray(parties) || parties.length !== 2 || !parties.every((value) => typeof value === 'string')) throw new Error('partyIds must contain two party IDs');
     const amounts = params.amounts;
     if (!amounts || typeof amounts !== 'object') throw new Error('amounts is required');
-    const parsedAmounts = Object.fromEntries(Object.entries(amounts as Record<string, unknown>).map(([key, value]) => [key, BigInt(String(value))]));
+    const parsedAmounts = Object.fromEntries(Object.entries(amounts as Record<string, unknown>).map(([key, value]) => [key, amountToAtoms(String(value))]));
     const localPartyId = context.localParticipant?.partyId;
     if (!localPartyId) throw new Error('Local participant is not configured');
     const localBundle = context.factoryBundles[localPartyId];
@@ -2954,7 +3019,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       await context.observe?.emit({
         domain: 'factory', kind: 'factory.vc_opened', phase: 'accepted',
         entity: { type: 'channel', id: result.channel.channelId },
-        amounts: { capacity: result.channel.totalValue.toString(), balances: balancesJson(result.channel) },
+        amounts: { capacity: atomsToAmount(result.channel.totalValue), balances: balancesJson(result.channel) },
         transitionHash: channelTransitionHash(result.channel),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
         data: { factoryId },
@@ -3085,11 +3150,11 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         domain: 'factory', kind: 'factory.closed', phase: 'closed',
         entity: { type: 'factory', id: factoryId },
         chain: { txpowId: payload.txpowId },
-        amounts: { balances: Object.fromEntries(Object.entries(payload.finalAllocations as Record<string, bigint>).map(([k, v]) => [k, v.toString()])) },
+        amounts: { balances: amountRecordJson(payload.finalAllocations as Record<string, bigint>) },
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
       });
       const finalAllocations = payload.finalAllocations as Record<string, bigint>;
-      return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: Object.fromEntries(Object.entries(finalAllocations).map(([key, value]) => [key, value.toString()])) };
+      return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: amountRecordJson(finalAllocations) };
     });
   };
   register('totem_omniaCloseFactory', closeFactoryMethod, 'omnia/closeFactory');
@@ -3111,8 +3176,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const provider = context.spliceLeaseProvider!;
       const quiesced = await quiesceChannel(channel, provider);
       const proposal = type === 'in'
-        ? await proposeSpliceIn(quiesced, requiredString(params, 'additionalCoinId'), requiredBigInt(params, 'additionalAmount'), provider, params.newBalances as Record<string, bigint> | undefined)
-        : await proposeSpliceOut(quiesced, requiredBigInt(params, 'withdrawAmount'), requiredString(params, 'withdrawAddress'), provider, params.newBalances as Record<string, bigint> | undefined);
+        ? await proposeSpliceIn(quiesced, requiredString(params, 'additionalCoinId'), requiredAmount(params, 'additionalAmount'), provider, params.newBalances as Record<string, bigint> | undefined)
+        : await proposeSpliceOut(quiesced, requiredAmount(params, 'withdrawAmount'), requiredString(params, 'withdrawAddress'), provider, params.newBalances as Record<string, bigint> | undefined);
       context.spliceProposals!.set(proposal.spliceId, proposal);
 
       const peer = await swarm.connectToPeer(remote.publicKeyDigest, channelId, remote.transportPubkey);
@@ -3139,7 +3204,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       await context.observe?.emit({
         domain: 'splice', kind: 'splice.completed', phase: 'confirmed',
         entity: { type: 'channel', id: channelId },
-        amounts: { capacity: spliced.totalValue.toString(), balances: Object.fromEntries(Object.entries(spliced.balances).map(([k, v]) => [k, v.toString()])) },
+        amounts: { capacity: atomsToAmount(spliced.totalValue), balances: amountRecordJson(spliced.balances) },
         chain: { fundingCoinId: spliced.spliceFundingCoinId, txpowId: spliced.spliceFundingTxId },
         transitionHash: hashTransition(['splice', channelId, spliced.spliceFundingCoinId, spliced.spliceFundingTxId]),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
@@ -3160,8 +3225,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         channelId,
         spliceId: proposal.spliceId,
         spliceType: spliced.spliceType,
-        totalValue: spliced.totalValue.toString(),
-        balances: Object.fromEntries(Object.entries(spliced.balances).map(([partyId, amount]) => [partyId, amount.toString()])),
+        totalValue: atomsToAmount(spliced.totalValue),
+        balances: amountRecordJson(spliced.balances),
         fundingCoinId: spliced.spliceFundingCoinId,
       };
     });
@@ -3180,7 +3245,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         channelId: String(hop.channelId ?? ''),
         from: String(hop.from ?? ''),
         to: String(hop.to ?? ''),
-        amount: typeof hop.amount === 'bigint' ? hop.amount : BigInt(String(hop.amount ?? '0')),
+        amount: typeof hop.amount === 'bigint' ? hop.amount : amountToAtoms(String(hop.amount ?? '0')),
         tokenId: String(hop.tokenId ?? ''),
         ...(typeof hop.htlcId === 'string' ? { htlcId: hop.htlcId } : {}),
       };
@@ -3190,8 +3255,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
           isSwap: true as const,
           tokenIn: String(hop.tokenIn ?? ''),
           tokenOut: String(hop.tokenOut ?? ''),
-          amountIn: typeof hop.amountIn === 'bigint' ? hop.amountIn : BigInt(String(hop.amountIn ?? '0')),
-          amountOut: typeof hop.amountOut === 'bigint' ? hop.amountOut : BigInt(String(hop.amountOut ?? '0')),
+          amountIn: typeof hop.amountIn === 'bigint' ? hop.amountIn : amountToAtoms(String(hop.amountIn ?? '0')),
+          amountOut: typeof hop.amountOut === 'bigint' ? hop.amountOut : amountToAtoms(String(hop.amountOut ?? '0')),
           rate: String(hop.rate ?? ''),
           inboundChannelId: String(hop.inboundChannelId ?? ''),
           outboundChannelId: String(hop.outboundChannelId ?? ''),
@@ -3201,7 +3266,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     });
     const route = {
       hops,
-      totalFees: typeof raw.totalFees === 'bigint' ? raw.totalFees : BigInt(String(raw.totalFees ?? '0')),
+      totalFees: typeof raw.totalFees === 'bigint' ? raw.totalFees : amountToAtoms(String(raw.totalFees ?? '0')),
       tokenIn: String(raw.tokenIn ?? ''),
       tokenOut: String(raw.tokenOut ?? ''),
       estimatedBlocks: Number(raw.estimatedBlocks ?? 0),
@@ -3216,14 +3281,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return {
       tokenIn: route.tokenIn,
       tokenOut: route.tokenOut,
-      totalFees: route.totalFees.toString(),
+      totalFees: atomsToAmount(route.totalFees),
       estimatedBlocks: route.estimatedBlocks,
       hops: route.hops.map((hop) => {
         const base = {
           channelId: hop.channelId,
           from: hop.from,
           to: hop.to,
-          amount: hop.amount.toString(),
+          amount: atomsToAmount(hop.amount),
           tokenId: hop.tokenId,
           ...(hop.htlcId ? { htlcId: hop.htlcId } : {}),
         };
@@ -3233,8 +3298,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
             isSwap: true,
             tokenIn: hop.tokenIn,
             tokenOut: hop.tokenOut,
-            amountIn: hop.amountIn.toString(),
-            amountOut: hop.amountOut.toString(),
+            amountIn: atomsToAmount(hop.amountIn),
+            amountOut: atomsToAmount(hop.amountOut),
             rate: hop.rate,
             inboundChannelId: hop.inboundChannelId,
             outboundChannelId: hop.outboundChannelId,
@@ -3251,7 +3316,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const from = context.localParticipant?.publicKeyDigest;
     if (!from) throw new Error('Local participant is not configured');
 
-    const amount = requiredBigInt(params, 'amount');
+    const amount = requiredAmount(params, 'amount');
     const tokenId = requiredString(params, 'tokenId');
     const targetTokenId = typeof params.targetTokenId === 'string' ? params.targetTokenId : undefined;
     const parsedRoute = params.route
@@ -3390,12 +3455,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         domain: 'payment', kind: 'payment.completed', phase: 'committed',
         entity: { type: 'payment', id: typeof params.operationId === 'string' ? params.operationId : parsedRequest.hashlock },
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
-        amounts: { amountAtoms: parsedRequest.amount.toString() },
+        amounts: { amount: atomsToAmount(parsedRequest.amount) },
         token: { tokenId: parsedRequest.tokenId, scale: 0 },
         transitionHash: hashTransition(['payment', parsedRequest.hashlock, result.settledHops.join(',')]),
         data: {
           settledHops: result.settledHops,
-          hops: parsedRoute.hops.map((h) => ({ channelId: (h as { channelId?: string }).channelId, amount: String((h as { amount?: unknown }).amount) })),
+          hops: parsedRoute.hops.map((h) => ({ channelId: (h as { channelId?: string }).channelId, amount: atomsToAmount((h as { amount: bigint }).amount) })),
         },
       });
       return {

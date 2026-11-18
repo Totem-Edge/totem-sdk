@@ -189,6 +189,7 @@ export {
   getStateBigInt,
   getStateValue,
   programNumberState,
+  programAmountState,
 } from './state-vars.js';
 
 export {

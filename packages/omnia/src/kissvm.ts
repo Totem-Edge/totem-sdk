@@ -1,13 +1,17 @@
+import { unscaledToAmount } from '@totemsdk/core';
 import { evaluateScript, KissvmLimitError, type ScriptWitness, type TxContext } from '@totemsdk/kissvm';
 import type { OmniaChannel, OmniaTxDraft, SignedChannelState, StateValue } from './types.js';
 import { buildSettlementTx, computeOmniaTxDigest, deserializeTxDraft, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
 import { buildProgramUpdateTx } from './program.js';
 
 function stateValuesToContext(values: StateValue[]): Record<number, string> {
-  return Object.fromEntries(values.map(sv => [
-    sv.port,
-    typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
-  ]));
+  return Object.fromEntries(values.map(sv => {
+    if (sv.type === 'number' && sv.scale !== undefined && sv.scale > 0) {
+      const unscaled = typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value));
+      return [sv.port, unscaledToAmount(unscaled, sv.scale)];
+    }
+    return [sv.port, typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value)];
+  }));
 }
 
 function signatureWitness(channel: OmniaChannel, state: SignedChannelState): ScriptWitness {

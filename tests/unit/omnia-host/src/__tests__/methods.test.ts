@@ -1,5 +1,9 @@
+import { amountToAtoms } from '@totemsdk/core';
 import { createHostMethods } from '../api/methods.js';
 import { InProcessRoutingProvider } from '../router/routing-provider.js';
+
+/** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
+const atoms = (value: string | number) => amountToAtoms(String(value));
 
 describe('omnia-host JSON-RPC methods', () => {
   it('returns channel summaries using connect-compatible strings', async () => {
@@ -7,8 +11,8 @@ describe('omnia-host JSON-RPC methods', () => {
       channelId: 'channel-1',
       status: 'active',
       tokenId: '0x00',
-      totalValue: 10n,
-      balances: { alice: 7n, bob: 3n },
+      totalValue: atoms('10'),
+      balances: { alice: atoms('7'), bob: atoms('3') },
       parties: [{ partyId: 'alice' }, { partyId: 'bob' }],
       currentSequence: 4,
     }]]);
@@ -52,7 +56,7 @@ describe('omnia-host JSON-RPC methods', () => {
       channelType: 'direct',
       tokenId: '0x00',
       tokenScale: 0,
-      totalValue: 10n,
+      totalValue: atoms('10'),
       currentSequence: 4,
       fundingAddress: 'addr',
       fundingTxId: 'tx',
@@ -61,11 +65,11 @@ describe('omnia-host JSON-RPC methods', () => {
         { partyId: 'alice', publicKeyDigest: 'a', addressIndex: 0 },
         { partyId: 'bob', publicKeyDigest: 'b', addressIndex: 1 },
       ],
-      balances: { alice: 7n, bob: 3n },
+      balances: { alice: atoms('7'), bob: atoms('3') },
       pendingHTLCs: [],
       latestState: {
         sequence: 4,
-        balances: { alice: 7n, bob: 3n },
+        balances: { alice: atoms('7'), bob: atoms('3') },
         pendingHTLCs: [],
         stateVariables: [{ port: 101, value: 4n, type: 'number' }],
         transactionHex: '0xabcd',

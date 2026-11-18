@@ -4,7 +4,7 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
-import { coinAmountAtoms } from '@totemsdk/core';
+import { atomsToAmount, coinAmountAtoms } from '@totemsdk/core';
 import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
@@ -396,7 +396,7 @@ export function createOmniaHost(
             void observation?.emit({
               domain: 'splice', kind: 'splice.finalized', phase: 'confirmed',
               entity: { type: 'channel', id: channel.channelId },
-              amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, v.toString()])) },
+              amounts: { capacity: channel.totalValue !== undefined ? atomsToAmount(channel.totalValue) : undefined, balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, atomsToAmount(v)])) },
               data: { spliceId: (payload as any).spliceId, txId: (payload as any).txId },
             });
             if (typeof payload.txId === 'string') {
@@ -669,7 +669,7 @@ export function createOmniaHost(
           entity: { type: 'channel', id: channel.channelId },
           parties: { local: localParticipant?.partyId, remote: channel.parties?.find((p: any) => p.partyId !== localParticipant?.partyId)?.partyId },
           token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
-          amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, v.toString()])) },
+          amounts: { capacity: channel.totalValue !== undefined ? atomsToAmount(channel.totalValue) : undefined, balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, atomsToAmount(v)])) },
           transitionHash: channelTransitionHash(channel),
           evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
         });

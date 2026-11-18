@@ -4,6 +4,7 @@ import {
   atomsToAmount,
   atomsToMiniNumber,
   coinAmountAtoms,
+  unscaledToAmount,
 } from '@totemsdk/core';
 
 const ATOMS_PER_MINIMA = 10n ** BigInt(MINIMA_DECIMALS);
@@ -34,6 +35,14 @@ describe('amount units (decimal MINIMA text <-> atoms)', () => {
       unscaled: 2n * 10n ** 43n,
       scale: MINIMA_DECIMALS,
     });
+  });
+
+  it('renders unscaled values at an arbitrary MiniNumber scale', () => {
+    expect(unscaledToAmount(2n * 10n ** 43n, 44)).toBe('0.2');
+    expect(unscaledToAmount(150n, 2)).toBe('1.5');
+    expect(unscaledToAmount(5n, 0)).toBe('5');
+    expect(() => unscaledToAmount(-1n, 2)).toThrow(/non-negative/);
+    expect(() => unscaledToAmount(1n, 256)).toThrow(/scale/);
   });
 
   it('reads a coin amount as atoms across provider and internal forms', () => {

@@ -3,7 +3,7 @@ import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput,
 import { buildEltooScript } from './script.js';
 import { buildUpdateTx, computeOmniaTxDigest } from './transactions.js';
 import { canonicalizeProgramTransition } from './transition.js';
-import { getStateBigInt, getStateBool, getStateHex, getStateString, programNumberState, programBoolState, programHexState, programStringState } from './state-vars.js';
+import { getStateBigInt, getStateBool, getStateHex, getStateString, programNumberState, programAmountState, programBoolState, programHexState, programStringState } from './state-vars.js';
 
 export const ELTOO_PAYMENT_PROGRAM_ID = 'eltoo-payment';
 export const COUNTER_PROGRAM_ID = 'counter';
@@ -187,8 +187,8 @@ export const MeterProgram: ChannelProgram = {
     return [
       programNumberState(METER_READING_PORT, reading),
       programNumberState(METER_USAGE_DELTA_PORT, usage),
-      programNumberState(METER_UNIT_PRICE_PORT, unitPrice),
-      programNumberState(METER_PAYMENT_PORT, payment),
+      programAmountState(METER_UNIT_PRICE_PORT, unitPrice),
+      programAmountState(METER_PAYMENT_PORT, payment),
     ];
   },
   validateTransition({ channel, previousState, nextState, transition }) {
@@ -242,7 +242,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
       programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
-      programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+      programAmountState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
       programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
       programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
       programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
@@ -254,7 +254,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
         const timeoutBlock = BigInt(String(transition.inputs?.timeoutBlock ?? 0n));
         return [
           programHexState(HTLC_HASHLOCK_PORT, `0x${hashlock}`),
-          programNumberState(HTLC_LOCKED_AMOUNT_PORT, amount),
+          programAmountState(HTLC_LOCKED_AMOUNT_PORT, amount),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, timeoutBlock),
           programBoolState(HTLC_CLAIMED_PORT, false),
           programHexState(HTLC_PREIMAGE_PORT, ''),
@@ -263,7 +263,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
       case 'claim': {
         if (!transition.inputs?.preimage) return [
           programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
-          programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+          programAmountState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, false),
           programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
@@ -274,7 +274,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
         if (digest !== normalizeHex(lock)) {
           return [
             programHexState(HTLC_HASHLOCK_PORT, lock),
-            programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+            programAmountState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
             programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
             programBoolState(HTLC_CLAIMED_PORT, false),
             programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
@@ -282,7 +282,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
         }
         return [
           programHexState(HTLC_HASHLOCK_PORT, lock),
-          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
+          programAmountState(HTLC_LOCKED_AMOUNT_PORT, 0n),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, true),
           programHexState(HTLC_PREIMAGE_PORT, `0x${bytesToHex(new TextEncoder().encode(preimage))}`),
@@ -291,7 +291,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
       case 'timeout': {
         return [
           programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
-          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
+          programAmountState(HTLC_LOCKED_AMOUNT_PORT, 0n),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, true),
           programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
@@ -300,7 +300,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
       default:
         return [
           programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
-          programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+          programAmountState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
           programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
@@ -369,7 +369,7 @@ export const VaultProgram: ChannelProgram = {
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
-      programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+      programAmountState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
       programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
       programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
     ];
@@ -378,7 +378,7 @@ export const VaultProgram: ChannelProgram = {
         const amount = BigInt(String(transition.inputs?.amount ?? 0n));
         const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
         return [
-          programNumberState(VAULT_LOCKED_VALUE_PORT, amount),
+          programAmountState(VAULT_LOCKED_VALUE_PORT, amount),
           programNumberState(VAULT_RELEASE_SEQUENCE_PORT, release),
           programBoolState(VAULT_SWEPT_PORT, false),
         ];
@@ -386,21 +386,21 @@ export const VaultProgram: ChannelProgram = {
       case 'extend': {
         const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
         return [
-          programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+          programAmountState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
           programNumberState(VAULT_RELEASE_SEQUENCE_PORT, release),
           programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
         ];
       }
       case 'release': {
         return [
-          programNumberState(VAULT_LOCKED_VALUE_PORT, 0n),
+          programAmountState(VAULT_LOCKED_VALUE_PORT, 0n),
           programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
           programBoolState(VAULT_SWEPT_PORT, true),
         ];
       }
       default:
         return [
-          programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+          programAmountState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
           programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
           programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
         ];
@@ -470,8 +470,8 @@ export const TreasuryProgram: ChannelProgram = {
     if (!transition) return [
       programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
       programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
-      programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
-      programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
+      programAmountState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+      programAmountState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
       programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
     ];
     switch (transition.action) {
@@ -479,8 +479,8 @@ export const TreasuryProgram: ChannelProgram = {
         return [
           programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, String(transition.inputs?.membershipSnapshotHash ?? '')),
           programStringState(TREASURY_VOTE_TALLY_HASH_PORT, String(transition.inputs?.voteTallyHash ?? '')),
-          programNumberState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
-          programNumberState(TREASURY_SPENT_PORT, 0n),
+          programAmountState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
+          programAmountState(TREASURY_SPENT_PORT, 0n),
           programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, String(transition.inputs?.outcomeProofId ?? '')),
         ];
       }
@@ -489,8 +489,8 @@ export const TreasuryProgram: ChannelProgram = {
         return [
           programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
           programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
-          programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
-          programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n) + amount),
+          programAmountState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+          programAmountState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n) + amount),
           programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
         ];
       }
@@ -498,8 +498,8 @@ export const TreasuryProgram: ChannelProgram = {
         return [
           programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, String(transition.inputs?.membershipSnapshotHash ?? '')),
           programStringState(TREASURY_VOTE_TALLY_HASH_PORT, String(transition.inputs?.voteTallyHash ?? '')),
-          programNumberState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
-          programNumberState(TREASURY_SPENT_PORT, 0n),
+          programAmountState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
+          programAmountState(TREASURY_SPENT_PORT, 0n),
           programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, String(transition.inputs?.outcomeProofId ?? '')),
         ];
       }
@@ -507,8 +507,8 @@ export const TreasuryProgram: ChannelProgram = {
         return [
           programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
           programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
-          programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
-          programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
+          programAmountState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+          programAmountState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
           programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
         ];
     }
@@ -560,7 +560,7 @@ export const MembershipProgram: ChannelProgram = {
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
       programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
-      programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+      programAmountState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
       programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
     ];
     switch (transition.action) {
@@ -569,7 +569,7 @@ export const MembershipProgram: ChannelProgram = {
         const root = normalizeHex(String(transition.inputs?.memberRoot ?? ''));
         return [
           programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, root),
-          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+          programAmountState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
           programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
         ];
       }
@@ -577,7 +577,7 @@ export const MembershipProgram: ChannelProgram = {
         const amount = BigInt(String(transition.inputs?.amount ?? 0n));
         return [
           programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
-          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n) + amount),
+          programAmountState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n) + amount),
           programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
         ];
       }
@@ -585,14 +585,14 @@ export const MembershipProgram: ChannelProgram = {
         const payout = BigInt(String(transition.inputs?.payoutSequence ?? 0n));
         return [
           programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
-          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, 0n),
+          programAmountState(MEMBERSHIP_DIVIDEND_POOL_PORT, 0n),
           programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout),
         ];
       }
       default:
         return [
           programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
-          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+          programAmountState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
           programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
         ];
     }
@@ -648,9 +648,9 @@ export const AssetProgram: ChannelProgram = {
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
       programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
-      programNumberState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
-      programNumberState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
-      programNumberState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
+      programAmountState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
+      programAmountState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
+      programAmountState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
     ];
     switch (transition.action) {
       case 'configure': {
@@ -658,9 +658,9 @@ export const AssetProgram: ChannelProgram = {
         const b = BigInt(String(transition.inputs?.holderBBalance ?? 0n));
         return [
           programHexState(ASSET_TOKEN_ID_PORT, normalizeHex(String(transition.inputs?.tokenId ?? ''))),
-          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, a),
-          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, b),
-          programNumberState(ASSET_TOTAL_PORT, a + b),
+          programAmountState(ASSET_HOLDER_A_BALANCE_PORT, a),
+          programAmountState(ASSET_HOLDER_B_BALANCE_PORT, b),
+          programAmountState(ASSET_TOTAL_PORT, a + b),
         ];
       }
       case 'transfer': {
@@ -673,17 +673,17 @@ export const AssetProgram: ChannelProgram = {
         const nextB = to === 'a' ? prevB - amount : prevB + amount;
         return [
           programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
-          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, nextA),
-          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, nextB),
-          programNumberState(ASSET_TOTAL_PORT, total),
+          programAmountState(ASSET_HOLDER_A_BALANCE_PORT, nextA),
+          programAmountState(ASSET_HOLDER_B_BALANCE_PORT, nextB),
+          programAmountState(ASSET_TOTAL_PORT, total),
         ];
       }
       default:
         return [
           programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
-          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
-          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
-          programNumberState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
+          programAmountState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
+          programAmountState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
+          programAmountState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
         ];
     }
   },

@@ -1,3 +1,4 @@
+import { atomsToAmount } from '@totemsdk/core';
 import type {
   LiquidityAsset,
   LiquidityCommitment,
@@ -56,7 +57,7 @@ export async function acceptLiquidityCommitment(
       coinId: commitment.funding.utxoRef,
       ownerAddress: commitment.lpAddress,
       tokenId: assetToTokenId(commitment.asset),
-      claimedAmount: commitment.amount.toString(),
+      claimedAmount: atomsToAmount(commitment.amount),
     });
     if (!verified.valid) {
       throw new Error(`cannot accept a commitment whose funding failed on-chain verification: ${verified.reason ?? 'unknown reason'}`);
@@ -120,7 +121,7 @@ async function doVerifyLiquidityCommitment(
         coinId: commitment.funding.utxoRef,
         ownerAddress: commitment.lpAddress,
         tokenId: assetToTokenId(commitment.asset),
-        claimedAmount: commitment.amount.toString(),
+        claimedAmount: atomsToAmount(commitment.amount),
       });
       if (!verified.valid) {
         return {
@@ -159,7 +160,7 @@ export async function confirmLiquidityCommitment(
     coinId: commitment.funding.utxoRef,
     ownerAddress: commitment.lpAddress,
     tokenId: assetToTokenId(commitment.asset),
-    claimedAmount: commitment.amount.toString(),
+    claimedAmount: atomsToAmount(commitment.amount),
   });
   if (!verified.valid) {
     return { ...commitment, funding: { ...commitment.funding, status: 'invalid' } };
