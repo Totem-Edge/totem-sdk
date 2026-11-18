@@ -26,6 +26,15 @@ jobs:
         run: echo "matrix=$(node scripts/resolve-release-matrix.mjs "$RELEASE_TAG")" >> "$GITHUB_OUTPUT"
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+      # Refuse to publish while the register holds an open finding at or above
+      # the threshold for this package. Regenerate docs/findings from the canary.
+      - name: Findings gate
+        env:
+          RELEASE_MATRIX: ${{ steps.matrix.outputs.matrix }}
+        run: |
+          pkg=$(node -e 'const m = JSON.parse(process.env.RELEASE_MATRIX); process.stdout.write(m.include[0].npm_name)')
+          echo "gating $pkg"
+          node scripts/verify-findings-gate.mjs --min-severity high --packages "$pkg"
 
   publish:
     name: Publish ${{ matrix.npm_name }}
