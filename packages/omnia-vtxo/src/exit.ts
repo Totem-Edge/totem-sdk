@@ -32,7 +32,7 @@ export function markExiting(vtxo: OmniaVtxo, now?: number): OmniaVtxo {
  */
 export function markExited(
   vtxo: OmniaVtxo,
-  options: { txpowId?: string; now?: number } = {},
+  options: { txpowId: string; now?: number },
 ): OmniaVtxo {
   const ts = options.now !== undefined ? options.now : Date.now();
   if (vtxo.status !== 'exiting') {
@@ -41,14 +41,20 @@ export function markExited(
       vtxo.status,
     );
   }
+  // OMN-042: an exit is only final once there is a transaction to point at.
+  if (!options.txpowId || !options.txpowId.trim()) {
+    throw new VtxoExitError(
+      `Cannot mark VTXO ${vtxo.vtxoId} as exited: the exit transaction id is required`,
+    );
+  }
   return {
     ...vtxo,
     status: 'exited',
     updatedAt: ts,
-    ...(options.txpowId ? { exitTxpowId: options.txpowId } : {}),
+    exitTxpowId: options.txpowId,
     history: [
       ...vtxo.history,
-      { op: 'exit_complete', at: ts, ...(options.txpowId ? { meta: { txpowId: options.txpowId } } : {}) },
+      { op: 'exit_complete', at: ts, meta: { txpowId: options.txpowId } },
     ],
   };
 }

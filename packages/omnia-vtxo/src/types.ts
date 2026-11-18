@@ -5,7 +5,12 @@ export type VtxoId = string;
 
 export type VtxoStatus =
   | 'active' | 'transferred' | 'split' | 'merged'
-  | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid';
+  | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid'
+  /**
+   * OMN-041: issued but not yet transferable. A VTXO is provisional until the
+   * operator co-signs its receipt and the pool backing is verified.
+   */
+  | 'provisional';
 
 export type VtxoOp =
   | 'mint' | 'transfer' | 'split' | 'merge'
@@ -39,6 +44,19 @@ export interface VtxoEpochRoot {
   vtxoIds: VtxoId[];
 }
 
+/**
+ * OMN-041: authoritative on-chain backing for a pool. Created only from a
+ * verified deposit; `amount` is in atoms.
+ */
+export interface VtxoPoolBacking {
+  coinId: string;
+  amount: bigint;
+  tokenId: string;
+  confirmations: number;
+  verifiedAt: number;
+  address?: string;
+}
+
 export interface OmniaVtxoPool {
   poolId: string;
   operator: string;
@@ -60,6 +78,8 @@ export interface OmniaVtxoPool {
   epochRoots: VtxoEpochRoot[];
   createdAt: number;
   policy: VtxoPoolPolicy;
+  /** OMN-041: verified on-chain coin backing this pool's capacity. */
+  backing?: VtxoPoolBacking;
 }
 
 export interface VtxoProof {
@@ -220,6 +240,27 @@ export interface ExitDraft {
   /** The verified share this exit is capped at (the VTXO's amount). */
   verifiedShare: bigint;
 }
+
+/**
+ * OMN-042: chain evidence for an exit transaction. Produced by a trusted
+ * verifier — never by the RPC caller.
+ */
+export interface VtxoExitEvidence {
+  valid: boolean;
+  reason?: string;
+  /** Address paid by the exit output. */
+  owner?: string;
+  /** Paid amount in atoms. */
+  amount?: bigint;
+  tokenId?: string;
+  /** Depth of the exit transaction at verification time. */
+  confirmations?: number;
+}
+
+export type VtxoExitVerifier = (request: {
+  vtxo: OmniaVtxo;
+  txpowId: string;
+}) => Promise<VtxoExitEvidence>;
 
 export interface VerifyVtxoResult {
   valid: boolean;

@@ -130,7 +130,7 @@ describe('createDurableSpliceStore', () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
       const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
-      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB));
+      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       await store.saveProposal(proposal);
       await store.saveAcceptance(acceptance);
 
@@ -145,7 +145,7 @@ describe('createDurableSpliceStore', () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
       const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
-      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB));
+      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       const acceptanceForUnknown: SpliceAcceptance = { ...acceptance, spliceId: 'no-such-splice' };
       await expect(store.saveAcceptance(acceptanceForUnknown)).rejects.toMatchObject({ code: 'write-failed' });
     });
@@ -154,7 +154,7 @@ describe('createDurableSpliceStore', () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());
       const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n });
-      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB));
+      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       await store.saveProposal(proposal);
       await store.saveAcceptance(acceptance);
       await store.markFinalized(proposal.spliceId);
@@ -197,7 +197,7 @@ describe('createDurableSpliceStore', () => {
       expect(pending[0].proposal.spliceTxHex).toBe(proposal.spliceTxHex);
 
       // ── Phase 2: acceptor co-signs on the recovered proposal and it finalizes. ──
-      const acceptance: SpliceAcceptance = await acceptSplice(channel, pending[0].proposal, makeLeaseProvider(PKD_BOB));
+      const acceptance: SpliceAcceptance = await acceptSplice(channel, pending[0].proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
       await store.saveAcceptance(acceptance);
       expect((await store.getSplice(proposal.spliceId))?.status).toBe('accepted');
 

@@ -19,6 +19,7 @@ export function createEmptyLiquidityBondRegistryState(): LiquidityBondRegistrySt
     feeRecords: {},
     withdrawals: {},
     feePayouts: {},
+    fundingClaims: {},
     updatedAt: Date.now(),
   };
 }
@@ -44,8 +45,26 @@ export function registerLiquidityCommitment(
   commitment: LiquidityCommitment
 ): LiquidityBondRegistryState {
   const commitments = { ...state.commitments };
+  const fundingClaims = { ...(state.fundingClaims ?? {}) };
+  const ref = commitment.funding?.utxoRef?.replace(/^0x/i, '').toLowerCase();
+
+  // OMN-033: a funding coin may back at most one active commitment. Rejected,
+  // expired and cancelled commitments release their claim.
+  if (ref) {
+    const existingId = fundingClaims[ref];
+    const existing = existingId ? commitments[existingId] : undefined;
+    const released = !existing
+      || existing.status === 'rejected'
+      || existing.status === 'expired'
+      || existing.status === 'cancelled';
+    if (!released && existingId !== commitment.commitmentId) {
+      throw new Error(`funding coin ${commitment.funding!.utxoRef} is already committed by ${existingId}`);
+    }
+    fundingClaims[ref] = commitment.commitmentId;
+  }
+
   commitments[commitment.commitmentId] = commitment;
-  return { ...state, commitments, updatedAt: Date.now() };
+  return { ...state, commitments, fundingClaims, updatedAt: Date.now() };
 }
 
 export function registerLiquidityPosition(

@@ -1,7 +1,12 @@
 import { OmniaVtxo, TransferVtxoParams, TransferResult, VtxoTransfer, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoAmountError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { verifyVtxoExitEntitlement, createVtxoExitEntitlement, type VtxoExitEntitlement } from './exit-entitlement.js';
+import {
+  verifyVtxoExitEntitlement,
+  createVtxoExitEntitlement,
+  type VtxoExitEntitlement,
+  type VerifyExitEntitlementOptions,
+} from './exit-entitlement.js';
 import { buildExitTransaction, type ExitTxParams, type ExitTxDeps } from './exit-tx.js';
 
 type TransferOutcome = TransferResult & { receipt: VtxoOperatorReceipt };
@@ -210,10 +215,20 @@ function prepareTransfer(
  *
  * @param now - Timestamp in ms. Defaults to Date.now() if omitted — pass explicitly for determinism.
  */
+/**
+ * OMN-025: an entitlement supplied by a peer must carry a witness the caller can
+ * verify. Set `allowUnverifiedExit` only for entitlements this process built.
+ */
+export interface TransferVtxoOptions {
+  verifyExitWitness?: VerifyExitEntitlementOptions['verifyWitness'];
+  allowUnverifiedExit?: boolean;
+}
+
 export function transferVtxo(
   vtxo: OmniaVtxo,
   params: TransferVtxoParams,
   now?: number,
+  options: TransferVtxoOptions = {},
 ): TransferOutcome {
   const ts = now !== undefined ? now : Date.now();
   const prepared = prepareTransfer(vtxo, params, ts);
@@ -222,7 +237,10 @@ export function transferVtxo(
   if (params.exitEntitlement) {
     // Never trust an entitlement because it verified for the *input*: it must
     // verify for the recipient's output VTXO.
-    const check = verifyVtxoExitEntitlement(params.exitEntitlement, prepared.output);
+    const check = verifyVtxoExitEntitlement(params.exitEntitlement, prepared.output, {
+      ...(options.verifyExitWitness ? { verifyWitness: options.verifyExitWitness } : {}),
+      requireWitness: options.allowUnverifiedExit !== true,
+    });
     if (!check.valid) {
       throw new VtxoAmountError(
         `invalid exit entitlement for recipient output: ${check.errors.join('; ')}`,
@@ -296,14 +314,17 @@ export async function transferVtxoWithExit(
 
   const exit = await buildExitTransaction(recipientExitParams, exitDeps);
   const entitlement = createVtxoExitEntitlement(recipientExitParams, exit);
-  const check = verifyVtxoExitEntitlement(entitlement, prepared.output);
+  const check = verifyVtxoExitEntitlement(entitlement, prepared.output, { requireWitness: false });
   if (!check.valid) {
     throw new VtxoAmountError(
       `rebuilt exit entitlement does not verify for the recipient output: ${check.errors.join('; ')}`,
     );
   }
 
-  const transferred = transferVtxo(vtxo, { ...params, exitEntitlement: entitlement }, ts);
+  // Locally rebuilt, so the witness check is not repeated against a peer claim.
+  const transferred = transferVtxo(vtxo, { ...params, exitEntitlement: entitlement }, ts, {
+    allowUnverifiedExit: true,
+  });
   return { ...transferred, exitEntitlement: entitlement };
 }
 

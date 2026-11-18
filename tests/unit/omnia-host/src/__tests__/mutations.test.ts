@@ -1,6 +1,6 @@
 import { amountToAtoms } from '@totemsdk/core';
 import { _resetChannelWatermarks } from '@totemsdk/omnia';
-import { createHostMethods } from '../api/methods.js';
+import { createHostMethods, requestPeerReply } from '../api/methods.js';
 import { InProcessRoutingProvider } from '../router/routing-provider.js';
 
 /** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
@@ -109,6 +109,52 @@ describe('omnia-host mutations', () => {
         remoteAmount: '4',
       }),
     ).rejects.toThrow(/getAddressInfo \+ exportCoin/);
+  });
+
+
+  it('OMN-024: does not commit a payment the counterparty did not co-sign', async () => {
+    const channels = new Map([['channel-1', channel()]]);
+    const { context } = mutationContext(channels, operationStore());
+    (context as any).swarm = {
+      connectToPeer: jest.fn(async () => ({
+        sendMessage: jest.fn(async () => undefined),
+        onMessage: (cb: (msg: any) => void) => {
+          setTimeout(() => cb({ type: 'ACK', channelId: 'channel-1' }), 0);
+          return () => undefined;
+        },
+        onReconnected: () => () => undefined,
+      })),
+    };
+    const methods = createHostMethods(context);
+    const before = channels.get('channel-1')!.balances;
+    const paid = await methods.get('totem_omniaPay')!({
+      operationId: 'pay-no-cosign',
+      channelId: 'channel-1',
+      amount: '0.5',
+    });
+    expect(paid).toMatchObject({
+      success: false,
+      acknowledged: true,
+      committed: false,
+      errorCode: 'PEER_COSIGNATURE_MISSING',
+    });
+    expect(channels.get('channel-1')!.balances).toEqual(before);
+
+  });
+
+  it('OMN-024: requestPeerReply resolves null when the peer never answers', async () => {
+    const peer = {
+      sendMessage: jest.fn(async () => undefined),
+      onMessage: () => () => undefined,
+      onReconnected: () => () => undefined,
+    };
+    const reply = await requestPeerReply(
+      peer as never,
+      { type: 'STATE_UPDATE', channelId: 'channel-1', nonce: 1, payload: {} },
+      'channel-1',
+      20,
+    );
+    expect(reply).toBeNull();
   });
 
   it('updates a channel and replays committed operations', async () => {

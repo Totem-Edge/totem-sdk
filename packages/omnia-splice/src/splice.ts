@@ -1,4 +1,4 @@
-import type { OmniaChannel } from '@totemsdk/omnia';
+import { verifyChannelSignature, type OmniaChannel } from '@totemsdk/omnia';
 import type {
   SpliceParams,
   SpliceProposal,
@@ -432,10 +432,22 @@ export async function proposeSpliceOut(
  * @param leaseProvider - Provides the acceptor signer and WOTS lease.
  * @returns SpliceAcceptance containing acceptor co-signature and lease data.
  */
+export interface AcceptSpliceOptions {
+  /** OMN-023: explicit spending authorization for an economic reduction. */
+  authorize?: (request: {
+    channel: OmniaChannel | QuiescedChannel;
+    proposal: SpliceProposal;
+    localPartyId: string;
+  }) => Promise<void> | void;
+  /** Signature verifier for the proposer (defaults to the WOTS verifier). */
+  verifySignature?: (signature: Uint8Array, digest: Uint8Array, publicKeyDigest: string) => boolean;
+}
+
 export async function acceptSplice(
   channel: OmniaChannel | QuiescedChannel,
   proposal: SpliceProposal,
   leaseProvider: SpliceLeaseProvider,
+  options: AcceptSpliceOptions = {},
 ): Promise<SpliceAcceptance> {
   validateChannelQuiesced(channel);
 
@@ -466,6 +478,20 @@ export async function acceptSplice(
   bindDraftToParams(channel, proposal);
 
   const digest = computeSpliceTxDigest(proposal.spliceTxDraft);
+
+  // OMN-023: the acceptor must verify the proposer actually signed this draft
+  // before contributing a signature of its own.
+  const verifyProposer = options.verifySignature ?? verifyChannelSignature;
+  if (!verifyProposer(proposal.proposerSignature, digest, proposal.proposerPublicKeyDigest)) {
+    throw new Error('Splice proposal proposer signature is invalid');
+  }
+  if (options.authorize) {
+    await options.authorize({
+      channel,
+      proposal,
+      localPartyId: partyInChannel.partyId,
+    });
+  }
 
   const reservation = await wotsLease.reserveKeyUse({
     treeId: signer.publicKeyDigest,

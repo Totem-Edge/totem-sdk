@@ -144,7 +144,7 @@ export function createSpliceCoordination(deps: SpliceCoordinationDeps): SpliceCo
     // acceptSplice binds the draft to our channel + validates params, then signs.
     const local = await ensureQuiesced(channel, leaseProvider);
     channels.set(local.channelId, local);
-    const acceptance = await acceptSplice(local, proposal, leaseProvider);
+    const acceptance = await acceptSplice(local, proposal, leaseProvider, { verifySignature: verify });
 
     pendingAcceptances.set(proposal.spliceId, acceptance);
     burnTimers.set(

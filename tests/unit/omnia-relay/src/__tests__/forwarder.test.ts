@@ -259,6 +259,52 @@ describe('createMultiHopForwarder (RFC-035 B4)', () => {
     expect(updated?.pendingHTLCs.find((h) => h.htlcId === incoming.htlcId)?.status).toBe('fulfilled');
   });
 
+
+  it('OMN-006: recovers a final hop journaled before fulfilment', async () => {
+    const sendMessage = jest.fn(async (_m: OmniaMessage) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const channels = new Map([[inChannel.channelId, inChannel]]);
+    const lp = lease();
+    const sg = signer(I);
+    const { preimage, hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 90n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    channels.set(inChannel.channelId, incoming.channel);
+
+    // Crash window: the preimage was journaled before the incoming HTLC was
+    // fulfilled and before the previous hop was told.
+    const journal = memoryJournal();
+    await journal.record({
+      hashlock,
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      outChannelId: '',
+      outHtlcId: '',
+      via: 'final',
+      status: 'preimage-revealed',
+      preimage,
+      backwardNonce: Date.now(),
+    });
+
+    const forwarder = createMultiHopForwarder({
+      channels, leaseProvider: lp, signer: sg, swarm,
+      chainProvider: chainProviderAt(10n), linkJournal: journal,
+    });
+    await forwarder.recover();
+
+    const updated = channels.get(inChannel.channelId);
+    expect(updated?.pendingHTLCs.find((h) => h.htlcId === incoming.htlcId)?.status).toBe('fulfilled');
+    const sent = sendMessage.mock.calls.at(-1)?.[0] as { payload: { preimage?: string } };
+    expect(sent.payload.preimage).toBe(preimage);
+    await forwarder.recover();
+    expect(await journal.list()).toEqual([]);
+  });
+
   it('leaves the final hop pending when the recipient has no preimage', async () => {
     const swarm = swarmWithPeer(jest.fn(async () => {}));
     const inChannel = makeChannel(A, I, { first: 500n, second: 500n });

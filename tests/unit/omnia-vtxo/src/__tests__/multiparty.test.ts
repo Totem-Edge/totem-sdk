@@ -340,16 +340,16 @@ describe('VTXO V1 — transferable exit entitlement', () => {
       scriptProofs: [new Uint8Array([2])],
     });
     const entitlement = createVtxoExitEntitlement(params, result);
-    expect(verifyVtxoExitEntitlement(entitlement, vtxo).valid).toBe(true);
-    expect(verifyVtxoExitEntitlement({ ...entitlement, owner: 'mallory' }, vtxo).valid).toBe(false);
-    expect(verifyVtxoExitEntitlement({ ...entitlement, amount: '1' }, vtxo).valid).toBe(false);
-    expect(verifyVtxoExitEntitlement({ ...entitlement, digest: '0x' + '00'.repeat(32) }, vtxo).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement(entitlement, vtxo, { requireWitness: false }).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement({ ...entitlement, owner: 'mallory' }, vtxo, { requireWitness: false }).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement({ ...entitlement, amount: '1' }, vtxo, { requireWitness: false }).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement({ ...entitlement, digest: '0x' + '00'.repeat(32) }, vtxo, { requireWitness: false }).valid).toBe(false);
 
     // OMN-003: alice's entitlement binds alice/the input id, so it must never be
     // attached to bob's output.
     expect(() => transferVtxo(vtxo, {
       recipient: 'bob', amount: vtxo.amount, nonce: 'v1-x', exitEntitlement: entitlement,
-    }, NOW + 1)).toThrow(/entitlement/);
+    }, NOW + 1, { allowUnverifiedExit: true })).toThrow(/entitlement/);
     const withoutExit = transferVtxo(vtxo, {
       recipient: 'bob', amount: vtxo.amount, nonce: 'v1-x',
     }, NOW + 1);
@@ -393,7 +393,7 @@ describe('VTXO V1 — guarded transfer builder', () => {
     expect(result.output.exitEntitlement).toEqual(result.exitEntitlement);
     expect(result.exitEntitlement.owner).toBe('bob');
     expect(result.exitEntitlement.vtxoId).toBe(result.output.vtxoId);
-    expect(verifyVtxoExitEntitlement(result.exitEntitlement, result.output).valid).toBe(true);
-    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, result.output, { requireWitness: false }).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo, { requireWitness: false }).valid).toBe(false);
   });
 });

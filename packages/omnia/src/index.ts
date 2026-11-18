@@ -39,6 +39,7 @@ export type {
 } from './types.js';
 
 export type { PaymentIntent, AgentPolicy, AgentReceipt } from './types.js';
+export type { SigningIntent, SigningIntentJournal, SigningIntentState } from './guards.js';
 
 export {
   ChannelCapacityError,
@@ -227,6 +228,13 @@ export {
 
 export {
   enforceUpdateGuards,
+  MemorySigningJournal,
+  setSigningJournal,
+  getSigningJournal,
+  beginSigningAttempt,
+  commitSigningAttempt,
+  abandonSigningAttempt,
+  isUpdateGuardSealed,
   _resetChannelWatermarks,
   buildChannelOpening,
   finalizeChannelOpening,

@@ -8,7 +8,7 @@
 
 import { deserializeTxDraft } from '@totemsdk/omnia';
 import { wotsAddressData } from '@totemsdk/core';
-import type { OmniaVtxo } from './types.js';
+import type { OmniaVtxo, OmniaVtxoPool } from './types.js';
 import { exitTransactionDigest, type ExitTxParams, type ExitTxResult } from './exit-tx.js';
 
 export interface VtxoExitEntitlement {
@@ -35,6 +35,27 @@ export interface VtxoExitEntitlement {
 export interface ExitEntitlementVerification {
   valid: boolean;
   errors: string[];
+}
+
+/**
+ * OMN-025: witness verification needs the signing key material, which an
+ * entitlement cannot carry. Callers therefore supply a verifier; without one,
+ * an untrusted entitlement is rejected rather than accepted on shape alone.
+ */
+export interface VerifyExitEntitlementOptions {
+  /** Verify the serialized witness over the exit digest. */
+  verifyWitness?: (
+    witness: Uint8Array,
+    digest: Uint8Array,
+    entitlement: VtxoExitEntitlement,
+  ) => boolean;
+  /** Authoritative pool (live or historical) the exit must spend. */
+  pool?: OmniaVtxoPool;
+  /**
+   * Set to false only when the caller produced the entitlement itself. Default
+   * is true: an unverified witness invalidates the entitlement.
+   */
+  requireWitness?: boolean;
 }
 
 export function createVtxoExitEntitlement(
@@ -66,6 +87,7 @@ export function createVtxoExitEntitlement(
 export function verifyVtxoExitEntitlement(
   entitlement: VtxoExitEntitlement,
   vtxo: OmniaVtxo,
+  options: VerifyExitEntitlementOptions = {},
 ): ExitEntitlementVerification {
   const errors: string[] = [];
   if (entitlement.version !== 1) errors.push('unsupported entitlement version');
@@ -112,6 +134,48 @@ export function verifyVtxoExitEntitlement(
       }
     } catch (err) {
       errors.push(`exit transaction does not decode: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // OMN-025: the witness must actually authorize the exit digest. A caller that
+  // cannot verify it cannot accept an entitlement from a peer.
+  const requireWitness = options.requireWitness !== false;
+  if (entitlement.witnessHex) {
+    if (options.verifyWitness) {
+      try {
+        const witness = Uint8Array.from(Buffer.from(entitlement.witnessHex.replace(/^0x/i, ''), 'hex'));
+        const digest = Uint8Array.from(
+          Buffer.from(entitlement.digest.replace(/^0x/i, ''), 'hex'),
+        );
+        const verified = options.verifyWitness(witness, digest, entitlement);
+        if (!verified) errors.push('exit witness does not verify');
+      } catch (err) {
+        errors.push(`exit witness cannot be verified: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else if (requireWitness) {
+      errors.push('exit witness is not verified: no witness verifier was supplied');
+    }
+  }
+
+  // OMN-025: anchor the spending coin to authoritative pool state, and keep
+  // historical epochs verifiable through the pool's published roots.
+  if (options.pool) {
+    const pool = options.pool;
+    if (pool.poolId !== entitlement.poolId) errors.push('pool id does not match the authoritative pool');
+    if (pool.tokenId !== entitlement.tokenId) errors.push('token does not match the authoritative pool');
+    const backingCoin = pool.backing?.coinId;
+    if (backingCoin && backingCoin.replace(/^0x/i, '').toLowerCase()
+      !== entitlement.fundingCoinId.replace(/^0x/i, '').toLowerCase()) {
+      errors.push('funding coin is not the pool backing coin');
+    }
+    if (pool.backing?.address && entitlement.fundingAddress
+      && pool.backing.address.replace(/^0x/i, '').toLowerCase()
+        !== entitlement.fundingAddress.replace(/^0x/i, '').toLowerCase()) {
+      errors.push('funding address does not match the pool backing address');
+    }
+    if (pool.epoch >= entitlement.epoch) {
+      const known = pool.epochRoots?.some((entry) => entry.epoch === entitlement.epoch);
+      if (!known) errors.push('exit epoch is not a published pool epoch');
     }
   }
 

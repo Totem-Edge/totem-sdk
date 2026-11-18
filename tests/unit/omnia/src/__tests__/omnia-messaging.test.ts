@@ -636,6 +636,88 @@ describe('bindPeerIntegration', () => {
     peerB.disconnect();
   });
 
+
+  it('OMN-040: an opening proposal cannot reset an existing channel', async () => {
+    const [sideA, sideB] = createInMemoryPair();
+    const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });
+    const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xCLI' });
+
+    const opened = {
+      channelId: 'ch-040',
+      fundingTxId: 'tx-040',
+      fundingCoinId: 'coin-040',
+      fundingScript: 'script-040',
+      fundingAddress: 'addr-040',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 1000n,
+      parties: [
+        { partyId: 'alice', publicKeyDigest: '0x' + '11'.repeat(32), addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: '0x' + '22'.repeat(32), addressIndex: 1 },
+      ],
+      balances: { alice: 500n, bob: 500n },
+      openingBalances: { alice: 500n, bob: 500n },
+      currentSequence: 0,
+      pendingHTLCs: [],
+      status: 'active' as const,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      latestState: null,
+      stateLog: [],
+    };
+    mockAcceptChannel.mockReturnValue(opened);
+
+    const baseProposal = {
+      channelId: 'ch-040',
+      localParty: opened.parties[0],
+      remoteParty: opened.parties[1],
+      localAmount: 500n,
+      remoteAmount: 500n,
+      tokenId: '0x00',
+      tokenScale: 0,
+      fundingScript: 'script-040',
+      fundingTxId: 'tx-040',
+      fundingCoinId: 'coin-040',
+      fundingAddress: 'addr-040',
+    };
+
+    const store: ChannelStore = new Map();
+    bindPeerIntegration(peerA, store, {});
+    const acks: OmniaMessage[] = [];
+    const errors: OmniaMessage[] = [];
+    peerB.onMessage((msg) => {
+      if (msg.type === 'ACK') acks.push(msg);
+      if (msg.type === 'ERROR') errors.push(msg);
+    });
+
+    await peerB.sendMessage({ type: 'CHANNEL_PROPOSAL', channelId: 'ch-040', nonce: 1, payload: baseProposal });
+    await waitNextTick(6);
+
+    // Evolve the channel through jointly signed payments.
+    const evolved = { ...opened, currentSequence: 9, balances: { alice: 300n, bob: 700n } };
+    store.set('ch-040', evolved);
+
+    // Changed opening allocation is rejected and does not overwrite state.
+    await peerB.sendMessage({
+      type: 'CHANNEL_PROPOSAL',
+      channelId: 'ch-040',
+      nonce: 2,
+      payload: { ...baseProposal, localAmount: 400n, remoteAmount: 600n },
+    });
+    await waitNextTick(6);
+    expect(errors.at(-1)?.nonce).toBe(2);
+    expect((errors.at(-1)?.payload as { error: string }).error).toMatch(/different opening terms/);
+    expect(store.get('ch-040')).toBe(evolved);
+
+    // An exact duplicate is an idempotent retry: ACK, still no overwrite.
+    await peerB.sendMessage({ type: 'CHANNEL_PROPOSAL', channelId: 'ch-040', nonce: 3, payload: baseProposal });
+    await waitNextTick(6);
+    expect(acks.at(-1)?.nonce).toBe(3);
+    expect(store.get('ch-040')).toBe(evolved);
+
+    peerA.disconnect();
+    peerB.disconnect();
+  });
   it('CHANNEL_PROPOSAL: sends ERROR when acceptChannel throws', async () => {
     const [sideA, sideB] = createInMemoryPair();
     const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });
@@ -746,6 +828,64 @@ describe('bindPeerIntegration', () => {
     peerB.disconnect();
   });
 
+
+  it('OMN-038: verifies against the persisted HTLC set, not the proposed one', async () => {
+    const [sideA, sideB] = createInMemoryPair();
+    const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });
+    const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xCLI' });
+    mockVerifyState.mockResolvedValue({ valid: true, errors: [] });
+
+    const priorHtlc = {
+      htlcId: 'htlc-1',
+      amount: 100n,
+      hashlock: '0x' + 'aa'.repeat(32),
+      timeoutBlock: 500n,
+      direction: 'offered',
+      status: 'pending',
+      htlcAddress: '0x' + 'bb'.repeat(32),
+      senderPublicKeyDigest: 'alice',
+      recipientPublicKeyDigest: 'bob',
+    };
+    const existingChannel = {
+      channelId: 'ch-038',
+      fundingTxId: 'tx',
+      fundingCoinId: 'coin',
+      fundingScript: 'script',
+      fundingAddress: 'addr',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 1000n,
+      parties: [],
+      balances: { alice: 500n, bob: 500n },
+      pendingHTLCs: [priorHtlc],
+      currentSequence: 1,
+      status: 'active',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      latestState: null,
+    };
+    const store: ChannelStore = new Map([['ch-038', existingChannel as any]]);
+    bindPeerIntegration(peerA, store, {});
+
+    await peerB.sendMessage({
+      type: 'STATE_UPDATE',
+      channelId: 'ch-038',
+      nonce: 4,
+      payload: {
+        sequence: 2,
+        balances: { alice: 500n, bob: 500n },
+        // Same id, mutated terms — must be compared with the persisted entry.
+        pendingHTLCs: [{ ...priorHtlc, amount: 900n }],
+      },
+    });
+    await waitNextTick(8);
+
+    const verifiedChannel = mockVerifyState.mock.calls[0][0];
+    expect(verifiedChannel.pendingHTLCs[0].amount).toBe(100n);
+
+    peerA.disconnect();
+    peerB.disconnect();
+  });
   it('STATE_UPDATE: invalid state sends ERROR', async () => {
     const [sideA, sideB] = createInMemoryPair();
     const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });

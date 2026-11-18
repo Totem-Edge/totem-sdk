@@ -269,6 +269,20 @@ export function bindPeerIntegration(
 
 // ── Private handlers ──────────────────────────────────────────────────────────
 
+
+/** OMN-040: exact allocation comparison for idempotent opening replays. */
+function sameAllocation(
+  actual: Record<string, bigint> | undefined,
+  expected: Record<string, bigint>,
+): boolean {
+  if (!actual) return false;
+  const actualKeys = Object.keys(actual).sort();
+  const expectedKeys = Object.keys(expected).sort();
+  if (actualKeys.length !== expectedKeys.length) return false;
+  return expectedKeys.every((key, index) =>
+    actualKeys[index] === key && actual[key] === expected[key]);
+}
+
 async function _handleChannelProposal(
   peer: OmniaPeer,
   msg: OmniaMessage,
@@ -282,6 +296,36 @@ async function _handleChannelProposal(
       && config.allowUnverifiedChannelProposal !== true;
     if (enforcing && (!proposal.localParty || !proposal.remoteParty || !config.signer?.publicKeyDigest)) {
       throw new Error('Proposal cannot be bound: local signing identity is missing');
+    }
+    const existing = store.get(proposal.channelId);
+    if (existing) {
+      // OMN-040: an opening proposal is never authority to reset an existing
+      // channel. Accept an exact duplicate as a retry; reject changed terms.
+      const localPartyId = proposal.localParty.partyId;
+      const remotePartyId = proposal.remoteParty.partyId;
+      const proposedAllocation: Record<string, bigint> = {
+        [localPartyId]: proposal.localAmount,
+        [remotePartyId]: proposal.remoteAmount,
+      };
+      const originalAllocation = existing.openingBalances
+        ?? (existing.currentSequence === 0 ? existing.balances : existing.stateLog.find((entry) => entry.event === 'open')?.balances);
+      const sameParties = existing.parties.length === 2
+        && existing.parties.some((party) => party.partyId === localPartyId)
+        && existing.parties.some((party) => party.partyId === remotePartyId);
+      const sameTerms = sameParties
+        && existing.fundingCoinId === proposal.fundingCoinId
+        && existing.fundingScript === proposal.fundingScript
+        && existing.tokenId === proposal.tokenId
+        && (proposal.tokenScale ?? 0) === (existing.tokenScale ?? 0)
+        && existing.totalValue === proposedAllocation[localPartyId] + proposedAllocation[remotePartyId]
+        && sameAllocation(originalAllocation, proposedAllocation);
+      if (!sameTerms) {
+        throw new Error('CHANNEL_PROPOSAL would replace an existing channel with different opening terms');
+      }
+      if (bindPeer) bindPeerIntegration(peer, store, config);
+      _sendAck(peer, existing.channelId, msg.nonce);
+      config.onChannelAccepted?.(existing, peer);
+      return;
     }
     const channel = await acceptChannel(proposal, config.chainProvider, 1, {
       localPublicKeyDigest: enforcing ? config.signer?.publicKeyDigest : undefined,
@@ -329,9 +373,12 @@ async function _handleStateUpdate(
   const channelForState: OmniaChannel = signedState.pendingHTLCs
     ? { ...channel, pendingHTLCs: signedState.pendingHTLCs }
     : channel;
+  // OMN-038: verify against the PERSISTED channel, never the proposed state.
+  // The proposed HTLC set is only used for digest/signature construction; using
+  // it for verification would compare changed HTLC terms with themselves.
   const result = config.leaseProvider
-    ? await verifyStateForCoSign(channelForState, signedState)
-    : await verifyState(channelForState, signedState);
+    ? await verifyStateForCoSign(channel, signedState)
+    : await verifyState(channel, signedState);
   if (!result.valid) {
     if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE invalid', msg.channelId, result.errors);
     _sendError(
@@ -396,6 +443,17 @@ async function _handleStateUpdate(
           mergedChannel = merged.channel;
         }
       }
+      // OMN-039: persist the merged state BEFORE acknowledging it. A crash
+      // between signing and persistence used to leave the peer holding a
+      // signature our store had forgotten.
+      const nextChannel: OmniaChannel = mergedChannel ?? {
+        ...channelForState,
+        latestState: signedState,
+        currentSequence: signedState.sequence,
+        balances: signedState.balances,
+        updatedAt: Date.now(),
+      };
+      store.set(msg.channelId, nextChannel);
       await peer.sendMessage({
         type: 'ACK',
         channelId: msg.channelId,
@@ -407,27 +465,24 @@ async function _handleStateUpdate(
           counterpartyClosePackage: partialState.closePackage,
         },
       });
-      if (mergedChannel) {
-        if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE merged', msg.channelId, mergedChannel.currentSequence, mergedChannel.pendingHTLCs.length);
-        store.set(msg.channelId, mergedChannel);
-        config.onStateUpdated?.(mergedChannel, peer);
-        const revealed = (signedState as unknown as { preimage?: unknown }).preimage;
-        if (typeof revealed === 'string' && /^(0x)?[0-9a-fA-F]{64}$/.test(revealed)) {
-          const normalized = '0x' + revealed.replace(/^0x/i, '').toLowerCase();
-          const hashlock = '0x' + bytesToHex(sha3_256(hexToBytes(normalized)));
-          const htlc = mergedChannel.pendingHTLCs.find(
-            (h) => h.hashlock.toLowerCase() === hashlock && h.status === 'pending',
-          );
-          void config.onPreimageRevealed?.({
-            preimage: normalized,
-            hashlock,
-            channel: mergedChannel,
-            ...(htlc ? { htlcId: htlc.htlcId } : {}),
-            peerPubkey: peer.pubkey,
-          });
-        }
-        return;
+      if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE merged', msg.channelId, nextChannel.currentSequence, nextChannel.pendingHTLCs.length);
+      config.onStateUpdated?.(nextChannel, peer);
+      const revealed = (signedState as unknown as { preimage?: unknown }).preimage;
+      if (typeof revealed === 'string' && /^(0x)?[0-9a-fA-F]{64}$/.test(revealed)) {
+        const normalized = '0x' + revealed.replace(/^0x/i, '').toLowerCase();
+        const hashlock = '0x' + bytesToHex(sha3_256(hexToBytes(normalized)));
+        const htlc = nextChannel.pendingHTLCs.find(
+          (h) => h.hashlock.toLowerCase() === hashlock && h.status === 'pending',
+        );
+        void config.onPreimageRevealed?.({
+          preimage: normalized,
+          hashlock,
+          channel: nextChannel,
+          ...(htlc ? { htlcId: htlc.htlcId } : {}),
+          peerPubkey: peer.pubkey,
+        });
       }
+      return;
     } catch (err) {
       _sendError(peer, msg.channelId, msg.nonce, `signState failed: ${String(err)}`);
       return;

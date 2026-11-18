@@ -86,6 +86,7 @@ describe('omnia-host end-to-end (real control server)', () => {
         listByStatus: () => [],
         close: jest.fn(async () => undefined),
       } as any,
+      allowLocalOnlyPay: true,
       swarm: {
         advertise: jest.fn(),
         connectToPeer: jest.fn(async (_pubkey: string, channelId: string) => {

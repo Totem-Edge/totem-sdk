@@ -124,7 +124,13 @@ describe('anchorBatch (RFC-038 V1)', () => {
     const broadcastTxPoW = jest.fn(async () => ({ success: true }));
     const result = await anchorBatch(params(), {
       signDigest: async () => new Uint8Array(1088).fill(1),
-      chainProvider: { broadcastTxPoW } as unknown as ChainStateProvider,
+      chainProvider: {
+        broadcastTxPoW,
+        getCoin: async () => ({ coinid: '0x' + '11'.repeat(32), address: params().fundingAddress, amount: params().amount.toString(), tokenid: params().tokenId, spent: false, created: '1' }),
+        getTip: async () => ({ block: 1, hash: '0x01' }),
+      } as unknown as ChainStateProvider,
+      confirmations: 1,
+      confirmationTimeoutMs: 5_000,
       mine: async () => ({ minedHeaderBytes: new Uint8Array(80).fill(1), txpowId: new Uint8Array(32).fill(2) }),
     });
     expect(result.txpowId).toBeTruthy();
@@ -280,6 +286,8 @@ describe('anchorBatch — spend-state authority integration', () => {
     const receipt = await signedReceipt();
     const chainProvider = {
       submitTransaction: jest.fn(async () => ({ success: true, txpowid: '0x' + '33'.repeat(32) })),
+      getCoin: async () => ({ coinid: '0x' + '11'.repeat(32), address: params().fundingAddress, amount: params().amount.toString(), tokenid: params().tokenId, spent: false, created: '1' }),
+      getTip: async () => ({ block: 1, hash: '0x01' }),
     } as unknown as ChainStateProvider;
 
     const result = await anchorBatch(params([receipt]), {
@@ -292,6 +300,25 @@ describe('anchorBatch — spend-state authority integration', () => {
     expect((await auth.recover()).pending).toEqual([]);
     expect((await auth.current()).publishedEpoch).toBe(1);
     expect(await auth.verifyReceipt(receipt, root)).toBe(true);
+  });
+
+  it('OMN-035: does not publish an epoch that is submitted but unconfirmed', async () => {
+    const auth = authority();
+    const receipt = await signedReceipt();
+    const chainProvider = {
+      submitTransaction: jest.fn(async () => ({ success: true, txpowid: '0x' + '44'.repeat(32) })),
+      getCoin: async () => null,
+      getTip: async () => ({ block: 10, hash: '0x0a' }),
+    } as unknown as ChainStateProvider;
+
+    await expect(anchorBatch(params([receipt]), {
+      signDigest: async () => new Uint8Array(1088).fill(1),
+      chainProvider,
+      authority: auth,
+      confirmations: 1,
+      confirmationTimeoutMs: 50,
+    })).rejects.toThrow(/not confirmed/);
+    expect((await auth.current()).publishedEpoch).toBe(0);
   });
 
   it('rejects a conflicting receipt before broadcasting', async () => {

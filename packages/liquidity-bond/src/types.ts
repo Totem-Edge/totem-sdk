@@ -452,6 +452,11 @@ export interface LiquidityBondRegistryState {
    * consumed exactly once by `consumeSettledFeePayout`.
    */
   feePayouts?: Record<string, SettledFeePayout>;
+  /**
+   * OMN-033: one active commitment per funding coin. Keyed by the normalized
+   * on-chain utxo ref; the value is the commitment id holding the claim.
+   */
+  fundingClaims?: Record<string, string>;
   updatedAt?: number;
   /**
    * The accepted registry anchor root — advanced only through signed transitions

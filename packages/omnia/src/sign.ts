@@ -14,7 +14,14 @@ import {
   SequenceError,
 } from './errors.js';
 import { serializeTxDraft, computeOmniaTxDigest, stateVariablesEqual, stateCommitmentV2Matches } from './transactions.js';
-import { enforceUpdateGuards, sealUpdateGuard } from './guards.js';
+import {
+  abandonSigningAttempt,
+  beginSigningAttempt,
+  commitSigningAttempt,
+  enforceUpdateGuards,
+  releaseUpdateGuard,
+  sealUpdateGuard,
+} from './guards.js';
 import { flatSigningIndex } from './capacity.js';
 import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage, verifyPartialClosePackage } from './close-package.js';
 import { validateChannelStateWithKissvm } from './kissvm.js';
@@ -281,16 +288,16 @@ export async function signState(
     return signerPort.sign(request);
   };
 
+  // The co-sign path enters here directly, so the guard must be enforced for
+  // every caller, not only for `updateState`'s pre-check.
+  const payloadHash = computeProgramUpdateDigestHex(
+    channel,
+    update.newSequence,
+    update.newBalances,
+    channel.pendingHTLCs,
+    canonicalizeProgramTransition(update.programTransition),
+  );
   const prepared = await (async () => {
-    // The co-sign path enters here directly, so the guard must be enforced for
-    // every caller, not only for `updateState`'s pre-check.
-    const payloadHash = computeProgramUpdateDigestHex(
-      channel,
-      update.newSequence,
-      update.newBalances,
-      channel.pendingHTLCs,
-      canonicalizeProgramTransition(update.programTransition),
-    );
     const guardError = enforceUpdateGuards(
       channel.channelId,
       update.newSequence,
@@ -298,7 +305,20 @@ export async function signState(
       channel.pendingProposal,
     );
     if (guardError) throw new Error(guardError);
-    return prepareStateUpdate(channel, update, leaseProvider, signer);
+    // OMN-039: the durable intent must exist before the signer is invoked, so a
+    // crash after signature production still blocks a conflicting payload.
+    await beginSigningAttempt({
+      channelId: channel.channelId,
+      sequence: update.newSequence,
+      payloadHash,
+      purpose: `channel-update-seq-${update.newSequence}`,
+    });
+    try {
+      return prepareStateUpdate(channel, update, leaseProvider, signer);
+    } catch (err) {
+      await abandonSigningAttempt(channel.channelId, update.newSequence, payloadHash).catch(() => {});
+      throw err;
+    }
   })();
   try {
     const updateSignature = await signDigest(
@@ -322,8 +342,13 @@ export async function signState(
       prepared.settlementReservation.reservationId,
       `channel-settlement-seq-${prepared.newSequence}`,
     );
+    await commitSigningAttempt(channel.channelId, prepared.newSequence, payloadHash).catch(() => {});
     return finalizeStateUpdate(prepared, updateSignature, settlementSignature);
   } catch (err) {
+    // No signature was produced if the guard was never sealed, so both the
+    // watermark and the durable intent may be released for a retry.
+    releaseUpdateGuard(channel.channelId, prepared.newSequence, payloadHash);
+    await abandonSigningAttempt(channel.channelId, prepared.newSequence, payloadHash).catch(() => {});
     await leaseProvider.burnReservation(prepared.updateReservation.reservationId, 'channel-update-sign-failed').catch(() => {});
     await leaseProvider.burnReservation(prepared.settlementReservation.reservationId, 'channel-settlement-sign-failed').catch(() => {});
     throw err;

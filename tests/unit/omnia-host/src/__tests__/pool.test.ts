@@ -79,6 +79,15 @@ describe('pool host API', () => {
     const positionId = (deposited as any).position.positionId;
     expect(deposited).toMatchObject({ success: true });
 
+    // OMN-033: the same funding coin cannot back a second active commitment.
+    await expect(methods.get('omnia/depositToPool')!({
+      poolId: 'pool-1',
+      lpAddress: 'MxLP',
+      amount: '1000',
+      purpose: 'omnia-channel-capital',
+      underlyingUtxoRef: '0x' + '11'.repeat(32),
+    })).rejects.toThrow(/already committed/);
+
     const allocated = await methods.get('omnia/allocatePoolCapital')!({
       positionId,
       amount: '50000',

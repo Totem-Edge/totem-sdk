@@ -18,6 +18,7 @@ import {
   setCounter,
   timeoutHTLC,
   updateState,
+  attachCounterpartySignature,
   makeSelfCustody,
   buildStateUpdate,
   finalizeStateUpdateWithIndices,
@@ -77,14 +78,21 @@ import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { PayoutSettlementStatus, PayoutSettlementVerifier } from '@totemsdk/liquidity-bond';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
+  addChannel as addRouterChannel,
+  createChannelGraph,
   createCleartextRoutingCodec,
   executeCrossTokenPayment,
   executeMultiHopPayment,
+  findRoute as findRouterRoute,
+  type ChannelGraph,
+  type ChannelGraphEdge,
   type ChannelOps,
   type CrossTokenRoute,
   type LeaseProvider,
   type PaymentRequest,
+  type PaymentResult,
   type Route,
+  type RouteOptions,
   type RouterChannel,
 } from '@totemsdk/omnia-router';
 import {
@@ -152,6 +160,22 @@ export interface HostApiContext {
    * against the signer's trusted key. Without it, claim verification fails closed.
    */
   vtxoClaimVerifier?: import('@totemsdk/omnia-vtxo').VtxoClaimSignatureVerifier;
+  /**
+   * OMN-042: trusted chain verifier for VTXO exit transactions. Required by
+   * `completeVtxoExit`; a caller assertion is never enough.
+   */
+  vtxoExitVerifier?: import('@totemsdk/omnia-vtxo').VtxoExitVerifier;
+  /**
+   * OMN-025: verifier for the serialized witness carried by an exit
+   * entitlement. Without it the host refuses to certify an entitlement.
+   */
+  vtxoExitWitnessVerifier?: import('@totemsdk/omnia-vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  /**
+   * OMN-043: live execution ports for pool capital allocation. The host
+   * supplies `router` and `vtxo` itself; `channel`/`factory` still require the
+   * deployment to inject their ports.
+   */
+  allocationContext?: import('@totemsdk/omnia-pool').OmniaPoolAllocationContext;
   /** Default address to source funding coins from (OMNIA_FUNDING_ADDRESS). */
   fundingAddress?: string;
   swarm?: OmniaSwarm;
@@ -173,6 +197,11 @@ export interface HostApiContext {
   spliceLeaseProvider?: SpliceLeaseProvider;
   /** When true, only read-only methods are registered (no signer material). */
   readOnly?: boolean;
+  /**
+   * Test/dev escape hatch for a local-only pay without a peer co-signature.
+   * Never set on a network-facing host (OMN-024).
+   */
+  allowLocalOnlyPay?: boolean;
   /** Deployment custody mode (RFC-058); defaults to self. */
   custodyMode?: CustodyMode;
   /** RFC-058 signer port; when absent the local signer path is used. */
@@ -910,7 +939,7 @@ function registerPreparedPayMethods(
       const localPartyId = context.localParticipant!.partyId;
       const remote = channel.parties.find((party) => party.partyId !== localPartyId);
       if (!remote) throw new Error('Channel counterparty not found');
-      if (context.swarm) {
+      if (context.swarm && !context.allowLocalOnlyPay) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, entry.channelId, remote.transportPubkey);
         await peer.sendMessage({
           type: 'STATE_UPDATE',
@@ -1625,7 +1654,7 @@ function registerPreparedPayMethods(
         partyId: requiredString(item, 'partyId'),
         publicKeyDigest: requiredString(item, 'publicKeyDigest'),
         addressIndex: Number(item.addressIndex ?? 0),
-        contributionAmount: BigInt(requiredString(item, 'contributionAmount')),
+        contributionAmount: rpcAmountToAtoms(requiredString(item, 'contributionAmount'), 'contributionAmount'),
         fundingCoinId: typeof item.fundingCoinId === 'string' ? item.fundingCoinId : undefined,
         settlementAddress: typeof item.settlementAddress === 'string' ? item.settlementAddress : undefined,
         transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
@@ -1826,21 +1855,83 @@ function registerPreparedPayMethods(
   methods.set('totem_omniaSubmitFactory', submitFactory);
   methods.set('omnia/submitFactory', submitFactory);
 
+  /**
+   * OMN-041: pool capacity must be backed by a real, confirmed, unspent coin.
+   * The returned backing is what later mints are conserved against.
+   */
+  const verifyVtxoPoolBacking = async (
+    params: Record<string, unknown>,
+    totalCapacity: bigint,
+    tokenId: string,
+    ownerAddress: string | undefined,
+  ) => {
+    const chain = context.chainProvider;
+    if (!chain?.getCoin) {
+      throw new Error('createVtxoPool requires a chain provider to verify the backing coin');
+    }
+    const coinId = requiredString(params, 'backingCoinId');
+    const coin = await chain.getCoin(coinId);
+    if (!coin) throw new Error(`VTXO pool backing coin ${coinId} not found on chain`);
+    if (coin.spent) throw new Error(`VTXO pool backing coin ${coinId} is already spent`);
+    if ((coin.tokenid ?? '0x00') !== tokenId) {
+      throw new Error(`VTXO pool backing coin token ${String(coin.tokenid)} does not match ${tokenId}`);
+    }
+    if (coinAmountAtoms(coin) < totalCapacity) {
+      throw new Error(
+        `VTXO pool backing coin covers ${atomsToAmount(coinAmountAtoms(coin))} but capacity is ${atomsToAmount(totalCapacity)}`,
+      );
+    }
+    if (!coin.mmrentry || coin.mmrentry === '0') {
+      throw new Error(`VTXO pool backing coin ${coinId} is not chain-confirmed`);
+    }
+    let confirmations = 1;
+    if (typeof chain.getTip === 'function' && coin.created !== undefined) {
+      const tip = await chain.getTip();
+      confirmations = Math.max(0, Number(tip.block) - Number(coin.created) + 1);
+      if (confirmations < 1) throw new Error(`VTXO pool backing coin ${coinId} is not confirmed`);
+    }
+    if (ownerAddress) {
+      const normalize = (value: string | undefined) => (value ?? '').replace(/^0x/i, '').toLowerCase();
+      const owned = normalize(coin.address) === normalize(ownerAddress)
+        || normalize(coin.miniaddress) === normalize(ownerAddress);
+      if (!owned) {
+        throw new Error(`VTXO pool backing coin ${coinId} is not owned by the pool operator`);
+      }
+    }
+    return {
+      coinId,
+      amount: coinAmountAtoms(coin),
+      tokenId,
+      confirmations,
+      verifiedAt: Date.now(),
+      ...(coin.address ? { address: coin.address } : {}),
+    };
+  };
+
   const createVtxoPoolMethod: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     if (!context.vtxoPools) throw new Error('VTXO stores are not configured');
     const localPkd = context.localParticipant?.publicKeyDigest;
     const operator = typeof params.operator === 'string' ? params.operator : localPkd;
     if (!operator) throw new Error('VTXO pool operator is required');
+    const totalCapacity = requiredAmount(params, 'totalCapacity');
+    const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
+    const backing = await verifyVtxoPoolBacking(
+      params,
+      totalCapacity,
+      tokenId,
+      typeof params.fundingAddress === 'string' ? params.fundingAddress : context.fundingAddress,
+    );
     const pool = createVtxoPoolSdk({
       operator,
-      tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
-      totalCapacity: requiredAmount(params, 'totalCapacity'),
+      tokenId,
+      totalCapacity,
       nonce: requiredString(params, 'nonce'),
       ...(params.policy && typeof params.policy === 'object' ? { policy: params.policy as Record<string, unknown> } : {}),
     }, typeof params.now === 'number' ? params.now : Date.now());
-    context.vtxoPools.set(pool.poolId, pool);
-    return { success: true, pool: jsonSafe(pool) };
+    const backedPool = { ...pool, backing };
+    context.vtxoPools.set(backedPool.poolId, backedPool);
+    return { success: true, pool: jsonSafe(backedPool) };
   };
   methods.set('totem_omniaCreateVtxoPool', createVtxoPoolMethod);
   methods.set('omnia/createVtxoPool', createVtxoPoolMethod);
@@ -1850,16 +1941,41 @@ function registerPreparedPayMethods(
     if (!context.vtxoPools || !context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
     const pool = context.vtxoPools.get(requiredString(params, 'poolId'));
     if (!pool) throw new Error(`VTXO pool ${String(params.poolId)} not found`);
+    // OMN-041: no unbacked issuance. The pool must carry verified backing and
+    // the backing coin must still be unspent and cover the mint.
+    const backing = pool.backing;
+    if (!backing) {
+      throw new Error(`VTXO pool ${pool.poolId} has no verified on-chain backing`);
+    }
+    const amount = requiredAmount(params, 'amount');
+    const issued = pool.members.length > 0
+      ? pool.totalCapacity - pool.availableCapacity
+      : 0n;
+    if (issued + amount > backing.amount) {
+      throw new Error(
+        `VTXO pool ${pool.poolId} would issue ${atomsToAmount(issued + amount)} against ${atomsToAmount(backing.amount)} of verified backing`,
+      );
+    }
+    if (context.chainProvider?.getCoin) {
+      const coin = await context.chainProvider.getCoin(backing.coinId);
+      if (!coin) throw new Error(`VTXO pool backing coin ${backing.coinId} is no longer on chain`);
+      if (coin.spent) throw new Error(`VTXO pool backing coin ${backing.coinId} has been spent`);
+      if (coinAmountAtoms(coin) < backing.amount) {
+        throw new Error(`VTXO pool backing coin ${backing.coinId} no longer covers the pool capacity`);
+      }
+    }
     const minted = mintVtxo(pool, {
       owner: requiredString(params, 'owner'),
-      amount: requiredAmount(params, 'amount'),
+      amount,
       nonce: requiredString(params, 'nonce'),
       expiresAt: typeof params.expiresAt === 'number' ? params.expiresAt : undefined,
       fundingProof: params.fundingProof,
     }, typeof params.now === 'number' ? params.now : undefined);
+    // OMN-041: issuance is provisional until the operator co-signs the receipt.
+    const provisional = { ...minted.vtxo, status: 'provisional' as const };
     const storedVtxo = params.claimPolicy && typeof params.claimPolicy === 'object'
-      ? { ...minted.vtxo, claimPolicy: params.claimPolicy as OmniaVtxo['claimPolicy'] }
-      : minted.vtxo;
+      ? { ...provisional, claimPolicy: params.claimPolicy as OmniaVtxo['claimPolicy'] }
+      : provisional;
     context.vtxoPools.set(pool.poolId, minted.pool);
     context.vtxos.set(storedVtxo.vtxoId, storedVtxo);
     context.vtxoReceipts.set(minted.receipt.receiptId, minted.receipt);
@@ -1922,9 +2038,18 @@ function registerPreparedPayMethods(
     if (!params.entitlement || typeof params.entitlement !== 'object') {
       throw new Error('entitlement is required');
     }
+    // OMN-025: fail closed. The host cannot certify a witness it cannot verify.
+    if (!context.vtxoExitWitnessVerifier) {
+      throw new Error('omnia/verifyVtxoExitEntitlement requires a configured witness verifier');
+    }
+    const pool = context.vtxoPools?.get(vtxo.poolId);
     const result = verifyVtxoExitEntitlement(
       params.entitlement as Parameters<typeof verifyVtxoExitEntitlement>[0],
       vtxo,
+      {
+        verifyWitness: context.vtxoExitWitnessVerifier,
+        ...(pool ? { pool } : {}),
+      },
     );
     return { success: result.valid, ...result };
   };
@@ -1947,7 +2072,10 @@ function registerPreparedPayMethods(
       ...(params.exitEntitlement && typeof params.exitEntitlement === 'object'
         ? { exitEntitlement: params.exitEntitlement as OmniaVtxo['exitEntitlement'] }
         : {}),
-    }, typeof params.now === 'number' ? params.now : undefined);
+    }, typeof params.now === 'number' ? params.now : undefined, {
+      ...(context.vtxoExitWitnessVerifier ? { verifyExitWitness: context.vtxoExitWitnessVerifier } : {}),
+      allowUnverifiedExit: params.unsafeLedgerTransfer === true,
+    });
     context.vtxos.set(result.input.vtxoId, result.input);
     context.vtxos.set(result.output.vtxoId, result.output);
     if (result.change) context.vtxos.set(result.change.vtxoId, result.change);
@@ -2005,12 +2133,36 @@ function registerPreparedPayMethods(
     if (!context.vtxos) throw new Error('VTXO stores are not configured');
     const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
     if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    // OMN-042: completion requires verified chain evidence, not a caller string.
+    const txpowId = requiredString(params, 'txpowId');
+    const verifier = context.vtxoExitVerifier;
+    if (!verifier) {
+      throw new Error('completeVtxoExit requires a configured exit verifier');
+    }
+    const requiredDepth = typeof params.confirmations === 'number' ? params.confirmations : 1;
+    const evidence = await verifier({ vtxo, txpowId });
+    if (!evidence.valid) {
+      throw new Error(`VTXO exit ${txpowId} is not verified: ${evidence.reason ?? 'unverified'}`);
+    }
+    const normalize = (value: string | undefined) => (value ?? '').replace(/^0x/i, '').toLowerCase();
+    if (evidence.owner && normalize(evidence.owner) !== normalize(vtxo.owner)) {
+      throw new Error(`VTXO exit ${txpowId} pays ${evidence.owner}, not the VTXO owner`);
+    }
+    if (evidence.amount !== undefined && evidence.amount < vtxo.amount) {
+      throw new Error(`VTXO exit ${txpowId} pays ${atomsToAmount(evidence.amount)} but the VTXO is ${atomsToAmount(vtxo.amount)}`);
+    }
+    if (evidence.tokenId && evidence.tokenId !== vtxo.tokenId) {
+      throw new Error(`VTXO exit ${txpowId} pays token ${evidence.tokenId}, not ${vtxo.tokenId}`);
+    }
+    if ((evidence.confirmations ?? 0) < requiredDepth) {
+      throw new Error(`VTXO exit ${txpowId} has ${evidence.confirmations ?? 0} confirmations, need ${requiredDepth}`);
+    }
     const exited = markExited(vtxo, {
-      txpowId: typeof params.txpowId === 'string' ? params.txpowId : undefined,
+      txpowId,
       now: typeof params.now === 'number' ? params.now : undefined,
     });
     context.vtxos.set(exited.vtxoId, exited);
-    return { success: true, vtxo: jsonSafe(exited) };
+    return { success: true, vtxo: jsonSafe(exited), evidence: jsonSafe(evidence) };
   };
   methods.set('totem_omniaCompleteVtxoExit', completeVtxoExitMethod);
   methods.set('omnia/completeVtxoExit', completeVtxoExitMethod);
@@ -2075,6 +2227,21 @@ function registerPreparedPayMethods(
     const signed: VtxoOperatorReceipt = { ...entry.receipt, signature: '0x' + Buffer.from(signature).toString('hex') };
     context.vtxoReceipts.set(receiptId, signed);
     context.preparedVtxoReceipts.delete(receiptId);
+    // OMN-041: the operator co-signature is the publication step. Provisional
+    // outputs only become transferable once it is stored.
+    if (context.vtxos) {
+      for (const outputId of entry.receipt.outputIds) {
+        const output = context.vtxos.get(outputId);
+        if (output && output.status === 'provisional') {
+          context.vtxos.set(outputId, {
+            ...output,
+            status: 'active',
+            updatedAt: Date.now(),
+            history: [...output.history, { op: 'mint', at: Date.now(), meta: { activatedBy: receiptId } }],
+          });
+        }
+      }
+    }
     return { success: true, receipt: jsonSafe(signed) };
   };
   methods.set('totem_omniaSubmitVtxoReceipt', submitVtxoReceipt);
@@ -2101,6 +2268,20 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaCreateLiquidityPool', createLiquidityPool);
   methods.set('omnia/createLiquidityPool', createLiquidityPool);
+
+  // OMN-032: one authoritative registry per pool. Positions keep a view for
+  // compatibility, but every mutation reads and writes the pool registry.
+  const poolRegistryFor = (
+    poolId: string,
+    fallback: import('@totemsdk/liquidity-bond').LiquidityBondRegistryState,
+  ): import('@totemsdk/liquidity-bond').LiquidityBondRegistryState => {
+    const pool = context.pools?.get(poolId);
+    return pool?.registry ?? fallback;
+  };
+  const commitPoolRegistry = (poolId: string, registry: any): void => {
+    const pool = context.pools?.get(poolId);
+    if (pool) context.pools!.set(poolId, { ...pool, registry });
+  };
 
   const depositToLiquidityPool: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
@@ -2175,12 +2356,75 @@ function registerPreparedPayMethods(
   methods.set('totem_omniaDepositToPool', depositToLiquidityPool);
   methods.set('omnia/depositToPool', depositToLiquidityPool);
 
+  /**
+   * OMN-043: the execution ports this host can actually service. Anything else
+   * is rejected before any accounting is touched.
+   */
+  const allocationExecutionContext = (): import('@totemsdk/omnia-pool').OmniaPoolAllocationContext => {
+    const injected = context.allocationContext ?? {};
+    const routing = context.routing ? {
+      router: {
+        createChannelGraph,
+        addChannel: (graph: ChannelGraph, edge: ChannelGraphEdge) => addRouterChannel(graph, edge),
+        findRoute: (
+          graph: ChannelGraph,
+          from: string,
+          to: string,
+          amount: bigint,
+          tokenId: string,
+          opts?: RouteOptions,
+        ): Route | undefined => findRouterRoute(graph, from, to, amount, tokenId, opts) ?? undefined,
+        executeMultiHopPayment: (
+          ops: ChannelOps,
+          channels: Map<string, RouterChannel>,
+          route: Route,
+          request: PaymentRequest,
+          leases: Map<string, LeaseProvider>,
+        ): Promise<PaymentResult> => executeMultiHopPayment(ops, channels, route, request, leases),
+      },
+    } : {};
+    const vtxo = context.vtxoPools ? {
+      vtxo: {
+        createPool: async () => {
+          throw new Error('allocatePoolCapital cannot create VTXO pools; provision the pool first');
+        },
+        mintVtxo: async (pool: import('@totemsdk/omnia-vtxo').OmniaVtxoPool, mintParams: import('@totemsdk/omnia-vtxo').MintVtxoParams) => {
+          const stored = context.vtxoPools!.get(pool.poolId);
+          if (!stored?.backing) throw new Error(`VTXO pool ${pool.poolId} has no verified on-chain backing`);
+          const minted = mintVtxo(stored, mintParams);
+          context.vtxoPools!.set(stored.poolId, minted.pool);
+          context.vtxos?.set(minted.vtxo.vtxoId, { ...minted.vtxo, status: 'provisional' });
+          context.vtxoReceipts?.set(minted.receipt.receiptId, minted.receipt);
+          return { pool: minted.pool, vtxo: { ...minted.vtxo, status: 'provisional' } };
+        },
+        createExitDraft: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo) => createExitDraft(vtxo).draft,
+        markExiting: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo, now?: number) => markExiting(vtxo, now),
+        markExited: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo, txpowId: string, now?: number) => markExited(vtxo, { txpowId, now }),
+      },
+    } : {};
+    return { ...injected, ...routing, ...vtxo } as import('@totemsdk/omnia-pool').OmniaPoolAllocationContext;
+  };
+
   const allocatePoolCapital: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     if (!context.poolPositions) throw new Error('Pool stores are not configured');
     const positionId = requiredString(params, 'positionId');
     const stored = context.poolPositions.get(positionId);
     if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    const target = params.target && typeof params.target === 'object'
+      ? params.target as { type?: string }
+      : undefined;
+    if (!target?.type) throw new Error('allocatePoolCapital requires target.type');
+    const execution = allocationExecutionContext();
+    const supported = new Set<string>(['reserve']);
+    if (execution.omnia) supported.add('channel');
+    if (execution.factory) supported.add('factory');
+    if (execution.router) supported.add('router');
+    if (execution.vtxo) supported.add('vtxo');
+    if (!supported.has(target.type)) {
+      throw new Error(`allocation target '${target.type}' is not configured on this host`);
+    }
+    const poolRegistry = poolRegistryFor(stored.position.poolId, stored.registry);
     const allocated = await allocatePositionCapital({
       position: stored.position,
       amount: String(requiredAmount(params, 'amount')),
@@ -2188,7 +2432,9 @@ function registerPreparedPayMethods(
       purpose: requiredString(params, 'purpose') as never,
       target: params.target as never,
       metadata: params.metadata as Record<string, unknown> | undefined,
-    }, stored.registry);
+      ctx: execution,
+    }, poolRegistry);
+    commitPoolRegistry(stored.position.poolId, allocated.registry);
     context.poolPositions.set(positionId, { ...stored, position: allocated.position, registry: allocated.registry, allocation: allocated.allocation });
     return {
       success: true,
@@ -2207,7 +2453,9 @@ function registerPreparedPayMethods(
     const stored = context.poolPositions.get(positionId);
     if (!stored) throw new Error(`Pool position ${positionId} not found`);
     if (!stored.allocation) throw new Error(`Pool position ${positionId} has no allocation`);
-    const released = releaseAllocation({ allocation: stored.allocation, position: stored.position }, stored.registry);
+    const poolRegistry = poolRegistryFor(stored.position.poolId, stored.registry);
+    const released = releaseAllocation({ allocation: stored.allocation, position: stored.position }, poolRegistry);
+    commitPoolRegistry(stored.position.poolId, released.registry);
     context.poolPositions.set(positionId, { ...stored, position: released.position, registry: released.registry, allocation: undefined });
     return { success: true, position: jsonSafe(released.position), registry: jsonSafe(released.registry) };
   };
@@ -2227,7 +2475,8 @@ function registerPreparedPayMethods(
       amount: String(requiredAmount(params, 'amount')),
       recipientAddress: requiredString(params, 'recipientAddress'),
       reason: typeof params.reason === 'string' ? params.reason : undefined,
-    }, stored.registry);
+    }, pool.registry);
+    commitPoolRegistry(stored.position.poolId, withdrawn.state);
     context.poolPositions.set(positionId, { ...stored, position: withdrawn.position, registry: withdrawn.state, intent: withdrawn.intent });
     return { success: true, intent: jsonSafe(withdrawn.intent), position: jsonSafe(withdrawn.position), registry: jsonSafe(withdrawn.state) };
   };
@@ -2241,7 +2490,9 @@ function registerPreparedPayMethods(
     const stored = context.poolPositions.get(positionId);
     if (!stored) throw new Error(`Pool position ${positionId} not found`);
     if (!stored.intent) throw new Error(`Pool position ${positionId} has no withdrawal intent`);
-    const approved = approveWithdrawal(stored.intent, stored.position, stored.registry);
+    const poolRegistry = poolRegistryFor(stored.position.poolId, stored.registry);
+    const approved = approveWithdrawal(stored.intent, stored.position, poolRegistry);
+    commitPoolRegistry(stored.position.poolId, approved.registry);
     context.poolPositions.set(positionId, { ...stored, registry: approved.registry, intent: approved.intent });
     return { success: true, intent: jsonSafe(approved.intent), registry: jsonSafe(approved.registry) };
   };
@@ -2293,7 +2544,8 @@ function registerPreparedPayMethods(
       ...(signIndices && context.signer
         ? { rooting: { signer: context.signer, signIndices } }
         : {}),
-    }, stored.registry);
+    }, pool.registry);
+    commitPoolRegistry(stored.position.poolId, paid.registry);
     context.poolPositions.set(positionId, {
       ...stored,
       position: paid.position,
@@ -2527,13 +2779,19 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const selection = service.selectCoins(spendable, {
       mode: 'focused',
       focusedAddress: address,
-      targetAmount: req.targetAmount.toString(),
+      // OMN-036: selectCoins takes decimal MINIMA text, not atom integers.
+      targetAmount: atomsToAmount(req.targetAmount),
       tokenId: req.tokenId ?? '0x00',
     });
-    const chosen = selection.selectedCoins[0];
+    // The channel opening currently accepts one funding input. Pick a single
+    // coin that covers the target instead of silently dropping the rest.
+    const chosen = selection.selectedCoins.find(
+      (coin) => amountToAtoms(coin.amount) >= req.targetAmount,
+    );
     if (selection.insufficientFunds || !chosen) {
       throw new Error(
-        `openChannel funding selection failed: need ${req.targetAmount.toString()}, selected ${selection.totalSelected}`,
+        `openChannel funding selection failed: need ${atomsToAmount(req.targetAmount)}, selected ${selection.totalSelected}`
+        + (selection.selectedCoins.length > 1 ? ' (multi-input funding is not supported yet)' : ''),
       );
     }
     const info = await chain.getAddressInfo(chosen.address);
@@ -2658,7 +2916,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         localSigner: context.signer,
       });
       let acknowledged = true;
-      if (context.swarm) {
+      if (context.swarm && !context.allowLocalOnlyPay) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, created.channel.channelId, remote.transportPubkey);
         // Give the peer time to accept so a follow-up pay() is not lost.
         const reply = await requestPeerReply(
@@ -2707,26 +2965,100 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         },
       }, context.leaseProvider, context.signer, context.signerPort);
       if (result.error) throw new Error(result.error);
-      context.channels.set(channelId, result.channel);
+
+      const remoteParty = channel.parties.find((party) => party.partyId === remotePartyId)!;
+      let committed = result.channel;
+      let acknowledged = false;
+      if (context.swarm && !context.allowLocalOnlyPay) {
+        const peer = await context.swarm.connectToPeer(
+          remoteParty.publicKeyDigest,
+          channelId,
+          remoteParty.transportPubkey,
+        );
+        // OMN-024: do not report a payment on a one-party state. Wait for the
+        // counterparty co-signature, merge it, and only then commit.
+        const reply = await requestPeerReply(
+          peer,
+          { type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState },
+          channelId,
+          20_000,
+          ['ACK', 'ERROR'],
+        );
+        if (!reply || reply.type !== 'ACK') {
+          const payload = (reply?.payload ?? {}) as { error?: unknown };
+          context.channels.set(channelId, channel);
+          return {
+            success: false,
+            channelId,
+            acknowledged: false,
+            committed: false,
+            errorCode: 'PEER_NOT_COSIGNED',
+            error: typeof payload.error === 'string' ? payload.error : 'counterparty did not co-sign the state update',
+          };
+        }
+        const payload = (reply.payload ?? {}) as {
+          counterpartyPartialState?: Partial<import('@totemsdk/omnia').SignedChannelState>;
+          counterpartyClosePackage?: import('@totemsdk/omnia').SignedClosePackage;
+        };
+        const partial = payload.counterpartyPartialState;
+        const signature = partial?.signatures?.[remotePartyId];
+        const indices = partial?.signingIndices?.[remotePartyId];
+        if (!partial || !signature || !indices) {
+          context.channels.set(channelId, channel);
+          return {
+            success: false,
+            channelId,
+            acknowledged: true,
+            committed: false,
+            errorCode: 'PEER_COSIGNATURE_MISSING',
+            error: 'counterparty ACK did not include a cosigned partial state',
+          };
+        }
+        try {
+          const merged = attachCounterpartySignature(
+            result.channel,
+            partial,
+            remotePartyId,
+            signature,
+            indices,
+            partial.closePackage ?? payload.counterpartyClosePackage,
+          );
+          committed = merged.channel;
+          acknowledged = true;
+        } catch (err) {
+          context.channels.set(channelId, channel);
+          return {
+            success: false,
+            channelId,
+            acknowledged: true,
+            committed: false,
+            errorCode: 'PEER_COSIGNATURE_INVALID',
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }
+
+      context.channels.set(channelId, committed);
       await context.observe?.emit({
         domain: 'channel', kind: 'channel.updated', phase: 'committed',
         entity: { type: 'channel', id: channelId },
         parties: { local: localPartyId, remote: remotePartyId },
         token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
         before: { balances: beforeBalances, sequence: channel.currentSequence },
-        after: { balances: balancesJson(result.channel), sequence: result.channel.currentSequence },
-        amounts: { amount: atomsToAmount(amount), balances: balancesJson(result.channel) },
-        transitionHash: channelTransitionHash(result.channel),
+        after: { balances: balancesJson(committed), sequence: committed.currentSequence },
+        amounts: { amount: atomsToAmount(amount), balances: balancesJson(committed) },
+        transitionHash: channelTransitionHash(committed),
         ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
       });
-      const remoteParty = channel.parties.find((party) => party.partyId === remotePartyId)!;
-      const peer = context.swarm ? await context.swarm.connectToPeer(
-        remoteParty.publicKeyDigest,
+      return {
+        success: true,
         channelId,
-        remoteParty.transportPubkey,
-      ) : undefined;
-      if (peer) await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
-      return { success: true, channelId, sequence: result.channel.currentSequence, localBalance: result.channel.balances[localPartyId]!.toString(), remoteBalance: result.channel.balances[remotePartyId]!.toString() };
+        acknowledged,
+        committed: acknowledged,
+        sequence: committed.currentSequence,
+        localBalance: committed.balances[localPartyId]!.toString(),
+        remoteBalance: committed.balances[remotePartyId]!.toString(),
+      };
     }));
   };
   register('totem_omniaPay', pay, 'omnia/pay');
@@ -2984,7 +3316,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         partyId: requiredString(item, 'partyId'),
         publicKeyDigest: requiredString(item, 'publicKeyDigest'),
         addressIndex: Number(item.addressIndex ?? 0),
-        contributionAmount: BigInt(requiredString(item, 'contributionAmount')),
+        contributionAmount: rpcAmountToAtoms(requiredString(item, 'contributionAmount'), 'contributionAmount'),
         fundingCoinId: typeof item.fundingCoinId === 'string' ? item.fundingCoinId : undefined,
         settlementAddress: typeof item.settlementAddress === 'string' ? item.settlementAddress : undefined,
         transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,

@@ -161,6 +161,22 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       // explicit non-terminal `final` result.
       const preimage = await options.resolvePreimage?.(params.hashlock);
       if (!preimage) return { status: 'final' };
+      // OMN-006: journal the final-hop delivery duty BEFORE fulfilling. A crash
+      // after fulfil but before the upstream send is recoverable from here.
+      const pending: HtlcLink = {
+        hashlock: params.hashlock,
+        inChannelId: params.inChannelId,
+        inHtlcId: params.inHtlcId,
+        outChannelId: '',
+        outHtlcId: '',
+        via: 'final',
+        status: 'preimage-revealed',
+        preimage,
+        backwardNonce: Date.now(),
+      };
+      links.set(params.hashlock, pending);
+      await options.linkJournal.record(pending);
+
       const fulfilled = await fulfillHTLC(
         inChannel,
         params.inHtlcId,
@@ -170,17 +186,15 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
         options.signer,
       );
       options.channels.set(fulfilled.channel.channelId, fulfilled.channel);
-      const previousHop = inChannel.parties.find(
-        (p) => p.publicKeyDigest !== self.publicKeyDigest,
-      );
-      if (!previousHop) throw new Error(`incoming channel ${params.inChannelId} has no counterparty`);
-      const peer = await options.swarm.connectToPeer(previousHop.publicKeyDigest, inChannel.channelId);
-      await peer.sendMessage({
-        type: 'STATE_UPDATE',
-        channelId: fulfilled.channel.channelId,
-        nonce: Date.now(),
-        payload: { ...fulfilled.partialState, preimage },
-      });
+
+      try {
+        await sendBackward(pending);
+        const sent: HtlcLink = { ...pending, status: 'backward-sent' };
+        links.set(params.hashlock, sent);
+        await options.linkJournal.record(sent);
+      } catch {
+        // Keep the duty recoverable; recover() retries the same nonce.
+      }
       options.onSettled?.({
         hashlock: params.hashlock,
         inChannelId: params.inChannelId,
@@ -344,6 +358,34 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       // needed. An outgoing HTLC being fulfilled means "reveal the preimage to
       // the incoming side", not "settled backwards".
       const inTerminal = !inHtlc || inHtlc.status !== 'pending';
+
+      // OMN-006: a preimage was journaled (final hop or reveal) but the incoming
+      // HTLC is still pending — finish the fulfilment locally first.
+      if (!inTerminal && link.preimage && link.status === 'preimage-revealed' && inChannel && inHtlc) {
+        try {
+          const fulfilled = await fulfillHTLC(
+            inChannel,
+            link.inHtlcId,
+            link.preimage,
+            options.leaseProvider,
+            options.chainProvider,
+            options.signer,
+          );
+          options.channels.set(fulfilled.channel.channelId, fulfilled.channel);
+          try {
+            await sendBackward(link);
+            const sent: HtlcLink = { ...link, status: 'backward-sent' };
+            links.set(link.hashlock, sent);
+            await options.linkJournal.record(sent);
+            unresolved.push(sent);
+          } catch {
+            unresolved.push(link);
+          }
+        } catch {
+          unresolved.push(link);
+        }
+        continue;
+      }
 
       // OMN-006: the incoming HTLC being terminal does not mean the backward
       // preimage reached the previous hop. Retry until it is sent, then clear

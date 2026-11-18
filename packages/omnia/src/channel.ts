@@ -47,8 +47,16 @@ export {
   enforceUpdateGuards,
   releaseUpdateGuard,
   sealUpdateGuard,
+  MemorySigningJournal,
+  setSigningJournal,
+  getSigningJournal,
+  beginSigningAttempt,
+  commitSigningAttempt,
+  abandonSigningAttempt,
+  isUpdateGuardSealed,
   _resetChannelWatermarks,
 } from './guards.js';
+export type { SigningIntent, SigningIntentJournal, SigningIntentState } from './guards.js';
 
 const TOKENID_MINIMA = '0x00';
 
@@ -169,6 +177,7 @@ export async function buildChannelOpening(
     totalValue,
     parties,
     balances,
+    openingBalances: { ...balances },
     pendingHTLCs: [],
     currentSequence: 0,
     onChainSequence: 0,
@@ -482,6 +491,7 @@ export async function acceptChannel(
     totalValue,
     parties,
     balances,
+    openingBalances: { ...balances },
     pendingHTLCs: [],
     currentSequence: 0,
     onChainSequence: 0,

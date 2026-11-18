@@ -19,6 +19,16 @@ const hex = (u8: Uint8Array) => '0x' + Buffer.from(u8).toString('hex');
 describe('VTXO host API', () => {
   it('mints, transfers, refreshes, exits and co-signs receipts from the wallet', async () => {
     const signing = createHostSigning(loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: dbPath }));
+    // OMN-041/042: pool backing and exit completion are chain-verified.
+    const backingCoin = {
+      coinid: '0x' + '11'.repeat(32),
+      address: 'Mx' + 'aa'.repeat(20),
+      amount: '1000000',
+      tokenid: '0x00',
+      spent: false,
+      created: 1,
+      mmrentry: '0x' + '22'.repeat(32),
+    };
     const context = {
       channels: new Map(),
       vtxoPools: new Map(),
@@ -28,12 +38,26 @@ describe('VTXO host API', () => {
       coordinator: true,
       localParticipant: { partyId: 'operator', publicKeyDigest: signing.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
+      chainProvider: {
+        getCoin: async () => backingCoin,
+        getTip: async () => ({ block: 10, hash: '0x01' }),
+      },
+      vtxoExitVerifier: async ({ vtxo, txpowId }: any) => ({
+        valid: true,
+        owner: vtxo.owner,
+        amount: vtxo.amount,
+        tokenId: vtxo.tokenId,
+        confirmations: 6,
+        ...(txpowId ? {} : { valid: false }),
+      }),
     } as unknown as HostApiContext;
     const methods = createHostMethods(context);
 
     const created = await methods.get('omnia/createVtxoPool')!({
       poolId: 'vtxo-pool-1',
       tokenId: '0x00',
+      backingCoinId: backingCoin.coinid,
+      fundingAddress: backingCoin.address,
       totalCapacity: '1000000',
       nonce: 'pool-1',
       // Pool policy limits are internal atom quantities.

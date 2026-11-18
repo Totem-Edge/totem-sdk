@@ -10,6 +10,7 @@
 
 import {
   computeOmniaTxDigest,
+  minimaOutputCoinIdsForDraft,
   serializeOmniaWitness,
   omniaDraftToMinimaBytes,
   type OmniaTxDraft,
@@ -130,6 +131,13 @@ export interface BatchAnchorDeps {
   mine?: (txBody: Uint8Array, difficulty: Uint8Array) => Promise<MinedTxPow>;
   /** Durable spend-state authority; receipts are recorded before broadcast. */
   authority?: EpochAuthority;
+  /**
+   * OMN-035: confirmation depth required before an epoch is marked published.
+   * Defaults to 1. Set to 0 only for tests that do not talk to a chain.
+   */
+  confirmations?: number;
+  /** Maximum wait for the anchor output to reach the required depth. */
+  confirmationTimeoutMs?: number;
 }
 
 export interface BatchAnchorResult {
@@ -195,6 +203,30 @@ export async function anchorBatch(
         throw new Error(`anchorBroadcast failed: ${broadcast.message ?? 'unknown error'}`);
       }
       result.txpowId = broadcast?.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
+    // OMN-035: submission is not confirmation. Wait for the anchor output to be
+    // mined at the required depth before recording the epoch as published.
+    const requiredDepth = deps.confirmations ?? 1;
+    if (requiredDepth > 0) {
+      const outputCoinId = minimaOutputCoinIdsForDraft(draft)[0];
+      if (!outputCoinId) throw new Error('anchorBatch: cannot derive the anchor output coin id');
+      const deadline = Date.now() + (deps.confirmationTimeoutMs ?? 120_000);
+      let confirmed = false;
+      while (Date.now() < deadline) {
+        const coin = await deps.chainProvider.getCoin(outputCoinId);
+        if (coin && !coin.spent) {
+          const created = Number(coin.created ?? 0);
+          const tip = created > 0 ? await deps.chainProvider.getTip() : undefined;
+          if (tip && created > 0 && tip.block - created + 1 >= requiredDepth) {
+            confirmed = true;
+            break;
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+      }
+      if (!confirmed) {
+        throw new Error(`anchor transaction ${result.txpowId ?? 'unknown'} was submitted but not confirmed at depth ${requiredDepth}`);
+      }
     }
     if (deps.authority) await deps.authority.markPublished(params.epoch);
   }

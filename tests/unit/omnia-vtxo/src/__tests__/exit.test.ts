@@ -5,6 +5,7 @@ import { VtxoStatusError, VtxoExitError, VtxoProofError } from '../errors';
 import { OmniaVtxo } from '../types';
 
 const NOW = 1000;
+const EXIT_TXPOW = '0x' + '77'.repeat(32);
 
 function setup() {
   const pool = createPool(
@@ -47,19 +48,25 @@ describe('markExited', () => {
   it('transitions exiting → exited', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, { now: NOW + 2 });
+    const exited = markExited(exiting, { txpowId: EXIT_TXPOW, now: NOW + 2 });
     expect(exited.status).toBe('exited');
   });
 
   it('throws VtxoStatusError if not exiting', () => {
     const { vtxo } = setup();
-    expect(() => markExited(vtxo, { now: NOW + 1 })).toThrow(VtxoStatusError);
+    expect(() => markExited(vtxo, { txpowId: EXIT_TXPOW, now: NOW + 1 })).toThrow(VtxoStatusError);
+  });
+
+  it('OMN-042: refuses to finalize without an exit transaction id', () => {
+    const { vtxo } = setup();
+    const exiting = markExiting(vtxo, NOW + 1);
+    expect(() => markExited(exiting, { txpowId: '', now: NOW + 2 })).toThrow(VtxoExitError);
   });
 
   it('adds exit_complete to history', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, { now: NOW + 2 });
+    const exited = markExited(exiting, { txpowId: EXIT_TXPOW, now: NOW + 2 });
     const last = exited.history[exited.history.length - 1];
     expect(last.op).toBe('exit_complete');
   });
@@ -87,7 +94,7 @@ describe('createExitDraft', () => {
   it('throws VtxoExitError for invalid terminal status', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, { now: NOW + 2 });
+    const exited = markExited(exiting, { txpowId: EXIT_TXPOW, now: NOW + 2 });
     expect(() => createExitDraft(exited, NOW + 3)).toThrow(VtxoExitError);
   });
 

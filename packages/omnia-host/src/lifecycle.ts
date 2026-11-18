@@ -4,14 +4,14 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
-import { atomsToAmount, coinAmountAtoms } from '@totemsdk/core';
+import { atomsToAmount, bytesToHex, coinAmountAtoms } from '@totemsdk/core';
 import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
 import type { SpliceExpectation } from './peer-guards.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
-import { createOmniaIntegration, createOmniaSwarm } from '@totemsdk/omnia';
+import { createOmniaIntegration, createOmniaSwarm, setSigningJournal } from '@totemsdk/omnia';
 import { SqliteChannelStore } from './stores/sqlite-store.js';
 import { OperationStore } from './stores/operations.js';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -36,6 +36,8 @@ import {
   signFactorySettlement,
   signVirtualChannelOpen,
   signVirtualChannelClose,
+  buildVirtualChannelOpen,
+  buildVirtualChannelClose,
 } from '@totemsdk/omnia-factory';
 import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
 import type { ChannelFactory, FactoryFundingMaterial, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
@@ -54,6 +56,39 @@ import {
   resolveFactoryFundingTarget,
   type PendingVcAcceptance,
 } from './peer-guards.js';
+
+
+/**
+ * OMN-022: rebuild a peer-proposed virtual-channel open from the locally held
+ * factory and require the commitments to match. Returns the local plan — the
+ * peer's plan object is only ever an assertion to check, never the thing we
+ * sign.
+ */
+export function verifyVirtualChannelOpenPlan(
+  factory: ChannelFactory,
+  payload: { vcId?: string; plan?: unknown },
+): ReturnType<typeof buildVirtualChannelOpen> {
+  const peerPlan = payload.plan as {
+    vcId?: string;
+    parties?: [string, string];
+    amounts?: Record<string, bigint>;
+    commitment?: Uint8Array | string;
+  } | undefined;
+  if (!peerPlan || typeof peerPlan.vcId !== 'string' || !peerPlan.parties || !peerPlan.amounts) {
+    throw new Error('VC_PROPOSAL carries an incomplete vc-open plan');
+  }
+  if (peerPlan.vcId !== payload.vcId) {
+    throw new Error('VC_PROPOSAL vcId does not match its plan');
+  }
+  const localPlan = buildVirtualChannelOpen(factory, peerPlan.parties, peerPlan.amounts, peerPlan.vcId);
+  const peerCommitment = typeof peerPlan.commitment === 'string'
+    ? peerPlan.commitment.replace(/^0x/i, '')
+    : bytesToHex(peerPlan.commitment ?? new Uint8Array()).replace(/^0x/i, '');
+  if (peerCommitment.toLowerCase() !== bytesToHex(localPlan.commitment).replace(/^0x/i, '').toLowerCase()) {
+    throw new Error('VC_PROPOSAL commitment does not match local factory state');
+  }
+  return localPlan;
+}
 
 export interface OmniaHostDependencies {
   createSwarm?: (config: Parameters<typeof createOmniaSwarm>[0]) => Promise<OmniaSwarm>;
@@ -75,10 +110,33 @@ export interface OmniaHostDependencies {
   transportKeyPair?: { publicKey: Uint8Array; secretKey: Uint8Array };
   /** `0x`-prefixed transport public key published in the signed manifest. */
   transportPubkey?: string;
+  /** Test/dev: allow a local-only pay without a peer co-signature (OMN-024). */
+  allowLocalOnlyPay?: boolean;
+  /** OMN-042: trusted chain verifier for VTXO exit transactions. */
+  vtxoExitVerifier?: import('@totemsdk/omnia-vtxo').VtxoExitVerifier;
+  /** OMN-025: verifier for an exit entitlement's witness. */
+  vtxoExitWitnessVerifier?: import('@totemsdk/omnia-vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  /** OMN-043: live execution ports for pool capital allocation. */
+  allocationContext?: import('@totemsdk/omnia-pool').OmniaPoolAllocationContext;
+  /**
+   * OMN-039: durable append-only record of signing intents. Supply a durable
+   * implementation in production so a crash cannot erase the WOTS watermark.
+   */
+  signingJournal?: import('@totemsdk/omnia').SigningIntentJournal;
   factories?: Map<string, ChannelFactory>;
   factoryBundles?: Record<string, WotsLeaseBundle>;
   /** Authorization gate for peer-initiated factory signing (deny by default). */
   factoryAuthorization?: FactoryAuthorizer;
+  /** OMN-023: operator authorization for an inbound splice that reduces local balance. */
+  spliceAuthorization?: (request: {
+    channelId: string;
+    spliceId: string;
+    localPartyId: string;
+    localBalanceBefore: bigint;
+    localBalanceAfter: bigint;
+    newTotalValue: bigint;
+    withdrawAddress?: string;
+  }) => Promise<void> | void;
   spliceProposals?: Map<string, SpliceProposal>;
   spliceAcceptances?: Map<string, SpliceAcceptance>;
   spliceLeaseProvider?: SpliceLeaseProvider;
@@ -162,6 +220,9 @@ export function createOmniaHost(
 
     async start(): Promise<void> {
       if (started) return;
+      // OMN-039: install the durable signing-intent journal before any state
+      // can be signed. Without one the in-memory default is used.
+      if (dependencies.signingJournal) setSigningJournal(dependencies.signingJournal);
       if (!channelStore) {
         ownedStore = new SqliteChannelStore(config.dbPath);
         channelStore = ownedStore;
@@ -382,7 +443,32 @@ export function createOmniaHost(
               channel = await quiesceChannel(channel, spliceLeaseProvider);
               channelStore.set(channel.channelId, channel as unknown as OmniaChannel);
             }
-            const acceptance = await acceptSplice(channel, proposal, spliceLeaseProvider);
+            const localParty = channel.parties.find(
+              (party) => party.publicKeyDigest === spliceLeaseProvider.signer.publicKeyDigest,
+            );
+            if (!localParty) throw new Error('Local signer is not a channel party');
+            const localBefore = channel.balances[localParty.partyId] ?? 0n;
+            const localAfter = proposal.params.newBalances[localParty.partyId] ?? 0n;
+            if (localAfter < localBefore && !dependencies.spliceAuthorization) {
+              throw new Error('splice-out reducing the local balance requires explicit operator authorization');
+            }
+            const acceptance = await acceptSplice(channel, proposal, spliceLeaseProvider, {
+              ...(dependencies.spliceAuthorization
+                ? {
+                    authorize: async () => {
+                      await dependencies.spliceAuthorization!({
+                        channelId: channel!.channelId,
+                        spliceId: proposal.spliceId,
+                        localPartyId: localParty.partyId,
+                        localBalanceBefore: localBefore,
+                        localBalanceAfter: localAfter,
+                        newTotalValue: proposal.params.newTotalValue,
+                        withdrawAddress: proposal.params.withdrawAddress,
+                      });
+                    },
+                  }
+                : {}),
+            });
             spliceAcceptances.set(proposal.spliceId, acceptance);
             spliceExpectations.set(proposal.spliceId, {
               channelId: proposal.channelId,
@@ -617,7 +703,12 @@ export function createOmniaHost(
       });
 
       const channelPeers = new Map<string, any>();
-      const importedRouteEdges = new Map<string, ChannelGraphEdge[]>();
+      // OMN-044: only edges authenticated against a real local channel ever
+      // enter the routing graph. Imported entries carry a received-at stamp so
+      // stale claims expire.
+      const MAX_ANNOUNCED_EDGES = 256;
+      const REMOTE_EDGE_TTL_MS = 10 * 60_000;
+      const importedRouteEdges = new Map<string, { edges: ChannelGraphEdge[]; receivedAt: number }>();
       const routeEdgeWire = (edge: ChannelGraphEdge) => ({
         channelId: edge.channelId,
         from: edge.from,
@@ -631,9 +722,16 @@ export function createOmniaHost(
       const rebuildRoutes = (): void => {
         const local = localRouteEdges();
         const localIds = new Set(local.map((edge) => edge.channelId));
-        const remote = [...importedRouteEdges.values()]
-          .flat()
-          .filter((edge) => !localIds.has(edge.channelId));
+        const cutoff = Date.now() - REMOTE_EDGE_TTL_MS;
+        const remote: ChannelGraphEdge[] = [];
+        for (const [channelId, entry] of importedRouteEdges) {
+          if (entry.receivedAt < cutoff) {
+            importedRouteEdges.delete(channelId);
+            continue;
+          }
+          if (localIds.has(channelId)) continue;
+          remote.push(...entry.edges);
+        }
         routingProvider.rebuild([...local, ...remote]);
       };
       const announceRoutesTo = (peer: any): void => {
@@ -662,28 +760,66 @@ export function createOmniaHost(
         if (msg?.type === 'ROUTE_GRAPH_ANNOUNCE') {
           const payload = msg.payload as { edges?: unknown[]; hop?: number } | undefined;
           if (!payload || !Array.isArray(payload.edges) || (payload.hop ?? 0) > 2) return;
+          if (payload.edges.length > MAX_ANNOUNCED_EDGES) return;
+          const normalize = (value: string): string => value.replace(/^0x/i, '').toLowerCase();
+          const verified: ChannelGraphEdge[] = [];
           for (const raw of payload.edges) {
             if (!raw || typeof raw !== 'object') continue;
             const edge = raw as Record<string, unknown>;
             if (typeof edge.channelId !== 'string' || typeof edge.from !== 'string' || typeof edge.to !== 'string' || typeof edge.tokenId !== 'string') continue;
-            const parsed: ChannelGraphEdge = {
-              channelId: edge.channelId, from: edge.from, to: edge.to, tokenId: edge.tokenId,
-              availableBalance: BigInt(String(edge.availableBalance ?? '0')),
-              htlcCapacity: BigInt(String(edge.htlcCapacity ?? '0')),
-              feeRate: BigInt(String(edge.feeRate ?? '0')),
-            };
-            const current = importedRouteEdges.get(parsed.channelId) ?? [];
-            const next = current.filter((item) => item.from !== parsed.from);
-            next.push(parsed);
-            importedRouteEdges.set(parsed.channelId, next);
+            // OMN-044: authenticate before trusting. The announcing peer must be
+            // a participant in a channel we actually hold, the advertised
+            // endpoints must be that channel's parties, and the economic fields
+            // are clamped to what the channel can really carry.
+            const channel = channelStore?.get(edge.channelId);
+            if (!channel || channel.status === 'closed') continue;
+            if (!isChannelPeer(channel, peer?.pubkey, localParticipant?.publicKeyDigest)) continue;
+            const partyDigests = new Set(channel.parties.map((party) => normalize(party.publicKeyDigest)));
+            if (!partyDigests.has(normalize(edge.from)) || !partyDigests.has(normalize(edge.to))) continue;
+            if (edge.tokenId !== channel.tokenId) continue;
+            let availableBalance: bigint;
+            let htlcCapacity: bigint;
+            let feeRate: bigint;
+            try {
+              availableBalance = BigInt(String(edge.availableBalance ?? '0'));
+              htlcCapacity = BigInt(String(edge.htlcCapacity ?? '0'));
+              feeRate = BigInt(String(edge.feeRate ?? '0'));
+            } catch {
+              continue;
+            }
+            if (availableBalance < 0n || htlcCapacity < 0n || feeRate < 0n) continue;
+            const announcedFrom = String(edge.from);
+            const known = channelGraphEdges([channel]).find(
+              (candidate) => normalize(candidate.from) === normalize(announcedFrom),
+            );
+            if (!known) continue;
+            verified.push({
+              channelId: edge.channelId,
+              from: known.from,
+              to: known.to,
+              tokenId: channel.tokenId,
+              availableBalance: availableBalance < known.availableBalance ? availableBalance : known.availableBalance,
+              htlcCapacity: htlcCapacity < known.htlcCapacity ? htlcCapacity : known.htlcCapacity,
+              feeRate,
+            });
+          }
+          if (verified.length === 0) return;
+          const byChannel = new Map<string, ChannelGraphEdge[]>();
+          for (const edge of verified) {
+            const current = byChannel.get(edge.channelId) ?? [];
+            byChannel.set(edge.channelId, [...current.filter((item) => item.from !== edge.from), edge]);
+          }
+          for (const [channelId, edges] of byChannel) {
+            importedRouteEdges.set(channelId, { edges, receivedAt: Date.now() });
           }
           rebuildRoutes();
-          // Gossip one hop to other connected peers; edges are advisory only.
+          // Re-gossip only the authenticated edges; unverified claims die here.
           const forwarded = (payload.hop ?? 0) + 1;
           if (forwarded <= 2) {
+            const edges = verified.map(routeEdgeWire);
             for (const other of new Set(channelPeers.values())) {
               if (other === peer) continue;
-              void other.sendMessage?.({ type: 'ROUTE_GRAPH_ANNOUNCE', channelId: 'route-graph', nonce: Date.now(), payload: { ...payload, hop: forwarded } }).catch?.(() => undefined);
+              void other.sendMessage?.({ type: 'ROUTE_GRAPH_ANNOUNCE', channelId: 'route-graph', nonce: Date.now(), payload: { source: config.localPartyId ?? config.sourceNodeId ?? 'omnia-host', hop: forwarded, edges } }).catch?.(() => undefined);
             }
           }
           return;
@@ -789,23 +925,36 @@ export function createOmniaHost(
               throw new Error('VC_PROPOSAL without a vcId');
             }
             if (payload.kind === 'vc-open') {
-              const signature = await signVirtualChannelOpen(factory, payload.plan, localBundle);
+              // OMN-022: never sign the peer's plan object. Rebuild it from the
+              // locally held factory and require the commitments to match.
+              const localPlan = verifyVirtualChannelOpenPlan(factory, payload);
+              const vcTotal = Object.values(localPlan.amounts).reduce((sum, value) => sum + value, 0n);
+              await authorizeFactory({
+                kind: 'open',
+                factoryId: factory.factoryId,
+                peerPublicKeyDigest: String(peer?.pubkey ?? ''),
+                participants: factory.participants.length,
+                totalValue: vcTotal.toString(),
+                tokenId: factory.tokenId,
+                tokenScale: factory.tokenScale ?? 0,
+                digest: bytesToHex(localPlan.commitment),
+                summary: `Open virtual channel ${localPlan.vcId} in factory ${factory.factoryId}`,
+              });
+              const signature = await signVirtualChannelOpen(factory, localPlan, localBundle);
               await localBundle.leaseProvider.commitKeyUse(
                 signature.reservationId,
                 `factory-vc-open-${payload.factoryId}`,
               );
               // CAN-007: remember what we agreed to, so VC_FINALIZED can be
               // checked against it instead of being trusted outright.
-              const plan = payload.plan as { amounts?: Record<string, bigint>; newAllocations?: Record<string, bigint> };
-              const amounts = plan.amounts ?? {};
               vcAcceptances.set(payload.vcId, {
                 kind: 'vc-open',
                 factoryId: payload.factoryId,
                 localPartyId: signature.partyId,
                 expected: {
-                  balances: amounts,
-                  totalValue: Object.values(amounts).reduce((sum, value) => sum + value, 0n),
-                  factoryAllocations: plan.newAllocations,
+                  balances: localPlan.amounts,
+                  totalValue: vcTotal,
+                  factoryAllocations: localPlan.newAllocations,
                 },
               });
               return {
@@ -816,19 +965,42 @@ export function createOmniaHost(
               };
             }
             if (payload.kind === 'vc-close') {
-              const signature = await signVirtualChannelClose(factory, payload.plan, localBundle);
+              const channel = channelStore?.get(payload.vcId);
+              if (!channel) throw new Error(`VC_PROPOSAL closes unknown virtual channel ${payload.vcId}`);
+              const localPlan = buildVirtualChannelClose(factory, channel);
+              const peerPlan = payload.plan as { vcId?: string; commitment?: Uint8Array | string };
+              if (peerPlan?.vcId !== undefined && peerPlan.vcId !== localPlan.vcId) {
+                throw new Error('VC_PROPOSAL vcId does not match the local close plan');
+              }
+              const peerCommitment = typeof peerPlan?.commitment === 'string'
+                ? peerPlan.commitment.replace(/^0x/i, '')
+                : bytesToHex(peerPlan?.commitment ?? new Uint8Array()).replace(/^0x/i, '');
+              if (peerCommitment.toLowerCase() !== bytesToHex(localPlan.commitment).replace(/^0x/i, '').toLowerCase()) {
+                throw new Error('VC_PROPOSAL close commitment does not match local channel state');
+              }
+              await authorizeFactory({
+                kind: 'close',
+                factoryId: factory.factoryId,
+                peerPublicKeyDigest: String(peer?.pubkey ?? ''),
+                participants: factory.participants.length,
+                totalValue: channel.totalValue.toString(),
+                tokenId: channel.tokenId,
+                tokenScale: channel.tokenScale ?? 0,
+                digest: bytesToHex(localPlan.commitment),
+                summary: `Close virtual channel ${localPlan.vcId} in factory ${factory.factoryId}`,
+              });
+              const signature = await signVirtualChannelClose(factory, localPlan, localBundle);
               await localBundle.leaseProvider.commitKeyUse(
                 signature.reservationId,
                 `factory-vc-close-${payload.factoryId}`,
               );
-              const plan = payload.plan as { finalAllocations?: Record<string, bigint>; newAllocations?: Record<string, bigint> };
               vcAcceptances.set(payload.vcId, {
                 kind: 'vc-close',
                 factoryId: payload.factoryId,
                 localPartyId: signature.partyId,
                 expected: {
-                  finalAllocations: plan.finalAllocations,
-                  factoryAllocations: plan.newAllocations,
+                  finalAllocations: localPlan.finalAllocations,
+                  factoryAllocations: localPlan.newAllocations,
                 },
               });
               return {
@@ -930,6 +1102,10 @@ export function createOmniaHost(
             spliceAcceptances,
             spliceLeaseProvider,
             custodyMode: config.custodyMode ?? 'self',
+            allowLocalOnlyPay: dependencies.allowLocalOnlyPay,
+            vtxoExitVerifier: dependencies.vtxoExitVerifier,
+            vtxoExitWitnessVerifier: dependencies.vtxoExitWitnessVerifier,
+            allocationContext: dependencies.allocationContext,
             signerPort: dependencies.signerPort,
             preparedPay,
             preparedSettle,

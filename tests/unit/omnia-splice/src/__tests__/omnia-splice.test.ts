@@ -507,7 +507,7 @@ describe('acceptSplice', () => {
   it('returns SpliceAcceptance with co-signature and lease reservation data', async () => {
     const { q, proposal } = await makeProposal();
     const bobLp = makeLeaseProvider(PKD_BOB);
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     expect(acceptance.spliceId).toBe(proposal.spliceId);
     expect(acceptance.channelId).toBe(q.channelId);
     expect(acceptance.acceptorPublicKeyDigest).toBe(PKD_BOB);
@@ -517,10 +517,18 @@ describe('acceptSplice', () => {
     expect(acceptance.acceptorSigningIndices.l1).toBeGreaterThan(0);
   });
 
+  it('rejects a proposer signature that does not verify', async () => {
+    const { q, proposal } = await makeProposal();
+    const tampered = { ...proposal, proposerSignature: new Uint8Array(1088) };
+    await expect(
+      acceptSplice(q, tampered, makeLeaseProvider(PKD_BOB), { verifySignature: () => false }),
+    ).rejects.toThrow(/proposer signature is invalid/);
+  });
+
   it('reserves a WOTS key slot for acceptor via wotsLease.reserveKeyUse', async () => {
     const { q, proposal } = await makeProposal();
     const bobLp = makeLeaseProvider(PKD_BOB);
-    await acceptSplice(q, proposal, bobLp);
+    await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     expect(bobLp.wotsLease.reserveKeyUse).toHaveBeenCalledWith(
       expect.objectContaining({
         treeId: PKD_BOB,
@@ -531,39 +539,39 @@ describe('acceptSplice', () => {
 
   it('acceptor signs with reserved indices (not hardcoded zeros)', async () => {
     const { q, proposal } = await makeProposal();
-    const acceptance = await acceptSplice(q, proposal, makeLeaseProvider(PKD_BOB));
+    const acceptance = await acceptSplice(q, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
     expect(acceptance.acceptorSigningIndices.l1).not.toBe(0);
   });
 
   it('throws SpliceChannelStatusError if channel is not quiesced', async () => {
     const { ch, proposal } = await makeProposal();
-    await expect(acceptSplice(ch, proposal, makeLeaseProvider(PKD_BOB)))
+    await expect(acceptSplice(ch, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true }))
       .rejects.toThrow(SpliceChannelStatusError);
   });
 
   it('throws if acceptor is the same party as proposer', async () => {
     const { q, proposal } = await makeProposal();
-    await expect(acceptSplice(q, proposal, makeLeaseProvider(PKD_ALICE)))
+    await expect(acceptSplice(q, proposal, makeLeaseProvider(PKD_ALICE), { verifySignature: () => true }))
       .rejects.toThrow('Acceptor and proposer cannot be the same party');
   });
 
   it('throws if channelId in proposal does not match channel', async () => {
     const { proposal } = await makeProposal();
     const fakeQ: QuiescedChannel = { ...makeChannel({ channelId: '0xdeadbeef' }), status: 'quiesced', quiesceSignedState: {} };
-    await expect(acceptSplice(fakeQ, proposal, makeLeaseProvider(PKD_BOB)))
+    await expect(acceptSplice(fakeQ, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true }))
       .rejects.toThrow('does not match channel');
   });
 
   it('throws SpliceMissingPartyError if acceptor is not in the channel', async () => {
     const { q, proposal } = await makeProposal();
-    await expect(acceptSplice(q, proposal, makeLeaseProvider('0x' + '77'.repeat(32))))
+    await expect(acceptSplice(q, proposal, makeLeaseProvider('0x' + '77'.repeat(32)), { verifySignature: () => true }))
       .rejects.toThrow(SpliceMissingPartyError);
   });
 
   it('acceptor signs the same digest as proposer', async () => {
     const { q, proposal } = await makeProposal();
     const bobLp = makeLeaseProvider(PKD_BOB);
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const digest = computeSpliceTxDigest(proposal.spliceTxDraft);
     const expectedSig = sha3_256(
       new Uint8Array([...Buffer.from(PKD_BOB.slice(2), 'hex'), ...digest]),
@@ -574,7 +582,7 @@ describe('acceptSplice', () => {
   it('rejects proposal with tampered newBalances (conservation check)', async () => {
     const { q, proposal } = await makeProposal();
     const tampered = { ...proposal, params: { ...proposal.params, newBalances: { alice: 800n, bob: 600n } } };
-    await expect(acceptSplice(q, tampered, makeLeaseProvider(PKD_BOB)))
+    await expect(acceptSplice(q, tampered, makeLeaseProvider(PKD_BOB), { verifySignature: () => true }))
       .rejects.toThrow('Proposal integrity check failed');
   });
 
@@ -584,7 +592,7 @@ describe('acceptSplice', () => {
     const p1 = await proposeSpliceIn(q, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
     const p2 = await proposeSpliceIn(q, NEW_COIN_ID, 600n, aliceLp, { alice: 960n, bob: 640n });
     const tampered = { ...p1, spliceTxDraft: p2.spliceTxDraft };
-    await expect(acceptSplice(q, tampered, makeLeaseProvider(PKD_BOB)))
+    await expect(acceptSplice(q, tampered, makeLeaseProvider(PKD_BOB), { verifySignature: () => true }))
       .rejects.toThrow('inconsistent');
   });
 });
@@ -606,7 +614,7 @@ describe('finalizeSplice', () => {
       bob:   400n + additionalAmount * 4n / 10n,
     };
     const proposal   = await proposeSpliceIn(q, NEW_COIN_ID, additionalAmount, aliceLp, newBalances);
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const MINE_OPTS = {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -623,7 +631,7 @@ describe('finalizeSplice', () => {
     const remaining = 1000n - withdrawAmount;
     const newBalances = { alice: remaining * 6n / 10n, bob: remaining - (remaining * 6n / 10n) };
     const proposal   = await proposeSpliceOut(q, withdrawAmount, EXTRA_ADDRESS, aliceLp, newBalances);
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const MINE_OPTS = {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -672,7 +680,7 @@ describe('finalizeSplice', () => {
     const aliceLp = makeLeaseProvider(PKD_ALICE);
     const bobLp = makeLeaseProvider(PKD_BOB);
     const proposal2 = await proposeSpliceIn(fresh, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
-    const acceptance2 = await acceptSplice(fresh, proposal2, bobLp);
+    const acceptance2 = await acceptSplice(fresh, proposal2, bobLp, { verifySignature: () => true });
     const pending = await finalizeSplice(fresh, proposal2, acceptance2, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -707,7 +715,7 @@ describe('finalizeSplice', () => {
     const aliceLp = makeLeaseProvider(PKD_ALICE);
     const bobLp   = makeLeaseProvider(PKD_BOB);
     const proposal   = await proposeSpliceIn(q, NEW_COIN_ID, 500n, aliceLp, newBalances);
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const spliced = await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -864,7 +872,7 @@ describe('Full splice lifecycle', () => {
     const q = await quiesceChannel(ch, aliceLp);
 
     const proposal   = await proposeSpliceIn(q, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const spliced = await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -889,7 +897,7 @@ describe('Full splice lifecycle', () => {
     const q = await quiesceChannel(ch, aliceLp);
 
     const proposal   = await proposeSpliceOut(q, 200n, EXTRA_ADDRESS, aliceLp, { alice: 480n, bob: 320n });
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const spliced = await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -943,7 +951,7 @@ describe('Full splice lifecycle', () => {
     expect(proposal.params.newTotalValue).toBe(750n);
     expect(proposal.spliceTxDraft.outputs).toHaveLength(3);
 
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const spliced = await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -960,7 +968,7 @@ describe('Full splice lifecycle', () => {
     const bobLp   = makeLeaseProvider(PKD_BOB);
     const q = await quiesceChannel(ch, aliceLp);
     const proposal   = await proposeSpliceIn(q, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     const spliced = await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,
@@ -978,7 +986,7 @@ describe('Full splice lifecycle', () => {
     const bobLp   = makeLeaseProvider(PKD_BOB);
     const q = await quiesceChannel(ch, aliceLp);
     const proposal   = await proposeSpliceIn(q, NEW_COIN_ID, 500n, aliceLp, { alice: 900n, bob: 600n });
-    const acceptance = await acceptSplice(q, proposal, bobLp);
+    const acceptance = await acceptSplice(q, proposal, bobLp, { verifySignature: () => true });
     await finalizeSplice(q, proposal, acceptance, {
       ...TEST_MINE_OPTS,
       proposerLeaseProvider: aliceLp.wotsLease,

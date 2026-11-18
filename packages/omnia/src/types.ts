@@ -176,6 +176,12 @@ export interface OmniaChannel {
   totalValue: bigint;
   parties: ChannelParticipant[];
   balances: Record<partyId, bigint>;
+  /**
+   * OMN-040: the allocation the channel was opened with. Immutable; used to
+   * recognise an idempotent CHANNEL_PROPOSAL replay without trusting evolved
+   * balances.
+   */
+  openingBalances?: Record<partyId, bigint>;
   pendingHTLCs: HTLCRecord[];
   currentSequence: number;
   /**

@@ -96,14 +96,14 @@ describe('OMN-003 — transfer exit entitlement', () => {
   it('rejects the previous owner entitlement instead of copying it forward', async () => {
     const { vtxo } = setup();
     const aliceEntitlement = await sourceEntitlement(vtxo);
-    expect(verifyVtxoExitEntitlement(aliceEntitlement, vtxo).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement(aliceEntitlement, vtxo, { requireWitness: false }).valid).toBe(true);
 
     expect(() => transferVtxo(vtxo, {
       recipient: 'bob',
       amount: vtxo.amount,
       nonce: 'tx-1',
       exitEntitlement: aliceEntitlement,
-    }, NOW + 1)).toThrow(/entitlement/);
+    }, NOW + 1, { allowUnverifiedExit: true })).toThrow(/entitlement/);
   });
 
   it('reports explicitly when a transfer carries no entitlement', () => {
@@ -125,7 +125,7 @@ describe('OMN-003 — transfer exit entitlement', () => {
       amount: 1_000n,
       nonce: 'tx-partial',
       exitEntitlement: aliceEntitlement,
-    }, NOW + 1)).toThrow(/full-value/);
+    }, NOW + 1, { allowUnverifiedExit: true })).toThrow(/full-value/);
   });
 
   it('accepts an entitlement that verifies for the recipient output', async () => {
@@ -137,14 +137,14 @@ describe('OMN-003 — transfer exit entitlement', () => {
       amount: vtxo.amount,
       nonce: 'tx-2',
       exitEntitlement: entitlement,
-    }, NOW + 1);
+    }, NOW + 1, { allowUnverifiedExit: true });
 
     expect(transferred.exitReady).toBe(true);
     expect(transferred.output.vtxoId).toBe(expectedOutput.vtxoId);
     expect(transferred.output.exitEntitlement).toEqual(entitlement);
-    expect(verifyVtxoExitEntitlement(transferred.output.exitEntitlement!, transferred.output).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement(transferred.output.exitEntitlement!, transferred.output, { requireWitness: false }).valid).toBe(true);
     // The same entitlement cannot verify for the previous owner.
-    expect(verifyVtxoExitEntitlement(transferred.output.exitEntitlement!, vtxo).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement(transferred.output.exitEntitlement!, vtxo, { requireWitness: false }).valid).toBe(false);
   });
 
   it('builds a recipient-bound exit with transferVtxoWithEntitlement', async () => {
@@ -166,8 +166,8 @@ describe('OMN-003 — transfer exit entitlement', () => {
     expect(result.exitEntitlement.holderIndex).toBe(0);
     expect(result.exitEntitlement.holders[0]).toBe('bob');
     expect(result.exitEntitlement.root).toBe(result.output.proof.root);
-    expect(verifyVtxoExitEntitlement(result.exitEntitlement, result.output).valid).toBe(true);
-    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo).valid).toBe(false);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, result.output, { requireWitness: false }).valid).toBe(true);
+    expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo, { requireWitness: false }).valid).toBe(false);
 
     // The rebuilt exit transaction pays the recipient, not the sender.
     const draft = deserializeTxDraft(result.exitEntitlement.txHex);

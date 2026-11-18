@@ -117,6 +117,179 @@ export function releaseUpdateGuard(channelId: string, sequence: number, payloadH
   }
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-039 — durable signing intents
+//
+// The module-level watermark above is authoritative only for the lifetime of the
+// process. A crash between "WOTS signature produced" and "channel persisted"
+// would otherwise let the restarted process sign a *different* payload at the
+// same sequence. A signing intent is therefore recorded — append-only — before
+// the signer is invoked, and consulted by every later attempt for that channel.
+//
+// `MemorySigningJournal` is the default so single-process callers keep working;
+// production hosts must supply a durable journal (the host exposes it as a
+// dependency) so the record survives a restart.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type SigningIntentState = 'pending' | 'signed' | 'abandoned';
+
+export interface SigningIntent {
+  channelId: string;
+  sequence: number;
+  payloadHash: string;
+  purpose: string;
+  state: SigningIntentState;
+  recordedAt: number;
+  /** WOTS lease reservations held for this attempt, when known. */
+  reservationIds?: string[];
+}
+
+export interface SigningIntentJournal {
+  record(intent: SigningIntent): Promise<void> | void;
+  list(channelId: string): Promise<SigningIntent[]> | SigningIntent[];
+  update?(intent: SigningIntent): Promise<void> | void;
+}
+
+/** In-process journal. Survives nothing; use as the default and in tests. */
+export class MemorySigningJournal implements SigningIntentJournal {
+  private readonly intents = new Map<string, Map<string, SigningIntent>>();
+
+  private key(intent: Pick<SigningIntent, 'sequence' | 'payloadHash'>): string {
+    return `${intent.sequence}:${intent.payloadHash}`;
+  }
+
+  record(intent: SigningIntent): void {
+    let byChannel = this.intents.get(intent.channelId);
+    if (!byChannel) {
+      byChannel = new Map();
+      this.intents.set(intent.channelId, byChannel);
+    }
+    byChannel.set(this.key(intent), { ...intent });
+    // Bound retention: abandoned attempts carry no signing guarantee, so they
+    // are the first to go when a long-lived channel accumulates history.
+    if (byChannel.size > 4096) {
+      for (const [key, value] of byChannel) {
+        if (value.state === 'abandoned' && key !== this.key(intent)) byChannel.delete(key);
+        if (byChannel.size <= 4096) break;
+      }
+    }
+  }
+
+  update(intent: SigningIntent): void {
+    this.record(intent);
+  }
+
+  list(channelId: string): SigningIntent[] {
+    const byChannel = this.intents.get(channelId);
+    return byChannel ? [...byChannel.values()].map((intent) => ({ ...intent })) : [];
+  }
+
+  clear(): void {
+    this.intents.clear();
+  }
+}
+
+let _signingJournal: SigningIntentJournal = new MemorySigningJournal();
+
+/**
+ * Install the journal used by `beginSigningAttempt`. Hosts call this once at
+ * start-up with a durable implementation; omit it to keep the in-memory
+ * default.
+ */
+export function setSigningJournal(journal?: SigningIntentJournal): void {
+  _signingJournal = journal ?? new MemorySigningJournal();
+}
+
+export function getSigningJournal(): SigningIntentJournal {
+  return _signingJournal;
+}
+
+export function isUpdateGuardSealed(channelId: string, sequence: number): boolean {
+  return _sealedWatermarks.has(sealKey(channelId, sequence));
+}
+
+/**
+ * Record the intent to sign `(channelId, sequence, payloadHash)` before any
+ * WOTS signature exists. Throws `DoubleSignError` when another payload was
+ * already signed — or may still have been signed — at that sequence.
+ */
+export async function beginSigningAttempt(intent: {
+  channelId: string;
+  sequence: number;
+  payloadHash: string;
+  purpose: string;
+  reservationIds?: string[];
+}): Promise<void> {
+  const journal = _signingJournal;
+  let existing: SigningIntent[];
+  try {
+    existing = await journal.list(intent.channelId);
+  } catch {
+    existing = [];
+  }
+  for (const prior of existing) {
+    if (prior.sequence === intent.sequence) {
+      if (prior.payloadHash !== intent.payloadHash && prior.state !== 'abandoned') {
+        throw new DoubleSignError(intent.sequence);
+      }
+    } else if (prior.sequence > intent.sequence && prior.state !== 'abandoned') {
+      throw new SequenceError(prior.sequence, intent.sequence);
+    }
+  }
+  await journal.record({
+    channelId: intent.channelId,
+    sequence: intent.sequence,
+    payloadHash: intent.payloadHash,
+    purpose: intent.purpose,
+    state: 'pending',
+    recordedAt: Date.now(),
+    ...(intent.reservationIds ? { reservationIds: intent.reservationIds } : {}),
+  });
+}
+
+async function transitionSigningAttempt(
+  channelId: string,
+  sequence: number,
+  payloadHash: string,
+  state: SigningIntentState,
+): Promise<void> {
+  const journal = _signingJournal;
+  if (!journal.update) return;
+  try {
+    const existing = await journal.list(channelId);
+    const match = existing.find(
+      (intent) => intent.sequence === sequence && intent.payloadHash === payloadHash,
+    );
+    if (match) await journal.update({ ...match, state });
+  } catch {
+    // The durable record already blocks conflicting payloads; failing to
+    // annotate it must not fail the signing flow.
+  }
+}
+
+/** Mark the intent as completed once a signature exists for the payload. */
+export async function commitSigningAttempt(
+  channelId: string,
+  sequence: number,
+  payloadHash: string,
+): Promise<void> {
+  await transitionSigningAttempt(channelId, sequence, payloadHash, 'signed');
+}
+
+/**
+ * Release an attempt that failed before any signature was produced. Only a
+ * `pending` intent may be abandoned; a sealed attempt stays blocking forever.
+ */
+export async function abandonSigningAttempt(
+  channelId: string,
+  sequence: number,
+  payloadHash: string,
+): Promise<void> {
+  if (isUpdateGuardSealed(channelId, sequence)) return;
+  await transitionSigningAttempt(channelId, sequence, payloadHash, 'abandoned');
+}
+
 /**
  * Reset all channel sequence watermarks.
  * Intended only for test isolation — call in `beforeEach` to prevent watermarks
@@ -125,4 +298,5 @@ export function releaseUpdateGuard(channelId: string, sequence: number, payloadH
 export function _resetChannelWatermarks(): void {
   _channelWatermarks.clear();
   _sealedWatermarks.clear();
+  if (_signingJournal instanceof MemorySigningJournal) _signingJournal.clear();
 }
