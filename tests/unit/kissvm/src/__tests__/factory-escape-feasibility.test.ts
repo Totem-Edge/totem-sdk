@@ -35,35 +35,27 @@ function witnessFor(pk: string, signature: Uint8Array): ScriptWitness {
 }
 
 describe('OMN-058 spike 1 — detached certificate verification', () => {
-  test('CHECKSIG(publicKey data signature) ignores its data and signature arguments', () => {
-    // Under the documented Minima form, the third argument is a signature over
-    // the second. Supplying both and an empty witness must therefore succeed —
-    // but the evaluator only consults witness.signatures[publicKey].
-    const result = evaluateScript(`RETURN CHECKSIG(${PK} ${DATA} ${SIG_ARG})`, { signatures: new Map() }, ctx());
-    expect(result.passed).toBe(false);
+  // Real signature verification is measured in tests/unit/kissvm-parity, where
+  // the core WOTS/tree verifier is not mocked. These cases fail before crypto.
+  test('the parameter count is enforced (reference: exactly three)', () => {
+    for (const script of [`RETURN CHECKSIG(${PK})`, 'RETURN CHECKSIG()']) {
+      const result = evaluateScript(script, { signatures: new Map() }, ctx());
+      expect(result.passed).toBe(false);
+      expect(String(result.error ?? '')).toMatch(/exactly 3 parameters/);
+    }
   });
 
-  test('CHECKSIG authenticates the tx digest from the witness, not the supplied data', () => {
-    // The witness entry alone decides the result: data and signature are dead
-    // arguments, so a stale or foreign certificate cannot be authenticated.
-    const result = evaluateScript(
-      `RETURN CHECKSIG(${PK} ${DATA} ${SIG_ARG})`,
-      witnessFor(PK, new Uint8Array(1088)),
-      ctx({ txDigest: new Uint8Array(32).fill(9) }),
+  test('a real detached signature verifies, and only over its own message', () => {
+    // OMN-064 removed the blocker that made the contest protocol unimplementable.
+    // Real key/signature coverage across TS and Rust/WASM lives in
+    // tests/unit/kissvm-parity.
+    const empty = evaluateScript(
+      `RETURN CHECKSIG(${PK} ${DATA} 0x)`,
+      { signatures: new Map() },
+      ctx(),
     );
-    expect(result.passed).toBe(true);
-  });
-
-  test('the result is independent of the data argument', () => {
-    // Same witness, different data: the evaluator cannot tell the difference.
-    // (WOTS verification itself is mocked in this workspace; the dispatch gap is
-    // the point of this measurement.)
-    const witness = witnessFor(PK, new Uint8Array(1088));
-    const other = '0x' + '12'.repeat(32);
-    const digest = new Uint8Array(32).fill(9);
-    const a = evaluateScript(`RETURN CHECKSIG(${PK} ${DATA} 0x00)`, witness, ctx({ txDigest: digest }));
-    const b = evaluateScript(`RETURN CHECKSIG(${PK} ${other} 0x11)`, witness, ctx({ txDigest: digest }));
-    expect(a.passed).toBe(b.passed);
+    expect(empty.passed).toBe(false);
+    expect(String(empty.error ?? '')).toMatch(/ZERO length/);
   });
 });
 

@@ -166,19 +166,10 @@ RETURN TRUE`,
     script: 'MAST 0xAA\nRETURN FALSE',
     expect: false,
   },
-  {
-    name: '19_explicit_checksig_oracle',
-    script: `LET oraclekey = PREVSTATE(0)
-LET message = STATE(0)
-LET signature = STATE(1)
-ASSERT CHECKSIG(oraclekey message signature)
-RETURN SIGNEDBY(PREVSTATE(1))`,
-    expect: true,
-    state: ['0x01', '0x02'],
-    prevState: ['0xAA', '0xBB'],
-    ctx: { simulationMode: true },
-    witness: { BB: 'sig' },
-  },
+  // OMN-064: CHECKSIG is not exercised here. This suite runs with a mocked
+  // core whose WOTS verifier always returns true, which cannot distinguish a
+  // valid signature from an invalid one. Real CHECKSIG coverage lives in
+  // tests/unit/kissvm-parity (real crypto + Rust/WASM parity).
   {
     name: '22_preserve_selected_state',
     script: 'ASSERT SAMESTATE(0 9)\nASSERT STATE(10) EQ INC(PREVSTATE(10))\nRETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)',

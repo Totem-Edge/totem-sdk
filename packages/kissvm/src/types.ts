@@ -130,8 +130,10 @@ export interface TxContext {
    */
   prevCoins?: CoinData[];
   /**
-   * When true, SIGNEDBY/CHECKSIG accept signature *presence* without
-   * verifying against a txDigest.  Use ONLY for unit-testing script logic.
+   * When true, SIGNEDBY accepts signature *presence* without verifying
+   * against a txDigest.  CHECKSIG is unaffected: it verifies the data and
+   * signature supplied to it, like the reference implementation.
+   * Use ONLY for unit-testing script logic.
    * Never set in production or in simulateSpend — those paths always compute
    * a real txDigest and run full WOTS verification.
    */

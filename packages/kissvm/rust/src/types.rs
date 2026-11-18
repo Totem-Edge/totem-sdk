@@ -147,7 +147,11 @@ pub enum AstNode {
     #[serde(rename = "MULTISIG")]
     MultiSig { threshold: Box<AstNode>, keys: Vec<AstNode>, span: Option<Span> },
     #[serde(rename = "CHECKSIG")]
-    CheckSig { span: Option<Span> },
+    CheckSig {
+        #[serde(default)]
+        args: Vec<AstNode>,
+        span: Option<Span>,
+    },
     #[serde(rename = "HASH")]
     Hash { #[serde(rename = "fn")] fn_: String, expr: Box<AstNode>, span: Option<Span> },
     #[serde(rename = "VERIFYOUT")]

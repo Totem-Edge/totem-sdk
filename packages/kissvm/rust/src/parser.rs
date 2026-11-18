@@ -409,7 +409,15 @@ impl Parser {
             }
             TokenKind::CheckSig => {
                 self.eat(None)?;
-                Ok(AstNode::CheckSig { span: Some(self.span(start_pos)) })
+                self.eat(Some(TokenKind::LParen))?;
+                let mut args = Vec::new();
+                while !self.at_any(&[TokenKind::RParen, TokenKind::Eof]) {
+                    self.try_eat(TokenKind::Comma);
+                    if self.at(TokenKind::RParen) { break; }
+                    args.push(self.parse_expr()?);
+                }
+                self.eat(Some(TokenKind::RParen))?;
+                Ok(AstNode::CheckSig { args, span: Some(self.span(start_pos)) })
             }
             TokenKind::Sha3 | TokenKind::Sha2 | TokenKind::Hash => {
                 let fn_ = format!("{:?}", tok.kind);

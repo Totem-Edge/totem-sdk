@@ -102,8 +102,13 @@ const CASES: Case[] = [
     prevState: { 0: '0x6E97B9C8682B2A55DC9FB09626C95A920C1CDF33A3516AD49520E614B2AAEC59' },
     sigs: { aa: 'sig' } },
   { name: '18_mast_leaf', script: 'MAST 0xAA\nRETURN FALSE', expect: false },
+  // OMN-064: CHECKSIG(publickey data signature) verifies the signature over the
+  // supplied data (reference implementation). The original example relied on the
+  // witness-only behaviour, so 0x02 is not a valid signature over 0x01 and the
+  // assertion must fail. Real signature coverage lives in the parity suite
+  // (tests/unit/kissvm-parity).
   { name: '19_checksig', script: 'LET k = PREVSTATE(0) LET m = STATE(0) LET s = STATE(1) ASSERT CHECKSIG(k m s) RETURN SIGNEDBY(PREVSTATE(1))',
-    expect: true, state: { 0: '0x01', 1: '0x02' }, prevState: { 0: '0xAA', 1: '0xBB' }, sigs: { bb: 'sig' } },
+    expect: false, state: { 0: '0x01', 1: '0x02' }, prevState: { 0: '0xAA', 1: '0xBB' }, sigs: { bb: 'sig' } },
   { name: '20_mmr',
     script: 'LET a = STATE(0) LET b = STATE(1) LET c = PREVSTATE(0) LET d = PREVSTATE(1) LET e = STATE(2) RETURN PROOF(a b c d e)',
     expect: true,

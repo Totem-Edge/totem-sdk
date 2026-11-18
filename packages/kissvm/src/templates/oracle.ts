@@ -13,9 +13,11 @@ import { toNodeScript } from '@totemsdk/core';
  *     {@link oracleConditionStateVariables}); the witness reads them via
  *     `PREVSTATE` and pins the feed commitment with `SAMESTATE`.
  *   - The authorized oracle(s) authorize the spend — `MULTISIG(threshold …)` — so
- *     a quorum can be required. In this SDK, `CHECKSIG`/`SIGNEDBY` verify against
- *     the **transaction digest**, and the transaction commits the observation, so
- *     the oracle's signature is a cooperative attestation **bound to the spend**.
+ *     a quorum can be required. `SIGNEDBY` verifies against the **transaction
+ *     digest**, and the transaction commits the observation, so the oracle's
+ *     signature is a cooperative attestation **bound to the spend**. `CHECKSIG`
+ *     verifies an attestation stored in state over its own message
+ *     (reference semantics, OMN-064).
  *   - Freshness (`observedAt ≤ @BLOCK ≤ validUntil`) and the objective value
  *     comparison (`value OP threshold`) are enforced in-script; the witness
  *     **fails closed** on a stale observation, an untrusted signer, or a

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T15:55:33.308Z",
+  "generatedAt": "2026-11-18T16:23:50.520Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -3926,18 +3926,18 @@
       },
       "source": "OMN-058 feasibility spike, 2026-11-18 (RFC-079)",
       "id": "OMN-064",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "KISSVM CHECKSIG ignores its documented data and signature arguments",
       "packages": [
         "@totemsdk/kissvm"
       ],
-      "summary": "Minima documents CHECKSIG(public_key data signature). packages/kissvm/src/eval.ts evaluates only args[0], looks up witness.signatures[publicKey] and verifies it against txCtx.txDigest; args[1] and args[2] are parsed and discarded. Two scripts that differ only in data/signature produce the same verdict.",
-      "impact": "Any covenant that relies on verifying a detached certificate (for example a factory recovery certificate) cannot be expressed or tested with the SDK evaluator. This is a parity question, not evidence about node behaviour.",
+      "summary": "Minima documents and implements CHECKSIG(public_key data signature): exactly three HEX parameters, verified as TreeKey.verify(data, signature). The SDK evaluator ignored args[1]/args[2] and verified the witness signature over the transaction digest. TypeScript now enforces the reference semantics (tree signature, or a flat WOTS signature over the supplied data) and Rust/WASM does the same for the flat form; both reject 0/1-argument forms, zero-length operands and non-hex operands.",
+      "impact": "Detached certificates could not be authenticated, so a contestable factory escape (OMN-058) was unimplementable. Scripts that passed locally under the witness-only form would have failed on a real node.",
       "repro": {
         "command": "pnpm --filter @totemsdk/kissvm test",
         "expected": "CHECKSIG(pk data sig) verifies the supplied signature over the supplied data.",
-        "actual": "The evaluator verifies the witness signature over the transaction digest; data and sig are ignored.",
+        "actual": "Fixed: the evaluator verifies the supplied data and signature. The parity suite measures TS against the Rust/WASM artifact on the same fixtures; the node leg is scripts/kissvm-node-parity.mjs.",
         "evidence": [
           "packages/kissvm/src/eval.ts evalChecksig",
           "packages/kissvm/src/parser.ts CHECKSIG parse",
@@ -3949,17 +3949,20 @@
           "packages/kissvm/src/eval.ts",
           "packages/kissvm/src/types.ts"
         ],
-        "approach": "Implement the documented three-argument form (verify the parsed signature over the parsed data with the parsed key) while keeping the zero/one-argument witness form, then prove parity against a real Minima node and the Rust/WASM evaluator.",
+        "approach": "Implement the reference three-argument form while keeping SIGNEDBY as the witness path, and prove TS/Rust agreement with shared fixtures generated from real keys.",
         "constraints": [
           "Do not silently keep the current meaning under the documented signature.",
           "Cover both the witness path and the detached path with real signatures."
         ],
         "acceptance": [
           "CHECKSIG(pk data sig) returns true only for a valid signature over data.",
-          "A stale/foreign certificate fails.",
-          "Node, TS and Rust/WASM evaluators agree on the same fixture."
+          "A stale or foreign certificate fails.",
+          "The witness cannot change the verdict.",
+          "0/1-argument and zero-length forms are rejected.",
+          "TypeScript and Rust/WASM agree on every supported fixture."
         ],
         "tests": [
+          "tests/unit/kissvm-parity/src/__tests__/checksig-parity.test.ts",
           "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts"
         ],
         "verification": [
@@ -3972,7 +3975,8 @@
         "verification": "code-confirmed"
       },
       "links": {
-        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md"
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
+        "nodeHarness": "scripts/kissvm-node-parity.mjs"
       }
     },
     {
@@ -5104,6 +5108,66 @@
       },
       "links": {
         "fixedIn": "PENDING"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "versions": {
+        "@totemsdk/kissvm": "1.4.1",
+        "@totemsdk/core-wasm": "0.1.0"
+      },
+      "source": "OMN-064 parity harness, 2026-11-18",
+      "id": "OMN-065",
+      "status": "open",
+      "severity": "medium",
+      "title": "Rust/WASM CHECKSIG cannot verify a tree signature (the on-chain form)",
+      "packages": [
+        "@totemsdk/kissvm",
+        "@totemsdk/core-wasm"
+      ],
+      "summary": "The TypeScript evaluator verifies a canonical tree signature with deserializeTreeSignature + verifyTreeSignature. The Rust/WASM evaluator only has the flat WOTS path: core-wasm exposes verify_tree_signature over a deserialized struct, but no byte reader for TreeSignature, so the wasm leg rejects the on-chain signature form. The parity suite records this as pending-tree-signature instead of hiding it.",
+      "impact": "A covenant that verifies an oracle or recovery certificate works in the TypeScript evaluator and fails closed in the WASM evaluator. That is an availability/parity divergence, not a signature-forgery path.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/kissvm test",
+        "expected": "TS and WASM both verify a canonical tree signature over the supplied data.",
+        "actual": "TS passes; WASM returns false for the tree-signature fixtures.",
+        "evidence": [
+          "packages/kissvm/src/eval.ts evalChecksig",
+          "packages/kissvm/rust/src/eval.rs CheckSig",
+          "packages/core-wasm/src/treekey.rs (no TreeSignature byte reader)",
+          "tests/unit/kissvm-parity/src/__tests__/checksig-parity.test.ts"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/core-wasm/src/treekey.rs",
+          "packages/kissvm/rust/src/eval.rs"
+        ],
+        "approach": "Add a MiniData byte reader for TreeSignature in core-wasm (matching Signature.convertMiniDataVersion), use it in the Rust CHECKSIG branch, rebuild both wasm targets, and promote the pending fixtures.",
+        "constraints": [
+          "Do not accept a flat signature where the node expects a tree signature.",
+          "Keep TS and Rust byte-identical on the same fixtures."
+        ],
+        "acceptance": [
+          "The tree-signature fixtures pass in TS and WASM.",
+          "The parity suite has no pending-tree-signature entries.",
+          "The node leg (scripts/kissvm-node-parity.mjs) agrees."
+        ],
+        "tests": [
+          "tests/unit/kissvm-parity/src/__tests__/checksig-parity.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/core-wasm build",
+          "pnpm --filter @totemsdk/kissvm test"
+        ]
+      },
+      "origin": {
+        "audit": "Totem Edge Omnia whole-family re-audit, 2026-11-17",
+        "auditedCommit": "c81af31143127a34ab555831a9b046efac33b6c6",
+        "verification": "code-confirmed"
+      },
+      "links": {
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md"
       }
     },
     {

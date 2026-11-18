@@ -305,41 +305,38 @@ fn eval_expr(node: &AstNode, vm: &mut VmState) -> Result<VmValue, EvalError> {
             }
             Ok(VmValue::Bool(sig_count >= thresh))
         }
-        AstNode::CheckSig { .. } => {
-            match &vm.tx_ctx.tx_digest {
-                None => {
-                    if vm.tx_ctx.simulation_mode.unwrap_or(false) {
-                        let has_any = !vm.witness.signatures.is_empty()
-                            || vm
-                                .witness
-                                .tree_signatures
-                                .as_ref()
-                                .map_or(false, |m| !m.is_empty());
-                        return Ok(VmValue::Bool(has_any));
-                    }
-                    vm.add_trace("CHECKSIG → false (no txDigest; provide TxContext.txDigest for real verification)".into());
-                    Ok(VmValue::Bool(false))
-                }
-                Some(digest) => {
-                    for (pk_hex, sig) in &vm.witness.signatures {
-                        let pk_bytes = hex_to_bytes(pk_hex);
-                        if (vm.wots_verify)(sig, digest, &pk_bytes) {
-                            return Ok(VmValue::Bool(true));
-                        }
-                    }
-                    if let Some(tree_sigs) = &vm.witness.tree_signatures {
-                        for (pk_hex, ts) in tree_sigs {
-                            let pk_bytes = hex_to_bytes(pk_hex);
-                            if totemsdk_core_wasm::treekey::verify_tree_signature(
-                                &pk_bytes, digest, ts,
-                            ) {
-                                return Ok(VmValue::Bool(true));
-                            }
-                        }
-                    }
-                    Ok(VmValue::Bool(false))
-                }
+        AstNode::CheckSig { args, .. } => {
+            // Reference implementation (org.minima.kissvm.functions.sigs.CHECKSIG):
+            // exactly three parameters, verified against the supplied data.
+            // Never the transaction digest, never the contract witness.
+            vm.tick(31).map_err(EvalError::Limit)?;
+            if args.len() != 3 {
+                return Err(EvalError::Runtime(format!(
+                    "CHECKSIG requires exactly 3 parameters (publickey data signature), got {}",
+                    args.len()
+                )));
             }
+            let pubkey_hex = checksig_hex(&eval_expr(&args[0], vm)?, "publickey")?;
+            let data_hex = checksig_hex(&eval_expr(&args[1], vm)?, "data")?;
+            let sig_hex = checksig_hex(&eval_expr(&args[2], vm)?, "signature")?;
+            if pubkey_hex.is_empty() || sig_hex.is_empty() {
+                return Err(EvalError::Runtime("Invalid ZERO length params for CHECKSIG".into()));
+            }
+            let key_bytes = hex::decode(&pubkey_hex)
+                .map_err(|e| EvalError::Runtime(format!("CHECKSIG publickey must be hex: {e}")))?;
+            let data_bytes = hex::decode(&data_hex)
+                .map_err(|e| EvalError::Runtime(format!("CHECKSIG data must be hex: {e}")))?;
+            let sig_bytes = hex::decode(&sig_hex)
+                .map_err(|e| EvalError::Runtime(format!("CHECKSIG signature must be hex: {e}")))?;
+            // Flat WOTS form. Tree signatures (the on-chain form) need a
+            // deserializer in core-wasm; tracked as a Rust parity follow-up.
+            let ok = (vm.wots_verify)(&sig_bytes, &data_bytes, &key_bytes);
+            vm.add_trace(format!(
+                "CHECKSIG({}…) → {}",
+                &pubkey_hex[..pubkey_hex.len().min(10)],
+                ok
+            ));
+            Ok(VmValue::Bool(ok))
         }
         AstNode::Hash { fn_, expr, .. } => {
             let val = eval_expr(expr, vm)?;
@@ -952,6 +949,26 @@ fn as_scaled(v: &VmValue) -> Result<BigInt, EvalError> {
 fn as_port_int(v: &VmValue) -> Result<i64, EvalError> {
     let scaled = as_scaled(v)?;
     Ok((scaled / BigInt::from(SCALE)).try_into().unwrap_or(0))
+}
+
+/// CHECKSIG operands must be HEX, like the reference `getHexParam`.
+fn checksig_hex(value: &VmValue, label: &str) -> Result<String, EvalError> {
+    match value {
+        VmValue::String(s) => {
+            let raw = if s.starts_with("0x") || s.starts_with("0X") { &s[2..] } else { s.as_str() };
+            if raw.is_empty() {
+                return Ok(String::new());
+            }
+            if raw.len() % 2 != 0 || !raw.chars().all(|c| c.is_ascii_hexdigit()) {
+                return Err(EvalError::Runtime(format!(
+                    "CHECKSIG {label} must be HEX, got {:?}",
+                    &s[..s.len().min(20)]
+                )));
+            }
+            Ok(raw.to_ascii_lowercase())
+        }
+        _ => Err(EvalError::Runtime(format!("CHECKSIG {label} must be HEX"))),
+    }
 }
 
 fn hex_to_bytes(hex: &str) -> Vec<u8> {

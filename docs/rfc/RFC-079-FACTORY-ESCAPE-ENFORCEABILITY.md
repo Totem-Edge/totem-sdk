@@ -39,7 +39,7 @@ observed behaviour, so a failure there is a real blocker, not a flaky test.
 
 | Question | Result | Evidence |
 |---|---|---|
-| Can a covenant authenticate a detached state certificate without fresh counterparty signatures? | **No** | `evalChecksig` verifies `witness.signatures[publicKey]` against `txCtx.txDigest`. `CHECKSIG(pk data sig)`'s `data` and `sig` arguments are parsed and then ignored. Two scripts with different `data`/`sig` produce the same verdict. |
+| Can a covenant authenticate a detached state certificate without fresh counterparty signatures? | **Yes (TS) / flat WOTS (Rust)** | OMN-064 was fixed after the spike: both evaluators now implement `CHECKSIG(publickey data signature)`. The TS evaluator verifies canonical tree signatures; the Rust/WASM evaluator verifies flat WOTS until core-wasm gains a `TreeSignature` byte reader (OMN-065). |
 | Can a covenant require a strictly higher sequence plus a matching commitment? | **Yes** | `ASSERT nextSeq GT prevSeq` and `ASSERT STATE(102) EQ <commitment>` both evaluate; the whole contest branch uses 8 instructions of the 1024 budget. |
 | Can it enforce value conservation on the successor? | **Yes** | `VERIFYOUT(0 @ADDRESS @AMOUNT @TOKENID TRUE)` rejects an inflated output. |
 | Can the successor member/balance root be recomputed on chain? | **Arithmetic only** | A statically unrolled 4-leaf recompute costs 17 instructions. The blocker is input, not cost: no opcode exposes an arbitrary witness proof element as a script value, so siblings cannot be fed in. |
@@ -50,22 +50,36 @@ config, so the spike measures **dispatch and structure**, not the cryptographic
 primitive. Signature fidelity itself is RFC-009/RFC-016 work and must be
 re-proven on a node.
 
-### 2.1 The CHECKSIG parity gap
+### 2.1 The CHECKSIG gap — resolved (OMN-064)
 
-Documented Minima form: `CHECKSIG(public_key data signature)`.
-
-Current SDK evaluator (`packages/kissvm/src/eval.ts`):
+The reference implementation settles the question without a node:
 
 ```
-const txDigest = vm.txCtx.txDigest;
-const pubKeyHex = String(evalExpr(args[0], vm));
-const sig = vm.witness.signatures.get(stripped);   // args[1], args[2] unused
-return verifyWitnessSignature(sig, txDigest, pkBytes);
+// src/org/minima/kissvm/functions/sigs/CHECKSIG.java
+checkExactParamNumber(3);
+HexValue pubkey = getHexParam(0); HexValue data = getHexParam(1); HexValue sig = getHexParam(2);
+TreeKey checker = new TreeKey(); checker.setPublicKey(pubkey.getMiniData());
+return new BooleanValue(checker.verify(data.getMiniData(), Signature.convertMiniDataVersion(sig.getMiniData())));
 ```
 
-This is tracked as **OMN-064**. It is not evidence that the node behaves the
-same way; it is a parity question that must be settled on a real node before
-any detached-certificate covenant is relied upon.
+Exactly three parameters, verified against `data`; the contract witness and the
+transaction digest are never consulted. `SIGNEDBY` is the witness path, and
+`MULTISIG` iterates the keys it is given.
+
+The SDK evaluators had conflated the two (`CHECKSIG` behaved like `SIGNEDBY`
+while accepting the three-argument form). Both now follow the reference:
+
+- `CHECKSIG` requires exactly three HEX operands, rejects zero-length and
+  non-hex operands, and verifies the signature over the data.
+- TypeScript verifies canonical tree signatures and flat WOTS.
+- Rust/WASM verifies flat WOTS; the tree form needs a `TreeSignature` byte
+  reader in core-wasm (**OMN-065**).
+- `tests/unit/kissvm-parity` runs the same fixtures through TypeScript and the
+  Rust/WASM artifact; `scripts/kissvm-node-parity.mjs` runs them against a live
+  node's `runscript` when `MINIMA_RPC_URL` is set.
+
+Consequence: the earlier "pre-signed raw transaction" objection still stands,
+but the *detached certificate* half of the contest protocol is now expressible.
 
 ## 3. Target architecture
 
@@ -149,7 +163,8 @@ the product docs, not hidden.
 | `omnia-factory/src/factory.ts` | Every committed transition produces and durably retains a recovery certificate/checkpoint. |
 | `omnia-factory/src/virtual.ts` | VC open/update/close update the recoverable economic state. |
 | `omnia-factory/src/distribution.ts` | `buildFactoryDistributionScript()` currently pins `STATE(112)` and authorizes N-of-N after the timeout without checking outputs. It must verify the distribution or be removed from the settlement path. |
-| `packages/kissvm` | OMN-064: make `CHECKSIG` honour its documented arguments, or document the divergence and forbid detached-certificate designs. |
+| `packages/kissvm` | **Done (OMN-064):** `CHECKSIG` implements the reference three-argument form in TypeScript and Rust, with a TS/Rust parity suite. |
+| `packages/core-wasm` | **Open (OMN-065):** byte reader for `TreeSignature` so the Rust/WASM evaluator can verify the on-chain tree-signature form. |
 
 ## 6. Acceptance tests (all must be real, not mocks)
 
@@ -159,7 +174,8 @@ the product docs, not hidden.
 4. All exit outputs conserve value, including fees.
 5. A crash or partition does not erase the winning recovery certificate.
 6. Real Minima proofs and signature verification, on a node and in both SDK
-   evaluators.
+   evaluators. The node leg is `scripts/kissvm-node-parity.mjs` (requires
+   `MINIMA_RPC_URL`); the evaluator legs run in `pnpm --filter @totemsdk/kissvm test`.
 
 ## 7. Consequences
 

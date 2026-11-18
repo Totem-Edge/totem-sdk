@@ -1,8 +1,8 @@
 # Canary findings
 
-Generated 2026-11-18T15:55:33.308Z. 87 findings, 18 open.
+Generated 2026-11-18T16:23:50.520Z. 88 findings, 18 open.
 
-sdk-defect: 81 · environment-blocked: 1 · sdk-gap: 5
+sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 
 | id | severity | kind | status | packages | title |
 |---|---|---|---|---|---|
@@ -69,7 +69,7 @@ sdk-defect: 81 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-059` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | A unilateral VTXO exit could alter the remaining pool root and epoch |
 | `OMN-062` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | VTXO on-chain spending helpers broadcast without required proofs |
 | `OMN-063` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host` | Funding activation did not consistently wait for chain confirmations |
-| `OMN-064` | high | sdk-defect | open | `@totemsdk/kissvm` | KISSVM CHECKSIG ignores its documented data and signature arguments |
+| `OMN-064` | high | sdk-defect | fixed | `@totemsdk/kissvm` | KISSVM CHECKSIG ignores its documented data and signature arguments |
 | `CAN-005` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The initiator discards the peer ERROR frame, so a rejected open reports only acknowledged=false |
 | `CAN-012` | medium | sdk-defect | in-progress | `@totemsdk/omnia-splice` | Splice successor selection matches on address, token and amount only |
 | `CAN-015` | medium | sdk-defect | in-progress | `@totemsdk/omnia-router` | Router rollback cannot release HTLCs early and reports failure as if liquidity were returned |
@@ -90,6 +90,7 @@ sdk-defect: 81 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-056` | medium | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-splice` | Explicit splice balance maps were not converted at the RPC boundary |
 | `OMN-057` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/wots-lease` | Channel capacity warnings ignore the host shared physical WOTS tree |
 | `OMN-060` | medium | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory funding omitted the participant-root commitment its script pins |
+| `OMN-065` | medium | sdk-defect | open | `@totemsdk/kissvm`, `@totemsdk/core-wasm` | Rust/WASM CHECKSIG cannot verify a tree signature (the on-chain form) |
 | `sdk-gap:integration-gates` | medium | sdk-gap | open | `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/chain-provider`, `@totemsdk/connect`, `@totemsdk/decision`, `@totemsdk/edge`, `@totemsdk/governance`, `@totemsdk/identity`, `@totemsdk/intelligence`, `@totemsdk/kissvm`, `@totemsdk/liquidity-bond`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`, `@totemsdk/lookup-protocol`, `@totemsdk/manifest`, `@totemsdk/mcp-server`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host`, `@totemsdk/omnia-pool`, `@totemsdk/omnia-router`, `@totemsdk/omnia-vtxo`, `@totemsdk/p2p-hub`, `@totemsdk/pear`, `@totemsdk/provider-bond`, `@totemsdk/minima-rpc`, `@totemsdk/pubsub-transport`, `@totemsdk/qvac`, `@totemsdk/realtime`, `@totemsdk/recursive-mast`, `@totemsdk/root-identity`, `@totemsdk/se-server`, `@totemsdk/server`, `@totemsdk/storage`, `@totemsdk/stream-transport`, `@totemsdk/tx-builder`, `@totemsdk/txpow`, `@totemsdk/wallet-adapter`, `@totemsdk/wots-lease`, `@totemsdk/entity`, `@totemsdk/eefi`, `@totemsdk/replication` | 41 publishable packages declare no test:integration gate |
 | `CAN-003` | low | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/lookup-node` | Two unit suites exceed Jest's 5s default timeout under load |
 | `OMN-018` | low | sdk-gap | open | `@totemsdk/omnia-host` | Auto-approval has no mandatory bound (hardening, not a defect) |

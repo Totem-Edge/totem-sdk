@@ -5,8 +5,9 @@ import type { EvalResult, ScriptWitness, CoinData, TxContext, OutputData } from 
 /**
  * Compute a deterministic 32-byte txDigest from the transaction's observable
  * fields (block, inputs, outputs, state).  Used by simulateSpend when the
- * caller does not supply a pre-computed digest, ensuring SIGNEDBY/CHECKSIG
- * always perform real WOTS verification rather than presence-only checks.
+ * caller does not supply a pre-computed digest, ensuring SIGNEDBY always
+ * performs real WOTS verification rather than presence-only checks.
+ * (CHECKSIG verifies its own operands and never reads the digest.)
  *
  * The encoding is intentionally simple and stable; it is NOT required to
  * match Minima's production digest format — its sole purpose is to give each
@@ -47,8 +48,9 @@ function computeSimulationDigest(
  * This ensures @ADDRESS, @AMOUNT, @TOKENID, @COINAGE and @SCRIPT resolve
  * correctly during evaluation.
  *
- * Always computes (or forwards) a `txDigest` so SIGNEDBY/CHECKSIG perform
- * real WOTS signature verification.  Never uses simulationMode — callers
+ * Always computes (or forwards) a `txDigest` so SIGNEDBY performs real WOTS
+ * signature verification. CHECKSIG is unaffected: it verifies the data and
+ * signature passed to it.  Never uses simulationMode — callers
  * who need presence-only checks for script-logic unit tests must pass
  * `simulationMode: true` in `txContext` directly to `evaluateScript`.
  *
@@ -70,7 +72,7 @@ export async function simulateSpend(
 
   const outputs = txContext.outputs ?? [];
 
-  // Always provide a txDigest so SIGNEDBY/CHECKSIG run real WOTS verification.
+  // Always provide a txDigest so SIGNEDBY runs real WOTS verification.
   // If the caller already computed one, honour it; otherwise derive it
   // deterministically from the observable transaction fields.
   const txDigest = txContext.txDigest ?? computeSimulationDigest(

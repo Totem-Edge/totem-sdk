@@ -14,7 +14,7 @@
  */
 
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256.js';
-import { sha3_256, hexToBytes, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot, toNodeScript } from '@totemsdk/core';
+import { sha3_256, hexToBytes, deserializeTreeSignature, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot, toNodeScript } from '@totemsdk/core';
 import type { MMRData, MMRProof, TreeSignature } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
 import { LIMITS, VMState, MastBranch, UserFunction } from './vm.js';
@@ -782,46 +782,85 @@ function verifySignedBy(pkVal: string, vm: VMState): boolean {
 
 // ─── CHECKSIG — 0, 1, 2, or 3 parameters ─────────────────────────────────────
 
+/**
+ * `CHECKSIG(publickey data signature)` — verify a signature over arbitrary data.
+ *
+ * Matches the reference implementation
+ * (`org.minima.kissvm.functions.sigs.CHECKSIG`): exactly three parameters, a HEX
+ * public key, HEX data and a HEX signature; the signature is verified against
+ * `data`, never against the transaction digest or the contract witness.
+ *
+ * A canonical tree signature (`serializeTreeSignature`) is the on-chain form.
+ * A flat WOTS signature is also accepted for SDK fixtures, because
+ * `wotsVerifyDigest` hashes the supplied data internally.
+ */
 function evalChecksig(args: ASTNode[], vm: VMState): boolean {
-  // CHECKSIG costs 10 instructions for WOTS verification overhead
-  vm.tick(9);
-  const txDigest = vm.txCtx.txDigest;
-  if (!txDigest) {
-    if (vm.txCtx.simulationMode) {
-      const pkCount = args.length >= 1 ? 1 : vm.witness.signatures.size;
-      return pkCount > 0;
-    }
-    vm.addTrace('CHECKSIG → false (no txDigest)');
-    return false;
+  // Reference implementation: 1 base instruction + 31 for key verification.
+  vm.tick(31);
+
+  if (args.length !== 3) {
+    throw new KissvmRuntimeError(
+      `CHECKSIG requires exactly 3 parameters (publickey data signature), got ${args.length}`,
+    );
   }
 
-  if (args.length === 0) {
-    for (const [, sig] of vm.witness.signatures) {
-      try {
-        if (sig instanceof Uint8Array && wotsVerifyDigest(sig, txDigest, new Uint8Array(32))) return true;
-      } catch { /**/ }
-    }
-    return false;
+  const pubkeyHex = hexParam(args[0], vm, 'publickey');
+  const dataHex = hexParam(args[1], vm, 'data');
+  const sigHex = hexParam(args[2], vm, 'signature');
+  if (!pubkeyHex.length || !sigHex.length) {
+    throw new KissvmRuntimeError('Invalid ZERO length params for CHECKSIG');
   }
 
-  const pubKeyHex = String(evalExpr(args[0], vm));
-  const stripped = normalizeHex(pubKeyHex).replace(/^0x/i, '');
-  const pkBytes = hexToBytes(stripped);
-
-  const sig = vm.witness.signatures.get(stripped);
-  if (!sig) {
-    vm.addTrace(`CHECKSIG → no signature for ${stripped.slice(0, 10)}…`);
-    return false;
+  let keyBytes: Uint8Array;
+  let dataBytes: Uint8Array;
+  let sigBytes: Uint8Array;
+  try {
+    keyBytes = hexToBytes(pubkeyHex);
+    dataBytes = hexToBytes(dataHex);
+    sigBytes = hexToBytes(sigHex);
+  } catch (err) {
+    throw new KissvmRuntimeError(
+      `CHECKSIG parameters must be hex: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   try {
-    const ok = verifyWitnessSignature(sig, txDigest, pkBytes);
-    vm.addTrace(`CHECKSIG(${stripped.slice(0, 10)}…) → ${ok}`);
-    return ok;
+    const tree = deserializeTreeSignature(sigBytes);
+    if (tree.proofs?.length) {
+      const ok = verifyTreeSignature(keyBytes, dataBytes, tree);
+      vm.addTrace(`CHECKSIG(tree ${pubkeyHex.slice(0, 10)}…) → ${ok}`);
+      return ok;
+    }
   } catch {
-    vm.addTrace(`CHECKSIG(${stripped.slice(0, 10)}…) → verify error`);
-    return false;
+    // Not a tree signature — fall through to the flat WOTS form.
   }
+
+  try {
+    const ok = wotsVerifyDigest(sigBytes, dataBytes, keyBytes);
+    vm.addTrace(`CHECKSIG(wots ${pubkeyHex.slice(0, 10)}…) → ${ok}`);
+    return ok;
+  } catch (err) {
+    throw new KissvmRuntimeError(
+      `CHECKSIG could not verify the signature: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/** Evaluate a CHECKSIG operand and require a HEX value, like `getHexParam`. */
+function hexParam(arg: ASTNode, vm: VMState, label: string): string {
+  const value = evalExpr(arg, vm);
+  if (typeof value !== 'string') {
+    throw new KissvmRuntimeError(`CHECKSIG ${label} must be HEX`);
+  }
+  const raw = value.startsWith('0x') || value.startsWith('0X') ? value.slice(2) : value;
+  if (raw.length === 0) return '';
+  if (!/^[0-9a-fA-F]+$/.test(raw)) {
+    throw new KissvmRuntimeError(`CHECKSIG ${label} must be HEX, got "${value.slice(0, 20)}"`);
+  }
+  if (raw.length % 2 !== 0) {
+    throw new KissvmRuntimeError(`CHECKSIG ${label} has an odd number of hex digits`);
+  }
+  return raw.toLowerCase();
 }
 
 // ─── MAST — canonical ScriptProof verification ──────────────────────────────
