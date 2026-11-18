@@ -159,3 +159,60 @@ describe('verifyConservation — cross-pool rejection', () => {
     expect(result.valid).toBe(false);
   });
 });
+
+
+describe('verifyVtxoTransfer value/recipient binding (OMN-029)', () => {
+  const base = (over: Record<string, unknown> = {}) => ({
+    vtxoId: 'v1',
+    poolId: 'p1',
+    owner: 'alice',
+    amount: 100n,
+    tokenId: '0x00',
+    epoch: 1,
+    status: 'active',
+    proof: { leaf: '0x00', root: '0x00', siblings: [], positions: [], epoch: 1 },
+    ...over,
+  } as never);
+
+  it('rejects a non-positive transfer amount', async () => {
+    const { verifyVtxoTransfer } = await import('../verify');
+    const result = verifyVtxoTransfer(
+      base(),
+      base({ vtxoId: 'v2', owner: 'bob', amount: 0n }),
+      { inputId: 'v1', outputId: 'v2', from: 'alice', to: 'bob', amount: 0n, poolId: 'p1', tokenId: '0x00', at: 1 },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/positive/);
+  });
+
+  it('rejects an output that does not match the transfer amount or recipient', async () => {
+    const { verifyVtxoTransfer } = await import('../verify');
+    const result = verifyVtxoTransfer(
+      base(),
+      base({ vtxoId: 'v2', owner: 'carol', amount: 40n }),
+      { inputId: 'v1', outputId: 'v2', from: 'alice', to: 'bob', amount: 60n, poolId: 'p1', tokenId: '0x00', at: 1 },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/does not match output owner/);
+    expect(result.errors.join(' ')).toMatch(/does not match output amount/);
+  });
+
+  it('requires change for a partial transfer and exact conservation', async () => {
+    const { verifyVtxoTransfer } = await import('../verify');
+    const partial = verifyVtxoTransfer(
+      base(),
+      base({ vtxoId: 'v2', owner: 'bob', amount: 60n }),
+      { inputId: 'v1', outputId: 'v2', from: 'alice', to: 'bob', amount: 60n, poolId: 'p1', tokenId: '0x00', at: 1 },
+    );
+    expect(partial.valid).toBe(false);
+    expect(partial.errors.join(' ')).toMatch(/change/);
+
+    const mismatched = verifyVtxoTransfer(
+      base(),
+      base({ vtxoId: 'v2', owner: 'bob', amount: 60n }),
+      { inputId: 'v1', outputId: 'v2', changeId: 'v3', from: 'alice', to: 'bob', amount: 60n, changeAmount: 30n, poolId: 'p1', tokenId: '0x00', at: 1 },
+    );
+    expect(mismatched.valid).toBe(false);
+    expect(mismatched.errors.join(' ')).toMatch(/does not equal the input amount/);
+  });
+});

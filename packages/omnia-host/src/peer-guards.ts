@@ -372,3 +372,21 @@ export function assertFactorySettlementDraft(
     throw new Error('factory settlement proposal draft does not match the local factory');
   }
 }
+
+
+/**
+ * OMN-026: a peer may be cached for a channel only when its authenticated
+ * identity is one of that channel's registered counterparties.
+ */
+export function isChannelPeer(
+  channel: Pick<OmniaChannel, 'parties'>,
+  peerPubkey: string | undefined,
+  localPublicKeyDigest?: string,
+): boolean {
+  const normalize = (value: string | undefined): string =>
+    (value ?? '').replace(/^0x/i, '').toLowerCase();
+  const peer = normalize(peerPubkey);
+  if (!peer) return false;
+  if (localPublicKeyDigest && peer === normalize(localPublicKeyDigest)) return false;
+  return channel.parties.some((party) => normalize(party.publicKeyDigest) === peer);
+}

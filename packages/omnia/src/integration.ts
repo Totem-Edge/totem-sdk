@@ -102,6 +102,16 @@ export interface OmniaIntegrationConfig {
   }) => void | Promise<void>;
   onSettlementProposed?: (payload: unknown, peer: OmniaPeer) => void;
   /**
+   * OMN-028: durable replay store for settlement co-signatures. Keyed by
+   * `settlement-sign:<channel>:<sequence>:<digest>` and
+   * `settlement-seq:<channel>:<sequence>`. When omitted, an in-memory bounded
+   * cache still prevents duplicate leaf use within one process.
+   */
+  settlementReplayStore?: {
+    get<T>(key: string): Promise<T | null> | T | null;
+    set<T>(key: string, value: T): Promise<void> | void;
+  };
+  /**
    * Factory coordination messages (FACTORY_PROPOSAL/ACCEPT, FACTORY_CLOSE_*).
    * The host supplies these handlers (it owns the factory SDK + lease bundles);
    * the transport core stays free of factory dependencies.
@@ -438,6 +448,53 @@ async function _handleStateUpdate(
   config.onStateUpdated?.(updatedChannel, peer);
 }
 
+interface SettlementSignResponse {
+  ok: true;
+  signRequest: true;
+  partyId: string;
+  signature: string;
+  indices: unknown;
+}
+
+const settlementReplayByConfig = new WeakMap<object, Map<string, SettlementSignResponse>>();
+const settlementSequenceByConfig = new WeakMap<object, Map<string, string>>();
+const SETTLEMENT_REPLAY_LIMIT = 256;
+
+function settlementReplay(config: OmniaIntegrationConfig): Map<string, SettlementSignResponse> {
+  let cache = settlementReplayByConfig.get(config);
+  if (!cache) {
+    cache = new Map();
+    settlementReplayByConfig.set(config, cache);
+  }
+  return cache;
+}
+
+function settlementSequences(config: OmniaIntegrationConfig): Map<string, string> {
+  let cache = settlementSequenceByConfig.get(config);
+  if (!cache) {
+    cache = new Map();
+    settlementSequenceByConfig.set(config, cache);
+  }
+  return cache;
+}
+
+function rememberSign(
+  config: OmniaIntegrationConfig,
+  signKey: string,
+  seqKey: string,
+  digest: string,
+  response: SettlementSignResponse,
+): void {
+  const cache = settlementReplay(config);
+  cache.set(signKey, response);
+  while (cache.size > SETTLEMENT_REPLAY_LIMIT) {
+    const first = cache.keys().next().value;
+    if (first === undefined) break;
+    cache.delete(first);
+  }
+  settlementSequences(config).set(seqKey, digest);
+}
+
 async function _handleSettlementProposal(
   peer: OmniaPeer,
   msg: OmniaMessage,
@@ -457,7 +514,34 @@ async function _handleSettlementProposal(
     // draft (both signatures are required by the eltoo MULTISIG(2 …) branch).
     // We sign and ACK; the initiator broadcasts.
     if (payload?.signRequest === true && typeof payload.settlementTxHex === 'string') {
+      const digest = String((payload as { digestHex?: unknown }).digestHex ?? '').toLowerCase();
+      const seqKey = `${msg.channelId}:${String((payload as { sequence?: unknown }).sequence)}`;
+      const signKey = `${seqKey}:${digest}`;
+      const replay = settlementReplay(config);
       try {
+        // OMN-028: an identical request reuses the existing co-signature; a
+        // different settlement for the same channel+sequence is a conflict.
+        const durable = config.settlementReplayStore
+          ? await config.settlementReplayStore.get<SettlementSignResponse>(`settlement-sign:${signKey}`)
+          : null;
+        const cached = durable ?? replay.get(signKey);
+        if (cached) {
+          await peer.sendMessage({
+            type: 'ACK',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: cached,
+          });
+          return;
+        }
+        const durableSeq = config.settlementReplayStore
+          ? await config.settlementReplayStore.get<string>(`settlement-seq:${seqKey}`)
+          : null;
+        const priorDigest = durableSeq ?? settlementSequences(config).get(seqKey);
+        if (priorDigest !== undefined && priorDigest !== digest) {
+          throw new Error('conflicting settlement request for the same channel and sequence');
+        }
+
         const coSig = await signSettlementRequest(
           channel,
           payload as SettlementSigningRequest,
@@ -467,17 +551,23 @@ async function _handleSettlementProposal(
         const signatureHex = Array.from(coSig.signature)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('');
+        const response: SettlementSignResponse = {
+          ok: true,
+          signRequest: true,
+          partyId: coSig.partyId,
+          signature: '0x' + signatureHex,
+          indices: coSig.indices,
+        };
+        rememberSign(config, signKey, seqKey, digest, response);
+        if (config.settlementReplayStore) {
+          await config.settlementReplayStore.set(`settlement-sign:${signKey}`, response);
+          await config.settlementReplayStore.set(`settlement-seq:${seqKey}`, digest);
+        }
         await peer.sendMessage({
           type: 'ACK',
           channelId: msg.channelId,
           nonce: msg.nonce,
-          payload: {
-            ok: true,
-            signRequest: true,
-            partyId: coSig.partyId,
-            signature: '0x' + signatureHex,
-            indices: coSig.indices,
-          },
+          payload: response,
         });
       } catch (err) {
         _sendError(peer, msg.channelId, msg.nonce, `signSettlementRequest failed: ${String(err)}`);

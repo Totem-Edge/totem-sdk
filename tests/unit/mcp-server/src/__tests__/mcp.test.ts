@@ -395,6 +395,100 @@ describe('new tools — real index', () => {
   })
 })
 
+describe('usability — filters and references resolve instead of dead-ending', () => {
+  const index = makeIndex()
+
+  it('resolves a partial, differently-cased domain filter', () => {
+    const res = handleToolCall('list-packages', { domain: 'CORE' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('@totemsdk/core')
+    expect(res.content[0].text).toContain('core/crypto')
+  })
+
+  it('normalizes domain separators (spaces and underscores)', () => {
+    const spaced = handleToolCall('list-packages', { domain: 'core crypto' }, index)
+    expect(spaced.isError).toBeFalsy()
+    expect(spaced.content[0].text).toContain('@totemsdk/core')
+    const underscored = handleToolCall('list-packages', { domain: 'core_crypto' }, index)
+    expect(underscored.isError).toBeFalsy()
+    expect(underscored.content[0].text).toContain('@totemsdk/core')
+  })
+
+  it('reports an unknown domain with the known domains instead of a bare empty result', () => {
+    const res = handleToolCall('list-packages', { domain: 'blockchain' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('No domain matched')
+    expect(res.content[0].text).toContain('Known domains')
+    expect(res.content[0].text).toContain('core/crypto')
+    expect(res.content[0].text).toContain('search-packages')
+  })
+
+  it('echoes the criteria when no package matches', () => {
+    const res = handleToolCall('list-packages', { domain: 'core', filter: 'zzz' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain("filter: 'zzz'")
+    expect(res.content[0].text).toContain('2 package(s) in total')
+  })
+
+  it('matches the filter against domain and keywords, not just the name', () => {
+    const res = handleToolCall('list-packages', { filter: 'crypto' }, index)
+    expect(res.content[0].text).toContain('@totemsdk/core-wasm')
+  })
+
+  it('resolves a bare package name for every package-scoped tool', () => {
+    expect(handleToolCall('dependency-graph', { package: 'core' }, index).isError).toBeFalsy()
+    expect(handleToolCall('package-stats', { name: 'core' }, index).isError).toBeFalsy()
+    expect(handleToolCall('list-exports', { package: 'core' }, index).isError).toBeFalsy()
+    expect(handleToolCall('validate-import', { from: 'core', to: 'core-wasm' }, index).isError).toBeFalsy()
+    expect(handleToolCall('inspect-contract', { package: 'core' }, index).isError).toBeFalsy()
+  })
+
+  it('accepts the name@version form that list-packages prints', () => {
+    const res = handleToolCall('package-stats', { name: '@totemsdk/core@1.2.6' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('@totemsdk/core')
+  })
+
+  it('suggests real packages for an unknown reference', () => {
+    const res = handleToolCall('package-stats', { name: 'cor' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('Did you mean')
+    expect(res.content[0].text).toContain('@totemsdk/core')
+    expect(res.content[0].text).toContain('with or without the "@totemsdk/" scope')
+  })
+
+  it('does not claim a package has no exports when only the filter missed', () => {
+    const res = handleToolCall('list-exports', { package: 'core', filter: 'zzz' }, index)
+    expect(res.content[0].text).not.toContain('No exports found')
+    expect(res.content[0].text).toContain('the package exports 5 symbol(s)')
+  })
+
+  it('rejects an unknown export kind explicitly', () => {
+    const res = handleToolCall('list-exports', { package: 'core', kind: 'functions' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('Unknown kind')
+  })
+
+  it('resolves a partial domain filter in search-packages', () => {
+    const res = handleToolCall('search-packages', { query: 'crypto', domain: 'core' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('@totemsdk/core')
+  })
+
+  it('does not report a false empty for limit 0', () => {
+    const res = handleToolCall('search-packages', { query: 'crypto', limit: 0 }, index)
+    expect(res.content[0].text).toContain('Found')
+  })
+
+  it('inspect-contract reports didYouMean for an unknown package', () => {
+    const res = handleToolCall('inspect-contract', { package: 'cor' }, index)
+    expect(res.isError).toBe(true)
+    const payload = JSON.parse(res.content[0].text)
+    expect(payload.code).toBe('package-not-found')
+    expect(payload.didYouMean).toContain('@totemsdk/core')
+  })
+})
+
 describe('index availability — never silently empty', () => {
   it('buildIndex auto-detects the monorepo and indexes it', () => {
     const index = buildIndex()

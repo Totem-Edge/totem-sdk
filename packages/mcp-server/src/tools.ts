@@ -21,8 +21,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   { name: 'list-exports', description: 'List exports of a package', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name' }, kind: { type: 'string', enum: ['function', 'type', 'interface', 'class', 'const', ''], description: 'Filter by export kind' }, filter: { type: 'string', description: 'Filter by name substring' } }, required: ['package'] } },
   { name: 'suggest-template', description: 'Suggest KISSVM script templates matching a use case — describes what you want to do and returns matching templates with import paths', inputSchema: { type: 'object', properties: { usecase: { type: 'string', description: 'Describe what you want to do (e.g. "time-lock funds until a block height", "vote tally with quorum", "identity verification")' } }, required: ['usecase'] } },
   { name: 'read-source', description: "Read a source file from a package's src/ directory (e.g. package '@totemsdk/core', path 'treekey.ts')", inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/core)' }, path: { type: 'string', description: 'Path relative to the package src/ directory' } }, required: ['package', 'path'] } },
-  { name: 'list-packages', description: 'List SDK packages, optionally filtered by domain or name substring', inputSchema: { type: 'object', properties: { domain: { type: 'string', description: 'Optional domain filter (e.g. edge/runtime... see totemsdk://domain-map)' }, filter: { type: 'string', description: 'Optional package-name substring filter' } } } },
-  { name: 'search-packages', description: 'Search packages by keyword across name, description, keywords and exports (e.g. "wots lease coordination")', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Free-text query' }, domain: { type: 'string', description: 'Optional domain filter' }, limit: { type: 'number', description: 'Max results (default 15)' } }, required: ['query'] } },
+  { name: 'list-packages', description: 'List SDK packages, optionally filtered by domain or text', inputSchema: { type: 'object', properties: { domain: { type: 'string', description: 'Optional domain filter. Matched case-insensitively and partially, so "edge" resolves to "edge-computing"; several may be comma-separated. See totemsdk://domain-map for the known domains.' }, filter: { type: 'string', description: 'Optional substring filter across package name, domain and keywords' } } } },
+  { name: 'search-packages', description: 'Search packages by keyword across name, description, keywords and exports (e.g. "wots lease coordination")', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Free-text query' }, domain: { type: 'string', description: 'Optional domain filter. Matched case-insensitively and partially, so "edge" resolves to "edge-computing".' }, limit: { type: 'number', description: 'Max results (default 15)' } }, required: ['query'] } },
   { name: 'inspect-contract', description: 'Inspect bounded package contract metadata by package, export subpath and symbol', inputSchema: { type: 'object', properties: { package: { type: 'string' }, subpath: { type: 'string', description: 'Export subpath, default "."' }, symbol: { type: 'string', description: 'Exact symbol name' }, offset: { type: 'number' }, limit: { type: 'number', description: 'Max 100' }, includeDocs: { type: 'boolean' } }, required: ['package'] } },
   { name: 'plan-composition', description: 'Plan a justified SDK composition across the full catalogue, with per-package dispositions, dependency closure, capability map, maturity and warnings', inputSchema: { type: 'object', properties: { brief: { type: 'string' }, runtime: { type: 'string', enum: ['node-cjs', 'node-esm', 'bare', 'browser', 'unknown'] }, requiredPackages: { type: 'array', items: { type: 'string' } }, suggestedPackages: { type: 'array', items: { type: 'string' } }, optionalPackages: { type: 'array', items: { type: 'string' } }, excludedPackages: { type: 'array', items: { type: 'string' } }, requiredCapabilities: { type: 'array', items: { type: 'string' } } } } },
   { name: 'scaffold-app', description: 'Generate a structured application file map from a composition plan (generator only; no writes or installs)', inputSchema: { type: 'object', properties: { appName: { type: 'string' }, runtime: { type: 'string', enum: ['node-cjs', 'node-esm'] }, plan: { type: 'object' } }, required: ['plan'] } },
@@ -43,7 +43,21 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
     case 'read-source': return readSource(args, index)
     case 'list-packages': return listPackages(args, index)
     case 'search-packages': return searchPackages(args, index)
-    case 'inspect-contract': return inspectContract(args, index)
+    case 'inspect-contract': {
+      const resolved = resolvePackageName(args.package, index)
+      if (args.package && !resolved.name) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({
+            ok: false,
+            code: 'package-not-found',
+            message: `Package '${args.package}' is not in the selected SDK index`,
+            ...(resolved.candidates.length > 0 ? { didYouMean: resolved.candidates } : {}),
+          }, null, 2) }],
+          isError: true,
+        }
+      }
+      return inspectContract({ ...args, package: resolved.name ?? args.package }, index)
+    }
     case 'plan-composition': return jsonResult(planComposition(args, index))
     case 'scaffold-app':
       if (!args.plan || typeof args.plan !== 'object') {
@@ -69,15 +83,165 @@ function refreshIndexTool(): ToolResponse {
   }
 }
 
+/** All domain layer names present in the index, sorted. */
+function knownDomains(index: SdkIndex): string[] {
+  return Object.keys(index.domainMap).sort()
+}
+
+/** Normalize a domain token — case and any of space/underscore/slash collapse to `-`. */
+function normalizeDomain(token: string): string {
+  return token.toLowerCase().trim().replace(/[\s_/]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Resolve one requested domain token to concrete domain layers. Exact matches
+ * win; otherwise a partial token resolves to every domain that contains it
+ * ("edge" -> "edge-computing") or is contained by it.
+ */
+function matchDomains(requested: string, domains: string[]): string[] {
+  const want = normalizeDomain(requested)
+  if (!want) return []
+  const pairs = domains.map(raw => ({ raw, norm: normalizeDomain(raw) }))
+  const exact = pairs.filter(p => p.norm === want).map(p => p.raw)
+  if (exact.length > 0) return exact
+  return pairs.filter(p => p.norm.includes(want) || want.includes(p.norm)).map(p => p.raw)
+}
+
+/**
+ * Resolve a domain filter (comma or space separated) into concrete domains,
+ * reporting tokens that match no domain so callers are never silently empty.
+ */
+function resolveDomainFilter(requested: string | undefined, index: SdkIndex): { domains: string[]; unresolved: string[] } {
+  if (!requested || !requested.trim()) return { domains: [], unresolved: [] }
+  const domains = knownDomains(index)
+  const resolved = new Set<string>()
+  const unresolved: string[] = []
+  for (const token of requested.split(/[,\s]+/).filter(Boolean)) {
+    const matches = matchDomains(token, domains)
+    if (matches.length === 0) unresolved.push(token)
+    for (const match of matches) resolved.add(match)
+  }
+  return { domains: [...resolved].sort(), unresolved }
+}
+
+/** Explicit, actionable answer for a domain filter that matched nothing. */
+function unknownDomainResponse(unresolved: string[], index: SdkIndex): ToolResponse {
+  const domains = knownDomains(index)
+  const quoted = unresolved.map(t => `'${t}'`).join(', ')
+  const near = [...new Set(unresolved.flatMap(token => {
+    const want = normalizeDomain(token)
+    return domains
+      .map(d => ({ d, norm: normalizeDomain(d) }))
+      .filter(({ norm }) => {
+        for (let n = Math.min(want.length, norm.length); n >= 3; n--) {
+          if (norm.slice(0, n) === want.slice(0, n)) return true
+        }
+        return false
+      })
+      .map(({ d }) => d)
+  }))].slice(0, 3)
+
+  return {
+    content: [{
+      type: 'text',
+      text: [
+        `No domain matched ${quoted}.`,
+        'Domains are matched partially, so a shorter token works (e.g. "edge" resolves to "edge-computing").',
+        '',
+        `Known domains (${domains.length}): ${domains.join(', ')}`,
+        ...(near.length > 0 ? ['', `Did you mean: ${near.join(', ')}?`] : []),
+        '',
+        'For free-text search across package names, keywords and descriptions use search-packages.',
+      ].join('\n'),
+    }],
+    isError: true,
+  }
+}
+
+/** Closest package names to `name` — substring first, then shared name parts. */
+function nearestPackages(name: string, index: SdkIndex, limit = 5): string[] {
+  const want = String(name ?? '').toLowerCase().replace(/^@?totemsdk\//, '').trim()
+  if (!want) return []
+  return Object.keys(index.packages)
+    .map((full) => {
+      const short = full.replace('@totemsdk/', '').toLowerCase()
+      let score = 0
+      if (short === want) score = 100
+      else if (short.includes(want)) score = 60 - Math.min(20, short.length - want.length)
+      else if (want.includes(short)) score = 40
+      else score = want.split(/[-_/]+/).filter(Boolean).filter(part => short.includes(part)).length * 10
+      return { full, score }
+    })
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.full.localeCompare(b.full))
+    .slice(0, limit)
+    .map(entry => entry.full)
+}
+
+/**
+ * Resolve a user-supplied package reference to an exact index key.
+ *
+ * Accepts the canonical name (`@totemsdk/core`), a bare name (`core`), any
+ * casing, and a version suffix (`@totemsdk/core@0.6.0` — the form list-packages
+ * prints, so its own output is valid input). It never guesses between several
+ * plausible packages: an ambiguous reference resolves to no name and returns
+ * candidates for the caller to report.
+ */
+function resolvePackageName(raw: unknown, index: SdkIndex): { name: string | null; candidates: string[] } {
+  const input = String(raw ?? '').trim().replace(/\/+$/, '')
+  if (!input) return { name: null, candidates: [] }
+
+  // Strip a trailing version: `@totemsdk/core@0.6.0` and `core@0.6.0` both keep the name.
+  const withoutVersion = input.includes('@', 1) ? input.slice(0, input.lastIndexOf('@')) : input
+
+  const variants = new Set<string>()
+  for (const value of [withoutVersion, input]) {
+    const lower = value.trim().toLowerCase()
+    if (!lower) continue
+    const bare = lower.replace(/^@totemsdk\//, '')
+    variants.add(lower)
+    variants.add(bare)
+    variants.add(`@totemsdk/${bare}`)
+  }
+
+  const byName = new Map(Object.keys(index.packages).map(name => [name.toLowerCase(), name]))
+  for (const variant of variants) {
+    const hit = byName.get(variant)
+    if (hit) return { name: hit, candidates: [] }
+  }
+  return { name: null, candidates: nearestPackages(withoutVersion, index) }
+}
+
+/** Explicit, actionable answer for a package reference that is not in the index. */
+function packageNotFound(raw: unknown, index: SdkIndex, label = 'Package', candidates?: string[]): ToolResponse {
+  const nearest = candidates && candidates.length > 0 ? candidates : nearestPackages(String(raw ?? ''), index)
+  return {
+    content: [{
+      type: 'text',
+      text: [
+        `${label} '${String(raw ?? '')}' not found in the SDK index (${Object.keys(index.packages).length} packages).`,
+        ...(nearest.length > 0 ? ['', 'Did you mean:', ...nearest.map(n => `  - ${n}`)] : []),
+        '',
+        'Package names may be given with or without the "@totemsdk/" scope (e.g. "core" or "@totemsdk/core").',
+        'Use list-packages or search-packages to find the exact name.',
+      ].join('\n'),
+    }],
+    isError: true,
+  }
+}
+
+
 function searchPackages(args: any, index: SdkIndex): ToolResponse {
   const query = String(args.query || '').toLowerCase().trim()
   if (!query) return { content: [{ type: 'text', text: 'query is required' }], isError: true }
-  const domain = args.domain as string | undefined
-  const limit = Number.isFinite(args.limit) ? Number(args.limit) : 15
+  const { domains, unresolved } = resolveDomainFilter(args.domain as string | undefined, index)
+  if (unresolved.length > 0) return unknownDomainResponse(unresolved, index)
+  const requestedLimit = Number(args.limit)
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.floor(requestedLimit) : 15
   const terms = query.split(/\s+/).filter(Boolean)
 
   const scored = Object.values(index.packages)
-    .filter(p => !domain || p.domain === domain)
+    .filter(p => domains.length === 0 || domains.includes(p.domain))
     .map(p => {
       const haystackName = p.name.toLowerCase()
       const haystackDesc = p.description.toLowerCase()
@@ -99,24 +263,40 @@ function searchPackages(args: any, index: SdkIndex): ToolResponse {
     .slice(0, limit)
 
   if (scored.length === 0) {
-    return { content: [{ type: 'text', text: `No packages matched '${query}'` }] }
+    const scope = domains.length > 0 ? ` within domain '${domains.join(', ')}'` : ''
+    const domainNote = domains.length > 0
+      ? `That domain has ${Object.values(index.packages).filter(p => domains.includes(p.domain)).length} package(s); drop the domain filter to search the whole index.`
+      : `The index holds ${Object.keys(index.packages).length} packages.`
+    return {
+      content: [{
+        type: 'text',
+        text: [
+          `No packages matched '${query}'${scope}.`,
+          domainNote,
+          '',
+          'Try list-packages to browse by domain, or search-symbol to search exported names.',
+        ].join('\n'),
+      }],
+    }
   }
   return {
     content: [{
       type: 'text',
-      text: `Found ${scored.length} package(s) for '${query}':\n\n` +
+      text: `Found ${scored.length} package(s) for '${query}'${domains.length > 0 ? ` in ${domains.join(', ')}` : ''}:\n\n` +
         scored.map(r => `  ${r.p.name}@${r.p.version} [${r.p.domain}] (score ${r.score}) — ${r.p.description}`).join('\n'),
     }],
   }
 }
 
 function readSource(args: any, index: SdkIndex): ToolResponse {
-  const pkg = args.package
   const file = args.path
-  if (!pkg || !file) return { content: [{ type: 'text', text: 'package and path are required' }], isError: true }
+  if (!args.package || !file) return { content: [{ type: 'text', text: 'package and path are required' }], isError: true }
+  const resolved = resolvePackageName(args.package, index)
+  if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
+  const pkg = resolved.name
   const content = readSourceFile(pkg, file)
   if (content === null) {
-    const indexed = index.packages?.[pkg]
+    const indexed = index.packages[pkg]
     const contractUri = `totemsdk://packages/${encodeURIComponent(pkg)}/contracts`
     return {
       content: [{
@@ -133,18 +313,44 @@ function readSource(args: any, index: SdkIndex): ToolResponse {
 }
 
 function listPackages(args: any, index: SdkIndex): ToolResponse {
-  const domain = args.domain as string | undefined
-  const filter = (args.filter as string | undefined)?.toLowerCase()
-  const rows = Object.values(index.packages)
-    .filter(p => (!domain || p.domain === domain) && (!filter || p.name.toLowerCase().includes(filter)))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const requestedDomain = typeof args.domain === 'string' ? args.domain : undefined
+  const filter = (args.filter as string | undefined)?.toLowerCase().trim()
+  const { domains, unresolved } = resolveDomainFilter(requestedDomain, index)
+  if (unresolved.length > 0) return unknownDomainResponse(unresolved, index)
+
+  const matches = (p: SdkIndex['packages'][string]): boolean => {
+    if (domains.length > 0 && !domains.includes(p.domain)) return false
+    if (!filter) return true
+    return p.name.toLowerCase().includes(filter)
+      || p.domain.toLowerCase().includes(filter)
+      || (p.keywords ?? []).join(' ').toLowerCase().includes(filter)
+  }
+  const rows = Object.values(index.packages).filter(matches).sort((a, b) => a.name.localeCompare(b.name))
+
+  const criteria = [
+    ...(requestedDomain ? [`domain: ${domains.join(', ')}`] : []),
+    ...(filter ? [`filter: '${filter}'`] : []),
+  ]
+
   if (rows.length === 0) {
-    return { content: [{ type: 'text', text: 'No packages matched' }] }
+    return {
+      content: [{
+        type: 'text',
+        text: [
+          `No packages matched${criteria.length > 0 ? ` (${criteria.join('; ')})` : ''}.`,
+          domains.length > 0
+            ? `'${domains.join(', ')}' has ${Object.values(index.packages).filter(p => domains.includes(p.domain)).length} package(s) in total.`
+            : `The index holds ${Object.keys(index.packages).length} packages.`,
+          '',
+          'Omit "filter" to list every package in a domain, or use search-packages for free-text search.',
+        ].join('\n'),
+      }],
+    }
   }
   return {
     content: [{
       type: 'text',
-      text: `${rows.length} package(s):\n\n` +
+      text: `${rows.length} package(s)${criteria.length > 0 ? ` [${criteria.join('; ')}]` : ''}:\n\n` +
         rows.map(p => `  ${p.name}@${p.version} [${p.domain}] — ${p.description}`).join('\n'),
     }],
   }
@@ -298,11 +504,10 @@ function stronglyConnected(index: SdkIndex): string[][] {
 }
 
 function dependencyGraph(args: any, index: SdkIndex): ToolResponse {
-  const pkgName = args.package
+  const resolved = resolvePackageName(args.package, index)
+  if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
+  const pkgName = resolved.name
   const direction = args.direction || 'out'
-  if (!pkgName || !index.packages[pkgName]) {
-    return { content: [{ type: 'text', text: `Package '${pkgName}' not found` }], isError: true }
-  }
   if (!['in', 'out', 'all'].includes(direction)) {
     return { content: [{ type: 'text', text: 'Invalid direction. Use "in", "out", or "all".' }], isError: true }
   }
@@ -345,14 +550,20 @@ function hasExportPath(exportsMap: Record<string, unknown> | undefined, subpath:
 }
 
 function validateImport(args: any, index: SdkIndex): ToolResponse {
-  const { from: fromPkg, to: toPkg, symbol, subpath, condition } = args
-  if (!fromPkg || !toPkg) {
+  const { symbol, subpath, condition } = args
+  if (!args.from || !args.to) {
     return { content: [{ type: 'text', text: 'from and to package names are required' }], isError: true }
   }
+  const fromResolved = resolvePackageName(args.from, index)
+  const toResolved = resolvePackageName(args.to, index)
+  if (!fromResolved.name) return packageNotFound(args.from, index, 'Source package', fromResolved.candidates)
+  if (!toResolved.name) return packageNotFound(args.to, index, 'Target package', toResolved.candidates)
+  const fromPkg = fromResolved.name
+  const toPkg = toResolved.name
   const fromPkgData = index.packages[fromPkg]
   const toPkgData = index.packages[toPkg]
-  if (!fromPkgData) return { content: [{ type: 'text', text: `Source package '${fromPkg}' not found` }], isError: true }
-  if (!toPkgData) return { content: [{ type: 'text', text: `Target package '${toPkg}' not found` }], isError: true }
+  if (!fromPkgData) return packageNotFound(args.from, index, 'Source package', fromResolved.candidates)
+  if (!toPkgData) return packageNotFound(args.to, index, 'Target package', toResolved.candidates)
 
   let dependencyKind: ValidImportResult['dependencyKind'] = 'none'
   for (const kind of ['runtime', 'peer', 'optional', 'dev'] as DependencyKind[]) {
@@ -647,10 +858,9 @@ function suggestTemplate(args: any): ToolResponse {
 }
 
 function packageStats(args: any, index: SdkIndex): ToolResponse {
-  const pkgName = args.name
-  if (!pkgName || !index.packages[pkgName]) {
-    return { content: [{ type: 'text', text: `Package '${pkgName}' not found` }], isError: true }
-  }
+  const resolved = resolvePackageName(args.name, index)
+  if (!resolved.name) return packageNotFound(args.name, index, 'Package', resolved.candidates)
+  const pkgName = resolved.name
 
   const pkg = index.packages[pkgName]
   const totalExports = pkg.exports.functions.length + pkg.exports.types.length +
@@ -703,12 +913,20 @@ function packageStats(args: any, index: SdkIndex): ToolResponse {
 }
 
 function listExports(args: any, index: SdkIndex): ToolResponse {
-  const pkgName = args.package
+  const KINDS = ['function', 'interface', 'type', 'class', 'const']
   const kind = (args.kind || '').toLowerCase()
   const filter = (args.filter || '').toLowerCase()
-
-  if (!pkgName || !index.packages[pkgName]) {
-    return { content: [{ type: 'text', text: `Package '${pkgName}' not found` }], isError: true }
+  const resolved = resolvePackageName(args.package, index)
+  if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
+  const pkgName = resolved.name
+  if (kind && !KINDS.includes(kind)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Unknown kind '${args.kind}'. Use one of: ${KINDS.join(', ')} (singular), or omit it for all.`,
+      }],
+      isError: true,
+    }
   }
 
   const pkg = index.packages[pkgName]
@@ -741,7 +959,22 @@ function listExports(args: any, index: SdkIndex): ToolResponse {
     if (items.length) sections.push(`**Constants (${items.length}):**\n` + items.map(render).join('\n'))
   }
 
+  const total = pkg.exports.functions.length + pkg.exports.interfaces.length + pkg.exports.types.length +
+    pkg.exports.classes.length + pkg.exports.consts.length
+  if (sections.length === 0) {
+    const scope = [kind ? `kind '${kind}'` : '', filter ? `filter '${filter}'` : ''].filter(Boolean).join(' and ')
+    return {
+      content: [{
+        type: 'text',
+        // A filter that matches nothing must not read like the package has no exports.
+        text: total === 0
+          ? `${pkgName} exports no symbols in the selected index.`
+          : `No exports in ${pkgName} matched ${scope} (the package exports ${total} symbol(s)).`,
+      }],
+    }
+  }
+
   return {
-    content: [{ type: 'text', text: sections.join('\n\n') || `No exports found for '${pkgName}'` }],
+    content: [{ type: 'text', text: sections.join('\n\n') }],
   }
 }

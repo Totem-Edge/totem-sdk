@@ -184,8 +184,36 @@ export function verifyVtxoTransfer(
   if (input.tokenId !== output.tokenId) {
     errors.push(`Token mismatch: input ${input.tokenId}, output ${output.tokenId}`);
   }
+  if (transfer.amount <= 0n) {
+    errors.push(`Transfer amount must be positive, got ${transfer.amount}`);
+  }
   if (transfer.amount > input.amount) {
     errors.push(`Transfer amount ${transfer.amount} exceeds input amount ${input.amount}`);
+  }
+  if (transfer.from !== input.owner) {
+    errors.push(`Transfer from '${transfer.from}' does not match input owner '${input.owner}'`);
+  }
+  if (transfer.to !== output.owner) {
+    errors.push(`Transfer to '${transfer.to}' does not match output owner '${output.owner}'`);
+  }
+  if (transfer.amount !== output.amount) {
+    errors.push(`Transfer amount ${transfer.amount} does not match output amount ${output.amount}`);
+  }
+  if (transfer.poolId !== input.poolId || transfer.poolId !== output.poolId) {
+    errors.push('Transfer poolId does not match the input/output pool');
+  }
+  if (transfer.tokenId !== input.tokenId || transfer.tokenId !== output.tokenId) {
+    errors.push('Transfer tokenId does not match the input/output token');
+  }
+  if (transfer.changeAmount !== undefined && transfer.changeAmount < 0n) {
+    errors.push(`Transfer changeAmount must be non-negative, got ${transfer.changeAmount}`);
+  }
+  if (transfer.amount !== input.amount) {
+    if (transfer.changeAmount === undefined || transfer.changeId === undefined) {
+      errors.push('Partial transfer requires a change output and changeAmount');
+    } else if (transfer.amount + transfer.changeAmount !== input.amount) {
+      errors.push('Transfer amount plus changeAmount does not equal the input amount');
+    }
   }
 
   return { valid: errors.length === 0, errors };

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `@totemsdk/mcp-server` (unreleased)
+
+Filtering and package references now resolve instead of dead-ending:
+
+- `list-packages`/`search-packages` domain filters match case-insensitively and partially (`edge` → `edge-computing`) and accept multiple comma-separated domains. The previous exact, case-sensitive comparison made the documented `domain: "edge"` example return nothing.
+- Package-scoped tools (`dependency-graph`, `list-exports`, `package-stats`, `validate-import`, `read-source`, `inspect-contract`) accept bare names (`core`), any casing and the `name@version` form that `list-packages` prints. `read-source` previously accepted bare names by accident while the others rejected them.
+- Unknown domains, package references and export filters now return actionable messages with known domains, nearest package names and the criteria that were applied.
+- `list-exports` no longer claims a package has no exports when only its `filter` matched nothing; unknown `kind` values are rejected explicitly.
+- `search-packages` no longer reports a false empty result for `limit: 0`.
+
 ### Released 2026-11-18 — amount-unit train
 
 Nine packages carry the corrected Minima amount contract (CAN-024/CAN-025).

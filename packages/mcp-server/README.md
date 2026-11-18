@@ -65,6 +65,24 @@ The server runs on stdio and communicates via JSON-RPC.
 | `analyze-cross-package` | Compare two packages' relationship |
 | `new-edge-adapter` | Walk through creating a protocol adapter |
 
+## Filtering and package references
+
+Filters are matched the way people actually type them, and a miss always
+explains itself instead of returning a bare empty result:
+
+- **Domains** are matched case-insensitively, partially and across separators.
+  `edge`, `Edge`, `EDGE COMPUTING` and `edge_computing` all resolve to
+  `edge-computing`. Several domains may be comma-separated. A token that
+  matches no domain returns the known domain list plus the nearest match.
+- **Package references** accept the canonical name (`@totemsdk/core`), a bare
+  name (`core`), any casing, and the `name@version` form that
+  `list-packages` prints. An unknown reference lists the closest real
+  package names.
+- **`list-packages` `filter`** matches package name, domain and keywords.
+- **Empty results are never ambiguous**: an unmatched domain names the known
+  domains, an unmatched export filter states how many symbols the package
+  actually exports, and a filtered listing echoes the criteria it applied.
+
 ## How it works
 
 At startup, the server builds an in-memory index of every `@totemsdk/*` package and its exports. When run inside the SDK monorepo it scans `packages/*` live; when installed from npm (e.g. via `npx`) it loads the prebuilt index shipped in `data/sdk-index.json`. No runtime dependency on any `@totemsdk/*` package.

@@ -9,6 +9,7 @@ import {
   resolveFactoryFundingTarget,
   type PendingVcAcceptance,
   type SpliceExpectation,
+  isChannelPeer,
 } from '../peer-guards.js';
 
 const PKD_A = '0x' + '11'.repeat(32);
@@ -344,5 +345,22 @@ describe('assertFactoryCloseSettlement (CAN-019)', () => {
       factory({ allocations: { A: 60n, B: 40n } } as never),
       { factoryId: 'factory-1', txId: '0xabc' },
     )).toThrow(/final allocations/);
+  });
+});
+
+
+// ─── OMN-026: peer/channel binding ──────────────────────────────────────────
+
+describe('isChannelPeer (OMN-026)', () => {
+  const ch = { parties: [{ partyId: 'A', publicKeyDigest: PKD_A }, { partyId: 'B', publicKeyDigest: PKD_B }] };
+
+  it('accepts only a registered counterparty', () => {
+    expect(isChannelPeer(ch, PKD_B, PKD_A)).toBe(true);
+    expect(isChannelPeer(ch, '0x' + '99'.repeat(32), PKD_A)).toBe(false);
+  });
+
+  it('rejects the local identity and a missing peer key', () => {
+    expect(isChannelPeer(ch, PKD_A, PKD_A)).toBe(false);
+    expect(isChannelPeer(ch, undefined, PKD_A)).toBe(false);
   });
 });

@@ -50,6 +50,7 @@ import {
   assertOffChainFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
+  isChannelPeer,
   resolveFactoryFundingTarget,
   type PendingVcAcceptance,
 } from './peer-guards.js';
@@ -647,7 +648,13 @@ export function createOmniaHost(
         }).catch(() => undefined);
       };
       const onPeerMessage = (peer: any, msg: any): void => {
-        if (msg?.channelId) channelPeers.set(msg.channelId, peer);
+        if (msg?.channelId) {
+          const channel = channelStore?.get(msg.channelId);
+          // OMN-026: never let an arbitrary connection claim a channel id.
+          if (channel && isChannelPeer(channel, peer?.pubkey, localParticipant?.publicKeyDigest)) {
+            channelPeers.set(msg.channelId, peer);
+          }
+        }
         if (msg?.type === 'ROUTE_GRAPH_REQUEST') {
           announceRoutesTo(peer);
           return;
@@ -855,6 +862,14 @@ export function createOmniaHost(
         onChannelAccepted,
         onStateUpdated,
         onSettlementProposed,
+        ...(hostStateStore
+          ? {
+              settlementReplayStore: {
+                get: <T,>(key: string) => hostStateStore!.get<T>(`omnia:${key}`),
+                set: <T,>(key: string, value: T) => { hostStateStore!.set(`omnia:${key}`, value); },
+              },
+            }
+          : {}),
       });
       const preparedPay = new Map();
       const preparedSettle = new Map();
