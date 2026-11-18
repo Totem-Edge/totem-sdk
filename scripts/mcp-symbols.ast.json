@@ -3428,6 +3428,11 @@
           "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
           "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
         },
+        "coinAmountAtoms": {
+          "kind": "function",
+          "signature": "coinAmountAtoms(coin: { amount: string | number | bigint; }): bigint",
+          "doc": "Read a coin amount as atoms at a trust boundary.\n\n`ChainStateProvider` returns decimal MINIMA text, which is the production\nform. A `bigint` (or a safe integer `number`) can only be an atom count, so\nit is taken verbatim — useful for internal callers and test doubles. A\nfractional `number` is rejected rather than guessed at."
+        },
         "MinimaTransaction": {
           "kind": "interface",
           "signature": "export interface MinimaTransaction"
@@ -11913,7 +11918,7 @@
         "coinAmountAtoms": {
           "kind": "function",
           "signature": "coinAmountAtoms(coin: { amount: string | number | bigint; }): bigint",
-          "doc": "Read an on-chain coin amount as integer atoms.\n\n`ChainStateProvider` returns decimal MINIMA text, which is the production\nform. A `bigint` (or a safe integer `number`) can only be an atom count, so\nit is taken verbatim — useful for internal callers and test doubles. A\nfractional `number` is rejected rather than guessed at."
+          "doc": "Read a coin amount as atoms at a trust boundary.\n\n`ChainStateProvider` returns decimal MINIMA text, which is the production\nform. A `bigint` (or a safe integer `number`) can only be an atom count, so\nit is taken verbatim — useful for internal callers and test doubles. A\nfractional `number` is rejected rather than guessed at."
         },
         "verifyStateWithRustMirror": {
           "kind": "function",
@@ -19069,6 +19074,11 @@
           "kind": "function",
           "signature": "atomsToMiniNumber(atoms: bigint): { unscaled: bigint; scale: number; }",
           "doc": "The `MiniNumber(unscaled, scale)` pair for an atom amount, as Java's\n`MiniNumber.writeDataStream()` expects it."
+        },
+        "coinAmountAtoms": {
+          "kind": "function",
+          "signature": "coinAmountAtoms(coin: { amount: string | number | bigint; }): bigint",
+          "doc": "Read a coin amount as atoms at a trust boundary.\n\n`ChainStateProvider` returns decimal MINIMA text, which is the production\nform. A `bigint` (or a safe integer `number`) can only be an atom count, so\nit is taken verbatim — useful for internal callers and test doubles. A\nfractional `number` is rejected rather than guessed at."
         },
         "MinimaTransaction": {
           "kind": "interface",

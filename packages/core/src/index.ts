@@ -212,6 +212,7 @@ export {
   amountToAtoms,
   atomsToAmount,
   atomsToMiniNumber,
+  coinAmountAtoms,
 } from './amount.js';
 
 // Transaction types (from JS)

@@ -1,4 +1,4 @@
-import { amountToAtoms, sha3_256 } from '@totemsdk/core';
+import { coinAmountAtoms, sha3_256 } from '@totemsdk/core';
 import {
   bytesToHex,
   hexToBytes,
@@ -207,7 +207,7 @@ export async function createStateChain(
     if (coin) {
       ownerAddress ??= coin.address;
       tokenId      ??= coin.tokenid as string;
-      amount       ??= amountToAtoms(coin.amount ?? '0');
+      amount       ??= coinAmountAtoms(coin);
     }
   }
 

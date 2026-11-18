@@ -92,7 +92,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
     // active, so the chain mock must answer like a node.
     const getCoins = jest.fn(async () => [{
       coinid: '0x' + '77'.repeat(32),
-      amount: '1500',
+      amount: 1500,
       address: channel.fundingAddress,
       tokenid: '0x00',
       spent: false,

@@ -9,7 +9,7 @@ const ADDRESS = '0x' + 'ab'.repeat(32);
 const TOKEN = '0x00';
 const coin = (over: Partial<Record<string, unknown>> = {}) => ({
   coinid: '0x' + '11'.repeat(32),
-  amount: '1500',
+  amount: 1500,
   address: ADDRESS,
   tokenid: TOKEN,
   spent: false,
@@ -22,7 +22,7 @@ describe('observeSpliceSuccessor', () => {
     const observed = await observeSpliceSuccessor(
       {
         getCoins: async () => [
-          coin({ coinid: '0x' + '22'.repeat(32), amount: '1000', spent: true }),
+          coin({ coinid: '0x' + '22'.repeat(32), amount: 1000, spent: true }),
           coin(),
         ],
         getTip: async () => ({ block: 105 }),

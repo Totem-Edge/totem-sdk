@@ -48,6 +48,31 @@ export function amountToAtoms(value: string): bigint {
   return BigInt(whole || '0') * ATOMS_PER_MINIMA + BigInt(padded || '0');
 }
 
+/**
+ * Read a coin amount as atoms at a trust boundary.
+ *
+ * `ChainStateProvider` returns decimal MINIMA text, which is the production
+ * form. A `bigint` (or a safe integer `number`) can only be an atom count, so
+ * it is taken verbatim — useful for internal callers and test doubles. A
+ * fractional `number` is rejected rather than guessed at.
+ */
+export function coinAmountAtoms(coin: { amount: string | number | bigint }): bigint {
+  const { amount } = coin;
+  if (typeof amount === 'bigint') {
+    if (amount < 0n) throw new Error(`coin amount must be non-negative, received ${amount}`);
+    return amount;
+  }
+  if (typeof amount === 'number') {
+    if (!Number.isSafeInteger(amount) || amount < 0) {
+      throw new Error(
+        `coin amount ${amount} is not a non-negative integer; pass decimal MINIMA text instead`,
+      );
+    }
+    return BigInt(amount);
+  }
+  return amountToAtoms(amount);
+}
+
 /** Convert atoms back to decimal MINIMA text (`"0.2"`). */
 export function atomsToAmount(atoms: bigint): string {
   if (atoms < 0n) throw new Error(`atoms must be non-negative, received ${atoms}`);
