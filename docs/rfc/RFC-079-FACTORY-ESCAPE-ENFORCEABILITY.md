@@ -138,7 +138,7 @@ liveness assumption**. If everyone holding the newest state is offline, the
 globally newest state does not necessarily win. Monitoring or delegated
 watchtowers are required; this is not a claim of unconditional finality.
 
-## 4. Checkpoint fallback
+## 4. Checkpoint fallback — implemented
 
 If the contest covenant is not implementable, the enforceable baseline is:
 
@@ -153,6 +153,22 @@ If the contest covenant is not implementable, the enforceable baseline is:
 Cost: one on-chain transaction per allocation change. That is the price of
 enforceability without on-chain certificate verification. It must be stated in
 the product docs, not hidden.
+
+Status: `buildFactoryCheckpoint`, `assertFactoryCheckpointTransition` and the
+`enforceCheckpoints` covenant option ship the mechanism (`omnia-factory`),
+together with `FACTORY_CHECKPOINT_SEQUENCE_PORT` (`STATE(104)`, seeded at
+funding). The covenant then requires, on every non-settlement spend:
+
+```
+ASSERT STATE(104) EQ INC(PREVSTATE(104))
+ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)
+ASSERT SAMESTATE(111 111)
+```
+
+Checkpoint mode is **opt-in** (`buildFactoryOpening(..., { enforceCheckpoints: true })`),
+so the off-chain design keeps working, with OMN-058 open until the contestable
+protocol lands. Enabling it by default is the deployment decision that turns
+"off-chain value is enforceable" into a true statement.
 
 ## 5. Implementation changes required
 

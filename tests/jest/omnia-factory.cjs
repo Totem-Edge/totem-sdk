@@ -44,6 +44,7 @@ module.exports = {
   moduleNameMapper: {
     '^@totemsdk/core$':            '<rootDir>/packages/core/src/index.ts',
     '^@totemsdk/omnia$':           '<rootDir>/packages/omnia/src/index.ts',
+    '^@totemsdk/kissvm$':          '<rootDir>/packages/kissvm/src/index.ts',
     '^@totemsdk/wots-lease$':      '<rootDir>/packages/wots-lease/src/index.ts',
     '^@totemsdk/tx-builder$':      '<rootDir>/packages/tx-builder/src/index.ts',
     '^@totemsdk/txpow$':           '<rootDir>/packages/txpow/src/index.ts',

@@ -27,6 +27,7 @@ export {
   buildFactoryDistributionScript,
   FACTORY_BALANCE_PORT_BASE,
   FACTORY_ESCAPE_PORT,
+  FACTORY_CHECKPOINT_SEQUENCE_PORT,
   FACTORY_ESCAPE_DELAY_BLOCKS,
   FACTORY_MAX_PARTICIPANTS,
   FACTORY_PARTY_ROOT_PORT,
@@ -37,6 +38,18 @@ export {
 } from './script.js';
 
 export { computeFactoryStateCommitment } from './commitment.js';
+
+export {
+  buildFactoryCheckpoint,
+  factoryCheckpointStateVariables,
+  assertFactoryCheckpointTransition,
+  factoryCheckpointSnapshot,
+} from './checkpoint.js';
+export type {
+  FactoryCheckpoint,
+  FactoryCheckpointParams,
+  FactoryCheckpointSnapshot,
+} from './checkpoint.js';
 export type { FactoryDistributionOutput, FactoryDistributionScriptConfig } from './script.js';
 
 export {

@@ -290,6 +290,11 @@ export async function buildFactoryOpening(
   tokenScale: number,
   chainProvider?: ChainStateProvider,
   funding?: FactoryFundingMaterial[],
+  /**
+   * OMN-058: `enforceCheckpoints` uses the checkpoint-mode covenant, so every
+   * allocation change must consume and recreate the factory coin (RFC-079 §4).
+   */
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = {},
 ): Promise<FactoryOpeningPlan> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -297,7 +302,7 @@ export async function buildFactoryOpening(
   const totalValue = participants.reduce((sum, p) => sum + p.contributionAmount, 0n);
   const allocations: Record<string, bigint> = {};
   for (const p of participants) allocations[p.partyId] = p.contributionAmount;
-  const { script, address } = buildAndHashFactoryScript(participants);
+  const { script, address } = buildAndHashFactoryScript(participants, scriptOptions);
   const factoryId = generateFactoryId(participants, tokenId, tokenScale);
 
   let fundingTxBytes: Uint8Array | undefined;
@@ -323,6 +328,8 @@ export async function buildFactoryOpening(
     const fundingStateVariables = [
       ...factoryBalanceStateVariables(participants),
       factoryEscapeStateVariable(escapeBlock),
+      // OMN-058: the checkpoint sequence starts at zero on the funding coin.
+      { port: 104, value: 0n, type: 'number' as const },
       // OMN-060: the covenant asserts SAMESTATE over these roots, so they must
       // exist in the funding output or the assertion is vacuous.
       factoryPartyRootStateVariable(computeFactoryPartyRoot(participants)),

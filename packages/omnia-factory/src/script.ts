@@ -19,6 +19,13 @@ export const FACTORY_ESCAPE_DELAY_BLOCKS = 256;
 export const FACTORY_ESCAPE_PORT = 103;
 
 /**
+ * OMN-058/RFC-079 §4: checkpoint sequence (STATE(104)). Seeded at funding and
+ * advanced by exactly one on every checkpoint spend, so a checkpoint can never
+ * be replayed against a newer state.
+ */
+export const FACTORY_CHECKPOINT_SEQUENCE_PORT = 104;
+
+/**
  * State port carrying the committed party-set root (STATE(111)) — the MMR root
  * of the participant public-key digests (RFC-048 §12.4/§12.5). It is pinned on
  * every spend (`SAMESTATE`), so the participant set is cryptographically fixed
@@ -259,6 +266,16 @@ export const FACTORY_MAX_PARTICIPANTS = MSHS_PORT_FLOOR - FACTORY_BALANCE_PORT_B
 export interface FactoryScriptOptions {
   /** Reserved for callers; the escape block is carried in STATE(103) at funding. */
   escapeBlock?: number;
+  /**
+   * OMN-058 checkpoint mode (RFC-079 §4). When true, the cooperative branch only
+   * accepts a same-script, same-value successor whose sequence advanced by one.
+   * Every allocation change then has an on-chain artifact, and the unilateral
+   * escape pays the latest checkpoint instead of the original funding split.
+   *
+   * Off by default: the off-chain factory design stays available, with OMN-058
+   * open until the contestable protocol lands.
+   */
+  enforceCheckpoints?: boolean;
 }
 
 /**
@@ -321,6 +338,7 @@ export function buildFactoryScript(
   const pks = participants.map((p) => kissHex(p.publicKeyDigest));
   const payouts = participants.map((p) => wotsAddressData(p.settlementAddress ?? p.publicKeyDigest));
 
+  const enforceCheckpoints = _options.enforceCheckpoints === true;
   const lines: string[] = [
     'LET settlement=STATE(100)',
     `ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`,
@@ -356,6 +374,15 @@ export function buildFactoryScript(
   lines.push('IF settlement THEN');
   lines.push('    IF @COINAGE GTE 1 THEN RETURN TRUE ENDIF');
   lines.push('ELSE');
+  if (enforceCheckpoints) {
+    // Checkpoint continuity: the successor stays at this script with the same
+    // value and advances the committed sequence by exactly one. Balance ports
+    // and the balance root are written by the checkpoint builder; the escape
+    // branch above then pays the checkpointed shares.
+    lines.push(`    ASSERT STATE(${FACTORY_CHECKPOINT_SEQUENCE_PORT}) EQ INC(PREVSTATE(${FACTORY_CHECKPOINT_SEQUENCE_PORT}))`);
+    lines.push('    ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
+    lines.push('    ASSERT SAMESTATE(' + FACTORY_PARTY_ROOT_PORT + ' ' + FACTORY_PARTY_ROOT_PORT + ')');
+  }
   lines.push('    RETURN TRUE');
   lines.push('ENDIF');
 
