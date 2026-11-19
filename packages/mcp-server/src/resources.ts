@@ -253,6 +253,28 @@ function decodeResourceSegment(value: string): string | null {
   }
 }
 
+/** Resolve a package reference in a resource URI as tolerantly as the tools do. */
+function resolveResourcePackage(value: string | null, index: SdkIndex): SdkIndex['packages'][string] | null {
+  if (!value) return null
+  const direct = index.packages[value]
+  if (direct) return direct
+  const bare = value.toLowerCase().replace(/^@totemsdk\//, '')
+  return Object.values(index.packages).find(p =>
+    p.name.toLowerCase() === value.toLowerCase() ||
+    p.name.replace('@totemsdk/', '').toLowerCase() === bare) ?? null
+}
+
+/** Resolve a domain segment partially (e.g. `edge` -> `edge-computing`). */
+function resolveResourceDomain(value: string | null, index: SdkIndex): string | null {
+  if (!value) return null
+  const normalize = (segment: string): string => segment.toLowerCase().trim().replace(/[\s_/]+/g, '-')
+  const domains = Object.keys(index.domainMap)
+  const want = normalize(value)
+  return domains.find(d => normalize(d) === want)
+    ?? domains.find(d => normalize(d).includes(want) || want.includes(normalize(d)))
+    ?? null
+}
+
 export function handleResourceRead(uri: string, index: SdkIndex): string | null {
   if (uri === 'totemsdk://connect/methods') return JSON.stringify(connectMethods(), null, 2)
   if (uri === 'totemsdk://edge/capabilities') return JSON.stringify(edgeCapabilities(), null, 2)
@@ -282,6 +304,7 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
     return JSON.stringify({
       schemaVersion: index.schemaVersion ?? null,
       source: index.source ?? 'unknown',
+      generatedFrom: index.generatedFrom ?? null,
       sourceRevision: index.sourceRevision ?? null,
       generatedAt: index.generatedAt,
       packageCount: Object.keys(index.packages).length,
@@ -323,23 +346,19 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
 
   const pkgMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)$/)
   if (pkgMatch) {
-    const name = decodeResourceSegment(pkgMatch[1])
-    if (!name) return null
-    const pkg = index.packages[name]
+    const pkg = resolveResourcePackage(decodeResourceSegment(pkgMatch[1]), index)
     return pkg ? JSON.stringify(pkg, null, 2) : null
   }
 
   const pkgContractsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/contracts$/)
   if (pkgContractsMatch) {
-    const name = decodeResourceSegment(pkgContractsMatch[1])
-    if (!name) return null
-    const pkg = index.packages[name]
+    const pkg = resolveResourcePackage(decodeResourceSegment(pkgContractsMatch[1]), index)
     if (!pkg) return null
     return JSON.stringify({
       contentKind: 'contract',
       package: pkg.name,
       version: pkg.version,
-      origin: index.source ?? 'unknown',
+      origin: index.generatedFrom ?? index.source ?? 'unknown',
       sourceRevision: index.sourceRevision ?? null,
       symbols: pkg.symbols ?? {},
     }, null, 2)
@@ -347,24 +366,20 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
 
   const pkgExportsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/exports$/)
   if (pkgExportsMatch) {
-    const name = decodeResourceSegment(pkgExportsMatch[1])
-    if (!name) return null
-    const pkg = index.packages[name]
+    const pkg = resolveResourcePackage(decodeResourceSegment(pkgExportsMatch[1]), index)
     return pkg ? JSON.stringify(pkg.exports, null, 2) : null
   }
 
   const pkgDepsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/dependencies$/)
   if (pkgDepsMatch) {
-    const name = decodeResourceSegment(pkgDepsMatch[1])
-    if (!name) return null
-    const pkg = index.packages[name]
+    const pkg = resolveResourcePackage(decodeResourceSegment(pkgDepsMatch[1]), index)
     if (!pkg) return null
     return JSON.stringify({ dependencies: pkg.dependencies, devDependencies: pkg.devDependencies }, null, 2)
   }
 
   const domainMatch = uri.match(/^totemsdk:\/\/packages\/by-domain\/(.+)$/)
   if (domainMatch) {
-    const domain = decodeResourceSegment(domainMatch[1])
+    const domain = resolveResourceDomain(decodeResourceSegment(domainMatch[1]), index)
     if (!domain) return null
     const pkgs = index.domainMap[domain]
     return pkgs ? JSON.stringify(pkgs.map(n => index.packages[n]).filter(Boolean), null, 2) : null
@@ -375,6 +390,7 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
     const symbol = decodeResourceSegment(symbolMatch[1])
     if (!symbol) return null
     const entries = index.symbolIndex[symbol]
+      ?? Object.entries(index.symbolIndex).find(([name]) => name.toLowerCase() === symbol.toLowerCase())?.[1]
     return entries ? JSON.stringify(entries, null, 2) : null
   }
 

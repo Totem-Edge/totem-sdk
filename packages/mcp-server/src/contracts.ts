@@ -56,10 +56,24 @@ export function inspectContract(args: InspectContractInput, index: SdkIndex): To
   if (args.symbol) {
     const symbol = allSymbols.find(([name]) => name === args.symbol)
     if (!symbol) {
+      const wanted = args.symbol.toLowerCase()
       const suggestions = allSymbols
-        .filter(([name]) => name.toLowerCase().includes(args.symbol!.toLowerCase()))
+        .map(([name]) => {
+          const lower = name.toLowerCase()
+          let score = 0
+          if (lower.includes(wanted)) score = 60 - Math.min(20, lower.length - wanted.length)
+          else if (wanted.includes(lower)) score = 40
+          else {
+            for (let n = Math.min(lower.length, wanted.length); n >= 3; n--) {
+              if (lower.slice(0, n) === wanted.slice(0, n)) { score = n; break }
+            }
+          }
+          return { name, score }
+        })
+        .filter(entry => entry.score > 0)
+        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
         .slice(0, 10)
-        .map(([name]) => name)
+        .map(entry => entry.name)
       return { content: [{ type: 'text', text: JSON.stringify({
         ok: false, code: 'symbol-not-found', package: pkg.name, symbol: args.symbol,
         suggestions,
@@ -73,7 +87,7 @@ export function inspectContract(args: InspectContractInput, index: SdkIndex): To
       version: pkg.version,
       domain: pkg.domain,
       ...(pkg.maturity ? { maturity: pkg.maturity } : {}),
-      origin: index.source ?? 'unknown',
+      origin: index.generatedFrom ?? index.source ?? 'unknown',
       sourceRevision: index.sourceRevision ?? null,
       subpath,
       subpathScope: 'package',
@@ -102,7 +116,7 @@ export function inspectContract(args: InspectContractInput, index: SdkIndex): To
     version: pkg.version,
     domain: pkg.domain,
     ...(pkg.maturity ? { maturity: pkg.maturity } : {}),
-    origin: index.source ?? 'unknown',
+    origin: index.generatedFrom ?? index.source ?? 'unknown',
     sourceRevision: index.sourceRevision ?? null,
     subpath,
     subpathScope: 'package',

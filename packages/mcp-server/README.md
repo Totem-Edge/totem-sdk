@@ -48,8 +48,8 @@ The server runs on stdio and communicates via JSON-RPC.
 | `find-type` | Locate type definitions by name pattern |
 | `dependency-graph` | Get outbound deps or inbound dependents |
 | `validate-import` | Check if a cross-package import is valid |
-| `scaffold-adapter` | Generate edge protocol adapter boilerplate |
-| `scaffold-package` | Generate new package boilerplate |
+| `scaffold-adapter` | Generate edge protocol adapter boilerplate (SDK contributor) |
+| `scaffold-package` | Generate new package boilerplate (SDK contributor) |
 | `package-stats` | Export counts, Rust/Go, tests, deps |
 | `list-exports` | List exports filtered by kind and name |
 | `suggest-template` | Suggest KISSVM templates matching a use case |
@@ -64,6 +64,15 @@ The server runs on stdio and communicates via JSON-RPC.
 |--------|-------------|
 | `analyze-cross-package` | Compare two packages' relationship |
 | `new-edge-adapter` | Walk through creating a protocol adapter |
+
+## Contributor-only tools
+
+`scaffold-package` and `scaffold-adapter` generate packages **inside the Totem
+SDK repository** — they emit `@totemsdk/*` names with `publishConfig.access:
+public`, which only the SDK maintainers can publish. They are marked as
+contributor tools, and they refuse to run when the server is using the
+published (bundled) index, pointing at `plan-composition` + `scaffold-app`
+instead. Application scaffolding is `scaffold-app`.
 
 ## Filtering and package references
 

@@ -1,6 +1,6 @@
 import type { DependencyEdge, DependencyKind, SdkIndex, ToolDefinition, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
 import { searchTemplates, getTemplatesForPackage } from './template-catalog.js'
-import { readSourceFile } from './indexer.js'
+import { readSourceFileFrom } from './indexer.js'
 import { refreshIndex } from './index-store.js'
 import { planComposition, scaffoldApp } from './composition.js'
 import { inspectContract } from './contracts.js'
@@ -15,8 +15,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   { name: 'find-type', description: 'Find type definitions (interfaces, classes, type aliases) matching a pattern', inputSchema: { type: 'object', properties: { pattern: { type: 'string', description: 'Type name pattern to search' } }, required: ['pattern'] } },
   { name: 'dependency-graph', description: 'Get dependency graph for a package — inbound dependents, outbound dependencies, typed edge kinds/ranges, cycles and SCCs', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/edge-opcua)' }, direction: { type: 'string', enum: ['in', 'out', 'all'], description: 'Dependency direction' }, format: { type: 'string', enum: ['text', 'json'], description: 'Output format (default text)' } }, required: ['package'] } },
   { name: 'validate-import', description: 'Check whether a cross-package import is valid, including dependency kind, export subpath and condition', inputSchema: { type: 'object', properties: { from: { type: 'string', description: 'Source package name' }, to: { type: 'string', description: 'Target package name' }, symbol: { type: 'string', description: 'Optional: specific symbol to check' }, subpath: { type: 'string', description: 'Optional export subpath (e.g. ./artifacts)' }, condition: { type: 'string', description: 'Optional runtime condition (e.g. import, require, types)' } }, required: ['from', 'to'] } },
-  { name: 'scaffold-adapter', description: 'Generate boilerplate for a new edge protocol adapter', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name suffix' }, protocol: { type: 'string', description: 'Protocol name (PascalCase)' }, commands: { type: 'array', items: { type: 'string' }, description: 'Transport port methods' } }, required: ['name', 'protocol'] } },
-  { name: 'scaffold-package', description: 'Generate boilerplate for a new @totemsdk package', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name (without @totemsdk/ prefix)' }, deps: { type: 'array', items: { type: 'string' }, description: 'Dependency package names' } }, required: ['name'] } },
+  { name: 'scaffold-adapter', description: 'SDK contributor tool: generate boilerplate for a new @totemsdk/edge-* protocol adapter package inside the Totem SDK repository. Application scaffolding belongs in plan-composition + scaffold-app.', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name suffix (e.g. "opcua" for @totemsdk/edge-opcua)' }, protocol: { type: 'string', description: 'Protocol name as a single PascalCase identifier (e.g. Mqtt, OpcUa)' }, commands: { type: 'array', items: { type: 'string' }, description: 'Transport port methods' } }, required: ['name', 'protocol'] } },
+  { name: 'scaffold-package', description: 'SDK contributor tool: generate a new @totemsdk/* package skeleton inside the Totem SDK repository. Refuses names that already exist. Application scaffolding belongs in plan-composition + scaffold-app.', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name without the @totemsdk/ scope (e.g. "edge-opcua")' }, deps: { type: 'array', items: { type: 'string' } } }, required: ['name'] } },
   { name: 'package-stats', description: 'Get statistics about a package — export counts, Rust/Go, tests, deps', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name' } }, required: ['name'] } },
   { name: 'list-exports', description: 'List exports of a package', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name' }, kind: { type: 'string', enum: ['function', 'type', 'interface', 'class', 'const', ''], description: 'Filter by export kind' }, filter: { type: 'string', description: 'Filter by name substring' } }, required: ['package'] } },
   { name: 'suggest-template', description: 'Suggest KISSVM script templates matching a use case — describes what you want to do and returns matching templates with import paths', inputSchema: { type: 'object', properties: { usecase: { type: 'string', description: 'Describe what you want to do (e.g. "time-lock funds until a block height", "vote tally with quorum", "identity verification")' } }, required: ['usecase'] } },
@@ -29,14 +29,69 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   { name: 'refresh-index', description: 'Rebuild the SDK index from the filesystem (development convenience) and report counts', inputSchema: { type: 'object', properties: {} } },
 ]
 
+/** Coerce a JSON-RPC scalar to a trimmed string; objects/arrays count as absent. */
+function asText(value: unknown): string | undefined {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'boolean') return String(value)
+  return undefined
+}
+
+/**
+ * A tool must never surface as a protocol-level error: clients read that as a
+ * broken server, and the message loses all context. Any throw becomes an
+ * actionable tool result instead.
+ */
 export function handleToolCall(name: string, args: any, index: SdkIndex): ToolResponse {
+  try {
+    return dispatchToolCall(name, args ?? {}, index)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      content: [{
+        type: 'text',
+        text: [
+          `Tool '${name}' could not run: ${message}`,
+          '',
+          'This is an argument problem, not a change in the SDK index. Re-issue the call with the documented argument names and types.',
+        ].join('\n'),
+      }],
+      isError: true,
+    }
+  }
+}
+
+/**
+ * These tools emit `@totemsdk/*` package skeletons, which only make sense
+ * against a local SDK checkout. Running them from the published bundle would
+ * hand a consumer a package they cannot publish or install, so they refuse
+ * instead. `source: 'bundled'` is the npm-install case; anything else (a live
+ * monorepo scan, or an index object built in tests) may scaffold.
+ */
+function contributorOnly(tool: string, index: SdkIndex): ToolResponse | null {
+  if (index.source !== 'bundled') return null
+  return {
+    content: [{
+      type: 'text',
+      text: [
+        `'${tool}' needs a local Totem SDK checkout; this server is running against the published SDK index.`,
+        '',
+        'It generates packages *inside* the Totem SDK repository (@totemsdk/* scope), so it is a contributor tool rather than application scaffolding.',
+        'To start an application that consumes the SDK, use plan-composition and then scaffold-app.',
+      ].join('\n'),
+    }],
+    isError: true,
+  }
+}
+
+function dispatchToolCall(name: string, args: any, index: SdkIndex): ToolResponse {
   switch (name) {
     case 'search-symbol': return searchSymbol(args, index)
     case 'find-type': return findType(args, index)
     case 'dependency-graph': return dependencyGraph(args, index)
     case 'validate-import': return validateImport(args, index)
-    case 'scaffold-adapter': return scaffoldAdapter(args)
-    case 'scaffold-package': return scaffoldPackage(args)
+    case 'scaffold-adapter': return contributorOnly('scaffold-adapter', index) ?? scaffoldAdapter(args, index)
+    case 'scaffold-package': return contributorOnly('scaffold-package', index) ?? scaffoldPackage(args, index)
     case 'package-stats': return packageStats(args, index)
     case 'list-exports': return listExports(args, index)
     case 'suggest-template': return suggestTemplate(args)
@@ -58,10 +113,34 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
       }
       return inspectContract({ ...args, package: resolved.name ?? args.package }, index)
     }
-    case 'plan-composition': return jsonResult(planComposition(args, index))
+    case 'plan-composition': {
+      // Package lists may arrive as bare or differently-cased names; resolve
+      // what we can and leave unknown names for the plan's `unresolved` report.
+      const resolvedLists: Record<string, string[]> = {}
+      for (const key of ['requiredPackages', 'suggestedPackages', 'optionalPackages', 'excludedPackages']) {
+        const value = args[key]
+        if (!Array.isArray(value)) continue
+        resolvedLists[key] = value.map((entry: unknown) => resolvePackageName(entry, index).name ?? String(entry))
+      }
+      return jsonResult(planComposition({ ...args, ...resolvedLists }, index))
+    }
     case 'scaffold-app':
-      if (!args.plan || typeof args.plan !== 'object') {
+      if (!args.plan || typeof args.plan !== 'object' || Array.isArray(args.plan)) {
         return { content: [{ type: 'text', text: 'plan is required (call plan-composition first)' }], isError: true }
+      }
+      // scaffoldApp reads these arrays directly; a hand-written or truncated plan
+      // must not become an internal error.
+      if (!Array.isArray(args.plan.directDependencies) || !args.plan.workflow || !Array.isArray(args.plan.workflow.steps)) {
+        return {
+          content: [{
+            type: 'text',
+            text: [
+              'Ignoring plan: it is missing "directDependencies" or "workflow.steps".',
+              'Pass the object returned by plan-composition unchanged, or supply those two fields.',
+            ].join('\n'),
+          }],
+          isError: true,
+        }
       }
       return jsonResult(scaffoldApp(args, index))
     case 'refresh-index': return refreshIndexTool()
@@ -187,7 +266,7 @@ function nearestPackages(name: string, index: SdkIndex, limit = 5): string[] {
  * plausible packages: an ambiguous reference resolves to no name and returns
  * candidates for the caller to report.
  */
-function resolvePackageName(raw: unknown, index: SdkIndex): { name: string | null; candidates: string[] } {
+export function resolvePackageName(raw: unknown, index: SdkIndex): { name: string | null; candidates: string[] } {
   const input = String(raw ?? '').trim().replace(/\/+$/, '')
   if (!input) return { name: null, candidates: [] }
 
@@ -232,9 +311,9 @@ function packageNotFound(raw: unknown, index: SdkIndex, label = 'Package', candi
 
 
 function searchPackages(args: any, index: SdkIndex): ToolResponse {
-  const query = String(args.query || '').toLowerCase().trim()
+  const query = (asText(args.query) ?? '').toLowerCase().trim()
   if (!query) return { content: [{ type: 'text', text: 'query is required' }], isError: true }
-  const { domains, unresolved } = resolveDomainFilter(args.domain as string | undefined, index)
+  const { domains, unresolved } = resolveDomainFilter(asText(args.domain), index)
   if (unresolved.length > 0) return unknownDomainResponse(unresolved, index)
   const requestedLimit = Number(args.limit)
   const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.floor(requestedLimit) : 15
@@ -289,32 +368,28 @@ function searchPackages(args: any, index: SdkIndex): ToolResponse {
 }
 
 function readSource(args: any, index: SdkIndex): ToolResponse {
-  const file = args.path
+  const file = asText(args.path)
   if (!args.package || !file) return { content: [{ type: 'text', text: 'package and path are required' }], isError: true }
   const resolved = resolvePackageName(args.package, index)
   if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
   const pkg = resolved.name
-  const content = readSourceFile(pkg, file)
-  if (content === null) {
-    const indexed = index.packages[pkg]
+  const result = readSourceFileFrom(pkg, file)
+  if (!result.ok) {
     const contractUri = `totemsdk://packages/${encodeURIComponent(pkg)}/contracts`
-    return {
-      content: [{
-        type: 'text',
-        text: `Source unavailable: ${pkg}/src/${file}. `
-          + (indexed
-            ? `This build does not ship implementation source; read the exact contracts at ${contractUri}.`
-            : `Package '${pkg}' is not in the selected SDK index.`),
-      }],
-      isError: true,
-    }
+    const message = {
+      'package-not-found': `Package '${pkg}' is not in the selected SDK index.`,
+      'source-not-shipped': `Package '${pkg}' ships no implementation source in this build; read the exact contracts at ${contractUri}.`,
+      'outside-src': `Path '${file}' resolves outside ${pkg}/src/ and was rejected.`,
+      'not-a-file': `No file '${file}' under ${pkg}/src/. Pass a path relative to src/ (e.g. "treekey.ts").`,
+    }[result.reason]
+    return { content: [{ type: 'text', text: `Source unavailable: ${message}` }], isError: true }
   }
-  return { content: [{ type: 'text', text: content }] }
+  return { content: [{ type: 'text', text: result.content }] }
 }
 
 function listPackages(args: any, index: SdkIndex): ToolResponse {
-  const requestedDomain = typeof args.domain === 'string' ? args.domain : undefined
-  const filter = (args.filter as string | undefined)?.toLowerCase().trim()
+  const requestedDomain = asText(args.domain)
+  const filter = asText(args.filter)?.toLowerCase().trim()
   const { domains, unresolved } = resolveDomainFilter(requestedDomain, index)
   if (unresolved.length > 0) return unknownDomainResponse(unresolved, index)
 
@@ -357,7 +432,7 @@ function listPackages(args: any, index: SdkIndex): ToolResponse {
 }
 
 function searchSymbol(args: any, index: SdkIndex): ToolResponse {
-  const query = (args.query || '').toLowerCase()
+  const query = (asText(args.query) ?? '').toLowerCase()
   if (!query) return { content: [{ type: 'text', text: 'query is required' }], isError: true }
 
   const results: Array<{ symbol: string; package: string; kind: string; signature?: string; deprecated?: boolean }> = []
@@ -392,7 +467,7 @@ function searchSymbol(args: any, index: SdkIndex): ToolResponse {
 }
 
 function findType(args: any, index: SdkIndex): ToolResponse {
-  const pattern = (args.pattern || '').toLowerCase()
+  const pattern = (asText(args.pattern) ?? '').toLowerCase()
   if (!pattern) return { content: [{ type: 'text', text: 'pattern is required' }], isError: true }
 
   const results: Array<{ package: string; type: string; kind: string; signature?: string; deprecated?: boolean }> = []
@@ -507,10 +582,11 @@ function dependencyGraph(args: any, index: SdkIndex): ToolResponse {
   const resolved = resolvePackageName(args.package, index)
   if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
   const pkgName = resolved.name
-  const direction = args.direction || 'out'
-  if (!['in', 'out', 'all'].includes(direction)) {
+  const requestedDirection = asText(args.direction) ?? 'out'
+  if (requestedDirection !== 'in' && requestedDirection !== 'out' && requestedDirection !== 'all') {
     return { content: [{ type: 'text', text: 'Invalid direction. Use "in", "out", or "all".' }], isError: true }
   }
+  const direction: 'in' | 'out' | 'all' = requestedDirection
   const edges = dependencyEdges(index, pkgName, direction)
   if (args.format === 'json') {
     return { content: [{ type: 'text', text: JSON.stringify({
@@ -596,15 +672,57 @@ function validateImport(args: any, index: SdkIndex): ToolResponse {
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
 }
 
-function scaffoldAdapter(args: any): ToolResponse {
-  const { name, protocol, commands } = args
-  if (!name || !protocol) {
+function scaffoldAdapter(args: any, index: SdkIndex): ToolResponse {
+  const requestedName = asText(args.name)
+  const protocol = asText(args.protocol)
+  if (!requestedName || !protocol) {
     return { content: [{ type: 'text', text: 'name and protocol are required' }], isError: true }
   }
+  // `protocol` becomes a TS identifier prefix (${protocol}TransportPort), so a
+  // value like "my protocol" silently produced uncompilable output.
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(protocol)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Invalid protocol '${protocol}'. Use a single PascalCase identifier (e.g. "Mqtt", "OpcUa", "Bacnet") — it is used as a type prefix.`,
+      }],
+      isError: true,
+    }
+  }
+  const name = requestedName.trim().toLowerCase().replace(/^@totemsdk\//, '').replace(/^edge-/, '')
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Invalid adapter name '${requestedName}'. Use lowercase letters, digits and hyphens (e.g. "opcua" for @totemsdk/edge-opcua).`,
+      }],
+      isError: true,
+    }
+  }
 
-  const cmdList = Array.isArray(commands) ? commands : ['connect', 'disconnect', 'read', 'write']
+  const commands = args.commands
+  const cmdList: string[] = Array.isArray(commands) ? commands.filter((c: unknown): c is string => typeof c === 'string') : ['connect', 'disconnect', 'read', 'write']
 
+  const edgeVersion = index.packages['@totemsdk/edge']?.version
   const files: ScaffoldResult['files'] = []
+
+  files.push({
+    path: `package.json`,
+    content: JSON.stringify({
+      name: `@totemsdk/edge-${name}`,
+      version: '0.1.0',
+      description: `Edge runtime adapter for ${protocol} — inject the transport via ${protocol}TransportPort`,
+      main: 'dist/index.js',
+      types: 'dist/index.d.ts',
+      exports: { '.': { types: './dist/index.d.ts', require: './dist/index.js', import: './dist/index.js' } },
+      scripts: { build: 'tsc', clean: 'rm -rf dist', test: 'jest --passWithNoTests' },
+      files: ['dist', 'README.md', 'LICENSE', 'NOTICE'],
+      dependencies: { '@totemsdk/edge': edgeVersion ? `^${edgeVersion}` : '^0.1.0' },
+      devDependencies: { '@types/jest': '^30.0.0', '@types/node': '^20.0.0', jest: '^30.4.2', typescript: '^7.0.2' },
+      publishConfig: { access: 'public' },
+      license: 'Apache-2.0',
+    }, null, 2),
+  })
 
   files.push({
     path: `src/index.ts`,
@@ -694,17 +812,47 @@ function scaffoldAdapter(args: any): ToolResponse {
   return {
     content: [{
       type: 'text',
-      text: `# Scaffolded ${protocol} Edge Adapter\n\nCreated ${files.length} files:\n\n` +
+      text: `# Scaffolded ${protocol} Edge Adapter — @totemsdk/edge-${name}\n\nCreated ${files.length} files:\n\n` +
         files.map(f => `**${f.path}**\n\`\`\`typescript\n${f.content}\n\`\`\``).join('\n\n'),
     }],
   }
 }
 
-function scaffoldPackage(args: any): ToolResponse {
-  const { name, deps } = args
-  if (!name) return { content: [{ type: 'text', text: 'name is required' }], isError: true }
+function scaffoldPackage(args: any, index: SdkIndex): ToolResponse {
+  const requested = asText(args.name)
+  if (!requested) return { content: [{ type: 'text', text: 'name is required' }], isError: true }
 
-  const depList = Array.isArray(deps) ? deps : ['@totemsdk/core']
+  const name = requested.trim().toLowerCase().replace(/^@totemsdk\//, '')
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+    return {
+      content: [{
+        type: 'text',
+        text: [
+          `Invalid package name '${requested}'.`,
+          'Use lowercase letters, digits and single hyphens, without the "@totemsdk/" scope (e.g. "edge-opcua").',
+        ].join('\n'),
+      }],
+      isError: true,
+    }
+  }
+  const existing = Object.values(index.packages).find(p => p.name === `@totemsdk/${name}`)
+  if (existing) {
+    return {
+      content: [{
+        type: 'text',
+        text: [
+          `'@totemsdk/${name}' already exists (packages/${existing.dir}, v${existing.version}) — refusing to scaffold a collision.`,
+          'Pick a new name, or use package-stats / list-exports to work with the existing package.',
+        ].join('\n'),
+      }],
+      isError: true,
+    }
+  }
+  const deps: string[] = Array.isArray(args.deps) ? args.deps.filter((d: unknown): d is string => typeof d === 'string') : ['@totemsdk/core']
+  const depList = deps.map((d: string) => {
+    const resolvedDep = resolvePackageName(d, index).name
+    return resolvedDep ?? (d.startsWith('@totemsdk/') ? d : `@totemsdk/${d}`)
+  })
 
   const files: ScaffoldResult['files'] = []
 
@@ -820,7 +968,7 @@ function scaffoldPackage(args: any): ToolResponse {
 }
 
 function suggestTemplate(args: any): ToolResponse {
-  const usecase = (args.usecase || '').toLowerCase()
+  const usecase = (asText(args.usecase) ?? '').trim().toLowerCase()
   if (!usecase) {
     return { content: [{ type: 'text', text: 'usecase is required — describe what you want to do (e.g. "time-lock funds until a block height")' }], isError: true }
   }
@@ -914,8 +1062,8 @@ function packageStats(args: any, index: SdkIndex): ToolResponse {
 
 function listExports(args: any, index: SdkIndex): ToolResponse {
   const KINDS = ['function', 'interface', 'type', 'class', 'const']
-  const kind = (args.kind || '').toLowerCase()
-  const filter = (args.filter || '').toLowerCase()
+  const kind = (asText(args.kind) ?? '').toLowerCase()
+  const filter = (asText(args.filter) ?? '').toLowerCase()
   const resolved = resolvePackageName(args.package, index)
   if (!resolved.name) return packageNotFound(args.package, index, 'Package', resolved.candidates)
   const pkgName = resolved.name

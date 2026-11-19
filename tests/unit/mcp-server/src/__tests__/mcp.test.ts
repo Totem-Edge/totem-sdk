@@ -489,6 +489,112 @@ describe('usability — filters and references resolve instead of dead-ending', 
   })
 })
 
+describe('usability — malformed input and scaffolds', () => {
+  const index = makeIndex()
+
+  it('never lets a bad argument become a protocol-level error', () => {
+    // Previously threw "args.filter?.toLowerCase is not a function".
+    const filterNumber = handleToolCall('list-packages', { filter: 123 }, index)
+    expect(filterNumber.isError).toBeFalsy()
+    expect(filterNumber.content[0].text).toContain("filter: '123'")
+    // Previously threw "input.plan.directDependencies is not iterable".
+    const emptyPlan = handleToolCall('scaffold-app', { plan: {} }, index)
+    expect(emptyPlan.isError).toBe(true)
+    expect(emptyPlan.content[0].text).toContain('Ignoring plan')
+    // Previously threw EISDIR.
+    const directory = handleToolCall('read-source', { package: 'core', path: '.' }, index)
+    expect(directory.isError).toBe(true)
+    expect(directory.content[0].text).toContain('No file')
+  })
+
+  it('accepts src/-prefixed and ./-prefixed source paths', () => {
+    for (const candidate of ['treekey.ts', './treekey.ts', 'src/treekey.ts']) {
+      const res = handleToolCall('read-source', { package: '@totemsdk/core', path: candidate }, index)
+      if (index.packages['@totemsdk/core']) {
+        // Mock index has no filesystem source; the path must at least normalize
+        // to the same request rather than doubling `src/`.
+        expect(res.content[0].text).not.toContain('src/src/')
+      }
+    }
+  })
+
+  it('refuses to scaffold over an existing package', () => {
+    const res = handleToolCall('scaffold-package', { name: 'core' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('already exists')
+  })
+
+  it('normalizes and validates scaffolded package names', () => {
+    const scoped = handleToolCall('scaffold-package', { name: '@totemsdk/newthing' }, index)
+    expect(scoped.isError).toBeFalsy()
+    expect(scoped.content[0].text).toContain('# Scaffolded @totemsdk/newthing')
+    expect(scoped.content[0].text).not.toContain('@totemsdk/@totemsdk/')
+
+    const spaced = handleToolCall('scaffold-package', { name: 'my thing' }, index)
+    expect(spaced.isError).toBe(true)
+    expect(spaced.content[0].text).toContain('Invalid package name')
+  })
+
+  it('rejects a protocol that would produce invalid TypeScript identifiers', () => {
+    const res = handleToolCall('scaffold-adapter', { name: 'thing', protocol: 'my protocol' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('Invalid protocol')
+  })
+
+  it('emits a real package name for a scaffolded adapter', () => {
+    const res = handleToolCall('scaffold-adapter', { name: '@totemsdk/edge-MQTT', protocol: 'Mqtt' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('@totemsdk/edge-mqtt')
+    expect(res.content[0].text).toContain('"@totemsdk/edge"')
+  })
+
+  it('populates contract symbol suggestions for a near miss', () => {
+    const res = handleToolCall('inspect-contract', { package: 'core', symbol: 'wotsSignn' }, index)
+    expect(res.isError).toBe(true)
+    expect(JSON.parse(res.content[0].text).suggestions).toContain('wotsSign')
+  })
+
+  it('refuses contributor scaffolds when running from the published bundle', () => {
+    const bundled: SdkIndex = { ...makeIndex(), source: 'bundled' }
+    const pkg = handleToolCall('scaffold-package', { name: 'newthing' }, bundled)
+    expect(pkg.isError).toBe(true)
+    expect(pkg.content[0].text).toContain('needs a local Totem SDK checkout')
+    expect(pkg.content[0].text).toContain('scaffold-app')
+
+    const adapter = handleToolCall('scaffold-adapter', { name: 'x', protocol: 'Mqtt' }, bundled)
+    expect(adapter.isError).toBe(true)
+    expect(adapter.content[0].text).toContain('contributor tool')
+  })
+
+  it('treats a whitespace-only template use case as missing', () => {
+    const res = handleToolCall('suggest-template', { usecase: '   ' }, index)
+    expect(res.isError).toBe(true)
+    expect(res.content[0].text).toContain('usecase is required')
+  })
+
+  it('resolves bare names in a composition plan', () => {
+    const res = handleToolCall('plan-composition', { requiredPackages: ['core', 'nope'] }, index)
+    const plan = JSON.parse(res.content[0].text)
+    expect(plan.unresolved).toContain('nope')
+    expect(plan.unresolved).not.toContain('core')
+  })
+})
+
+describe('resources — tolerant lookup', () => {
+  const index = makeIndex()
+
+  it('resolves a partial domain and a bare package name', () => {
+    expect(handleResourceRead('totemsdk://packages/by-domain/core', index)).not.toBeNull()
+    const pkg = handleResourceRead('totemsdk://packages/core', index)
+    expect(pkg).not.toBeNull()
+    expect(JSON.parse(pkg as string).name).toBe('@totemsdk/core')
+  })
+
+  it('resolves a symbol case-insensitively', () => {
+    expect(handleResourceRead('totemsdk://symbol/wotssign', index)).not.toBeNull()
+  })
+})
+
 describe('index availability — never silently empty', () => {
   it('buildIndex auto-detects the monorepo and indexes it', () => {
     const index = buildIndex()
@@ -508,6 +614,9 @@ describe('index availability — never silently empty', () => {
   it('buildIndex falls back to the bundled index outside the monorepo', () => {
     const index = buildIndex({ rootDir: null })
     expect(Object.keys(index.packages).length).toBeGreaterThan(0)
+    // `source` is how it is served; `generatedFrom` keeps the provenance.
+    expect(index.source).toBe('bundled')
+    expect(index.generatedFrom).toBe('monorepo')
   })
 })
 

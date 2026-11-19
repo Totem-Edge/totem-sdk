@@ -11,7 +11,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import { getIndex, getIndexState } from './index-store.js'
 import { handleResourceRead, listResources, resourceMimeType } from './resources.js'
-import { handleToolCall, TOOL_DEFINITIONS } from './tools.js'
+import { handleToolCall, resolvePackageName, TOOL_DEFINITIONS } from './tools.js'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -113,13 +113,20 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
   const index = indexState.index
 
   if (name === 'analyze-cross-package') {
-    const from: string = args?.from
-    const to: string = args?.to
-    const fromPkg = from ? index.packages[from] : null
-    const toPkg = to ? index.packages[to] : null
-    if (!fromPkg || !toPkg) {
-      throw new Error(`Packages not found: ${!fromPkg ? from : ''} ${!toPkg ? to : ''}`)
+    const requestedFrom = typeof args?.from === 'string' ? args.from : undefined
+    const requestedTo = typeof args?.to === 'string' ? args.to : undefined
+    const missing = [...(!requestedFrom ? ['from'] : []), ...(!requestedTo ? ['to'] : [])]
+    if (missing.length > 0) {
+      throw new Error(`Missing required prompt argument(s): ${missing.join(', ')}. Pass package names, e.g. { "from": "@totemsdk/core", "to": "@totemsdk/edge" }.`)
     }
+    const from = resolvePackageName(requestedFrom, index).name
+    const to = resolvePackageName(requestedTo, index).name
+    if (!from || !to) {
+      const unknown = [...(!from ? `'${requestedFrom}'` : []), ...(!to ? `'${requestedTo}'` : [])].join(' and ')
+      throw new Error(`Unknown package name ${unknown}. Use list-packages to find the exact name; the "@totemsdk/" scope is optional.`)
+    }
+    const fromPkg = index.packages[from]
+    const toPkg = index.packages[to]
     const dependsOn = fromPkg.dependencies.includes(to)
     const dependedBy = toPkg.dependencies.includes(from)
     const fromExports = Object.entries(fromPkg.exports).flatMap(([k, v]) => (v as string[]).map((s: string) => `${s} (${k})`))
@@ -153,8 +160,16 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
   }
 
   if (name === 'new-edge-adapter') {
-    const protocol: string = args?.protocol || 'UnknownProtocol'
-    const existingAdapters = Object.values(index.packages).filter(p => p.domain === 'edge/protocols' && p.dir.startsWith('edge-'))
+    const requestedProtocol = typeof args?.protocol === 'string' ? args.protocol.trim() : ''
+    if (!requestedProtocol) {
+      throw new Error('Missing required prompt argument: protocol (e.g. { "protocol": "Mqtt" }).')
+    }
+    const protocol = requestedProtocol
+    // Adapter packages live in the edge-computing domain and share the `edge-`
+    // directory prefix; `edge-adapters` is the reference bundle, not a protocol.
+    const existingAdapters = Object.values(index.packages)
+      .filter(p => p.dir.startsWith('edge-') && p.dir !== 'edge-adapters')
+      .sort((a, b) => a.dir.localeCompare(b.dir))
     const lines = [
       `You are scaffolding a new **${protocol}** edge protocol adapter for Totem SDK.`,
       '',

@@ -76,8 +76,10 @@ export interface IndexCoverage {
 export interface SdkIndex {
   /** Index schema version; bump when consumers must adapt. */
   schemaVersion?: number;
-  /** Where this index came from. */
+  /** How this index is being served right now: scanned live, or loaded from the shipped bundle. */
   source?: 'monorepo' | 'bundled';
+  /** Where the data was generated, when it differs from `source` (e.g. a bundle built from a monorepo). */
+  generatedFrom?: 'monorepo' | 'bundled' | 'unknown';
   /** Git revision of the scanned workspace, when known. */
   sourceRevision?: string;
   /** Catalogue/index coverage reconciliation. */

@@ -132,7 +132,14 @@ function loadBundledIndex(): SdkIndex | null {
   try {
     const idx = JSON.parse(fs.readFileSync(BUNDLED_INDEX_PATH, 'utf-8')) as SdkIndex
     if (idx && typeof idx === 'object' && idx.packages && typeof idx.packages === 'object') {
-      return { ...idx, schemaVersion: idx.schemaVersion ?? 2, source: idx.source ?? 'bundled' }
+      return {
+        ...idx,
+        schemaVersion: idx.schemaVersion ?? 2,
+        // `source` describes how the index is being served, not how the bundle
+        // was produced: a shipped bundle keeps its provenance in generatedFrom.
+        source: 'bundled',
+        generatedFrom: idx.generatedFrom ?? idx.source ?? 'unknown',
+      }
     }
     return null
   } catch {

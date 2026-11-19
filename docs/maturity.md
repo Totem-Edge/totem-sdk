@@ -95,7 +95,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/edge-ros2` | 0.2.2 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.1 | rc | outside | `packages/eefi` |
 | `@totemsdk/governance` | 0.3.0 | rc | outside | `packages/governance` |
-| `@totemsdk/mcp-server` | 0.5.1 | rc | outside | `packages/mcp-server` |
+| `@totemsdk/mcp-server` | 0.6.0 | rc | outside | `packages/mcp-server` |
 | `@totemsdk/pear` | 0.3.0 | rc | outside | `packages/pear` |
 | `@totemsdk/provider-bond` | 0.2.2 | rc | outside | `packages/provider-bond` |
 | `@totemsdk/realtime` | 0.2.4 | rc | outside | `packages/realtime` |

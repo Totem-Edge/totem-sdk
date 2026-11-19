@@ -8984,7 +8984,7 @@
         "OracleComparisonOp": {
           "kind": "type",
           "signature": "export type OracleComparisonOp = 'GT' | 'GTE' | 'LT' | 'LTE' | 'EQ' | 'NEQ'",
-          "doc": "OMP-18 / OMP-19 — on-chain oracle condition witness (RFC-048 §3.1).\n\nTurns a signed oracle **observation** into an objective on-chain condition for a\nspend (price-linked / parametric payouts, liquidation triggers, condition\nwitnesses). It reuses the existing evidence stack (`proof` / `proofgraph` /\n`identity`); it does **not** define a second signature scheme.\n\nOn-chain semantics (and their honest limit):\n  - The observation fields are **committed** to state ports at funding (see\n    {@link oracleConditionStateVariables}); the witness reads them via\n    `PREVSTATE` and pins the feed commitment with `SAMESTATE`.\n  - The authorized oracle(s) authorize the spend — `MULTISIG(threshold …)` — so\n    a quorum can be required. In this SDK, `CHECKSIG`/`SIGNEDBY` verify against\n    the **transaction digest**, and the transaction commits the observation, so\n    the oracle's signature is a cooperative attestation **bound to the spend**.\n  - Freshness (`observedAt ≤"
+          "doc": "OMP-18 / OMP-19 — on-chain oracle condition witness (RFC-048 §3.1).\n\nTurns a signed oracle **observation** into an objective on-chain condition for a\nspend (price-linked / parametric payouts, liquidation triggers, condition\nwitnesses). It reuses the existing evidence stack (`proof` / `proofgraph` /\n`identity`); it does **not** define a second signature scheme.\n\nOn-chain semantics (and their honest limit):\n  - The observation fields are **committed** to state ports at funding (see\n    {@link oracleConditionStateVariables}); the witness reads them via\n    `PREVSTATE` and pins the feed commitment with `SAMESTATE`.\n  - The authorized oracle(s) authorize the spend — `MULTISIG(threshold …)` — so\n    a quorum can be required. `SIGNEDBY` verifies against the **transaction\n    digest**, and the transaction commits the observation, so the oracle's\n    signature is a cooperative attestation **bound to the spend**. `CHECKSIG`\n    verifies an attestation stored in state over its own message\n    (reference semantics, OMN-064).\n  - Freshness (`observedAt ≤"
         },
         "OracleCommitment": {
           "kind": "interface",
@@ -11404,6 +11404,18 @@
           "signature": "export interface AgentReceipt",
           "doc": "Result returned to the agent after Totem has processed the intent.\nThe agent uses this to learn whether its proposal was executed."
         },
+        "SigningIntent": {
+          "kind": "interface",
+          "signature": "export interface SigningIntent"
+        },
+        "SigningIntentJournal": {
+          "kind": "interface",
+          "signature": "export interface SigningIntentJournal"
+        },
+        "SigningIntentState": {
+          "kind": "type",
+          "signature": "export type SigningIntentState = 'pending' | 'signed' | 'abandoned'"
+        },
         "ChannelCapacityError": {
           "kind": "class",
           "signature": "export class ChannelCapacityError extends Error"
@@ -11622,7 +11634,7 @@
         },
         "verifyStateForCoSign": {
           "kind": "function",
-          "signature": "verifyStateForCoSign(channel: OmniaChannel, state: SignedChannelState): Promise<{ valid: boolean; errors: string[]; }>",
+          "signature": "verifyStateForCoSign(channel: OmniaChannel, state: SignedChannelState, opts?: ValidateStateForCoSignOptions): Promise<{ valid: boolean; errors: string[]; }>",
           "doc": "Async wrapper kept for API compatibility."
         },
         "validateStateForCoSign": {
@@ -12036,6 +12048,39 @@
           "kind": "function",
           "signature": "enforceUpdateGuards(channelId: string, newSequence: number, payloadHash: string, pendingProposal?: { sequence: number; payloadHash: string; }): \"CAPACITY_NEAR_EXHAUSTION\" | null",
           "doc": "Enforce all per-update invariants that must hold for every state transition\nregardless of whether the caller is `updateState`, `addHTLC`, `fulfillHTLC`,\n`timeoutHTLC` or the peer co-sign path.\n\nSpecifically:\n  1. WOTS capacity check: throws `ChannelCapacityError` at 100%, returns\n     `'CAPACITY_NEAR_EXHAUSTION'` at 95% (caller must NOT advance watermark).\n  2. Stale-sequence guard (SequenceError): rejects any attempt to sign a\n     sequence that is behind the module-level watermark.\n  3. Double-sign guard (DoubleSignError): rejects a different payload at a\n     sequence already committed by this process.\n  4. Watermark advance: after all guards pass, records `(newSequence,\n     payloadHash)` synchronously — before any async work — so no concurrent\n     call can slip in between the guard and the WOTS reservation."
+        },
+        "MemorySigningJournal": {
+          "kind": "class",
+          "signature": "export class MemorySigningJournal implements SigningIntentJournal",
+          "doc": "In-process journal. Survives nothing; use as the default and in tests."
+        },
+        "setSigningJournal": {
+          "kind": "function",
+          "signature": "setSigningJournal(journal?: SigningIntentJournal): void",
+          "doc": "Install the journal used by `beginSigningAttempt`. Hosts call this once at\nstart-up with a durable implementation; omit it to keep the in-memory\ndefault."
+        },
+        "getSigningJournal": {
+          "kind": "function",
+          "signature": "getSigningJournal(): SigningIntentJournal"
+        },
+        "beginSigningAttempt": {
+          "kind": "function",
+          "signature": "beginSigningAttempt(intent: { channelId: string; sequence: number; payloadHash: string; purpose: string; reservationIds?: string[]; }): Promise<void>",
+          "doc": "Record the intent to sign `(channelId, sequence, payloadHash)` before any\nWOTS signature exists. Throws `DoubleSignError` when another payload was\nalready signed — or may still have been signed — at that sequence."
+        },
+        "commitSigningAttempt": {
+          "kind": "function",
+          "signature": "commitSigningAttempt(channelId: string, sequence: number, payloadHash: string): Promise<void>",
+          "doc": "Mark the intent as completed once a signature exists for the payload."
+        },
+        "abandonSigningAttempt": {
+          "kind": "function",
+          "signature": "abandonSigningAttempt(channelId: string, sequence: number, payloadHash: string): Promise<void>",
+          "doc": "Release an attempt that failed before any signature was produced. Only a\n`pending` intent may be abandoned; a sealed attempt stays blocking forever."
+        },
+        "isUpdateGuardSealed": {
+          "kind": "function",
+          "signature": "isUpdateGuardSealed(channelId: string, sequence: number): boolean"
         },
         "_resetChannelWatermarks": {
           "kind": "function",
@@ -12581,7 +12626,7 @@
         },
         "factoryBalanceStateVariables": {
           "kind": "function",
-          "signature": "factoryBalanceStateVariables(participants: FactoryParticipant[]): { port: number; value: bigint; type: \"number\"; }[]",
+          "signature": "factoryBalanceStateVariables(participants: FactoryParticipant[]): { port: number; value: bigint; type: \"number\"; scale: number; }[]",
           "doc": "Per-party allocation state variables (port base+k = party k's balance), seeded\ninto the factory funding output so the timeout escape can pay each party its\ncommitted share."
         },
         "factoryEscapeStateVariable": {
@@ -14088,7 +14133,7 @@
         },
         "proposeSpliceIn": {
           "kind": "function",
-          "signature": "proposeSpliceIn(channel: OmniaChannel | QuiescedChannel, additionalCoinId: string, additionalAmount: bigint, leaseProvider: SpliceLeaseProvider, newBalances?: Record<string, bigint>): Promise<SpliceProposal>",
+          "signature": "proposeSpliceIn(channel: OmniaChannel | QuiescedChannel, additionalCoinId: string, additionalAmount: bigint, leaseProvider: SpliceLeaseProvider, newBalances?: Record<string, bigint>, additionalCoinAddress?: string): Promise<SpliceProposal>",
           "doc": "Initiating party proposes a splice-in: add external funds to the channel.\n\nRequires the channel to be in 'quiesced' state (see quiesceChannel).\n\nWOTS lease safety: a key slot is reserved via `leaseProvider.wotsLease`\nbefore signing. The returned `proposerReservationId` and\n`proposerSigningIndices` must be passed through to `finalizeSplice`\n(embedded in the `SpliceProposal`) so the reservation is committed on\nsuccess or burned on failure, preventing one-time-key reuse."
         },
         "proposeSpliceOut": {
@@ -14098,8 +14143,7 @@
         },
         "acceptSplice": {
           "kind": "function",
-          "signature": "acceptSplice(channel: OmniaChannel | QuiescedChannel, proposal: SpliceProposal, leaseProvider: SpliceLeaseProvider): Promise<SpliceAcceptance>",
-          "doc": "Counterparty accepts a splice proposal by co-signing the splice TX digest.\n\nRequires the channel to be in 'quiesced' state.\n\nWOTS lease safety: reserves a key slot before signing. The returned\n`acceptorReservationId` and `acceptorSigningIndices` are embedded in the\n`SpliceAcceptance` and consumed by `finalizeSplice` to commit or burn the\nacceptor's key-slot reservation.\n\nThe acceptor independently:\n  1. Validates party membership (proposer and acceptor both in channel).\n  2. Validates proposal balance conservation and amount constraints.\n  3. Cryptographically binds the signed draft to the proposal params by\n     recomputing the expected draft from `params + channel` and comparing\n     digests — rejects if they differ (tamper detection).\n  4. Reserves a WOTS key slot via `leaseProvider.wotsLease`.\n  5. Signs the splice TX digest with reserved indices."
+          "signature": "acceptSplice(channel: OmniaChannel | QuiescedChannel, proposal: SpliceProposal, leaseProvider: SpliceLeaseProvider, options?: AcceptSpliceOptions): Promise<SpliceAcceptance>"
         },
         "buildSpliceProposal": {
           "kind": "function",
@@ -14108,7 +14152,7 @@
         },
         "buildSpliceInProposal": {
           "kind": "function",
-          "signature": "buildSpliceInProposal(channel: OmniaChannel | QuiescedChannel, additionalCoinId: string, additionalAmount: bigint, proposerPublicKeyDigest: string, newBalances?: Record<string, bigint>): UnsignedSpliceProposal",
+          "signature": "buildSpliceInProposal(channel: OmniaChannel | QuiescedChannel, additionalCoinId: string, additionalAmount: bigint, proposerPublicKeyDigest: string, newBalances?: Record<string, bigint>, additionalCoinAddress?: string): UnsignedSpliceProposal",
           "doc": "Build an unsigned splice-in proposal (see `buildSpliceProposal`)."
         },
         "buildSpliceOutProposal": {
@@ -14311,7 +14355,7 @@
         },
         "VtxoStatus": {
           "kind": "type",
-          "signature": "export type VtxoStatus = | 'active' | 'transferred' | 'split' | 'merged' | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid'"
+          "signature": "export type VtxoStatus = | 'active' | 'transferred' | 'split' | 'merged' | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid' /** * OMN-041: issued but not yet transferable. A VTXO i"
         },
         "VtxoOp": {
           "kind": "type",
@@ -14330,6 +14374,11 @@
           "kind": "interface",
           "signature": "export interface VtxoEpochRoot",
           "doc": "A published epoch root. The pool keeps every root it has published so a\nproof minted in an earlier epoch stays verifiable after later batches."
+        },
+        "VtxoPoolBacking": {
+          "kind": "interface",
+          "signature": "export interface VtxoPoolBacking",
+          "doc": "OMN-041: authoritative on-chain backing for a pool. Created only from a\nverified deposit; `amount` is in atoms."
         },
         "OmniaVtxoPool": {
           "kind": "interface",
@@ -14402,6 +14451,15 @@
         "ExitDraft": {
           "kind": "interface",
           "signature": "export interface ExitDraft"
+        },
+        "VtxoExitEvidence": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitEvidence",
+          "doc": "OMN-042: chain evidence for an exit transaction. Produced by a trusted\nverifier — never by the RPC caller."
+        },
+        "VtxoExitVerifier": {
+          "kind": "type",
+          "signature": "export type VtxoExitVerifier = (request: { vtxo: OmniaVtxo"
         },
         "VerifyVtxoResult": {
           "kind": "interface",
@@ -14881,6 +14939,11 @@
           "signature": "poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined",
           "doc": "The published epoch record for `epoch`, if the pool has one."
         },
+        "transitionPoolMembers": {
+          "kind": "function",
+          "signature": "transitionPoolMembers(pool: OmniaVtxoPool, params: { consume: readonly string[]; add: readonly OmniaVtxo[]; epoch?: number; }): { pool: OmniaVtxoPool; proofs: Record<string, VtxoProof>; }",
+          "doc": "OMN-055: atomically consume members and add replacement members, publishing a\nnew root at the target epoch. Transfer and refresh outputs become real pool\nmembers only through this transition."
+        },
         "CommitPoolMembersOptions": {
           "kind": "interface",
           "signature": "export interface CommitPoolMembersOptions"
@@ -14905,13 +14968,17 @@
         },
         "transferVtxo": {
           "kind": "function",
-          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number): TransferOutcome",
-          "doc": "Transfers a VTXO (fully or partially) to a recipient.\n\n**Offline safety.** The returned output VTXOs are new claims. A Merkle proof\nestablishes membership in a committed set; it does NOT prove the input was\nnever spent elsewhere. The local host rejects a second transfer through its\nshared state, but disconnected receivers do not share that state. Treat a\nreceived VTXO as final only after an anti-double-spend check (online/operator\nspend check, operator-co-signed transfer, or an explicitly risk-bounded\npolicy), and have the operator commit the new outputs — they do not\nautomatically belong to the previous pool root.\n\n**Exit entitlements (OMN-003).** An exit entitlement binds owner, vtxoId,\namount and holder index. The previous owner's entitlement therefore cannot\nauthorize the recipient, so this function never copies one forward: a\nsupplied `exitEntitlement` is verified against the *new output* and the\ntransfer is rejected unless it verifies. A transfer without an entitlement\nreturns `exitReady: false`. Use {@link transferVtxoWithEntitlement} to build a\nrecipient-bound exit."
+          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number, options?: TransferVtxoOptions): TransferOutcome"
         },
         "transferVtxoWithExit": {
           "kind": "function",
           "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferOutcome & { exitEntitlement: VtxoExitEntitlement; }>",
           "doc": "V1 transfer: build the *recipient's* independent exit before moving the\nclaim, then transfer only if the rebuilt entitlement verifies against the\noutput VTXO (OMN-003).\n\n`exitParams` describes the pool coin and holder share set for the input.\nThe helper rebinds it to the recipient: the holder at `holderIndex` becomes\nthe recipient, the exit VTXO becomes the output and the root/epoch become\nthe output's proof root/epoch. The exit transaction therefore pays the\nrecipient, not the previous owner."
+        },
+        "TransferVtxoOptions": {
+          "kind": "interface",
+          "signature": "export interface TransferVtxoOptions",
+          "doc": "OMN-025: an entitlement supplied by a peer must carry a witness the caller can\nverify. Set `allowUnverifiedExit` only for entitlements this process built."
         },
         "transferVtxoWithEntitlement": {
           "kind": "const",
@@ -14940,7 +15007,7 @@
         },
         "markExited": {
           "kind": "function",
-          "signature": "markExited(vtxo: OmniaVtxo, options?: { txpowId?: string; now?: number; }): OmniaVtxo",
+          "signature": "markExited(vtxo: OmniaVtxo, options: { txpowId: string; now?: number; }): OmniaVtxo",
           "doc": "Transitions an exiting VTXO to 'exited' status."
         },
         "createExitDraft": {
@@ -15118,7 +15185,7 @@
         },
         "verifyVtxoExitEntitlement": {
           "kind": "function",
-          "signature": "verifyVtxoExitEntitlement(entitlement: VtxoExitEntitlement, vtxo: OmniaVtxo): ExitEntitlementVerification"
+          "signature": "verifyVtxoExitEntitlement(entitlement: VtxoExitEntitlement, vtxo: OmniaVtxo, options?: VerifyExitEntitlementOptions): ExitEntitlementVerification"
         },
         "VtxoExitEntitlement": {
           "kind": "interface",
@@ -15127,6 +15194,11 @@
         "ExitEntitlementVerification": {
           "kind": "interface",
           "signature": "export interface ExitEntitlementVerification"
+        },
+        "VerifyExitEntitlementOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyExitEntitlementOptions",
+          "doc": "OMN-025: witness verification needs the signing key material, which an\nentitlement cannot carry. Callers therefore supply a verifier; without one,\nan untrusted entitlement is rejected rather than accepted on shape alone."
         }
       }
     },

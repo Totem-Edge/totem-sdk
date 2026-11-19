@@ -16,6 +16,13 @@ Filtering and package references now resolve instead of dead-ending:
 - Unknown domains, package references and export filters now return actionable messages with known domains, nearest package names and the criteria that were applied.
 - `list-exports` no longer claims a package has no exports when only its `filter` matched nothing; unknown `kind` values are rejected explicitly.
 - `search-packages` no longer reports a false empty result for `limit: 0`.
+- A malformed argument can no longer surface as a protocol-level internal error. `list-packages {filter: 123}`, `scaffold-app {plan: {}}` and `read-source {path: "."}` previously threw (`toLowerCase is not a function`, `directDependencies is not iterable`, `EISDIR`); every tool call is now wrapped and returns an actionable `isError` result.
+- `read-source` accepts `./` and `src/`-prefixed paths (previously `src/treekey.ts` became `src/src/treekey.ts`) and distinguishes a missing file from a package that ships no source.
+- `scaffold-package` normalizes the `@totemsdk/` scope, rejects invalid package names and refuses to scaffold over an existing package. `scaffold-adapter` rejects protocols that would produce invalid TypeScript identifiers, and now emits a `package.json` using its `name` argument (which was previously ignored).
+- `scaffold-package` and `scaffold-adapter` are documented as SDK contributor tools and refuse to run from the published bundle, where they would produce `@totemsdk/*` packages a consumer cannot publish.
+- `SdkIndex.source` now describes how an index is served (`monorepo` | `bundled`); the provenance of a shipped bundle moves to `generatedFrom`. `totemsdk://index` and contract `origin` report both.
+- Prompts now resolve bare package names, name the missing argument, and `new-edge-adapter` lists the 17 real adapter packages (it filtered on an `edge/protocols` domain that no longer exists, so it always reported zero references).
+- `inspect-contract` populates `suggestions` for a near-miss symbol (it was always empty), and resources resolve `by-domain/edge`, bare package names and symbols case-insensitively.
 
 ### Released 2026-11-18 — amount-unit train
 
