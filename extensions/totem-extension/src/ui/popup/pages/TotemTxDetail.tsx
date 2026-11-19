@@ -34,7 +34,7 @@ interface TotemTxDetailProps {
   onBack: () => void;
 }
 
-const explorerUrl = (txpowid: string) => `https://minimamore.com/#/${txpowid}`;
+const explorerUrl = (txpowid: string) => `https://minimanode.com/#/${txpowid}`;
 
 export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
   const [tx, setTx] = useState<TxDetail | null>(null);
@@ -230,7 +230,7 @@ export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
                   fontWeight: 600,
                 }}
               >
-                View on minimamore ↗
+                View on minimanode ↗
               </a>
               <button
                 type="button"

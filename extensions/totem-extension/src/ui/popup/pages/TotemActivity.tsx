@@ -44,6 +44,11 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
   const [error, setError] = useState<string | null>(null);
   const [showStateUpdates, setShowStateUpdates] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+
+  // Cache key is address-scoped: switching accounts must not show another
+  // account's history.
+  const cacheKey = `activityCache:${activeAccountAddress ?? 'all'}`;
 
   const { entries } = usePortfolio();
 
@@ -58,7 +63,7 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
   }, [entries]);
 
   const loadTransactions = useCallback(async () => {
-    setLoadingState('loading');
+    setLoadingState((prev) => (prev === 'success' ? prev : 'loading'));
     setError(null);
     try {
       const response = await chrome.runtime.sendMessage({
@@ -66,21 +71,54 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
         limit: 200,
       });
       if (response?.ok) {
-        setEvents(response.events || []);
+        const fresh: TxEvent[] = response.events || [];
+        setEvents(fresh);
+        setFromCache(false);
         setLoadingState('success');
+        // Persist for instant/offline rendering next time the tab opens.
+        try {
+          await chrome.storage.local.set({ [cacheKey]: { at: Date.now(), events: fresh } });
+        } catch {
+          /* quota/unavailable — cache is best-effort */
+        }
       } else {
         throw new Error(response?.error || 'Failed to load transactions');
       }
     } catch (err: any) {
       console.error('[TotemActivity] Failed to load transactions:', err);
+      // Keep showing whatever we have (cache or previous fetch) instead of
+      // blanking the tab on a transient API failure.
+      setEvents((prev) => {
+        if (prev.length > 0) return prev;
+        return prev;
+      });
       setError(err.message || 'Failed to load transaction history');
-      setLoadingState('error');
+      setLoadingState((prev) => (prev === 'success' ? 'success' : 'error'));
     }
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
-    loadTransactions();
-  }, [loadTransactions, activeAccountAddress]);
+    let active = true;
+    (async () => {
+      // 1. Render cached history immediately.
+      try {
+        const stored = await chrome.storage.local.get(cacheKey);
+        const cached = stored?.[cacheKey] as { at?: number; events?: TxEvent[] } | undefined;
+        if (active && cached?.events?.length) {
+          setEvents(cached.events);
+          setFromCache(true);
+          setLoadingState('success');
+        }
+      } catch {
+        /* no cache */
+      }
+      // 2. Then refresh from the API (cache is a fast first paint, not a TTL).
+      if (active) await loadTransactions();
+    })();
+    return () => {
+      active = false;
+    };
+  }, [cacheKey, loadTransactions, activeAccountAddress]);
 
   const copyText = useCallback(async (text: string) => {
     try {
@@ -217,7 +255,14 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h2" color="accent">Activity</Typography>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <Typography variant="h2" color="accent">Activity</Typography>
+            {fromCache && loadingState === 'success' && (
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }} title="Cached — refreshing">
+                cached
+              </span>
+            )}
+          </div>
           {zeroCount > 0 && (
             <button
               type="button"
