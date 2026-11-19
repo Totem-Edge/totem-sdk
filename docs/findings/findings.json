@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T16:23:50.520Z",
+  "generatedAt": "2026-11-19T09:44:07.434Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -5118,19 +5118,19 @@
       },
       "source": "OMN-064 parity harness, 2026-11-18",
       "id": "OMN-065",
-      "status": "open",
+      "status": "fixed",
       "severity": "medium",
       "title": "Rust/WASM CHECKSIG cannot verify a tree signature (the on-chain form)",
       "packages": [
         "@totemsdk/kissvm",
         "@totemsdk/core-wasm"
       ],
-      "summary": "The TypeScript evaluator verifies a canonical tree signature with deserializeTreeSignature + verifyTreeSignature. The Rust/WASM evaluator only has the flat WOTS path: core-wasm exposes verify_tree_signature over a deserialized struct, but no byte reader for TreeSignature, so the wasm leg rejects the on-chain signature form. The parity suite records this as pending-tree-signature instead of hiding it.",
-      "impact": "A covenant that verifies an oracle or recovery certificate works in the TypeScript evaluator and fails closed in the WASM evaluator. That is an availability/parity divergence, not a signature-forgery path.",
+      "summary": "core-wasm had no byte reader for TreeSignature, so the Rust/WASM evaluator could only verify the flat WOTS form. core-wasm now implements deserialize_tree_signature (Minima Signature.readDataStream layout) and the Rust CHECKSIG branch tries the canonical tree signature first, falling back to flat WOTS. TypeScript and Rust/WASM agree on every fixture.",
+      "impact": "A covenant verifying an oracle or recovery certificate now behaves identically in both evaluators instead of failing closed only in the WASM build.",
       "repro": {
         "command": "pnpm --filter @totemsdk/kissvm test",
         "expected": "TS and WASM both verify a canonical tree signature over the supplied data.",
-        "actual": "TS passes; WASM returns false for the tree-signature fixtures.",
+        "actual": "Fixed: the WASM evaluator reports CHECKSIG(tree …) and matches the TypeScript verdict on all fixtures.",
         "evidence": [
           "packages/kissvm/src/eval.ts evalChecksig",
           "packages/kissvm/rust/src/eval.rs CheckSig",
@@ -5150,8 +5150,8 @@
         ],
         "acceptance": [
           "The tree-signature fixtures pass in TS and WASM.",
-          "The parity suite has no pending-tree-signature entries.",
-          "The node leg (scripts/kissvm-node-parity.mjs) agrees."
+          "The parity suite has no pending-tree-signature entries (guarded).",
+          "The node leg (scripts/kissvm-node-parity.mjs) agrees when run against a node."
         ],
         "tests": [
           "tests/unit/kissvm-parity/src/__tests__/checksig-parity.test.ts"
@@ -5167,7 +5167,8 @@
         "verification": "code-confirmed"
       },
       "links": {
-        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md"
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
+        "fixedIn": "PENDING"
       }
     },
     {

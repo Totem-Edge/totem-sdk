@@ -40,6 +40,56 @@ pub struct TreeSignature {
     pub proofs: Vec<SignatureProof>,
 }
 
+/// Deserialize a canonical `TreeSignature` (Minima `Signature.readDataStream`).
+///
+/// Layout: MiniNumber(proof count) then, per proof,
+/// MiniData(leaf pubkey) + MiniData(signature) + serialized MMRProof.
+/// Mirrors `deserializeTreeSignature` in `packages/core/src/treekey.ts`.
+pub fn deserialize_tree_signature(data: &[u8]) -> Result<TreeSignature, String> {
+    let mut offset = 0usize;
+
+    let (num_proofs, count_bytes) = crate::mmr::read_mini_number(data, offset)?;
+    offset += count_bytes;
+    if num_proofs == 0 || num_proofs > 8 {
+        return Err(format!("Malformed signature: impossible proof count ({num_proofs})"));
+    }
+
+    let mut proofs = Vec::with_capacity(num_proofs as usize);
+    for _ in 0..num_proofs {
+        let (leaf_pubkey, read) = read_mini_data(data, offset)?;
+        offset += read;
+        let (signature, read) = read_mini_data(data, offset)?;
+        offset += read;
+        let (mmr_proof, _block_time, read) = crate::mmr::parse_mmr_proof_from_hex(&data[offset..])?;
+        offset += read;
+        proofs.push(SignatureProof {
+            leaf_pubkey,
+            signature,
+            mmr_proof,
+        });
+    }
+
+    Ok(TreeSignature { proofs })
+}
+
+/// Read a MiniData (4-byte big-endian length prefix + bytes).
+fn read_mini_data(data: &[u8], offset: usize) -> Result<(Vec<u8>, usize), String> {
+    if offset + 4 > data.len() {
+        return Err("Malformed signature: truncated MiniData length".to_string());
+    }
+    let length = u32::from_be_bytes([
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
+    ]) as usize;
+    let start = offset + 4;
+    if start + length > data.len() {
+        return Err("Malformed signature: MiniData out of bounds".to_string());
+    }
+    Ok((data[start..start + length].to_vec(), 4 + length))
+}
+
 pub fn get_root_public_key(proof: &SignatureProof) -> Vec<u8> {
     let leaf_data = create_mmr_data_leaf_node(&proof.leaf_pubkey, 0);
     calculate_proof_root(&leaf_data, &proof.mmr_proof)

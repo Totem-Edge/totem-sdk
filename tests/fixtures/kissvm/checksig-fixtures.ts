@@ -8,9 +8,9 @@
  *
  * It must *not* consult the contract witness or the transaction digest.
  *
- * `wasmSupport` records whether the Rust/WASM evaluator can verify the case
- * today. Tree signatures are the on-chain form but need a byte deserializer in
- * core-wasm; until that lands the wasm leg is expected to reject them.
+ * `wasmSupport` records whether the Rust/WASM evaluator can verify the case.
+ * Tree signatures (the on-chain form) are supported since OMN-065: core-wasm
+ * gained a `TreeSignature` byte reader and the Rust CHECKSIG branch uses it.
  */
 
 import {
@@ -29,7 +29,10 @@ export interface ChecksigFixture {
   witness: Record<string, string>;
   /** Expected pass/fail from the reference semantics. */
   expected: boolean;
-  /** How the Rust/WASM evaluator is expected to handle the case today. */
+  /**
+   * Whether the Rust/WASM evaluator can verify the case. Kept explicit so a
+   * future regression (or a newly added case) cannot silently lose coverage.
+   */
   wasmSupport: 'supported' | 'pending-tree-signature';
   note: string;
 }
@@ -58,7 +61,7 @@ function treeFixture(
     script: `RETURN CHECKSIG(${hex(publicKey)} ${hex(data)} ${hex(signature)})`,
     witness: {},
     expected,
-    wasmSupport: 'pending-tree-signature',
+    wasmSupport: 'supported',
     note,
   };
 }

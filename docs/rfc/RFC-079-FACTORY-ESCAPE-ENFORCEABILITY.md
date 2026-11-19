@@ -39,7 +39,7 @@ observed behaviour, so a failure there is a real blocker, not a flaky test.
 
 | Question | Result | Evidence |
 |---|---|---|
-| Can a covenant authenticate a detached state certificate without fresh counterparty signatures? | **Yes (TS) / flat WOTS (Rust)** | OMN-064 was fixed after the spike: both evaluators now implement `CHECKSIG(publickey data signature)`. The TS evaluator verifies canonical tree signatures; the Rust/WASM evaluator verifies flat WOTS until core-wasm gains a `TreeSignature` byte reader (OMN-065). |
+| Can a covenant authenticate a detached state certificate without fresh counterparty signatures? | **Yes** | OMN-064 fixed the semantics, OMN-065 closed the evaluator gap: both TS and Rust/WASM verify canonical tree signatures and flat WOTS over the supplied data. |
 | Can a covenant require a strictly higher sequence plus a matching commitment? | **Yes** | `ASSERT nextSeq GT prevSeq` and `ASSERT STATE(102) EQ <commitment>` both evaluate; the whole contest branch uses 8 instructions of the 1024 budget. |
 | Can it enforce value conservation on the successor? | **Yes** | `VERIFYOUT(0 @ADDRESS @AMOUNT @TOKENID TRUE)` rejects an inflated output. |
 | Can the successor member/balance root be recomputed on chain? | **Arithmetic only** | A statically unrolled 4-leaf recompute costs 17 instructions. The blocker is input, not cost: no opcode exposes an arbitrary witness proof element as a script value, so siblings cannot be fed in. |
@@ -72,8 +72,8 @@ while accepting the three-argument form). Both now follow the reference:
 - `CHECKSIG` requires exactly three HEX operands, rejects zero-length and
   non-hex operands, and verifies the signature over the data.
 - TypeScript verifies canonical tree signatures and flat WOTS.
-- Rust/WASM verifies flat WOTS; the tree form needs a `TreeSignature` byte
-  reader in core-wasm (**OMN-065**).
+- Rust/WASM verifies the same two forms: core-wasm deserializes `TreeSignature`
+  (`Signature.readDataStream`) and CHECKSIG tries it before flat WOTS (**OMN-065**).
 - `tests/unit/kissvm-parity` runs the same fixtures through TypeScript and the
   Rust/WASM artifact; `scripts/kissvm-node-parity.mjs` runs them against a live
   node's `runscript` when `MINIMA_RPC_URL` is set.
@@ -164,7 +164,7 @@ the product docs, not hidden.
 | `omnia-factory/src/virtual.ts` | VC open/update/close update the recoverable economic state. |
 | `omnia-factory/src/distribution.ts` | `buildFactoryDistributionScript()` currently pins `STATE(112)` and authorizes N-of-N after the timeout without checking outputs. It must verify the distribution or be removed from the settlement path. |
 | `packages/kissvm` | **Done (OMN-064):** `CHECKSIG` implements the reference three-argument form in TypeScript and Rust, with a TS/Rust parity suite. |
-| `packages/core-wasm` | **Open (OMN-065):** byte reader for `TreeSignature` so the Rust/WASM evaluator can verify the on-chain tree-signature form. |
+| `packages/core-wasm` | **Done (OMN-065):** `deserialize_tree_signature` implements the `Signature.readDataStream` layout; the Rust CHECKSIG branch uses it. |
 
 ## 6. Acceptance tests (all must be real, not mocks)
 

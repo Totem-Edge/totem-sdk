@@ -334,7 +334,7 @@ pub fn parse_mmr_proof_from_hex(data: &[u8]) -> Result<(MMRProof, u64, usize), S
 
 /// Read a MiniNumber from bytes at the given offset.
 /// Format: [scale: 1 byte] [length: 1 byte] [data: N bytes]
-fn read_mini_number(data: &[u8], offset: usize) -> Result<(u64, usize), String> {
+pub fn read_mini_number(data: &[u8], offset: usize) -> Result<(u64, usize), String> {
     if offset + 2 > data.len() {
         return Err("Unexpected end of data reading MiniNumber header".to_string());
     }

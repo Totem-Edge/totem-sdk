@@ -328,11 +328,25 @@ fn eval_expr(node: &AstNode, vm: &mut VmState) -> Result<VmValue, EvalError> {
                 .map_err(|e| EvalError::Runtime(format!("CHECKSIG data must be hex: {e}")))?;
             let sig_bytes = hex::decode(&sig_hex)
                 .map_err(|e| EvalError::Runtime(format!("CHECKSIG signature must be hex: {e}")))?;
-            // Flat WOTS form. Tree signatures (the on-chain form) need a
-            // deserializer in core-wasm; tracked as a Rust parity follow-up.
+            // Canonical tree signature (Minima Signature.readDataStream). This
+            // is the on-chain form; a flat WOTS signature is kept as the SDK
+            // fixture fallback when the bytes are not a tree signature.
+            if let Ok(tree) = totemsdk_core_wasm::treekey::deserialize_tree_signature(&sig_bytes) {
+                if !tree.proofs.is_empty() {
+                    let ok = totemsdk_core_wasm::treekey::verify_tree_signature(
+                        &key_bytes, &data_bytes, &tree,
+                    );
+                    vm.add_trace(format!(
+                        "CHECKSIG(tree {}…) → {}",
+                        &pubkey_hex[..pubkey_hex.len().min(10)],
+                        ok
+                    ));
+                    return Ok(VmValue::Bool(ok));
+                }
+            }
             let ok = (vm.wots_verify)(&sig_bytes, &data_bytes, &key_bytes);
             vm.add_trace(format!(
-                "CHECKSIG({}…) → {}",
+                "CHECKSIG(wots {}…) → {}",
                 &pubkey_hex[..pubkey_hex.len().min(10)],
                 ok
             ));

@@ -102,15 +102,10 @@ wasmSuite('OMN-064 CHECKSIG parity (Rust/WASM)', () => {
     });
   }
 
-  it('records the tree-signature gap instead of hiding it', () => {
-    for (const fixture of pending) {
-      const ts = tsOutcome(fixture);
-      expect({ name: fixture.name, passed: ts.passed }).toEqual({ name: fixture.name, passed: fixture.expected });
-      // Rust/WASM cannot deserialize the tree signature yet. When core-wasm
-      // gains a reader this assertion flips and the fixture must be promoted.
-      expect({ name: fixture.name, passed: wasmOutcome(fixture).passed })
-        .toEqual({ name: fixture.name, passed: false });
-    }
+  it('has no remaining evaluator gaps', () => {
+    // OMN-065 closed the tree-signature gap; keep this guard so a regression
+    // (or a new fixture that only one evaluator supports) fails loudly.
+    expect(pending.map((fixture) => fixture.name)).toEqual([]);
   });
 
   it('agrees with TypeScript on the parameter-count and operand rules', () => {
