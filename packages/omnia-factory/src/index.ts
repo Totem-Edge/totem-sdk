@@ -25,6 +25,7 @@ export {
   factoryBalanceProof,
   factoryDistributionOutputs,
   buildFactoryDistributionScript,
+  buildFactoryPresignedDistributionScript,
   FACTORY_BALANCE_PORT_BASE,
   FACTORY_ESCAPE_PORT,
   FACTORY_CHECKPOINT_SEQUENCE_PORT,
@@ -38,6 +39,16 @@ export {
 } from './script.js';
 
 export { computeFactoryStateCommitment } from './commitment.js';
+
+export {
+  assertFactoryDistributable,
+  buildFactoryDistribution,
+  factoryDistributionPayouts,
+} from './distribution.js';
+export type {
+  FactoryDistribution,
+  FactoryDistributionEntry,
+} from './distribution.js';
 
 export {
   buildFactoryCheckpoint,

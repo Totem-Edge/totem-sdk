@@ -445,6 +445,22 @@ function optionalStringRecord(params: Record<string, unknown>, key: string): Rec
 
 const TRANSITION_AMOUNT_KEYS = new Set(['amount', 'unitPrice', 'holderABalance', 'holderBBalance', 'spendCap']);
 
+/**
+ * OMN-058/RFC-079 §4A: the output-enforced full-distribution branch is the
+ * default for new factories. `settlement: 'per-party'` opts out to the smaller
+ * covenant; `enforceCheckpoints` additionally pins allocation changes to a
+ * checkpoint transaction.
+ */
+function factoryScriptOptions(params: Record<string, unknown>): {
+  settlement: 'full-distribution' | 'per-party';
+  enforceCheckpoints?: boolean;
+} {
+  return {
+    settlement: params.settlement === 'per-party' ? 'per-party' : 'full-distribution',
+    ...(params.enforceCheckpoints === true ? { enforceCheckpoints: true } : {}),
+  };
+}
+
 function optionalTransitionInputs(params: Record<string, unknown>): ProgramTransition['inputs'] {
   const value = params.inputs;
   if (value === undefined) return undefined;
@@ -1748,6 +1764,7 @@ function registerPreparedPayMethods(
         tokenScale,
         context.chainProvider,
         fundingMaterials,
+        factoryScriptOptions(params),
       );
       const preparedOperationId = operationId(params);
       const expiresAt = Date.now() + 300_000;
@@ -3554,7 +3571,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return withOperation(context, params, async () => {
       // One plan, one ID. Proposal first; funding signatures are only requested
       // after the counterparty has accepted these exact terms (CAN-020).
-      const plan = await buildFactoryOpening(parsed, tokenId, 0, context.chainProvider, funding);
+      const plan = await buildFactoryOpening(
+        parsed,
+        tokenId,
+        0,
+        context.chainProvider,
+        funding,
+        factoryScriptOptions(params),
+      );
       const proposal = await proposeFactoryOpening(plan, localBundle);
 
       let openingSignatures = proposal.pendingSignatures;

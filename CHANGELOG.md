@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — factory settlement (unreleased)
+
+- **`@totemsdk/omnia-factory` 0.8.0 / `@totemsdk/omnia-host` 0.15.0:** new
+  factories fund the **output-enforced full-distribution** branch of the
+  factory covenant by default. One participant can settle the whole factory in
+  a single transaction; every payout amount is read from the spent coin
+  (`PREVSTATE`), and the covenant pins the output count, each destination, each
+  amount and the token. N-of-N signatures are no longer what authorizes the
+  payout set.
+- `settlement: "per-party"` (factory RPC and `buildFactoryOpening`/
+  `createFactory`) opts out to the smaller covenant. `enforceCheckpoints: true`
+  pins allocation changes to a checkpoint transaction.
+- A zero committed share is **rejected** for distribution: the covenant requires
+  a non-zero output per participant and Minima rejects zero-value outputs.
+  Rebalance with a checkpoint or use the per-party escape instead. Per-party
+  escape already skips zero shares.
+- Open virtual-channel reserves still block full distribution (they must be
+  settled to separately enforceable outputs first), and only the latest
+  **confirmed** allocation is enforceable; never-committed off-chain states need
+  the contest protocol.
+- Pre-release: there is no migration path. Factories created before this change
+  are test artifacts; recreate them to pick up the funded distribution branch.
+
+
 ### Fixed — `@totemsdk/mcp-server` (unreleased)
 
 Filtering and package references now resolve instead of dead-ending:

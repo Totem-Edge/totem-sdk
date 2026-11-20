@@ -172,12 +172,13 @@ export async function createFactory(
   chainProvider?: ChainStateProvider,
   tokenScale: number = 0,
   funding?: FactoryFundingMaterial[],
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution' },
 ): Promise<ChannelFactory> {
   // One plan, one factory ID: build the opening once and reuse it for the
   // proposal, the local record and the funding transaction. Rebuilding here
   // would generate a different ID (the ID includes a random nonce) and the
   // peer would accept a factory this host never stored.
-  const plan = await buildFactoryOpening(participants, tokenId, tokenScale, chainProvider, funding);
+  const plan = await buildFactoryOpening(participants, tokenId, tokenScale, chainProvider, funding, scriptOptions);
   return createFactoryFromPlan(plan, bundle, chainProvider);
 }
 
@@ -294,7 +295,7 @@ export async function buildFactoryOpening(
    * OMN-058: `enforceCheckpoints` uses the checkpoint-mode covenant, so every
    * allocation change must consume and recreate the factory coin (RFC-079 §4).
    */
-  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = {},
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution' },
 ): Promise<FactoryOpeningPlan> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
