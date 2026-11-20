@@ -10,7 +10,8 @@ import { wotsAddressData } from '@totemsdk/core';
 import { evaluateScript } from '@totemsdk/kissvm';
 import type { TxContext } from '@totemsdk/kissvm';
 
-import { buildFactoryOpening } from '../factory.js';
+import { buildFactoryOpening, reallocate } from '../factory.js';
+import { buildVirtualChannelClose, buildVirtualChannelOpen } from '../virtual.js';
 import {
   assertFactoryDistributable,
   buildFactoryDistribution,
@@ -320,5 +321,39 @@ describe('OMN-058 funded covenant default', () => {
       settlement: 'per-party',
     });
     expect(plan.factory.fundingScript).not.toContain('IF @TOTIN EQ 1 THEN');
+  });
+});
+
+
+describe('OMN-058 checkpoint enforcement', () => {
+  it('new factories default to checkpoint enforcement in the funded covenant', async () => {
+    const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0);
+    expect(plan.factory.enforceCheckpoints).toBe(true);
+    expect(plan.factory.fundingScript).toContain('INC(PREVSTATE(104))');
+  });
+
+  it('refuses off-chain allocation changes on a checkpointed factory', async () => {
+    const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0);
+    const active = { ...plan.factory, status: 'active' as const };
+    await expect(
+      reallocate(active as never, 'alice', 'bob', 1n, {} as never),
+    ).rejects.toThrow(/checkpoint mode/);
+    expect(() => buildVirtualChannelOpen(active as never, ['alice', 'bob'], { alice: 10n, bob: 10n }))
+      .toThrow(/checkpoint mode/);
+
+    const vc = { channelId: 'vc-1' } as never;
+    const withVc = { ...active, virtualChannels: [vc] } as never;
+    expect(() => buildVirtualChannelClose(withVc, vc)).toThrow(/checkpoint mode/);
+  });
+
+  it('allows them only when the factory explicitly opts out', async () => {
+    const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
+      settlement: 'per-party',
+      enforceCheckpoints: false,
+    });
+    expect(plan.factory.enforceCheckpoints).toBe(false);
+    const active = { ...plan.factory, status: 'active' as const };
+    expect(() => buildVirtualChannelOpen(active as never, ['alice', 'bob'], { alice: 10n, bob: 10n }))
+      .not.toThrow();
   });
 });

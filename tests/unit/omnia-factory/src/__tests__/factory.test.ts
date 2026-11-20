@@ -1,6 +1,6 @@
 import { amountToAtoms, wotsAddressData } from '@totemsdk/core';
 import {
-  createFactory,
+  createFactory as createFactoryStrict,
   createFactoryFromPlan,
   buildFactoryOpening,
   proposeFactoryOpening,
@@ -32,6 +32,27 @@ import type {
   WotsLeaseBundle,
   OmniaChannel,
 } from '../index';
+
+// OMN-058: production factories (the host) are created with checkpoint
+// enforcement, which refuses off-chain allocation changes. These tests exercise
+// the virtual-channel mechanics themselves, so they explicitly use the
+// non-checkpoint configuration.
+const createFactory = (
+  participants: Parameters<typeof createFactoryStrict>[0],
+  tokenId: Parameters<typeof createFactoryStrict>[1],
+  bundle: Parameters<typeof createFactoryStrict>[2],
+  provider?: Parameters<typeof createFactoryStrict>[3],
+  tokenScale?: Parameters<typeof createFactoryStrict>[4],
+  funding?: Parameters<typeof createFactoryStrict>[5],
+) => createFactoryStrict(
+  participants,
+  tokenId,
+  bundle,
+  provider,
+  tokenScale,
+  funding,
+  { settlement: 'per-party', enforceCheckpoints: false },
+);
 
 // ─── Mock builders ────────────────────────────────────────────────────────────
 

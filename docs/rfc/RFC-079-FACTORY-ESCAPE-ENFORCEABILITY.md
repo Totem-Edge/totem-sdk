@@ -216,6 +216,15 @@ The branch is now part of the **funded** covenant by default:
 transaction). Pre-release: no migration is provided; factories created before
 this change are test artefacts and are recreated.
 
+Checkpoint enforcement is also the default (OMN-058): the cooperative branch
+only accepts a checkpoint transaction (same script, same value, sequence + 1).
+Because a unilateral escape reads `PREVSTATE`, that is what keeps the payout set
+equal to the latest committed allocation. Off-chain allocation changes —
+virtual-channel open/close and `reallocate()` — are refused on a checkpointed
+factory until the change is committed as a checkpoint; committing it from the
+host is the remaining automation. `enforceCheckpoints: false` is an explicit
+opt-out for factories that will not rely on unilateral exits.
+
 Zero committed shares are rejected rather than skipped. The covenant is built
 once, at funding, and pins one output per participant (`@TOTOUT EQ N` with
 `VERIFYOUT(k … PREVSTATE(128+k))`); a zero share would require a zero-value

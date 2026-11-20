@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   settled to separately enforceable outputs first), and only the latest
   **confirmed** allocation is enforceable; never-committed off-chain states need
   the contest protocol.
+- **Checkpoint enforcement is the default (OMN-058).** The cooperative branch
+  only accepts a checkpoint transaction (same script, same value, sequence + 1),
+  so the on-chain shares cannot drift from the committed allocation. Virtual
+  channel opens/closes and `reallocate()` are therefore refused on a
+  checkpointed factory until the change is committed as a checkpoint. Both
+  escape branches already read `PREVSTATE`, so they now always pay the latest
+  committed split. `enforceCheckpoints: false` is an explicit opt-out for
+  factories that will not rely on unilateral exits.
 - Pre-release: there is no migration path. Factories created before this change
   are test artifacts; recreate them to pick up the funded distribution branch.
 

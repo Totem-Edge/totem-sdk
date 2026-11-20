@@ -172,7 +172,7 @@ export async function createFactory(
   chainProvider?: ChainStateProvider,
   tokenScale: number = 0,
   funding?: FactoryFundingMaterial[],
-  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution' },
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution', enforceCheckpoints: true },
 ): Promise<ChannelFactory> {
   // One plan, one factory ID: build the opening once and reuse it for the
   // proposal, the local record and the funding transaction. Rebuilding here
@@ -295,7 +295,7 @@ export async function buildFactoryOpening(
    * OMN-058: `enforceCheckpoints` uses the checkpoint-mode covenant, so every
    * allocation change must consume and recreate the factory coin (RFC-079 §4).
    */
-  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution' },
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution', enforceCheckpoints: true },
 ): Promise<FactoryOpeningPlan> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -380,6 +380,7 @@ export async function buildFactoryOpening(
     fundingCoinId: undefined,
     pendingCommitment: Buffer.from(pendingCommitment).toString('hex'),
     pendingSignatures: {},
+    enforceCheckpoints: scriptOptions.enforceCheckpoints === true,
   };
   return {
     factory,
@@ -670,6 +671,12 @@ export async function reallocate(
 ): Promise<ChannelFactory> {
   if (factory.status !== 'active') {
     throw new Error(`reallocate requires factory status 'active', got '${factory.status}'`);
+  }
+  if (factory.enforceCheckpoints) {
+    throw new Error(
+      `factory ${factory.factoryId} uses checkpoint mode: reallocating changes the committed allocation `
+      + 'and must be committed with a factory checkpoint transaction first.',
+    );
   }
   if (amount <= 0n) {
     throw new Error(`Reallocation amount must be positive, got ${amount}`);

@@ -453,11 +453,14 @@ const TRANSITION_AMOUNT_KEYS = new Set(['amount', 'unitPrice', 'holderABalance',
  */
 function factoryScriptOptions(params: Record<string, unknown>): {
   settlement: 'full-distribution' | 'per-party';
-  enforceCheckpoints?: boolean;
+  enforceCheckpoints: boolean;
 } {
   return {
     settlement: params.settlement === 'per-party' ? 'per-party' : 'full-distribution',
-    ...(params.enforceCheckpoints === true ? { enforceCheckpoints: true } : {}),
+    // OMN-058: allocation changes must be committed on chain, so escape branches
+    // can never pay a stale split. Opting out is explicit and unsafe for
+    // factories that rely on unilateral exits.
+    enforceCheckpoints: params.enforceCheckpoints !== false,
   };
 }
 
