@@ -53,7 +53,15 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
   // account's history.
   const cacheKey = `activityCache:${activeAccountAddress ?? 'all'}`;
 
-  const { entries } = usePortfolio();
+  const { entries, startStream } = usePortfolio();
+
+  // The portfolio snapshot carries the token names and scales. Only Home and
+  // Send used to request it, so Activity rendered every token as an unknown
+  // `0x050D…C1` chip. Requesting the stream here also delivers the cached
+  // snapshot immediately, so names are present on first paint.
+  useEffect(() => {
+    if (activeAccountAddress) startStream([activeAccountAddress]);
+  }, [activeAccountAddress, startStream]);
 
   // tokenid -> display name + scale, resolved from the portfolio the wallet
   // already holds (the history endpoint only returns ids and raw amounts).
@@ -235,7 +243,19 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
               {formatSignedAmount(displayAmount, isSend)}
             </Typography>
             <Typography variant="caption" color="muted" uppercase>
-              {unit}
+              <span
+                title={unit}
+                style={{
+                  display: 'inline-block',
+                  maxWidth: 132,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'bottom',
+                }}
+              >
+                {unit}
+              </span>
             </Typography>
           </div>
         </div>

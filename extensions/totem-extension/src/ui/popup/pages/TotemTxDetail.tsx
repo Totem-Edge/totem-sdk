@@ -33,19 +33,26 @@ interface TxDetail {
 
 interface TotemTxDetailProps {
   txpowid: string;
+  activeAccountAddress?: string;
   onBack: () => void;
 }
 
 const explorerUrl = (txpowid: string) => `https://minimanode.com/#/${txpowid}`;
 
-export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
+export function TotemTxDetail({ txpowid, activeAccountAddress, onBack }: TotemTxDetailProps) {
   const [tx, setTx] = useState<TxDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
-  const { entries } = usePortfolio();
+  const { entries, startStream } = usePortfolio();
+
+  // Token names and scales come from the portfolio snapshot; without a
+  // subscription the detail shows raw ids for every leg.
+  useEffect(() => {
+    if (activeAccountAddress) startStream([activeAccountAddress]);
+  }, [activeAccountAddress, startStream]);
   const tokens = useMemo(() => {
     const map: Record<string, { name?: string; ticker?: string; decimals?: number }> = {};
     for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string; decimals?: number }>) {

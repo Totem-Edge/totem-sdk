@@ -383,7 +383,7 @@ export function TotemApp() {
           {activeTab === 'send' && <TotemSend activeAccountIndex={activeAccountIndex} initialToken={sendToken} onTokenConsumed={() => setSendToken(null)} />}
           {activeTab === 'receive' && <TotemReceive accountAddress={accountAddress} accounts={walletAccounts} />}
           {activeTab === 'activity' && <TotemActivity activeAccountAddress={accountAddress} onSelectTx={openTransaction} />}
-          {activeTab === 'tx-detail' && selectedTxId && <TotemTxDetail txpowid={selectedTxId} onBack={closeTransaction} />}
+          {activeTab === 'tx-detail' && selectedTxId && <TotemTxDetail txpowid={selectedTxId} activeAccountAddress={accountAddress} onBack={closeTransaction} />}
           {activeTab === 'settings' && <TotemSettings onAccountsUpdated={handleAccountsUpdated} />}
           {activeTab === 'token-detail' && selectedToken && <TotemTokenDetail token={selectedToken} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
         </main>
