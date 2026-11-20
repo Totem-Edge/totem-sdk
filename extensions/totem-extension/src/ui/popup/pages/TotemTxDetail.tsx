@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Typography, StatusPill } from '../../components/atoms';
 import { usePortfolio } from '../../hooks/usePortfolio';
-import { formatAmount, groupThousands, shortAddress, tokenLabel, formatWhen } from '../utils/format';
+import { formatAmount, groupThousands, shortAddress, tokenLabel, formatWhen, decodeMinimaAmount } from '../utils/format';
 import '../../theme/axia-tokens.css';
 
 interface Leg {
@@ -45,9 +45,15 @@ export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
 
   const { entries } = usePortfolio();
   const tokens = useMemo(() => {
-    const map: Record<string, { name?: string; ticker?: string }> = {};
-    for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string }>) {
-      if (entry?.tokenid) map[entry.tokenid.toLowerCase()] = { name: entry.name, ticker: entry.ticker };
+    const map: Record<string, { name?: string; ticker?: string; decimals?: number }> = {};
+    for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string; decimals?: number }>) {
+      if (entry?.tokenid) {
+        map[entry.tokenid.toLowerCase()] = {
+          name: entry.name,
+          ticker: entry.ticker,
+          decimals: entry.decimals,
+        };
+      }
     }
     return map;
   }, [entries]);
@@ -120,6 +126,10 @@ export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
       )}
       {legs.map((leg, index) => {
         const { label } = tokenLabel(leg.token_id, tokens);
+        const decimals =
+          !leg.token_id || leg.token_id.toLowerCase() === '0x00'
+            ? 44
+            : tokens[leg.token_id.toLowerCase()]?.decimals ?? 44;
         return (
           <div
             key={`${leg.coin_id}-${index}`}
@@ -148,7 +158,10 @@ export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
               {leg.address ? shortAddress(leg.address) : '—'}
             </span>
             <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, whiteSpace: 'nowrap' }}>
-              {leg.amount ? groupThousands(formatAmount(leg.amount)) : '0'} <span style={{ opacity: 0.6 }}>{label}</span>
+              {leg.amount
+                ? groupThousands(formatAmount(decodeMinimaAmount(leg.amount, decimals)))
+                : '0'}{' '}
+              <span style={{ opacity: 0.6 }}>{label}</span>
             </span>
           </div>
         );

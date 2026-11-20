@@ -5,6 +5,10 @@
  * cannot drift apart (they previously rendered the same amount differently).
  */
 
+import { decodeMinimaAmount, scaleTokenAmount } from '../../../constants';
+
+export { decodeMinimaAmount, scaleTokenAmount };
+
 /** Trim trailing fractional zeros and a dangling decimal point. */
 function trimZeros(value: string): string {
   return value.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');

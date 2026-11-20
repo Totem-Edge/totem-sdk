@@ -16,6 +16,7 @@ import {
   tokenLabel,
   formatWhen,
   formatAmount,
+  decodeMinimaAmount,
 } from '../utils/format';
 import '../../theme/axia-tokens.css';
 
@@ -52,12 +53,18 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
 
   const { entries } = usePortfolio();
 
-  // tokenid -> display name, resolved once from the portfolio the wallet
-  // already holds (the history endpoint only returns ids).
+  // tokenid -> display name + scale, resolved from the portfolio the wallet
+  // already holds (the history endpoint only returns ids and raw amounts).
   const tokens = useMemo(() => {
-    const map: Record<string, { name?: string; ticker?: string }> = {};
-    for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string }>) {
-      if (entry?.tokenid) map[entry.tokenid.toLowerCase()] = { name: entry.name, ticker: entry.ticker };
+    const map: Record<string, { name?: string; ticker?: string; decimals?: number }> = {};
+    for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string; decimals?: number }>) {
+      if (entry?.tokenid) {
+        map[entry.tokenid.toLowerCase()] = {
+          name: entry.name,
+          ticker: entry.ticker,
+          decimals: entry.decimals,
+        };
+      }
     }
     return map;
   }, [entries]);
@@ -130,14 +137,33 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
     }
   }, []);
 
-  const zeroCount = useMemo(() => events.filter((e) => isZeroAmount(e.amount)).length, [events]);
+  /**
+   * Node amounts are written at 44 decimal places. Native MINIMA uses all 44,
+   * so its text is already the display value; a token's base units must be
+   * divided by its own decimals.
+   */
+  const decimalsFor = useCallback(
+    (tokenid?: string) => {
+      if (!tokenid || tokenid.toLowerCase() === '0x00') return 44;
+      return tokens[tokenid.toLowerCase()]?.decimals ?? 44;
+    },
+    [tokens]
+  );
+
+  const zeroCount = useMemo(
+    () =>
+      events.filter((e) => isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid)))).length,
+    [events, decimalsFor]
+  );
 
   // Newest first, grouped by local day.
   const groups = useMemo(() => {
     const sorted = [...events].sort(
       (a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()
     );
-    const filtered = showStateUpdates ? sorted : sorted.filter((e) => !isZeroAmount(e.amount));
+    const isZero = (e: TxEvent) =>
+      isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid)));
+    const filtered = showStateUpdates ? sorted : sorted.filter((e) => !isZero(e));
 
     const byDay: Array<{ key: string; label: string; items: TxEvent[] }> = [];
     for (const event of filtered) {
@@ -147,13 +173,14 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
       else byDay.push({ key: when.dayKey, label: when.dayKey, items: [event] });
     }
     return byDay;
-  }, [events, showStateUpdates]);
+  }, [events, showStateUpdates, decimalsFor]);
 
   const renderRow = (ev: TxEvent) => {
     const isSend = ev.event_type === 'send';
     const { label: unit, known } = tokenLabel(ev.tokenid, tokens);
+    const displayAmount = decodeMinimaAmount(ev.amount, decimalsFor(ev.tokenid));
     const when = formatWhen(ev.event_date);
-    const zero = isZeroAmount(ev.amount);
+    const zero = isZeroAmount(displayAmount);
 
     return (
       <button
@@ -196,7 +223,7 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
           </div>
           <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
             <Typography variant="body" bold mono>
-              {formatSignedAmount(ev.amount, isSend)}
+              {formatSignedAmount(displayAmount, isSend)}
             </Typography>
             <Typography variant="caption" color="muted" uppercase>
               {unit}

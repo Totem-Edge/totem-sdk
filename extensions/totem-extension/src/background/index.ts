@@ -1678,6 +1678,28 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         return { ok: false, error: error.message, id };
       }
     
+    case 'activity:getTransaction':
+      try {
+        const txLookupStorage = await chrome.storage.local.getTyped(['AXIA_PROJECT_ID', 'AXIA_API_BASE_URL']);
+        const txLookupProjectId = (txLookupStorage.AXIA_PROJECT_ID as string) || 'totem-shared';
+        const txLookupBaseUrl = (txLookupStorage.AXIA_API_BASE_URL as string) || 'https://api.axia.to';
+        const lookupTxpowid = (request as any).txpowid as string;
+        if (!lookupTxpowid) return { ok: false, error: 'txpowid required', id };
+
+        const txRes = await fetch(
+          `${txLookupBaseUrl}/v1/wallet/transaction/${encodeURIComponent(lookupTxpowid)}`,
+          { headers: { 'x-api-key': txLookupProjectId } }
+        );
+        if (txRes.status === 404) return { ok: false, error: 'Transaction not found', id };
+        if (!txRes.ok) {
+          return { ok: false, error: `Transaction lookup failed (HTTP ${txRes.status})`, id };
+        }
+        const tx = await txRes.json();
+        return { ok: true, tx, id };
+      } catch (error: any) {
+        return { ok: false, error: error.message, id };
+      }
+
     case 'wallet:generateMnemonic':
       try {
         const mnemonic = walletManager.generateNewMnemonic();
