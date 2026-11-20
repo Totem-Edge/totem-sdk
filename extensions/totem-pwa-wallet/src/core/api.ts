@@ -351,8 +351,27 @@ export async function finalizeLease(
     body: JSON.stringify(req),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string };
-    throw new Error(err.error || `Finalize failed: ${res.status}`);
+    // Keep the node's own words. The API returns the failed txncheck result and
+    // a failureId that points at the stored signed transaction, which is the
+    // only remaining copy after the node deletes its import.
+    const body = await res.json().catch(() => ({ error: res.statusText })) as {
+      error?: string;
+      details?: string;
+      rpcResponse?: string;
+      hint?: string;
+      failureId?: string | null;
+    };
+    const err = new Error(body.error || `Finalize failed: ${res.status}`) as Error & {
+      details?: string;
+      rpcResponse?: string;
+      hint?: string;
+      failureId?: string | null;
+    };
+    err.details = body.details;
+    err.rpcResponse = body.rpcResponse;
+    err.hint = body.hint;
+    err.failureId = body.failureId ?? null;
+    throw err;
   }
   return res.json() as Promise<FinalizeLeaseResponse>;
 }

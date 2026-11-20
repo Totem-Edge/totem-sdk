@@ -30,6 +30,7 @@ export function Send() {
   const [error, setError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
+  const [sendFailure, setSendFailure] = useState<{ details?: string; rpcResponse?: string; failureId?: string | null } | null>(null);
 
   // Preselect the token when the user arrived from its detail page.
   useEffect(() => {
@@ -135,6 +136,8 @@ export function Send() {
       setStep('done');
     } catch (e) {
       track('send.failed', { identityHash: session.identityHash, tokenId, reason: String(e) });
+      const rich = e as Error & { details?: string; rpcResponse?: string; failureId?: string | null };
+      setSendFailure({ details: rich.details, rpcResponse: rich.rpcResponse, failureId: rich.failureId });
       setError(String(e));
       setStep('error');
     }
@@ -182,7 +185,21 @@ export function Send() {
           <button className="btn btn-secondary btn-sm" onClick={() => setRoute('home')}>←</button>
           <h2 className="page-title">Send Failed</h2>
         </div>
-        <div className="error-msg" style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>{error}</div>
+        <div className="error-msg" style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>{error}</div>
+        {(sendFailure?.details || sendFailure?.rpcResponse || sendFailure?.failureId) && (
+          <details style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <summary style={{ cursor: 'pointer' }}>Technical details</summary>
+            {sendFailure?.failureId && (
+              <p style={{ marginTop: 6, fontFamily: 'var(--font-family-mono)' }}>failure id: {sendFailure.failureId}</p>
+            )}
+            {sendFailure?.details && (
+              <p style={{ marginTop: 6, fontFamily: 'var(--font-family-mono)', overflowWrap: 'anywhere' }}>{sendFailure.details}</p>
+            )}
+            {sendFailure?.rpcResponse && (
+              <pre style={{ marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 10 }}>{sendFailure.rpcResponse}</pre>
+            )}
+          </details>
+        )}
         <button className="btn btn-secondary btn-full" onClick={() => setStep('form')}>Try Again</button>
         <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }} onClick={() => setRoute('home')}>Cancel</button>
       </div>
