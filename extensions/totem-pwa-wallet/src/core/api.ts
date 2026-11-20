@@ -116,6 +116,70 @@ export async function fetchTxHistory(
   }
 }
 
+export interface ActivityEvent {
+  txpowid: string;
+  event_type: 'send' | 'receive';
+  /** Node MiniNumber text (44 decimal places) — decode with `decimals`. */
+  amount: string;
+  tokenid: string;
+  decimals: number | null;
+  event_date: string;
+  coinid: string;
+  localAddress: string;
+  height: number;
+}
+
+export interface TxLeg {
+  coin_id: string;
+  address: string | null;
+  token_id: string;
+  amount: string | null;
+  decimals: number | null;
+}
+
+export interface TxDetail {
+  txpowid: string;
+  height: number;
+  timestamp_ms: number;
+  confirmations: number | null;
+  status: string;
+  inputs: TxLeg[];
+  outputs: TxLeg[];
+}
+
+/**
+ * Address transaction history from the archive index.
+ *
+ * Mirrors the extension's Activity tab: one row per (transaction, token), with
+ * the net movement for the address and the token's scale attached.
+ */
+export async function fetchActivity(address: string, limit = 200): Promise<ActivityEvent[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/transactions/${encodeURIComponent(address)}?limit=${limit}`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.events) ? (data.events as ActivityEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchTransactionDetail(txpowid: string): Promise<TxDetail | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/transaction/${encodeURIComponent(txpowid)}`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as TxDetail;
+  } catch {
+    return null;
+  }
+}
+
 export interface WatermarkResponse {
   addressIndex: number;
   l1: number;

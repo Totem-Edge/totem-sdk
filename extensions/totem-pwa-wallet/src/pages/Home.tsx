@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useWallet } from '../core/WalletContext';
-import { fetchTxHistory, fetchPortfolio, type TxRecord } from '../core/api';
+import { fetchPortfolio } from '../core/api';
 import { portfolioStreamManager } from '../core/balanceStream';
 import type { PortfolioStreamListener, PortfolioEntry } from '@totemsdk/realtime';
 import { track } from '../core/observability';
@@ -15,27 +15,15 @@ import { track } from '../core/observability';
 export function Home() {
   const { session, activeAccount, setRoute, lock, switchAccount } = useWallet();
   const [balances, setBalances]     = useState<PortfolioEntry[]>([]);
-  const [txs, setTxs]               = useState<TxRecord[]>([]);
   const [loadingBal, setLoadingBal] = useState(true);
   const [error, setError]           = useState('');
   const [copied, setCopied]         = useState(false);
   const [streamOk, setStreamOk]     = useState<boolean | null>(null);
   const pollRef                     = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadTxHistory = useCallback(async () => {
-    if (!activeAccount || !session) return;
-    try {
-      const history = await fetchTxHistory(activeAccount.address, session.identityHash, 10);
-      setTxs(history);
-    } catch { /* non-fatal */ }
-  }, [activeAccount, session]);
-
   // PortfolioStreamManager — WebSocket real-time portfolio streaming
   useEffect(() => {
     if (!activeAccount || !session) return;
-
-    // Initial REST load for fast first paint
-    loadTxHistory();
 
     // Track home view
     track('session.home', { identityHash: session.identityHash });
@@ -45,7 +33,7 @@ export function Home() {
       if (portfolioStreamManager.getConnectionState() !== 'connected') {
         setStreamOk(false);
         pollRef.current = setInterval(() => {
-          loadTxHistory();
+          void manualRefresh();
         }, 30_000);
       }
     }, 5_000);
@@ -60,7 +48,6 @@ export function Home() {
           return [...other, ...addrEntries];
         });
         setLoadingBal(false);
-        loadTxHistory();
       },
       onConnectionStateChange(state) {
         if (state === 'connected') {
@@ -104,13 +91,6 @@ export function Home() {
     } finally {
       setLoadingBal(false);
     }
-    await loadTxHistory();
-  }
-
-  function formatDate(ts: number) {
-    return new Date(ts).toLocaleDateString(undefined, {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
   }
 
   const nativeEntry  = balances.find(b => b.kind === 'native');
@@ -259,44 +239,10 @@ export function Home() {
         </div>
       )}
 
-      {/* TX history */}
-      <div>
-        <p className="label" style={{ marginBottom: 'var(--space-1)' }}>Recent Transactions</p>
-        {txs.length === 0 && !loadingBal && (
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', textAlign: 'center', padding: 'var(--space-3)' }}>
-            No transactions yet
-          </p>
-        )}
-        {txs.map(tx => (
-          <div key={tx.txid} style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 'var(--space-1-5) 0',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                <span className={`chip chip-${tx.direction === 'in' ? 'success' : 'warning'}`}>
-                  {tx.direction === 'in' ? 'IN' : 'OUT'}
-                </span>
-                <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                  {tx.txid.slice(0, 12)}…
-                </span>
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
-                {formatDate(tx.date)}
-              </p>
-            </div>
-            <span style={{
-              fontWeight: 'var(--weight-bold)',
-              color: tx.direction === 'in' ? 'var(--color-success)' : 'var(--text-primary)',
-            }}>
-              {tx.direction === 'in' ? '+' : '-'}{tx.amount}
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* Activity lives in its own tab, exactly like the extension */}
+      <button className="btn btn-secondary btn-full" onClick={() => setRoute('activity')} style={{ marginBottom: 'var(--space-3)' }}>
+        View activity →
+      </button>
 
       {/* Lock footer */}
       <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--border-subtle)' }}>
