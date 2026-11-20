@@ -8,6 +8,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '../core/WalletContext';
+import { QrScanner } from '../components/QrScanner';
 import {
   prepareLease, finalizeLease, fetchWatermark,
   fetchCoins, fetchCoinProofs, fetchPortfolio, type PortfolioEntry,
@@ -19,7 +20,7 @@ import { track } from '../core/observability';
 type Step = 'form' | 'confirm' | 'signing' | 'done' | 'error';
 
 export function Send() {
-  const { session, activeAccount, setRoute } = useWallet();
+  const { session, activeAccount, setRoute, pendingSendTokenId, setPendingSendTokenId } = useWallet();
   const [step, setStep] = useState<Step>('form');
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -28,6 +29,15 @@ export function Send() {
   const [txId, setTxId] = useState('');
   const [error, setError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
+
+  // Preselect the token when the user arrived from its detail page.
+  useEffect(() => {
+    if (pendingSendTokenId) {
+      setTokenId(pendingSendTokenId);
+      setPendingSendTokenId(null);
+    }
+  }, [pendingSendTokenId, setPendingSendTokenId]);
 
   // Load token balances for the selector
   useEffect(() => {
@@ -41,6 +51,12 @@ export function Send() {
     if (tid === '0x00') return 'MINIMA';
     const entry = balances.find(b => b.tokenid === tid);
     return entry?.name ?? tid.slice(0, 10) + '…';
+  }
+
+  /** Sendable balance of the selected token, for the MAX shortcut. */
+  function maxAmount(): string {
+    const entry = balances.find(b => b.tokenid === tokenId);
+    return entry?.sendable || entry?.confirmed || '0';
   }
 
   function validateForm(): string | null {
@@ -137,9 +153,20 @@ export function Send() {
           {amount} {tokenLabel(tokenId)} → {toAddress.slice(0, 16)}…
         </p>
         {txId && (
-          <p style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
+          <p style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)', overflowWrap: 'anywhere' }}>
             TX: {txId}
           </p>
+        )}
+        {txId && (
+          <a
+            className="btn btn-secondary btn-full"
+            href={`https://minimanode.com/#/${txId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ marginBottom: 'var(--space-1)' }}
+          >
+            View on minimanode ↗
+          </a>
         )}
         <button className="btn btn-primary btn-full" onClick={() => setRoute('home')}>
           Back to Wallet
@@ -245,21 +272,35 @@ export function Send() {
         )}
 
         <label className="label">Recipient Address</label>
-        <input
-          className="input mono"
-          style={{ marginBottom: 'var(--space-2)' }}
-          placeholder="0xMx..."
-          value={toAddress}
-          onChange={e => { setToAddress(e.target.value); setError(''); }}
-        />
+        <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+          <input
+            className="input mono"
+            style={{ flex: 1 }}
+            placeholder="0xMx..."
+            value={toAddress}
+            onChange={e => { setToAddress(e.target.value); setError(''); }}
+          />
+          <button className="btn btn-secondary btn-sm" onClick={() => setScanOpen(true)} title="Scan a QR code">
+            Scan
+          </button>
+        </div>
         <label className="label">Amount ({tokenLabel(tokenId)})</label>
-        <input
-          className="input"
-          style={{ marginBottom: 'var(--space-2)' }}
-          type="number" min="0" step="any" placeholder="0.0"
-          value={amount}
-          onChange={e => { setAmount(e.target.value); setError(''); }}
-        />
+        <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+          <input
+            className="input"
+            style={{ flex: 1 }}
+            type="number" min="0" step="any" placeholder="0.0"
+            value={amount}
+            onChange={e => { setAmount(e.target.value); setError(''); }}
+          />
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setAmount(maxAmount()); setError(''); }}
+            title="Send the full sendable balance"
+          >
+            MAX
+          </button>
+        </div>
         {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
         <button
           className="btn btn-primary btn-full"
@@ -272,6 +313,13 @@ export function Send() {
           Review Transaction →
         </button>
       </div>
+
+      {scanOpen && (
+        <QrScanner
+          onResult={(value) => { setToAddress(value); setError(''); }}
+          onClose={() => setScanOpen(false)}
+        />
+      )}
     </div>
   );
 }

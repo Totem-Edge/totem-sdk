@@ -180,6 +180,25 @@ export async function fetchTransactionDetail(txpowid: string): Promise<TxDetail 
   }
 }
 
+export interface TokenVintage {
+  mintBlock: number | null;
+  mintTimestamp: number | null;
+}
+
+/** Mint block/timestamp for a token, used for the NFT vintage badge. */
+export async function fetchTokenVintage(tokenId: string): Promise<TokenVintage> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/tokens/${encodeURIComponent(tokenId)}/vintage`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return { mintBlock: null, mintTimestamp: null };
+    return (await res.json()) as TokenVintage;
+  } catch {
+    return { mintBlock: null, mintTimestamp: null };
+  }
+}
+
 export interface WatermarkResponse {
   addressIndex: number;
   l1: number;

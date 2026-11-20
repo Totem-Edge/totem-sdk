@@ -14,6 +14,8 @@ import {
   type WalletNetworkConfig,
 } from '../core/config/selfHosted';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
+import { ConnectedSitesStore, type ConnectedSite, type TxPermission } from '../stores/ConnectedSitesStore';
+import { applyTheme, storedTheme, themeList, THEME_STORAGE_KEY, type ThemeId } from '../theme/themes';
 
 const AXIA_BASE = import.meta.env.VITE_AXIA_API_BASE ?? 'https://api.axia.to';
 const AXIA_PROJECT_ID = import.meta.env.VITE_AXIA_PROJECT_ID ?? 'totem-shared';
@@ -25,6 +27,40 @@ export function Settings() {
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAccount, setNewAccount] = useState<AccountRecord | null>(null);
   const [error, setError] = useState('');
+
+  // ── Appearance ─────────────────────────────────────────────────────────────
+  const [themeId, setThemeId] = useState<ThemeId>(() => storedTheme());
+
+  function chooseTheme(id: ThemeId) {
+    setThemeId(id);
+    applyTheme(id);
+    try { localStorage.setItem(THEME_STORAGE_KEY, id); } catch { /* storage unavailable */ }
+  }
+
+  // ── Connected dApps ────────────────────────────────────────────────────────
+  const [sites, setSites] = useState<ConnectedSite[]>([]);
+  const [permissions, setPermissions] = useState<TxPermission[]>([]);
+
+  const loadSites = React.useCallback(async () => {
+    try {
+      const [connections, perms] = await Promise.all([
+        ConnectedSitesStore.getAllConnections(),
+        ConnectedSitesStore.getAllPermissions(),
+      ]);
+      setSites(connections);
+      setPermissions(perms);
+    } catch {
+      /* IndexedDB unavailable — nothing to show */
+    }
+  }, []);
+
+  useEffect(() => { void loadSites(); }, [loadSites]);
+
+  async function revokeSite(origin: string) {
+    await ConnectedSitesStore.removeConnection(origin);
+    await ConnectedSitesStore.revokePermission(origin);
+    await loadSites();
+  }
 
   // ── Network & key-use selection (RFC-013) ───────────────────────────────────
   const [netConfig, setNetConfig] = useState<WalletNetworkConfig>(DEFAULT_WALLET_NETWORK_CONFIG);
@@ -257,6 +293,89 @@ export function Settings() {
               Save
             </button>
           </div>
+        </div>
+
+        <div className="card">
+          <p className="label" style={{ marginBottom: 'var(--space-2)' }}>Appearance</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+            {themeList.map(theme => {
+              const active = theme.id === themeId;
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => chooseTheme(theme.id)}
+                  title={theme.description}
+                  style={{
+                    flex: '1 1 30%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 8px',
+                    background: active ? theme.colors.accentMuted : 'var(--bg-subtle)',
+                    border: `1px solid ${active ? theme.colors.accent : 'var(--border-subtle)'}`,
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'inherit',
+                    fontSize: 'var(--text-xs)',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: theme.colors.accent,
+                      border: `1px solid ${theme.colors.borderDefault}`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  {theme.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card">
+          <p className="label" style={{ marginBottom: 'var(--space-2)' }}>
+            Connected Apps ({sites.length})
+          </p>
+          {sites.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+              No apps are connected to this wallet.
+            </p>
+          ) : (
+            sites.map(site => {
+              const perm = permissions.find(p => p.origin === site.origin);
+              const expired = site.expiresAt > 0 && Date.now() > site.expiresAt;
+              return (
+                <div
+                  key={site.origin}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-1)',
+                    padding: '6px 0',
+                    borderBottom: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {site.origin}
+                    </p>
+                    <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      connected {new Date(site.grantedAt).toLocaleDateString()}
+                      {perm ? ` · can send (${perm.allowedIntents.join(', ')})` : ' · read only'}
+                      {expired ? ' · expired' : ''}
+                    </p>
+                  </div>
+                  <button className="btn btn-sm btn-secondary" onClick={() => void revokeSite(site.origin)}>
+                    Revoke
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
 
         <button className="btn btn-secondary btn-full" onClick={lock}>

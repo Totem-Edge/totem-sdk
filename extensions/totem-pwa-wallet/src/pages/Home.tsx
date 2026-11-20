@@ -115,6 +115,14 @@ function TokenRow({ entry, onClick }: { entry: PortfolioEntry; onClick?: () => v
               NFT
             </span>
           )}
+          {entry.webvalidate && (
+            <span
+              title={`Verified by ${entry.webvalidate}`}
+              style={{ color: 'var(--minima-green, var(--axia-aqua))', fontSize: 11, lineHeight: '12px' }}
+            >
+              ★
+            </span>
+          )}
         </span>
         {!isNative && (
           <span
@@ -155,7 +163,7 @@ function TokenRow({ entry, onClick }: { entry: PortfolioEntry; onClick?: () => v
 }
 
 export function Home() {
-  const { session, activeAccount, setRoute, lock, switchAccount } = useWallet();
+  const { session, activeAccount, setRoute, lock, switchAccount, openToken } = useWallet();
   const [balances, setBalances] = useState<PortfolioEntry[]>([]);
   const [loadingBal, setLoadingBal] = useState(true);
   const [error, setError] = useState('');
