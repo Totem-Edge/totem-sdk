@@ -17,6 +17,8 @@ interface Leg {
   address: string | null;
   token_id: string;
   amount: string | null;
+  /** Token scale supplied by the archive index; null when unknown. */
+  decimals?: number | null;
 }
 
 interface TxDetail {
@@ -127,9 +129,9 @@ export function TotemTxDetail({ txpowid, onBack }: TotemTxDetailProps) {
       {legs.map((leg, index) => {
         const { label } = tokenLabel(leg.token_id, tokens);
         const decimals =
-          !leg.token_id || leg.token_id.toLowerCase() === '0x00'
-            ? 44
-            : tokens[leg.token_id.toLowerCase()]?.decimals ?? 44;
+          leg.token_id && leg.token_id.toLowerCase() !== '0x00'
+            ? (typeof leg.decimals === 'number' ? leg.decimals : tokens[leg.token_id.toLowerCase()]?.decimals ?? 44)
+            : 44;
         return (
           <div
             key={`${leg.coin_id}-${index}`}

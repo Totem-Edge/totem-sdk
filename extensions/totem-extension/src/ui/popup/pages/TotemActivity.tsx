@@ -28,6 +28,8 @@ interface TxEvent {
   amount: string;
   tokenid: string;
   token_name?: string;
+  /** Token scale supplied by the archive index; null when unknown. */
+  decimals?: number | null;
   event_date: string;
   coinid: string;
   localAddress: string;
@@ -140,10 +142,15 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
   /**
    * Node amounts are written at 44 decimal places. Native MINIMA uses all 44,
    * so its text is already the display value; a token's base units must be
-   * divided by its own decimals.
+   * divided by its own decimals. The archive index supplies the scale, which
+   * also covers tokens the wallet no longer holds; the portfolio is the
+   * fallback for older index rows that omit it.
    */
   const decimalsFor = useCallback(
-    (tokenid?: string) => {
+    (tokenid?: string, fromServer?: number | null) => {
+      if (tokenid && tokenid.toLowerCase() !== '0x00' && typeof fromServer === 'number') {
+        return fromServer;
+      }
       if (!tokenid || tokenid.toLowerCase() === '0x00') return 44;
       return tokens[tokenid.toLowerCase()]?.decimals ?? 44;
     },
@@ -152,7 +159,9 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
 
   const zeroCount = useMemo(
     () =>
-      events.filter((e) => isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid)))).length,
+      events.filter((e) =>
+        isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid, e.decimals)))
+      ).length,
     [events, decimalsFor]
   );
 
@@ -162,7 +171,7 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
       (a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()
     );
     const isZero = (e: TxEvent) =>
-      isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid)));
+      isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid, e.decimals)));
     const filtered = showStateUpdates ? sorted : sorted.filter((e) => !isZero(e));
 
     const byDay: Array<{ key: string; label: string; items: TxEvent[] }> = [];
@@ -178,7 +187,7 @@ export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivit
   const renderRow = (ev: TxEvent) => {
     const isSend = ev.event_type === 'send';
     const { label: unit, known } = tokenLabel(ev.tokenid, tokens);
-    const displayAmount = decodeMinimaAmount(ev.amount, decimalsFor(ev.tokenid));
+    const displayAmount = decodeMinimaAmount(ev.amount, decimalsFor(ev.tokenid, ev.decimals));
     const when = formatWhen(ev.event_date);
     const zero = isZeroAmount(displayAmount);
 
