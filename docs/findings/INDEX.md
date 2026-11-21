@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-21T18:22:07.335Z. 88 findings, 16 open.
+Generated 2026-11-21T19:18:37.419Z. 88 findings, 15 open.
 
 sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 
@@ -11,7 +11,7 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `CAN-010` | critical | sdk-defect | fixed | `@totemsdk/omnia-host` | FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest |
 | `CAN-018` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Factory proposal still signs a peer-controlled commitment |
 | `CAN-024` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/chain-provider`, `@totemsdk/core` | Omnia writes atom amounts with MiniNumber scale 0, encoding channel values 10^44 times too large |
-| `OMN-001` → `CAN-019` | critical | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
+| `OMN-001` → `CAN-019` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
 | `OMN-003` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | A transferred VTXO keeps the previous owner's exit entitlement |
 | `OMN-008` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Vesting policy never enforces the vested amount before the end block |
 | `OMN-022` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | The host signs peer-supplied virtual-channel plans without rebuilding them |

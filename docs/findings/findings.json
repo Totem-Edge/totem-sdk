@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T18:22:07.335Z",
+  "generatedAt": "2026-11-21T19:18:37.419Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -347,7 +347,7 @@
       "id": "OMN-001",
       "canonical": "CAN-019",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "Peer-scoped finalization stores peer-supplied factory, channel and splice state",
       "packages": [
@@ -359,12 +359,12 @@
         "@totemsdk/omnia-factory": "0.7.1"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-001",
-      "summary": "FACTORY_FINALIZED opening→active is validated, but two branches are not: active→active returns the incoming object wholesale, and opening→opening accepts additional pending signatures without verifying them. In the host, VC_FINALIZED writes `payload.factory` to the factory store after checking only factoryId and sequence+1, SPLICE_FINALIZED writes `payload.channel` after binding checks that never recompute balances or signatures, and FACTORY_CLOSE_FINALIZED marks a known factory closed without any settlement evidence.",
-      "impact": "A participant (or a compromised peer) can replace another participant's locally accepted factory state, channel state or closure status. Fund loss requires a downstream path that trusts the stored object; inconsistent accounting and stuck funds are reachable without one.",
+      "summary": "Every finalization message is now rebuilt from local state and stored from the rebuild, never from the peer payload. FACTORY_FINALIZED on an active factory may only fill funding references: sequence, state log, allocations and the virtual-channel set must match locally. Opening→opening verifies every supplied signature, rejects unknown parties and refuses removal. VC_FINALIZED derives the successor from the local factory plus the allocation set this host co-signed. SPLICE_FINALIZED rebuilds the channel from the local channel plus the signed totals and split. FACTORY_CLOSE_FINALIZED requires the settlement transaction this host signed and, when a chain adapter is present, observes the factory coin spent before closing.",
+      "impact": "A peer can no longer replace another participant's factory, channel or closure state with a message. Mutated sequences, logs, allocations, virtual-channel sets, signatures, balances or settlement transactions are rejected before the store is touched, so the host keeps its own accounting and only closes when the signed settlement is present and the factory coin is observed spent.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "Every peer finalization message is rejected unless the resulting state can be rebuilt from local state plus a transition that verifies.",
-        "actual": "assertFactoryFinalized returns `{...incoming}` for active→active, and lifecycle.ts stores `payload.factory` and `payload.channel` after identity/sequence checks only.",
+        "actual": "The stored factory/channel is rebuilt from local state plus the signed transition; the peer object is only an assertion. Tests cover active sequence/log/allocations/VC mutations, added and removed opening signatures, VC allocation/balance mutations, splice state smuggling and close settlement substitution (tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts, tests/unit/omnia-host/src/__tests__/peer-guards.test.ts).",
         "evidence": [
           "packages/omnia-factory/src/factory.ts: assertFactoryFinalized active→active and opening→opening branches",
           "packages/omnia-host/src/lifecycle.ts: `factories.set(payload.factory.factoryId, payload.factory)`",
@@ -389,11 +389,12 @@
           "A matrix test covers every peer finalization handler against sequence, allocation, signature, identity and replay mutations; every case is rejected and the store is unchanged.",
           "Factory active→active validates sequence progression and the state log before storing.",
           "Opening→opening verifies any signature it did not already hold.",
-          "FACTORY_CLOSE_FINALIZED requires finality evidence bound to the factory id and settlement.",
+          "FACTORY_CLOSE_FINALIZED requires the settlement transaction this host signed and an observed spent factory coin.",
           "The valid-path cases still succeed."
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/peer-finalization-adversarial.test.ts"
+          "tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts",
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test",
