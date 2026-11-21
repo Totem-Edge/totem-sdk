@@ -50,11 +50,15 @@ export function calculateUsdValue(minimaAmount: string, priceUsd: number): numbe
   return amount * priceUsd;
 }
 
+/**
+ * USD amount, matching the extension's formatter:
+ *   ≥ $1M → $1.23M, ≥ $1K → $1.23K, ≥ $1 → $1.23,
+ *   below $1 → four decimals so the 3rd/4th places are visible ($0.0031).
+ */
 export function formatUsd(value: number): string {
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  if (!Number.isFinite(value) || value <= 0) return '$0.00';
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
+  if (value >= 1) return `$${value.toFixed(2)}`;
+  return `$${value.toFixed(4)}`;
 }
