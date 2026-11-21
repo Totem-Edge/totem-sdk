@@ -4,14 +4,14 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
-import { atomsToAmount, bytesToHex, coinAmountAtoms } from '@totemsdk/core';
+import { atomsToAmount, buildScriptProof, bytesToHex, coinAmountAtoms } from '@totemsdk/core';
 import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
 import type { SpliceExpectation } from './peer-guards.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
-import { createOmniaIntegration, createOmniaSwarm, setSigningJournal } from '@totemsdk/omnia';
+import { createOmniaIntegration, createOmniaSwarm, setSigningJournal, startUnilateralClose, timeoutHTLC } from '@totemsdk/omnia';
 import { SqliteChannelStore } from './stores/sqlite-store.js';
 import { OperationStore } from './stores/operations.js';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -1192,15 +1192,97 @@ export function createOmniaHost(
               }
             : {}),
           onUnilateralClose: async (channel, finding) => {
+            // OMN-015: a spent funding coin on an active channel is a close
+            // claim. Contest it by broadcasting our latest signed state; do not
+            // merely report it and stop watching.
             void observation?.emit({
               domain: 'channel', kind: 'channel.unilateral_close', phase: 'observed',
               entity: { type: 'channel', id: channel.channelId },
               data: { detail: finding.detail },
             });
+            if (channel.status === 'closing_unilateral') {
+              // We already broadcast our close; finalisation is driven by the
+              // contest window, not by this hook.
+              return;
+            }
+            if (!chainAdapter?.exportCoin) {
+              throw new Error('unilateral close detected but no chain adapter is configured to contest it');
+            }
+            if (!channel.latestState?.closePackage) {
+              throw new Error('unilateral close detected but no signed close package is available to contest it');
+            }
+            if (!channel.fundingCoinId) {
+              throw new Error('unilateral close detected but the channel has no funding coin to prove');
+            }
+            const exported = await chainAdapter.exportCoin(channel.fundingCoinId);
+            if (!exported?.data) {
+              throw new Error('unilateral close detected but the funding coin proof is unavailable');
+            }
+            const proofs = {
+              coinProofs: [Uint8Array.from(Buffer.from(exported.data.replace(/^0x/i, ''), 'hex'))],
+              scriptProofs: [await buildScriptProof(channel.fundingScript)],
+            };
+            const contested = await startUnilateralClose(channel, chainAdapter, proofs);
+            channelStore?.set(contested.channel.channelId, contested.channel);
+            void observation?.emit({
+              domain: 'channel', kind: 'channel.unilateral_close', phase: 'broadcast',
+              entity: { type: 'channel', id: channel.channelId },
+              data: {
+                detail: finding.detail,
+                contestStartBlock: contested.contestStartBlock,
+                contestDeadlineBlock: contested.contestDeadlineBlock,
+                updateTxpowId: contested.updateTxpowId,
+              },
+            });
           },
           onHtlcExpiring: async (channel, htlc, finding) => {
+            // OMN-015: timeout the HTLC before its deadline and propagate the
+            // signed timeout state to the counterparty.
             void observation?.emit({
               domain: 'channel', kind: 'channel.htlc_expiring', phase: 'observed',
+              entity: { type: 'channel', id: channel.channelId },
+              data: { htlcId: htlc.htlcId, blocksRemaining: finding.blocksRemaining },
+            });
+            if (!chainAdapter) {
+              throw new Error('HTLC expiring but no chain adapter is configured to time it out');
+            }
+            if (!localBundle) {
+              throw new Error('HTLC expiring but no local lease bundle is available to sign the timeout');
+            }
+            const timedOut = await timeoutHTLC(
+              channel,
+              htlc.htlcId,
+              dependencies.leaseProvider as never,
+              chainAdapter,
+              dependencies.signer,
+            );
+            if (timedOut.error) throw new Error(timedOut.error);
+            channelStore?.set(timedOut.channel.channelId, timedOut.channel);
+
+            const localDigest = localParticipant?.publicKeyDigest;
+            const remote = timedOut.channel.parties.find(
+              (party) => party.publicKeyDigest !== localDigest,
+            );
+            if (remote && swarm) {
+              try {
+                const peer = await swarm.connectToPeer(
+                  remote.publicKeyDigest,
+                  timedOut.channel.channelId,
+                  remote.transportPubkey,
+                );
+                await peer.sendMessage({
+                  type: 'STATE_UPDATE',
+                  channelId: timedOut.channel.channelId,
+                  nonce: Date.now(),
+                  payload: { ...timedOut.partialState },
+                });
+              } catch {
+                // The timeout is already signed locally; the peer can catch up
+                // on the next state exchange.
+              }
+            }
+            void observation?.emit({
+              domain: 'channel', kind: 'channel.htlc_expiring', phase: 'broadcast',
               entity: { type: 'channel', id: channel.channelId },
               data: { htlcId: htlc.htlcId, blocksRemaining: finding.blocksRemaining },
             });

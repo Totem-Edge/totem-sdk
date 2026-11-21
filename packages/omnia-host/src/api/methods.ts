@@ -1,4 +1,5 @@
 import { withChannelLock } from '../channel-lock.js';
+import { assertTwoPartyFactory } from '../peer-guards.js';
 import {
   activateChannel,
   addHTLC,
@@ -1739,6 +1740,7 @@ function registerPreparedPayMethods(
         transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
       } satisfies FactoryParticipant;
     });
+    assertTwoPartyFactory(participants);
     const toBytes = (value: unknown): Uint8Array | undefined =>
       typeof value === 'string' ? Buffer.from(value.replace(/^0x/i, ''), 'hex') : undefined;
     const fundingMaterials: FactoryFundingMaterial[] | undefined = Array.isArray(params.funding)
@@ -3480,6 +3482,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
       } satisfies FactoryParticipant;
     });
+    assertTwoPartyFactory(parsed);
     const localPartyId = context.localParticipant?.partyId;
     if (!localPartyId) throw new Error('Local participant is not configured');
     const localBundle = context.factoryBundles[localPartyId];

@@ -133,6 +133,16 @@ export interface PendingSpliceRecord {
   txpowId: string;
   coinId?: string;
   broadcastAt: number;
+  /**
+   * OMN-014: the successor this splice must produce. Recovery uses the record's
+   * own address/token/amount (and coin id once observed) instead of applying one
+   * global observation to every pending splice.
+   */
+  expected?: {
+    address: string;
+    tokenId: string;
+    amount: string;
+  };
 }
 
 export interface PendingSpliceStore {
@@ -166,10 +176,36 @@ export async function recoverInterruptedSplices(
 ): Promise<SpliceRecoveryResult[]> {
   const pending = await store.list();
   const results: SpliceRecoveryResult[] = [];
+  /** A successor coin may settle exactly one pending splice. */
+  const claimed = new Set<string>();
 
   for (const record of pending) {
     try {
-      const observed = await observeSpliceSuccessor(chain, { ...observe, timeoutMs: observe.timeoutMs ?? 0 });
+      const options: SpliceSuccessorOptions = {
+        ...observe,
+        ...(record.expected
+          ? {
+              address: record.expected.address,
+              tokenId: record.expected.tokenId,
+              amount: BigInt(record.expected.amount),
+            }
+          : {}),
+        timeoutMs: observe.timeoutMs ?? 0,
+      };
+      const observed = await observeSpliceSuccessor(chain, options);
+      if (observed) {
+        if (claimed.has(observed.coinId)) {
+          throw new Error(
+            `successor coin ${observed.coinId} was already claimed by another pending splice`,
+          );
+        }
+        if (record.coinId && record.coinId !== observed.coinId) {
+          throw new Error(
+            `observed successor ${observed.coinId} does not match the coin recorded for this splice (${record.coinId})`,
+          );
+        }
+        claimed.add(observed.coinId);
+      }
       if (observed?.confirmed) {
         await store.clear(record.spliceId);
         results.push({
@@ -189,9 +225,13 @@ export async function recoverInterruptedSplices(
           error: 'rebroadcast rejected',
         });
       } else {
+        if (observed && record.coinId !== observed.coinId) {
+          // Persist the observed successor so the next pass is bound to it.
+          await store.save({ ...record, coinId: observed.coinId });
+        }
         results.push({
           spliceId: record.spliceId,
-          status: observed ? 'funding_pending' : 'funding_pending',
+          status: 'funding_pending',
           ...(observed ? { coinId: observed.coinId } : {}),
           rebroadcast: true,
         });

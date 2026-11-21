@@ -22,6 +22,23 @@ import type { OmniaChannel } from '@totemsdk/omnia';
 
 const normalizeHex = (value: string): string => value.replace(/^0x/i, '').toLowerCase();
 
+/**
+ * OMN-027: the host's factory opening coordinates with exactly one remote peer.
+ * Advertising an N-party API while messaging one participant would create a
+ * factory the others never signed, so refuse anything but two distinct parties.
+ */
+export function assertTwoPartyFactory(participants: ReadonlyArray<{ publicKeyDigest: string }>): void {
+  if (participants.length !== 2) {
+    throw new Error(
+      `factory opening coordinates with one remote participant; ${participants.length}-party factories are not supported by this host`,
+    );
+  }
+  const digests = new Set(participants.map((participant) => normalizeHex(participant.publicKeyDigest)));
+  if (digests.size !== 2) {
+    throw new Error('factory participants must have distinct public key digests');
+  }
+}
+
 /** A virtual-channel proposal this host co-signed, awaiting VC_FINALIZED. */
 export interface PendingVcAcceptance {
   kind: 'vc-open' | 'vc-close';

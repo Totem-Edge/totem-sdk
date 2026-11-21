@@ -3,6 +3,7 @@ import type { SpliceAcceptance } from '@totemsdk/omnia-splice';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import {
   assertFactoryCloseSettlement,
+  assertTwoPartyFactory,
   assertFactoryCommitment,
   assertSpliceFinalized,
   assertVcFinalized,
@@ -428,5 +429,26 @@ describe('assertFactoryCloseSettlement (OMN-001)', () => {
       { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 50n, B: 50n }, settlementTxHex: '0xDEAD' },
       { settlementTxHex: '0xdead' },
     )).not.toThrow();
+  });
+});
+
+
+// ─── OMN-027: the factory API coordinates with one remote peer ───────────────
+
+describe('assertTwoPartyFactory (OMN-027)', () => {
+  const parties = (...digests: string[]) => digests.map((digest) => ({ publicKeyDigest: digest }));
+
+  it('accepts two distinct participants', () => {
+    expect(() => assertTwoPartyFactory(parties(PKD_A, PKD_B))).not.toThrow();
+  });
+
+  it('refuses an N-party opening the host cannot coordinate', () => {
+    expect(() => assertTwoPartyFactory(parties(PKD_A, PKD_B, '0x' + '33'.repeat(32))))
+      .toThrow(/3-party factories are not supported/);
+  });
+
+  it('refuses duplicate participants', () => {
+    expect(() => assertTwoPartyFactory(parties(PKD_A, PKD_A)))
+      .toThrow(/distinct public key digests/);
   });
 });
