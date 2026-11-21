@@ -834,24 +834,82 @@ export function assertFactoryFinalized(
     if (JSON.stringify(jsonSafeForCompare(last.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
       throw new Error('FACTORY_FINALIZED changes allocations in the accept entry');
     }
-    return { ...incoming, pendingSignatures: {} };
+    // Rebuild from local state: the peer may only supply the funding references.
+    return {
+      ...known,
+      status: 'active',
+      currentSequence: 1,
+      stateLog: [...(known.stateLog ?? []), last],
+      pendingCommitment: undefined,
+      pendingSignatures: {},
+      fundingTxId: incoming.fundingTxId ?? known.fundingTxId,
+      fundingCoinId: incoming.fundingCoinId ?? known.fundingCoinId,
+    };
   }
 
   if (known.status === 'active' && incoming.status === 'active') {
-    // Funding references may be filled in after activation; terms are already checked.
-    return { ...incoming };
+    // Funding references may be filled in after activation. Nothing else may
+    // change: a peer cannot rewrite sequence, log, allocations or the VC set.
+    if (incoming.currentSequence !== known.currentSequence) {
+      throw new Error('FACTORY_FINALIZED changes the active sequence');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.stateLog ?? [])) !== JSON.stringify(jsonSafeForCompare(known.stateLog ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the active state log');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
+      throw new Error('FACTORY_FINALIZED changes the active allocations');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.virtualChannels ?? [])) !== JSON.stringify(jsonSafeForCompare(known.virtualChannels ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the active virtual-channel set');
+    }
+    if (incoming.pendingCommitment || (incoming.pendingSignatures && Object.keys(incoming.pendingSignatures).length > 0)) {
+      throw new Error('FACTORY_FINALIZED carries pending opening state on an active factory');
+    }
+    return {
+      ...known,
+      fundingTxId: known.fundingTxId ?? incoming.fundingTxId,
+      fundingCoinId: known.fundingCoinId ?? incoming.fundingCoinId,
+    };
   }
   if (known.status === 'opening' && incoming.status === 'opening') {
-    // Funding references only; signatures may not be removed or altered.
+    // Funding references and additional *valid* opening signatures only.
+    if (incoming.currentSequence !== known.currentSequence) {
+      throw new Error('FACTORY_FINALIZED changes the opening sequence');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.stateLog ?? [])) !== JSON.stringify(jsonSafeForCompare(known.stateLog ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the opening state log');
+    }
+    if (!known.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED for a proposal without a pending commitment');
+    }
+    const commitment = Buffer.from(known.pendingCommitment.replace(/^0x/i, ''), 'hex');
     const knownSigs = known.pendingSignatures ?? {};
     const incomingSigs = incoming.pendingSignatures ?? {};
-    for (const [partyId, sig] of Object.entries(knownSigs)) {
-      const next = incomingSigs[partyId];
-      if (!next || Buffer.from(next).toString('hex') !== Buffer.from(sig).toString('hex')) {
+    const byParty = new Map(known.participants.map((participant) => [participant.partyId, participant]));
+    for (const [partyId, sig] of Object.entries(incomingSigs)) {
+      const participant = byParty.get(partyId);
+      if (!participant) {
+        throw new Error(`FACTORY_FINALIZED carries a signature from unknown party '${partyId}'`);
+      }
+      const previous = knownSigs[partyId];
+      if (previous && Buffer.from(previous).toString('hex') !== Buffer.from(sig).toString('hex')) {
+        throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
+      }
+      if (!verifyChannelSignature(sig, commitment, participant.publicKeyDigest)) {
+        throw new Error(`FACTORY_FINALIZED carries an invalid signature for '${partyId}'`);
+      }
+    }
+    for (const partyId of Object.keys(knownSigs)) {
+      if (!incomingSigs[partyId]) {
         throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
       }
     }
-    return { ...incoming, pendingSignatures: { ...incomingSigs } };
+    return {
+      ...known,
+      fundingTxId: known.fundingTxId ?? incoming.fundingTxId,
+      fundingCoinId: known.fundingCoinId ?? incoming.fundingCoinId,
+      pendingSignatures: { ...incomingSigs },
+    };
   }
   throw new Error('FACTORY_FINALIZED has an unsupported status transition');
 }

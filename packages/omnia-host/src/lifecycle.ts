@@ -502,6 +502,7 @@ export function createOmniaHost(
               spliceAcceptances,
               payload,
               spliceExpectations,
+              payload.channelId ? channelStore?.get(String(payload.channelId)) : undefined,
             );
             channelStore.set(channel.channelId, channel);
             void observation?.emit({
@@ -654,6 +655,7 @@ export function createOmniaHost(
                 digest: '0x' + Buffer.from(expectedDraft.txDigest).toString('hex'),
                 summary: `Close factory ${factory.factoryId}`,
               });
+              closeSettlements.set(factory.factoryId, { settlementTxHex: expectedDraft.settlementTxHex });
               const signature = await signFactorySettlement(factory, expectedDraft, localBundle);
               await localBundle.leaseProvider
                 .commitKeyUse(signature.reservationId, `factory-settlement-${payload.factoryId}`)
@@ -683,8 +685,23 @@ export function createOmniaHost(
             if (msg.type === 'FACTORY_CLOSE_FINALIZED' && payload.factoryId) {
               const factory = factories.get(payload.factoryId);
               if (factory) {
-                assertFactoryCloseSettlement(factory, payload);
+                assertFactoryCloseSettlement(
+                  factory,
+                  payload,
+                  closeSettlements.get(factory.factoryId),
+                );
+                // Chain truth: the factory coin must actually be spent before
+                // this host stops watching it. A txid and a split are claims.
+                if (chainAdapter && factory.fundingCoinId) {
+                  const coin = await chainAdapter.getCoin(factory.fundingCoinId);
+                  if (!coin || !coin.spent) {
+                    throw new Error(
+                      'FACTORY_CLOSE_FINALIZED settlement is not observed on chain: the factory coin is still unspent',
+                    );
+                  }
+                }
                 factories.set(payload.factoryId, { ...factory, status: 'closed' });
+                closeSettlements.delete(factory.factoryId);
               }
               return null;
             }
@@ -703,6 +720,8 @@ export function createOmniaHost(
       });
 
       const channelPeers = new Map<string, any>();
+      /** Settlement transaction this host signed per factory (close proposals). */
+      const closeSettlements = new Map<string, { settlementTxHex: string }>();
       // OMN-044: only edges authenticated against a real local channel ever
       // enter the routing graph. Imported entries carry a received-at stamp so
       // stale claims expire.
@@ -872,7 +891,7 @@ export function createOmniaHost(
           try {
             // CAN-007: require the VC proposal this host co-signed, the same
             // factory, and a single-sequence successor of the local copy.
-            const acceptance = assertVcFinalized({
+            const { factory: finalizedFactory } = assertVcFinalized({
               acceptances: vcAcceptances,
               factories,
               hasChannel: (id) => Boolean(channelStore?.get(id)),
@@ -883,7 +902,7 @@ export function createOmniaHost(
                 channelId?: unknown;
               },
             });
-            if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
+            factories.set(finalizedFactory.factoryId, finalizedFactory);
             if (payload.kind === 'vc-open' && payload.channel) {
               channelStore?.set(payload.channel.channelId, payload.channel);
               void observation?.emit({
@@ -904,7 +923,6 @@ export function createOmniaHost(
                 ? String(payload.channel?.channelId ?? '')
                 : String(payload.channelId ?? ''),
             );
-            void acceptance;
           } catch (err) {
             await peer.sendMessage({
               type: 'ERROR',

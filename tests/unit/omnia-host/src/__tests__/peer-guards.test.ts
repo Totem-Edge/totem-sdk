@@ -28,6 +28,7 @@ function factory(over: Partial<ChannelFactory> = {}): ChannelFactory {
       { partyId: 'B', publicKeyDigest: PKD_B, addressIndex: 0, settlementAddress: '0x2' },
     ],
     virtualChannels: [],
+    allocations: { A: 50n, B: 50n },
     ...over,
   } as unknown as ChannelFactory;
 }
@@ -161,6 +162,30 @@ describe('assertSpliceFinalized (CAN-007)', () => {
     }, expectations)).not.toThrow();
   });
 
+  it('rebuilds the channel from local state instead of storing the peer object', () => {
+    const expectations = new Map<string, SpliceExpectation>([[
+      SPLICE_ID,
+      { channelId: CHANNEL_ID, totalValue: 100n, balances: { A: 60n, B: 40n } },
+    ]]);
+    const local = {
+      channelId: CHANNEL_ID,
+      totalValue: 0n,
+      balances: { A: 0n, B: 0n },
+      latestState: { sequence: 7 },
+      parties: [{ partyId: 'A' }, { partyId: 'B' }],
+    } as unknown as OmniaChannel;
+    const { channel: rebuilt } = assertSpliceFinalized(acceptances, {
+      spliceId: SPLICE_ID,
+      txId: '0xdeadbeef',
+      // A peer must not be able to smuggle a different state history in.
+      channel: channel({ totalValue: 100n, balances: { A: 60n, B: 40n }, latestState: { sequence: 99 } }),
+    }, expectations, local);
+    expect(rebuilt.totalValue).toBe(100n);
+    expect(rebuilt.balances).toEqual({ A: 60n, B: 40n });
+    expect((rebuilt as unknown as { latestState?: unknown }).latestState).toEqual({ sequence: 7 });
+    expect((rebuilt as unknown as { spliceFundingTxId?: string }).spliceFundingTxId).toBe('0xdeadbeef');
+  });
+
   it('CAN-019: requires a locally signed expectation for a finalized splice', () => {
     expect(() => assertSpliceFinalized(acceptances, {
       spliceId: SPLICE_ID,
@@ -181,7 +206,20 @@ describe('assertSpliceFinalized (CAN-007)', () => {
 
 describe('assertVcFinalized (CAN-007)', () => {
   const pending = (over: Partial<PendingVcAcceptance> = {}): Map<string, PendingVcAcceptance> =>
-    new Map([['vc-1', { kind: 'vc-open', factoryId: 'factory-1', localPartyId: 'B', ...over }]]);
+    new Map([['vc-1', {
+      kind: 'vc-open',
+      factoryId: 'factory-1',
+      localPartyId: 'B',
+      expected: { totalValue: 100n, balances: { A: 50n, B: 50n }, factoryAllocations: { A: 50n, B: 50n } },
+      ...over,
+    }]]);
+  const openedChannel = (over: Record<string, unknown> = {}): OmniaChannel => ({
+    channelId: 'vc-1',
+    parties: [{ partyId: 'A' }, { partyId: 'B' }],
+    totalValue: 100n,
+    balances: { A: 50n, B: 50n },
+    ...over,
+  }) as unknown as OmniaChannel;
 
   it('accepts a vc-open that is the successor of the local factory', () => {
     const result = assertVcFinalized({
@@ -194,10 +232,12 @@ describe('assertVcFinalized (CAN-007)', () => {
           currentSequence: 5,
           virtualChannels: [{ channelId: 'vc-1' } as never],
         }),
-        channel: { channelId: 'vc-1' } as OmniaChannel,
+        channel: openedChannel(),
       },
     });
-    expect(result.factoryId).toBe('factory-1');
+    expect(result.acceptance.factoryId).toBe('factory-1');
+    expect(result.factory.currentSequence).toBe(5);
+    expect(result.factory.virtualChannels.map((vc) => vc.channelId)).toEqual(['vc-1']);
   });
 
   it('rejects a VC this host never co-signed', () => {
@@ -252,7 +292,7 @@ describe('assertVcFinalized (CAN-007)', () => {
       payload: {
         kind: 'vc-open',
         factory: factory({ currentSequence: 5, virtualChannels: [] }),
-        channel: { channelId: 'vc-1' } as OmniaChannel,
+        channel: openedChannel(),
       },
     })).toThrow(/does not contain/);
   });
@@ -290,7 +330,7 @@ describe('assertVcFinalized (CAN-007)', () => {
 
   it('rejects a vc-close for a channel the host does not have', () => {
     expect(() => assertVcFinalized({
-      acceptances: pending({ kind: 'vc-close' }),
+      acceptances: pending({ kind: 'vc-close', expected: { factoryAllocations: { A: 50n, B: 50n } } }),
       factories: new Map([['factory-1', factory()]]),
       hasChannel: () => false,
       payload: { kind: 'vc-close', factory: factory({ currentSequence: 5 }), channelId: 'vc-1' },
@@ -362,5 +402,31 @@ describe('isChannelPeer (OMN-026)', () => {
   it('rejects the local identity and a missing peer key', () => {
     expect(isChannelPeer(ch, PKD_A, PKD_A)).toBe(false);
     expect(isChannelPeer(ch, undefined, PKD_A)).toBe(false);
+  });
+});
+
+// ─── OMN-001: factory close settlement evidence ─────────────────────────────
+
+describe('assertFactoryCloseSettlement (OMN-001)', () => {
+  const closeFactory = factory({ fundingCoinId: '0xbbb' });
+
+  it('requires the exact settlement transaction this host signed', () => {
+    expect(() => assertFactoryCloseSettlement(
+      closeFactory,
+      { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 50n, B: 50n } },
+      { settlementTxHex: '0xdead' },
+    )).toThrow(/does not carry the settlement transaction/);
+
+    expect(() => assertFactoryCloseSettlement(
+      closeFactory,
+      { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 50n, B: 50n }, settlementTxHex: '0xbeef' },
+      { settlementTxHex: '0xdead' },
+    )).toThrow(/does not match the locally signed one/);
+
+    expect(() => assertFactoryCloseSettlement(
+      closeFactory,
+      { factoryId: 'factory-1', txId: '0xabc', finalAllocations: { A: 50n, B: 50n }, settlementTxHex: '0xDEAD' },
+      { settlementTxHex: '0xdead' },
+    )).not.toThrow();
   });
 });

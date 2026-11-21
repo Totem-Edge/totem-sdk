@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — peer finalization (OMN-001, unreleased)
+
+The host no longer stores peer-supplied objects after identity checks. Every
+finalization message is rebuilt from local state and the values this host
+signed:
+
+- **`FACTORY_FINALIZED`** may only fill funding references. On an active factory
+  the sequence, state log, allocations and virtual-channel set must match the
+  local copy exactly; on an opening, every supplied signature is verified,
+  unknown parties are rejected, and an existing signature cannot be removed or
+  altered. The stored object is rebuilt from the local factory, never taken from
+  the message.
+- **`VC_FINALIZED`** rebuilds the successor factory from the local factory plus
+  the allocation set this host co-signed (`vcAcceptances.expected`), rather than
+  writing `payload.factory`. The opened channel is validated against the signed
+  balances, total, token and parties.
+- **`SPLICE_FINALIZED`** rebuilds the channel from the local channel plus the
+  locally signed totals and split. A peer cannot smuggle in a different
+  `latestState` or state history.
+- **`FACTORY_CLOSE_FINALIZED`** must carry the settlement transaction this host
+  signed (compared by hash), and when a chain adapter is present the factory
+  coin must be observed **spent** before the factory is marked closed.
+
+Tests: `tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts` and
+`tests/unit/omnia-host/src/__tests__/peer-guards.test.ts`.
+
 ### Changed — factory settlement (unreleased)
 
 - **`@totemsdk/omnia-factory` 0.8.0 / `@totemsdk/omnia-host` 0.15.0:** new
