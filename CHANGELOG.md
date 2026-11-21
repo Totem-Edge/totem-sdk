@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — splice recovery, watchtower actions, factory scope (unreleased)
+
+- **`@totemsdk/omnia-splice` (OMN-014):** recovery binds each pending splice to
+  its own expected successor (address, token, amount), refuses to let two
+  splices claim the same coin, rejects a successor that is not the coin recorded
+  for the splice, and persists the observed coin while unconfirmed.
+- **`@totemsdk/omnia-host` watchtower (OMN-015):** a unilateral close is
+  contested by broadcasting the latest signed close package (funding-coin and
+  script proofs) with `startUnilateralClose`, recording the contest window; an
+  expiring HTLC is timed out with `timeoutHTLC`, persisted and propagated to the
+  counterparty. A failed action leaves the finding unprocessed instead of
+  pretending it was handled.
+- **`@totemsdk/omnia-host` factory scope (OMN-027):** factory openings now
+  refuse anything but two distinct participants with an explicit error. The host
+  coordinates with exactly one remote peer; it no longer advertises N-party
+  coordination it cannot perform. Library builders remain N-capable.
+
 ### Fixed — peer finalization (OMN-001, unreleased)
 
 The host no longer stores peer-supplied objects after identity checks. Every

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T19:18:37.419Z",
+  "generatedAt": "2026-11-21T19:33:33.346Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -2144,7 +2144,7 @@
       "id": "OMN-014",
       "canonical": "CAN-012",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Splice recovery can attach one observed successor to several pending splices",
       "packages": [
@@ -2154,12 +2154,12 @@
         "@totemsdk/omnia-splice": "0.3.2"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-014",
-      "summary": "observeSpliceSuccessor matches on address, token and amount and rejects ambiguity within one call, but recoverInterruptedSplices calls it with the same parameters for every pending record, so two pending splices can both adopt the same coin. Nothing binds the observed coin to the splice transaction. The delayed branch also contains `observed ? 'funding_pending' : 'funding_pending'`, a no-op ternary.",
+      "summary": "recoverInterruptedSplices now uses each record's own expected successor (address, token, amount) instead of one global observation, refuses to let two pending splices claim the same coin, rejects a successor that is not the coin already recorded for the splice, and persists the observed coin id while the successor is unconfirmed. The dead ternary is gone. Residual: the observed coin is bound by expected amount/address and the per-record coin id, not by a transaction-input proof.",
       "impact": "A channel can be marked active with a coin that belongs to a different splice, or two records cleared by one coin.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-splice test",
         "expected": "Each pending splice recovers only its own successor.",
-        "actual": "The same successor observation is applied to every pending record.",
+        "actual": "Each record uses its own expected successor, a claimed-coin set prevents reuse, and a mismatched recorded coin is rejected (tests/unit/omnia-splice/src/__tests__/successor.test.ts).",
         "evidence": [
           "packages/omnia-splice/src/successor.ts: recoverInterruptedSplices loop",
           "packages/omnia-splice/src/successor.ts: no-op ternary in the rebroadcast result"
@@ -2179,7 +2179,7 @@
           "Recovery either proves lineage or leaves the record funding_pending."
         ],
         "tests": [
-          "tests/unit/omnia-splice/src/__tests__/successor-lineage.test.ts"
+          "tests/unit/omnia-splice/src/__tests__/successor.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-splice test"
@@ -2195,7 +2195,7 @@
       "id": "OMN-015",
       "canonical": "CAN-021",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Watchtower callbacks only emit observations; nothing protects the channel",
       "packages": [
@@ -2205,12 +2205,12 @@
         "@totemsdk/omnia-host": "0.13.4"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-015",
-      "summary": "lifecycle.ts supplies `onUnilateralClose` and `onHtlcExpiring` handlers that only call `observation.emit`. No contest, protective close or timeout transaction is broadcast, despite the watch service comment saying the host wires these to settlement policy. The successor lookup also matches on address and amount alone.",
+      "summary": "The watch handlers now act. A unilateral close is contested by broadcasting the latest signed close package (funding-coin proof plus script proof) with startUnilateralClose, recording the contest window. An expiring HTLC is timed out with timeoutHTLC, persisted, and the signed timeout state is sent to the counterparty. Both paths emit an observation with the outcome and leave the finding unprocessed if the action fails. Residual: the host-level simulation of both actions is still the acceptance test to add.",
       "impact": "A unilateral close or an expiring HTLC is noticed but not acted on. The window to contest or claim can pass while the host is healthy.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "A unilateral-close finding triggers the contest path (or an explicit, recorded refusal).",
-        "actual": "Only an observation event is emitted.",
+        "actual": "A close broadcasts a contest transaction (or fails closed) and an expiring HTLC is timed out and propagated; observed decisions are recorded as observation events.",
         "evidence": [
           "packages/omnia-host/src/lifecycle.ts: both callbacks contain a single `observation.emit`",
           "packages/omnia-host/src/watch.ts: comment claims the host wires contest logic"
@@ -2231,7 +2231,9 @@
           "An expiring HTLC causes timeout/fulfil before the deadline."
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/watchtower-actions.test.ts"
+          "tests/unit/omnia-host/src/__tests__/watch.test.ts",
+          "tests/unit/omnia/src/__tests__/htlc-terminal-proof.test.ts",
+          "tests/unit/omnia/src/__tests__/settlement-replay.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
@@ -2434,18 +2436,18 @@
       },
       "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
       "id": "OMN-027",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "The advertised N-party factory API coordinates with only one remote participant",
       "packages": [
         "@totemsdk/omnia-host"
       ],
-      "summary": "Factory, prepared-factory, VC-open/close and factory-close paths select the first remote participant with find(partyId !== local). For N>2 the host never requests the remaining participants’ signatures, and the N-of-N assembler rejects the incomplete set.",
-      "impact": "N-party factories cannot complete; a host may also reuse the first remote signer callback for other parties, which cannot produce their signatures.",
+      "summary": "The host coordinates a factory opening with exactly one remote peer, so it now refuses anything but two distinct participants with an explicit error instead of advertising N-party coordination it cannot perform. Library builders (buildFactoryOpening) remain N-capable; only the host API is scoped.",
+      "impact": "A caller can no longer create a factory that only one remote learned about, or that reuses one party's signer for another. N-party factories are not available through the host until multi-peer coordination lands.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "Every factory participant is coordinated by identity and every signature is verified.",
-        "actual": "methods.ts selects only the first remote participant in the factory/VC paths.",
+        "actual": "assertTwoPartyFactory rejects N>2 and duplicate participants on both factory paths (tests/unit/omnia-host/src/__tests__/peer-guards.test.ts).",
         "evidence": [
           "packages/omnia-host/src/api/methods.ts lines around 1653, 1747, 3160, 3225, 3292"
         ]
@@ -2467,7 +2469,7 @@
           "pnpm --filter @totemsdk/omnia-host test"
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/prepare-submit-factory.test.ts"
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
         ]
       },
       "origin": {

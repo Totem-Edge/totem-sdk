@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-21T19:18:37.419Z. 88 findings, 15 open.
+Generated 2026-11-21T19:33:33.346Z. 88 findings, 12 open.
 
 sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 
@@ -40,12 +40,12 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-006` | high | sdk-defect | fixed | `@totemsdk/omnia-relay`, `@totemsdk/omnia-router`, `@totemsdk/omnia-host` | Multi-hop recovery does not journal the outstanding backward preimage duty |
 | `OMN-007` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo`, `@totemsdk/omnia-host` | VTXO claim verification accepts a caller-supplied signer list |
 | `OMN-010` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | verifyVtxo accepts a VTXO with no membership proof and never anchors the root |
-| `OMN-014` → `CAN-012` | high | sdk-defect | open | `@totemsdk/omnia-splice` | Splice recovery can attach one observed successor to several pending splices |
-| `OMN-015` → `CAN-021` | high | sdk-defect | open | `@totemsdk/omnia-host` | Watchtower callbacks only emit observations; nothing protects the channel |
+| `OMN-014` → `CAN-012` | high | sdk-defect | fixed | `@totemsdk/omnia-splice` | Splice recovery can attach one observed successor to several pending splices |
+| `OMN-015` → `CAN-021` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Watchtower callbacks only emit observations; nothing protects the channel |
 | `OMN-024` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia` | Payments report success before the counterparty co-signs |
 | `OMN-025` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Exit entitlements still do not prove the witness or the authoritative pool coin |
 | `OMN-026` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | An incoming message can overwrite the cached peer for an unrelated channel |
-| `OMN-027` | high | sdk-defect | open | `@totemsdk/omnia-host` | The advertised N-party factory API coordinates with only one remote participant |
+| `OMN-027` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | The advertised N-party factory API coordinates with only one remote participant |
 | `OMN-030` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | Liquidity deposits can be credited against a coin that does not belong to the claimed LP |
 | `OMN-031` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | The release gate can ignore an unresolved critical finding through an alias |
 | `OMN-032` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-pool` | Pool accounting can diverge between liquidity positions |
