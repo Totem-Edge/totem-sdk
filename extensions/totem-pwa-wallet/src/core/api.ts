@@ -77,7 +77,11 @@ export async function fetchPortfolio(
       'x-api-key': PROJECT_ID,
     };
     if (identityHash) headers['X-User-Identity-Hash'] = identityHash;
-    const res = await fetch(`${API_BASE}/v1/${PROJECT_ID}/portfolio/${encodeURIComponent(address)}`, { headers });
+    // Canonical portfolio route. The project-prefixed
+    // `/v1/:projectId/portfolio/:address` path is shadowed by the legacy
+    // routers mounted at `/v1/totem-shared`, which answer 410 Gone — that
+    // silently produced an empty portfolio (no tokens in Assets or Send).
+    const res = await fetch(`${API_BASE}/v1/portfolio/${encodeURIComponent(address)}`, { headers });
     if (!res.ok) return [];
     const data = await res.json();
     if (Array.isArray(data)) return data as PortfolioEntry[];

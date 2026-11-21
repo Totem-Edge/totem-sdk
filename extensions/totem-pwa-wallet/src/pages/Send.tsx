@@ -268,25 +268,21 @@ export function Send() {
         <h2 className="page-title">Send</h2>
       </div>
       <div style={{ paddingTop: 'var(--space-3)' }}>
-        {/* Token selector — shown only when wallet holds custom tokens */}
-        {otherTokens.length > 0 && (
-          <>
-            <label className="label">Token</label>
-            <select
-              className="input"
-              style={{ marginBottom: 'var(--space-2)' }}
-              value={tokenId}
-              onChange={e => { setTokenId(e.target.value); setError(''); }}
-            >
-              <option value="0x00">MINIMA</option>
-              {otherTokens.map(b => (
-                <option key={b.tokenid} value={b.tokenid}>
-                  {b.name || b.ticker || b.tokenid.slice(0, 10) + '…'}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
+        {/* Asset selector — always present, MINIMA plus any custom tokens */}
+        <label className="label">Asset</label>
+        <select
+          className="input"
+          style={{ marginBottom: 'var(--space-2)' }}
+          value={tokenId}
+          onChange={e => { setTokenId(e.target.value); setError(''); }}
+        >
+          <option value="0x00">MINIMA</option>
+          {otherTokens.map(b => (
+            <option key={b.tokenid} value={b.tokenid}>
+              {b.name || b.ticker || b.tokenid.slice(0, 10) + '…'}
+            </option>
+          ))}
+        </select>
 
         <label className="label">Recipient Address</label>
         <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
