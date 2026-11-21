@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T10:50:28.860Z",
+  "generatedAt": "2026-11-21T18:22:07.335Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -903,18 +903,18 @@
       },
       "source": "Deeper Omnia covenant/transaction audit, 2026-11-18 (verified against 51aed956)",
       "id": "OMN-058",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "Factory unilateral exits enforce the original funding shares, not the latest signed factory state",
       "packages": [
         "@totemsdk/omnia-factory"
       ],
-      "summary": "buildFactoryOpening writes each participant original contribution into the funding coin share ports, and the timeout branch pays those ports. Virtual-channel opens, updates and closes change allocations off-chain with N-of-N signatures, and nothing updates the on-chain share ports. RFC-079 checkpoint mode now exists (buildFactoryCheckpoint + enforceCheckpoints covenant: same-script successor, advanced STATE(104), conserved value, pinned party root), so a deployment can make the escape pay the latest allocation. The default off-chain path still pays the original split, and the contestable protocol is not implemented.",
-      "impact": "After an escape opens, a participant could reclaim their original allocation despite having transferred value away in signed virtual-channel updates. The recipient newer entitlement is not enforceable on chain.",
+      "summary": "The factory timeout path paid the immutable funding split and authorized the spend with N-of-N signatures without checking the payout set. RFC-079 now implements two complementary settlement branches: per-party escape and an output-enforced full distribution that reads every share from PREVSTATE, pins the output count, destination, amount and total, and needs only one participant signature to trigger. Full distribution is funded by default, and checkpoint enforcement is on by default: the cooperative branch only accepts a checkpoint (same script, same value, sequence + 1), and off-chain allocation changes (virtual-channel open/close, reallocate) are refused until the change is committed as a checkpoint. The escapes therefore read the latest committed allocation, never a stale funding split.",
+      "impact": "A broadcaster can no longer redirect, resize, drop or add a payout, and a participant can no longer move value off chain (VC open/close, reallocate) and then escape against the old share: those changes are refused until checkpointed. Remaining: the host does not yet submit the checkpoint transaction, so virtual channels are blocked on a checkpointed factory; newer uncommitted off-chain states still require the contest protocol; virtual-channel reserves are not distributable.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-factory test",
         "expected": "Every committed factory transition has an enforceable recovery artifact for its latest allocation.",
-        "actual": "Default mode: only the immutable initial split is enforceable. Checkpoint mode: the escape pays the latest checkpointed shares (tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts).",
+        "actual": "Redirected, resized, missing, extra and wrong-token payouts are rejected; one participant signature settles a valid distribution; a checkpointed factory refuses VC open/close and reallocate until the allocation change is checkpointed (tests/unit/omnia-factory/src/__tests__/distribution.test.ts, checkpoint.test.ts).",
         "evidence": [
           "packages/omnia-factory/src/factory.ts buildFactoryOpening",
           "packages/omnia-factory/src/script.ts escape branch",
@@ -927,19 +927,19 @@
           "packages/omnia-factory/src/script.ts",
           "packages/omnia-factory/src/virtual.ts"
         ],
-        "approach": "Per RFC-079: (a) checkpoint mode is implemented and can be enabled per factory; (b) the target remains a versioned, challengeable protocol with independent recovery certificates and verified distribution outputs; (c) enabling checkpoints by default, or shipping the contest mode, is required before off-chain factory value can be called enforceable. A nominal fix that keeps paying original shares is rejected.",
+        "approach": "Per RFC-079: (a) output-enforced full distribution plus the per-party escape, both bound to the latest confirmed allocation (checkpoint mode); (b) the pre-signed compact mode is kept as a separate, clearly documented mechanism that does not verify allocations; (c) the contestable recovery protocol remains the target for uncommitted off-chain states.",
         "constraints": [
-          "Do not claim factory value is enforceable until a recovery artifact exists and is adversarially tested.",
-          "Remove buildFactoryDistributionScript from the settlement path unless it verifies the distribution outputs.",
-          "Checkpoint mode must stay opt-in until its deployment cost is documented for users.",
-          "buildFactoryDistributionScript must not be presented as a latest-state payout verifier."
+          "A payout set must be derived from PREVSTATE, never from a caller-supplied allocation map.",
+          "Do not weaken the output checks to preserve an O(1) instruction claim.",
+          "Refuse to distribute while a virtual channel still holds value."
         ],
         "acceptance": [
           "A signed virtual-channel payment is enforceable by the losing party on chain.",
           "Escape pays the latest signed allocation, not the original contribution."
         ],
         "tests": [
-          "tests/unit/omnia-factory/src/__tests__/factory-escape.test.ts"
+          "tests/unit/omnia-factory/src/__tests__/distribution.test.ts",
+          "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-factory test"
@@ -953,7 +953,8 @@
       "links": {
         "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
         "spike": "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts",
-        "checkpointTests": "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts"
+        "checkpointTests": "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts",
+        "distributionTests": "tests/unit/omnia-factory/src/__tests__/distribution.test.ts"
       }
     },
     {

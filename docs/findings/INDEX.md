@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-19T10:50:28.860Z. 88 findings, 17 open.
+Generated 2026-11-21T18:22:07.335Z. 88 findings, 16 open.
 
 sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 
@@ -20,7 +20,7 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-040` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | A replayed opening proposal could overwrite an established channel |
 | `OMN-051` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice`, `@totemsdk/core` | Splice transactions encoded atom amounts as whole MINIMA |
 | `OMN-053` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice` | The splice finalizer constructed a noncanonical witness without spending proofs |
-| `OMN-058` | critical | sdk-defect | open | `@totemsdk/omnia-factory` | Factory unilateral exits enforce the original funding shares, not the latest signed factory state |
+| `OMN-058` | critical | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory unilateral exits enforce the original funding shares, not the latest signed factory state |
 | `OMN-061` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The default co-signer could authorize HTLC fulfilment without a preimage |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
 | `CAN-002` | high | sdk-defect | fixed | `@totemsdk/proof`, `@totemsdk/manifest` | Manifest proofs are not bound to the manifest they attest |
