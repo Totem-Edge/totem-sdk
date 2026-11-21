@@ -1,6 +1,6 @@
 import { amountToAtoms, wotsAddressData } from '@totemsdk/core';
 import {
-  createFactory,
+  createFactory as createFactoryStrict,
   createFactoryFromPlan,
   buildFactoryOpening,
   proposeFactoryOpening,
@@ -22,6 +22,7 @@ import {
   factoryBalanceProof,
   factoryDistributionOutputs,
   buildFactoryDistributionScript,
+  buildFactoryPresignedDistributionScript,
   FACTORY_PARTY_ROOT_PORT,
   computeFactoryStateCommitment,
 } from '../index';
@@ -31,6 +32,27 @@ import type {
   WotsLeaseBundle,
   OmniaChannel,
 } from '../index';
+
+// OMN-058: production factories (the host) are created with checkpoint
+// enforcement, which refuses off-chain allocation changes. These tests exercise
+// the virtual-channel mechanics themselves, so they explicitly use the
+// non-checkpoint configuration.
+const createFactory = (
+  participants: Parameters<typeof createFactoryStrict>[0],
+  tokenId: Parameters<typeof createFactoryStrict>[1],
+  bundle: Parameters<typeof createFactoryStrict>[2],
+  provider?: Parameters<typeof createFactoryStrict>[3],
+  tokenScale?: Parameters<typeof createFactoryStrict>[4],
+  funding?: Parameters<typeof createFactoryStrict>[5],
+) => createFactoryStrict(
+  participants,
+  tokenId,
+  bundle,
+  provider,
+  tokenScale,
+  funding,
+  { settlement: 'per-party', enforceCheckpoints: false },
+);
 
 // ─── Mock builders ────────────────────────────────────────────────────────────
 
@@ -189,10 +211,12 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('ASSERT VERIFYOUT(0');
     expect(script).toContain('ASSERT STATE(128) EQ 0');
     expect(script).toContain('ASSERT STATE(129) EQ PREVSTATE(129)');
-    // Whole-share guard: no zero-remainder output when the share is the whole pool.
-    expect(script).toContain('IF @AMOUNT GT share THEN');
+    // Whole-share guard: a terminal exit has no successor state, so it is
+    // handled before the state-continuity assertions.
+    expect(script).toContain('IF @AMOUNT EQ share THEN');
+    expect(script).toContain('ASSERT @TOTOUT EQ 1');
     expect(script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)');
-    expect(script).toContain('      RETURN TRUE');
+    expect(script).toContain('ASSERT STATE(128) EQ 0');
   });
 
   test('seeds per-party allocation + escape-block state', () => {
@@ -974,11 +998,21 @@ describe('factory distribution (scalable escape)', () => {
   });
 
   test('builds the pre-signed all-party distribution escape', () => {
-    const s = buildFactoryDistributionScript({ participants: [party('a', A, 1n), party('b', B, 1n)] });
+    const s = buildFactoryPresignedDistributionScript({ participants: [party('a', A, 1n), party('b', B, 1n)] });
     expect(s).toContain('IF @BLOCK GT PREVSTATE(103) THEN');
     expect(s).toContain('ASSERT MULTISIG(2 ');
     expect(s).toContain('ASSERT SAMESTATE(111 111)');
     expect(s).toContain('ASSERT SAMESTATE(112 112)');
+  });
+
+  test('builds the output-enforced distribution covenant', () => {
+    const s = buildFactoryDistributionScript({ participants: [party('a', A, 1n), party('b', B, 1n)] });
+    expect(s).toContain('ASSERT @TOTOUT EQ 2');
+    expect(s).toContain('PREVSTATE(128)');
+    expect(s).toContain('ASSERT (SIGNEDBY(');
+    // The old compact mode authorized the spend with MULTISIG; the enforced
+    // covenant must not fall back to that.
+    expect(s).not.toContain('ASSERT MULTISIG(');
   });
 });
 

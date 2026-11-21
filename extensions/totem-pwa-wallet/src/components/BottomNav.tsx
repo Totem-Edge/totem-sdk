@@ -7,6 +7,7 @@ const ITEMS: NavItem[] = [
   { route: 'home', label: 'Wallet', icon: '⬡' },
   { route: 'send', label: 'Send', icon: '↑' },
   { route: 'receive', label: 'Receive', icon: '↓' },
+  { route: 'activity', label: 'Activity', icon: '≡' },
   { route: 'settings', label: 'Settings', icon: '⚙' },
 ];
 

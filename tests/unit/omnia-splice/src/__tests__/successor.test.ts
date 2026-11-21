@@ -119,4 +119,69 @@ describe('recoverInterruptedSplices', () => {
     expect(results[0].status).toBe('funding_pending');
     expect(results[0].rebroadcast).toBe(true);
   });
+
+  it('OMN-014: binds each pending splice to its own expected successor', async () => {
+    const journal = store([
+      { ...record, spliceId: 'splice-a', expected: { address: ADDRESS, tokenId: TOKEN, amount: '1000' } },
+      { ...record, spliceId: 'splice-b', expected: { address: ADDRESS, tokenId: TOKEN, amount: '2000' } },
+    ]);
+    const results = await recoverInterruptedSplices(
+      journal,
+      {
+        getCoins: async () => [
+          coin({ coinid: '0x' + '11'.repeat(32), amount: 1000, created: '1' }),
+          coin({ coinid: '0x' + '22'.repeat(32), amount: 2000, created: '1' }),
+        ],
+        getTip: async () => ({ block: 100 }),
+      },
+      { address: ADDRESS, tokenId: TOKEN, amount: 0n, confirmations: 1 },
+      async () => ({ success: true }),
+    );
+    expect(results.map((r) => `${r.spliceId}:${r.coinId}`)).toEqual([
+      'splice-a:0x' + '11'.repeat(32),
+      'splice-b:0x' + '22'.repeat(32),
+    ]);
+    expect(journal.cleared).toEqual(['splice-a', 'splice-b']);
+  });
+
+  it('OMN-014: one successor coin cannot settle two pending splices', async () => {
+    const journal = store([
+      { ...record, spliceId: 'splice-a', expected: { address: ADDRESS, tokenId: TOKEN, amount: '1500' } },
+      { ...record, spliceId: 'splice-b', expected: { address: ADDRESS, tokenId: TOKEN, amount: '1500' } },
+    ]);
+    const results = await recoverInterruptedSplices(
+      journal,
+      { getCoins: async () => [coin({ created: '1' })], getTip: async () => ({ block: 100 }) },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1 },
+      async () => ({ success: true }),
+    );
+    expect(results[0].status).toBe('active');
+    expect(results[1].status).toBe('funding_pending');
+    expect(results[1].error).toMatch(/already claimed/);
+    expect(journal.cleared).toEqual(['splice-a']);
+  });
+
+  it('OMN-014: refuses a successor that is not the coin recorded for the splice', async () => {
+    const journal = store([{ ...record, coinId: '0x' + '33'.repeat(32) }]);
+    const results = await recoverInterruptedSplices(
+      journal,
+      { getCoins: async () => [coin({ created: '1' })], getTip: async () => ({ block: 100 }) },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1 },
+      async () => ({ success: true }),
+    );
+    expect(results[0].status).toBe('funding_pending');
+    expect(results[0].error).toMatch(/does not match the coin recorded/);
+    expect(journal.cleared).toEqual([]);
+  });
+
+  it('OMN-014: persists the observed coin id while the successor is unconfirmed', async () => {
+    const journal = store([record]);
+    await recoverInterruptedSplices(
+      journal,
+      { getCoins: async () => [coin({ created: '100' })], getTip: async () => ({ block: 100 }) },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 5 },
+      async () => ({ success: true }),
+    );
+    expect(journal.saved.map((entry) => entry.coinId)).toEqual(['0x' + '11'.repeat(32)]);
+  });
 });

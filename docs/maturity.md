@@ -46,7 +46,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 3.0.0 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.14.0 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia-host` | 0.15.0 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.3 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
@@ -58,7 +58,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/liquidity-bond` | 0.4.0 | rc | 2 | `packages/liquidity-bond` |
 | `@totemsdk/manifest` | 2.2.0 | rc | 2 | `packages/manifest` |
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
-| `@totemsdk/omnia-factory` | 0.7.2 | rc | 2 | `packages/omnia-factory` |
+| `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.0 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.2 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.4 | rc | 2 | `packages/omnia-splice` |
@@ -80,7 +80,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/act-mavlink` | 0.1.1 | rc | outside | `packages/act-mavlink` |
 | `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
-| `@totemsdk/connect` | 3.1.3 | rc | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.1.4 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.2 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.3.0 | rc | outside | `packages/edge-ble` |

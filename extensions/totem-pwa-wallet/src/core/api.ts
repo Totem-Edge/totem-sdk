@@ -77,7 +77,11 @@ export async function fetchPortfolio(
       'x-api-key': PROJECT_ID,
     };
     if (identityHash) headers['X-User-Identity-Hash'] = identityHash;
-    const res = await fetch(`${API_BASE}/v1/${PROJECT_ID}/portfolio/${encodeURIComponent(address)}`, { headers });
+    // Canonical portfolio route. The project-prefixed
+    // `/v1/:projectId/portfolio/:address` path is shadowed by the legacy
+    // routers mounted at `/v1/totem-shared`, which answer 410 Gone — that
+    // silently produced an empty portfolio (no tokens in Assets or Send).
+    const res = await fetch(`${API_BASE}/v1/portfolio/${encodeURIComponent(address)}`, { headers });
     if (!res.ok) return [];
     const data = await res.json();
     if (Array.isArray(data)) return data as PortfolioEntry[];
@@ -113,6 +117,89 @@ export async function fetchTxHistory(
     return [];
   } catch {
     return [];
+  }
+}
+
+export interface ActivityEvent {
+  txpowid: string;
+  event_type: 'send' | 'receive';
+  /** Node MiniNumber text (44 decimal places) — decode with `decimals`. */
+  amount: string;
+  tokenid: string;
+  decimals: number | null;
+  event_date: string;
+  coinid: string;
+  localAddress: string;
+  height: number;
+}
+
+export interface TxLeg {
+  coin_id: string;
+  address: string | null;
+  token_id: string;
+  amount: string | null;
+  decimals: number | null;
+}
+
+export interface TxDetail {
+  txpowid: string;
+  height: number;
+  timestamp_ms: number;
+  confirmations: number | null;
+  status: string;
+  inputs: TxLeg[];
+  outputs: TxLeg[];
+}
+
+/**
+ * Address transaction history from the archive index.
+ *
+ * Mirrors the extension's Activity tab: one row per (transaction, token), with
+ * the net movement for the address and the token's scale attached.
+ */
+export async function fetchActivity(address: string, limit = 200): Promise<ActivityEvent[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/transactions/${encodeURIComponent(address)}?limit=${limit}`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.events) ? (data.events as ActivityEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchTransactionDetail(txpowid: string): Promise<TxDetail | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/transaction/${encodeURIComponent(txpowid)}`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as TxDetail;
+  } catch {
+    return null;
+  }
+}
+
+export interface TokenVintage {
+  mintBlock: number | null;
+  mintTimestamp: number | null;
+}
+
+/** Mint block/timestamp for a token, used for the NFT vintage badge. */
+export async function fetchTokenVintage(tokenId: string): Promise<TokenVintage> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/v1/wallet/tokens/${encodeURIComponent(tokenId)}/vintage`,
+      { headers: { 'x-api-key': PROJECT_ID } }
+    );
+    if (!res.ok) return { mintBlock: null, mintTimestamp: null };
+    return (await res.json()) as TokenVintage;
+  } catch {
+    return { mintBlock: null, mintTimestamp: null };
   }
 }
 
@@ -268,8 +355,27 @@ export async function finalizeLease(
     body: JSON.stringify(req),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string };
-    throw new Error(err.error || `Finalize failed: ${res.status}`);
+    // Keep the node's own words. The API returns the failed txncheck result and
+    // a failureId that points at the stored signed transaction, which is the
+    // only remaining copy after the node deletes its import.
+    const body = await res.json().catch(() => ({ error: res.statusText })) as {
+      error?: string;
+      details?: string;
+      rpcResponse?: string;
+      hint?: string;
+      failureId?: string | null;
+    };
+    const err = new Error(body.error || `Finalize failed: ${res.status}`) as Error & {
+      details?: string;
+      rpcResponse?: string;
+      hint?: string;
+      failureId?: string | null;
+    };
+    err.details = body.details;
+    err.rpcResponse = body.rpcResponse;
+    err.hint = body.hint;
+    err.failureId = body.failureId ?? null;
+    throw err;
   }
   return res.json() as Promise<FinalizeLeaseResponse>;
 }

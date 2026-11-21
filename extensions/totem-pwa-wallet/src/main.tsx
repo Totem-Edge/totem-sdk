@@ -2,8 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './theme/axia-tokens.css';
+import { applyTheme, storedTheme } from './theme/themes';
 import { init as initObs, track } from './core/observability';
 import { ensureWasm } from './core/wasm';
+
+// Apply the saved palette before React renders so there is no flash of the
+// default theme on cold start.
+applyTheme(storedTheme());
 
 initObs({
   dappId: import.meta.env.VITE_OBS_DAPP_ID ?? 'totem-pwa-wallet',

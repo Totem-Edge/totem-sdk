@@ -179,13 +179,16 @@ export interface FactoryDistributionScriptConfig {
 }
 
 /**
- * Scalable factory escape covenant (RFC-048 §12.4) — the pre-signed all-party
- * distribution. After the committed escape block **any** party may broadcast the
- * distribution (all-party `MULTISIG`), with no counterparty liveness and no
- * on-chain root recomputation. The committed party-set and balance roots are
- * pinned (`SAMESTATE`) so the set and balances cannot move.
+ * Pre-signed all-party distribution (RFC-048 §12.4) — kept as a **separate**
+ * mechanism for a dedicated distribution coin.
+ *
+ * This script authorizes the spend with `MULTISIG` after the escape height. It
+ * does **not** verify the payout set; allocation correctness comes from the
+ * pre-signed transaction that the parties exchange. Do not describe or use it as
+ * an allocation verifier — use `buildFactoryDistributionScript` (output-enforced)
+ * or the `settlement: 'full-distribution'` funding branch instead.
  */
-export function buildFactoryDistributionScript(config: FactoryDistributionScriptConfig): string {
+export function buildFactoryPresignedDistributionScript(config: FactoryDistributionScriptConfig): string {
   const participants = config.participants;
   if (!Array.isArray(participants) || participants.length < 1) {
     throw new Error('buildFactoryDistributionScript requires at least one participant');
@@ -209,6 +212,55 @@ export function buildFactoryDistributionScript(config: FactoryDistributionScript
     `ENDIF`,
     `RETURN FALSE`,
   ].join('\n');
+}
+
+/**
+ * OMN-058/RFC-079 §4A — output-enforced full distribution for a factory coin.
+ *
+ * After the committed escape block, any participant may settle the factory by
+ * paying **every** committed share. The covenant reads the shares from the spent
+ * coin (`PREVSTATE`), pins the output count, each destination, each amount and
+ * the total, so neither the broadcaster nor an outsider can redirect or resize a
+ * payout. One participant signature authorizes the trigger.
+ *
+ * Use `buildFactoryDistribution` to materialize the matching transaction.
+ */
+export function buildFactoryDistributionScript(config: FactoryDistributionScriptConfig): string {
+  const participants = config.participants;
+  if (!Array.isArray(participants) || participants.length < 1) {
+    throw new Error('buildFactoryDistributionScript requires at least one participant');
+  }
+  const pks = participants.map((p, i) => {
+    if (!p.publicKeyDigest) throw new Error(`participant[${i}].publicKeyDigest is required`);
+    return kissHex(p.publicKeyDigest);
+  });
+  const payouts = participants.map((p, i) => {
+    const raw = (p.settlementAddress ?? p.publicKeyDigest ?? '').replace(/^0x/i, '');
+    if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+      throw new Error(`participant[${i}] payout address must be a 64-hex digest`);
+    }
+    return wotsAddressData(raw);
+  });
+  const escapePort = config.escapePort ?? FACTORY_ESCAPE_PORT;
+  const count = participants.length;
+
+  const lines: string[] = [
+    '// Output-enforced factory distribution (OMN-058 / RFC-079 §4A)',
+    `IF @BLOCK GT PREVSTATE(${escapePort}) THEN`,
+    '  ASSERT @TOTIN EQ 1',
+    '  ASSERT @INPUT EQ 0',
+    `  ASSERT @TOTOUT EQ ${count}`,
+  ];
+  const terms = participants.map((_, k) => `PREVSTATE(${FACTORY_BALANCE_PORT_BASE + k})`);
+  lines.push(`  ASSERT ${terms.join(' + ')} EQ @AMOUNT`);
+  participants.forEach((_, k) => {
+    lines.push(`  ASSERT VERIFYOUT(${k} ${payouts[k]} PREVSTATE(${FACTORY_BALANCE_PORT_BASE + k}) @TOKENID FALSE)`);
+  });
+  lines.push(`  ASSERT (${pks.map((pk) => `SIGNEDBY(${pk})`).join(' OR ')})`);
+  lines.push('  RETURN TRUE');
+  lines.push('ENDIF');
+  lines.push('RETURN FALSE');
+  return toNodeScript(lines.join('\n'));
 }
 
 /**
@@ -276,6 +328,12 @@ export interface FactoryScriptOptions {
    * open until the contestable protocol lands.
    */
   enforceCheckpoints?: boolean;
+  /**
+   * OMN-058/RFC-079 §4A: add the output-enforced full-distribution branch.
+   * Any participant can settle every committed share in one transaction; the
+   * covenant pins each destination, amount, the output count and conservation.
+   */
+  settlement?: 'per-party' | 'full-distribution';
 }
 
 /**
@@ -305,25 +363,30 @@ export function factoryEscapeStateVariable(escapeBlock: number): { port: number;
 }
 
 /**
- * Build the N-of-N MULTISIG MAST funding script for a channel factory
- * (RFC-039, CUSTODY-POLICY §2).
+ * Build the factory funding script.
  *
  * Spend paths:
- *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.
- *     `settlement=true` closes after minimal coinage (1 block).
- *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any
- *     single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`
- *     (the spent coin's share) to its own settlement address, zero its state in
- *     the successor (`STATE(base+k) EQ 0`), keep the other parties' balances
- *     unchanged, and return the remainder to the factory script. Repeated
- *     withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),
- *     so the escape clock cannot be pushed by any counterparty.
+ *   - **Cooperative / checkpoint** (any time, all parties): `MULTISIG(N …)`.
+ *     With `enforceCheckpoints`, the successor must stay at this script, keep the
+ *     value and advance `STATE(104)` by exactly one.
+ *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any single
+ *     party may withdraw its committed share `PREVSTATE(base+k)` to its own
+ *     settlement address. With a remainder, the successor keeps the script, the
+ *     other shares are untouched and the withdrawing port is zeroed.
+ *   - **Full distribution** (`settlement: 'full-distribution'`, after the same
+ *     block): one transaction pays **every** committed share. The covenant pins
+ *     the output count, each destination and each amount read from `PREVSTATE`,
+ *     so a broadcaster cannot redirect or resize a payout. One participant
+ *     signature is enough to trigger it.
+ *
+ * The escape branches are terminal (no successor state), so the state-continuity
+ * assertions live in the cooperative path only.
  *
  * Minimum 2 participants required.
  */
 export function buildFactoryScript(
   participants: FactoryParticipant[],
-  _options: FactoryScriptOptions = {},
+  options: FactoryScriptOptions = {},
 ): string {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -338,53 +401,74 @@ export function buildFactoryScript(
   const pks = participants.map((p) => kissHex(p.publicKeyDigest));
   const payouts = participants.map((p) => wotsAddressData(p.settlementAddress ?? p.publicKeyDigest));
 
-  const enforceCheckpoints = _options.enforceCheckpoints === true;
+  const enforceCheckpoints = options.enforceCheckpoints === true;
+  const fullDistribution = options.settlement === 'full-distribution';
   const lines: string[] = [
     'LET settlement=STATE(100)',
-    `ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`,
-    // RFC-048 §12.4/§12.5: the committed party-set root is immutable on every spend.
-    `ASSERT SAMESTATE(${FACTORY_PARTY_ROOT_PORT} ${FACTORY_PARTY_ROOT_PORT})`,
     `IF @BLOCK GT PREVSTATE(${FACTORY_ESCAPE_PORT}) THEN`,
   ];
+
+  if (fullDistribution) {
+    // OMN-058/RFC-079 §4A: output-enforced settlement. Every amount is read from
+    // the coin being spent, never from the transaction's own claims.
+    lines.push('  // Full distribution: pay every committed share in one transaction.');
+    lines.push('  IF @TOTIN EQ 1 THEN');
+    lines.push(`    IF @TOTOUT EQ ${count} THEN`);
+    // Gate on the last payout address so a per-party escape (which leaves the
+    // remainder at the factory script) falls through to its own branch instead
+    // of failing this one.
+    lines.push(`      IF GETOUTADDR(${count - 1}) EQ ${payouts[count - 1]} THEN`);
+    lines.push('        ASSERT @INPUT EQ 0');
+    const terms = participants.map((_, k) => `PREVSTATE(${FACTORY_BALANCE_PORT_BASE + k})`);
+    lines.push(`        ASSERT ${terms.join(' + ')} EQ @AMOUNT`);
+    participants.forEach((_, k) => {
+      lines.push(`        ASSERT VERIFYOUT(${k} ${payouts[k]} PREVSTATE(${FACTORY_BALANCE_PORT_BASE + k}) @TOKENID FALSE)`);
+    });
+    lines.push(`        ASSERT (${pks.map((pk) => `SIGNEDBY(${pk})`).join(' OR ')})`);
+    lines.push('        RETURN TRUE');
+    lines.push('      ENDIF');
+    lines.push('    ENDIF');
+    lines.push('  ENDIF');
+  }
 
   participants.forEach((_, k) => {
     const port = FACTORY_BALANCE_PORT_BASE + k;
     lines.push(`  LET share=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${pks[k]}) THEN`);
-    lines.push(`    IF share GT 0 THEN`);
+    lines.push('    IF share GT 0 THEN');
     lines.push(`      ASSERT VERIFYOUT(0 ${payouts[k]} share @TOKENID FALSE)`);
+    // Whole-share exit: no successor state exists, so no remainder and no state
+    // continuity assertions.
+    lines.push('      IF @AMOUNT EQ share THEN');
+    lines.push('        ASSERT @TOTOUT EQ 1');
+    lines.push('        RETURN TRUE');
+    lines.push('      ENDIF');
     for (let j = 0; j < count; j++) {
       if (j === k) continue;
       lines.push(`      ASSERT STATE(${FACTORY_BALANCE_PORT_BASE + j}) EQ PREVSTATE(${FACTORY_BALANCE_PORT_BASE + j})`);
     }
     lines.push(`      ASSERT STATE(${port}) EQ 0`);
-    // Whole-share guard (mirrors the VTXO script): when the withdrawing party's
-    // share is the entire output there is no remainder, so a 0-amount output is
-    // never required.
-    lines.push(`      IF @AMOUNT GT share THEN`);
-    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)`);
-    lines.push('      ENDIF');
-    lines.push('      RETURN TRUE');
+    lines.push('      RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)');
     lines.push('    ENDIF');
     lines.push('  ENDIF');
   });
 
   lines.push('ENDIF');
+  // Cooperative path: the successor keeps the escape clock and the party set.
+  lines.push(`ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`);
+  lines.push(`ASSERT SAMESTATE(${FACTORY_PARTY_ROOT_PORT} ${FACTORY_PARTY_ROOT_PORT})`);
   lines.push(`ASSERT MULTISIG(${count} ${pks.join(' ')})`);
   lines.push('IF settlement THEN');
   lines.push('    IF @COINAGE GTE 1 THEN RETURN TRUE ENDIF');
   lines.push('ELSE');
   if (enforceCheckpoints) {
-    // Checkpoint continuity: the successor stays at this script with the same
-    // value and advances the committed sequence by exactly one. Balance ports
-    // and the balance root are written by the checkpoint builder; the escape
-    // branch above then pays the checkpointed shares.
+    // Checkpoint continuity: same script, same value, sequence advanced by one.
     lines.push(`    ASSERT STATE(${FACTORY_CHECKPOINT_SEQUENCE_PORT}) EQ INC(PREVSTATE(${FACTORY_CHECKPOINT_SEQUENCE_PORT}))`);
     lines.push('    ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
-    lines.push('    ASSERT SAMESTATE(' + FACTORY_PARTY_ROOT_PORT + ' ' + FACTORY_PARTY_ROOT_PORT + ')');
   }
   lines.push('    RETURN TRUE');
   lines.push('ENDIF');
+  lines.push('RETURN FALSE');
 
   return toNodeScript(lines.join('\n'));
 }

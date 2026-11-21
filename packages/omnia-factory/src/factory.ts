@@ -172,12 +172,13 @@ export async function createFactory(
   chainProvider?: ChainStateProvider,
   tokenScale: number = 0,
   funding?: FactoryFundingMaterial[],
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution', enforceCheckpoints: true },
 ): Promise<ChannelFactory> {
   // One plan, one factory ID: build the opening once and reuse it for the
   // proposal, the local record and the funding transaction. Rebuilding here
   // would generate a different ID (the ID includes a random nonce) and the
   // peer would accept a factory this host never stored.
-  const plan = await buildFactoryOpening(participants, tokenId, tokenScale, chainProvider, funding);
+  const plan = await buildFactoryOpening(participants, tokenId, tokenScale, chainProvider, funding, scriptOptions);
   return createFactoryFromPlan(plan, bundle, chainProvider);
 }
 
@@ -294,7 +295,7 @@ export async function buildFactoryOpening(
    * OMN-058: `enforceCheckpoints` uses the checkpoint-mode covenant, so every
    * allocation change must consume and recreate the factory coin (RFC-079 §4).
    */
-  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = {},
+  scriptOptions: Parameters<typeof buildAndHashFactoryScript>[1] = { settlement: 'full-distribution', enforceCheckpoints: true },
 ): Promise<FactoryOpeningPlan> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -379,6 +380,7 @@ export async function buildFactoryOpening(
     fundingCoinId: undefined,
     pendingCommitment: Buffer.from(pendingCommitment).toString('hex'),
     pendingSignatures: {},
+    enforceCheckpoints: scriptOptions.enforceCheckpoints === true,
   };
   return {
     factory,
@@ -670,6 +672,12 @@ export async function reallocate(
   if (factory.status !== 'active') {
     throw new Error(`reallocate requires factory status 'active', got '${factory.status}'`);
   }
+  if (factory.enforceCheckpoints) {
+    throw new Error(
+      `factory ${factory.factoryId} uses checkpoint mode: reallocating changes the committed allocation `
+      + 'and must be committed with a factory checkpoint transaction first.',
+    );
+  }
   if (amount <= 0n) {
     throw new Error(`Reallocation amount must be positive, got ${amount}`);
   }
@@ -826,24 +834,82 @@ export function assertFactoryFinalized(
     if (JSON.stringify(jsonSafeForCompare(last.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
       throw new Error('FACTORY_FINALIZED changes allocations in the accept entry');
     }
-    return { ...incoming, pendingSignatures: {} };
+    // Rebuild from local state: the peer may only supply the funding references.
+    return {
+      ...known,
+      status: 'active',
+      currentSequence: 1,
+      stateLog: [...(known.stateLog ?? []), last],
+      pendingCommitment: undefined,
+      pendingSignatures: {},
+      fundingTxId: incoming.fundingTxId ?? known.fundingTxId,
+      fundingCoinId: incoming.fundingCoinId ?? known.fundingCoinId,
+    };
   }
 
   if (known.status === 'active' && incoming.status === 'active') {
-    // Funding references may be filled in after activation; terms are already checked.
-    return { ...incoming };
+    // Funding references may be filled in after activation. Nothing else may
+    // change: a peer cannot rewrite sequence, log, allocations or the VC set.
+    if (incoming.currentSequence !== known.currentSequence) {
+      throw new Error('FACTORY_FINALIZED changes the active sequence');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.stateLog ?? [])) !== JSON.stringify(jsonSafeForCompare(known.stateLog ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the active state log');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.allocations)) !== JSON.stringify(jsonSafeForCompare(known.allocations))) {
+      throw new Error('FACTORY_FINALIZED changes the active allocations');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.virtualChannels ?? [])) !== JSON.stringify(jsonSafeForCompare(known.virtualChannels ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the active virtual-channel set');
+    }
+    if (incoming.pendingCommitment || (incoming.pendingSignatures && Object.keys(incoming.pendingSignatures).length > 0)) {
+      throw new Error('FACTORY_FINALIZED carries pending opening state on an active factory');
+    }
+    return {
+      ...known,
+      fundingTxId: known.fundingTxId ?? incoming.fundingTxId,
+      fundingCoinId: known.fundingCoinId ?? incoming.fundingCoinId,
+    };
   }
   if (known.status === 'opening' && incoming.status === 'opening') {
-    // Funding references only; signatures may not be removed or altered.
+    // Funding references and additional *valid* opening signatures only.
+    if (incoming.currentSequence !== known.currentSequence) {
+      throw new Error('FACTORY_FINALIZED changes the opening sequence');
+    }
+    if (JSON.stringify(jsonSafeForCompare(incoming.stateLog ?? [])) !== JSON.stringify(jsonSafeForCompare(known.stateLog ?? []))) {
+      throw new Error('FACTORY_FINALIZED changes the opening state log');
+    }
+    if (!known.pendingCommitment) {
+      throw new Error('FACTORY_FINALIZED for a proposal without a pending commitment');
+    }
+    const commitment = Buffer.from(known.pendingCommitment.replace(/^0x/i, ''), 'hex');
     const knownSigs = known.pendingSignatures ?? {};
     const incomingSigs = incoming.pendingSignatures ?? {};
-    for (const [partyId, sig] of Object.entries(knownSigs)) {
-      const next = incomingSigs[partyId];
-      if (!next || Buffer.from(next).toString('hex') !== Buffer.from(sig).toString('hex')) {
+    const byParty = new Map(known.participants.map((participant) => [participant.partyId, participant]));
+    for (const [partyId, sig] of Object.entries(incomingSigs)) {
+      const participant = byParty.get(partyId);
+      if (!participant) {
+        throw new Error(`FACTORY_FINALIZED carries a signature from unknown party '${partyId}'`);
+      }
+      const previous = knownSigs[partyId];
+      if (previous && Buffer.from(previous).toString('hex') !== Buffer.from(sig).toString('hex')) {
+        throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
+      }
+      if (!verifyChannelSignature(sig, commitment, participant.publicKeyDigest)) {
+        throw new Error(`FACTORY_FINALIZED carries an invalid signature for '${partyId}'`);
+      }
+    }
+    for (const partyId of Object.keys(knownSigs)) {
+      if (!incomingSigs[partyId]) {
         throw new Error(`FACTORY_FINALIZED removes or alters the signature for '${partyId}'`);
       }
     }
-    return { ...incoming, pendingSignatures: { ...incomingSigs } };
+    return {
+      ...known,
+      fundingTxId: known.fundingTxId ?? incoming.fundingTxId,
+      fundingCoinId: known.fundingCoinId ?? incoming.fundingCoinId,
+      pendingSignatures: { ...incomingSigs },
+    };
   }
   throw new Error('FACTORY_FINALIZED has an unsupported status transition');
 }

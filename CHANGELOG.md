@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `@totemsdk/connect` peer range (unreleased)
+
+`@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 unit contract, so the
+published `@totemsdk/connect` 3.1.3 peer (`^0.3.2`) no longer matches it and a
+flat family install fails ERESOLVE. `connect` 3.1.4 republishes with the
+current workspace peer ranges (`chain-provider ^0.4.0`, Omnia 3.x).
+
+### Fixed — splice recovery, watchtower actions, factory scope (unreleased)
+
+- **`@totemsdk/omnia-splice` (OMN-014):** recovery binds each pending splice to
+  its own expected successor (address, token, amount), refuses to let two
+  splices claim the same coin, rejects a successor that is not the coin recorded
+  for the splice, and persists the observed coin while unconfirmed.
+- **`@totemsdk/omnia-host` watchtower (OMN-015):** a unilateral close is
+  contested by broadcasting the latest signed close package (funding-coin and
+  script proofs) with `startUnilateralClose`, recording the contest window; an
+  expiring HTLC is timed out with `timeoutHTLC`, persisted and propagated to the
+  counterparty. A failed action leaves the finding unprocessed instead of
+  pretending it was handled.
+- **`@totemsdk/omnia-host` factory scope (OMN-027):** factory openings now
+  refuse anything but two distinct participants with an explicit error. The host
+  coordinates with exactly one remote peer; it no longer advertises N-party
+  coordination it cannot perform. Library builders remain N-capable.
+
+### Fixed — peer finalization (OMN-001, unreleased)
+
+The host no longer stores peer-supplied objects after identity checks. Every
+finalization message is rebuilt from local state and the values this host
+signed:
+
+- **`FACTORY_FINALIZED`** may only fill funding references. On an active factory
+  the sequence, state log, allocations and virtual-channel set must match the
+  local copy exactly; on an opening, every supplied signature is verified,
+  unknown parties are rejected, and an existing signature cannot be removed or
+  altered. The stored object is rebuilt from the local factory, never taken from
+  the message.
+- **`VC_FINALIZED`** rebuilds the successor factory from the local factory plus
+  the allocation set this host co-signed (`vcAcceptances.expected`), rather than
+  writing `payload.factory`. The opened channel is validated against the signed
+  balances, total, token and parties.
+- **`SPLICE_FINALIZED`** rebuilds the channel from the local channel plus the
+  locally signed totals and split. A peer cannot smuggle in a different
+  `latestState` or state history.
+- **`FACTORY_CLOSE_FINALIZED`** must carry the settlement transaction this host
+  signed (compared by hash), and when a chain adapter is present the factory
+  coin must be observed **spent** before the factory is marked closed.
+
+Tests: `tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts` and
+`tests/unit/omnia-host/src/__tests__/peer-guards.test.ts`.
+
+### Changed — factory settlement (unreleased)
+
+- **`@totemsdk/omnia-factory` 0.8.0 / `@totemsdk/omnia-host` 0.15.0:** new
+  factories fund the **output-enforced full-distribution** branch of the
+  factory covenant by default. One participant can settle the whole factory in
+  a single transaction; every payout amount is read from the spent coin
+  (`PREVSTATE`), and the covenant pins the output count, each destination, each
+  amount and the token. N-of-N signatures are no longer what authorizes the
+  payout set.
+- `settlement: "per-party"` (factory RPC and `buildFactoryOpening`/
+  `createFactory`) opts out to the smaller covenant. `enforceCheckpoints: true`
+  pins allocation changes to a checkpoint transaction.
+- A zero committed share is **rejected** for distribution: the covenant requires
+  a non-zero output per participant and Minima rejects zero-value outputs.
+  Rebalance with a checkpoint or use the per-party escape instead. Per-party
+  escape already skips zero shares.
+- Open virtual-channel reserves still block full distribution (they must be
+  settled to separately enforceable outputs first), and only the latest
+  **confirmed** allocation is enforceable; never-committed off-chain states need
+  the contest protocol.
+- **Checkpoint enforcement is the default (OMN-058).** The cooperative branch
+  only accepts a checkpoint transaction (same script, same value, sequence + 1),
+  so the on-chain shares cannot drift from the committed allocation. Virtual
+  channel opens/closes and `reallocate()` are therefore refused on a
+  checkpointed factory until the change is committed as a checkpoint. Both
+  escape branches already read `PREVSTATE`, so they now always pay the latest
+  committed split. `enforceCheckpoints: false` is an explicit opt-out for
+  factories that will not rely on unilateral exits.
+- Pre-release: there is no migration path. Factories created before this change
+  are test artifacts; recreate them to pick up the funded distribution branch.
+
+
 ### Fixed — `@totemsdk/mcp-server` (unreleased)
 
 Filtering and package references now resolve instead of dead-ending:

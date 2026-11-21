@@ -8,12 +8,15 @@ import { Backup } from './pages/Backup';
 import { Home } from './pages/Home';
 import { Send } from './pages/Send';
 import { Receive } from './pages/Receive';
+import { Activity } from './pages/Activity';
+import { TxDetailPage } from './pages/TxDetail';
+import { TokenDetail } from './pages/TokenDetail';
 import { Settings } from './pages/Settings';
 import { Unlock } from './pages/Unlock';
 import { OmniaCoordinationApproval } from './components/OmniaCoordinationApproval';
 import { WalletPasswordInput } from './components/WalletPasswordInput';
 
-const AUTHED_ROUTES = new Set(['home', 'send', 'receive', 'settings', 'add-address']);
+const AUTHED_ROUTES = new Set(['home', 'send', 'receive', 'activity', 'tx-detail', 'token-detail', 'settings', 'add-address']);
 
 function SessionExpired() {
   const { unlock, lock } = useWallet();
@@ -76,6 +79,9 @@ function AppInner() {
       {route === 'home'             && <Home />}
       {route === 'send'             && <Send />}
       {route === 'receive'          && <Receive />}
+      {route === 'activity'         && <Activity />}
+      {route === 'tx-detail'        && <TxDetailPage />}
+      {route === 'token-detail'     && <TokenDetail />}
       {route === 'settings'         && <Settings />}
 
       {showNav && <BottomNav />}
