@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `@totemsdk/connect` peer range (unreleased)
+
+`@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 unit contract, so the
+published `@totemsdk/connect` 3.1.3 peer (`^0.3.2`) no longer matches it and a
+flat family install fails ERESOLVE. `connect` 3.1.4 republishes with the
+current workspace peer ranges (`chain-provider ^0.4.0`, Omnia 3.x).
+
 ### Fixed — splice recovery, watchtower actions, factory scope (unreleased)
 
 - **`@totemsdk/omnia-splice` (OMN-014):** recovery binds each pending splice to
