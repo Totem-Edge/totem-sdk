@@ -17,7 +17,7 @@
 | Level | Packages |
 |---|---:|
 | v1 | 13 |
-| rc | 54 |
+| rc | 52 |
 | beta | 4 |
 | alpha | 5 |
 | excluded | 6 |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 43 |
+| Outside production surface | 41 |
 | Excluded | 6 |
 
-Total: **76** publishable packages + **6** excluded entries = **82** workspace entries.
+Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
 
 ## Matrix
 
@@ -77,8 +77,6 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/proofgraph` | 1.1.1 | v1 | outside | `packages/proofgraph` |
 | `@totemsdk/raster-proof` | 1.0.2 | v1 | outside | `packages/raster-proof` |
 | `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
-| `@totemsdk/act-mavlink` | 0.1.1 | rc | outside | `packages/act-mavlink` |
-| `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
 | `@totemsdk/connect` | 3.1.4 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.2 | rc | outside | `packages/edge-adapters` |
@@ -88,9 +86,9 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/edge-gnss` | 0.1.0 | rc | outside | `packages/edge-gnss` |
 | `@totemsdk/edge-grpc` | 0.3.0 | rc | outside | `packages/edge-grpc` |
 | `@totemsdk/edge-matter` | 0.2.2 | rc | outside | `packages/edge-matter` |
-| `@totemsdk/edge-mavlink` | 0.1.0 | rc | outside | `packages/edge-mavlink` |
+| `@totemsdk/edge-mavlink` | 0.2.0 | rc | outside | `packages/edge-mavlink` |
 | `@totemsdk/edge-nfc` | 0.2.0 | rc | outside | `packages/edge-nfc` |
-| `@totemsdk/edge-ocpp` | 0.1.0 | rc | outside | `packages/edge-ocpp` |
+| `@totemsdk/edge-ocpp` | 0.2.0 | rc | outside | `packages/edge-ocpp` |
 | `@totemsdk/edge-opcua` | 0.2.2 | rc | outside | `packages/edge-opcua` |
 | `@totemsdk/edge-ros2` | 0.2.2 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.1 | rc | outside | `packages/eefi` |

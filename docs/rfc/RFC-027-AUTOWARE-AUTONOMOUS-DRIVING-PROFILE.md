@@ -5,7 +5,9 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-026 (ROS 2 Action Semantics & Nav2), RFC-021, RFC-022, RFC-023, RFC-011
-**Touches:** `@totemsdk/industrial-autoware` (or `@totemsdk/edge-ros2/autoware` subpath); `@totemsdk/act-core`
+**Touches:** `@totemsdk/edge-ros2/autoware` subpath; `@totemsdk/act-core`
+**Amended 2026-11:** the `industrial-*` prefix is retired and a vertical does
+not get its own package when it rides an existing wire — RFC-024/025 as amended.
 
 ---
 
@@ -66,14 +68,14 @@ semantics (ROS 2 actions) and telemetry readback.
 ### 5.1 Package shape
 
 ```
-@totemsdk/industrial-autoware
-  src/transport.ts      reuses @totemsdk/edge-ros2 Ros2TransportPort
-  src/adapter.ts        AD API operations → PreparedDeviceOp + reconcile/cancel
-  src/profile.ts        IndustrialProfile: vehicle resources, interlocks, taxonomy
-  src/route.ts          Route/zone envelope + digest
-  src/modes.ts          Operation-mode model (permitted transitions)
-  src/effects.ts        deriveEffects → PhysicalEffects (speed/duration/zone)
-  src/simulation.ts     CARLA (or equivalent) harness for fault scenarios
+@totemsdk/edge-ros2/autoware
+  src/autoware/transport.ts   reuses @totemsdk/edge-ros2 Ros2TransportPort
+  src/autoware/adapter.ts     AD API operations → PreparedDeviceOp + reconcile/cancel
+  src/autoware/profile.ts     IndustrialProfile: vehicle resources, interlocks, taxonomy
+  src/autoware/route.ts       Route/zone envelope + digest
+  src/autoware/modes.ts       Operation-mode model (permitted transitions)
+  src/autoware/effects.ts     deriveEffects → PhysicalEffects (speed/duration/zone)
+  src/autoware/simulation.ts  CARLA (or equivalent) harness for fault scenarios
 ```
 
 The transport is **RFC-026's** `Ros2TransportPort`; this profile adds no new

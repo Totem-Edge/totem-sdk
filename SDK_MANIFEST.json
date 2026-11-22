@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 76,
+  "total": 74,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -589,7 +589,7 @@
     },
     {
       "name": "@totemsdk/edge-mavlink",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Edge runtime adapter for MAVLink — drone telemetry, heartbeat, commands, wire framing",
       "domain": "edge-computing",
       "keywords": [
@@ -600,10 +600,22 @@
         "commands"
       ],
       "dependencies": {
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./governed": {
+          "import": {
+            "types": "./dist/governed/index.d.ts",
+            "default": "./dist/governed/index.js"
+          },
+          "require": {
+            "types": "./dist/cjs/governed/index.d.ts",
+            "default": "./dist/cjs/governed/index.js"
+          }
+        }
       },
       "exportsDescription": "createMavlinkGateway, createMavlinkSensorBridge, encodeFrame, decodeFrames, MavlinkTransportPort",
       "custody": {
@@ -716,7 +728,7 @@
     },
     {
       "name": "@totemsdk/edge-ocpp",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Edge runtime adapter for OCPP — EV charging wire protocol and meter proofs",
       "domain": "edge-computing",
       "keywords": [
@@ -727,10 +739,22 @@
         "metering"
       ],
       "dependencies": {
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./governed": {
+          "import": {
+            "types": "./dist/governed/index.d.ts",
+            "default": "./dist/governed/index.js"
+          },
+          "require": {
+            "types": "./dist/cjs/governed/index.d.ts",
+            "default": "./dist/cjs/governed/index.js"
+          }
+        }
       },
       "exportsDescription": "createOcppGateway, createOcppSensorBridge, parseOcppFrame, OcppTransportPort",
       "custody": {
@@ -1723,60 +1747,6 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "ActCoreDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
-      "custody": {
-        "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
-    },
-    {
-      "name": "@totemsdk/act-ocpp",
-      "version": "0.1.1",
-      "description": "Governed OCPP EV-charging profile — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
-      "domain": "edge-computing",
-      "keywords": [
-        "ocpp",
-        "ev",
-        "charging",
-        "governed-action",
-        "act-core"
-      ],
-      "dependencies": {
-        "@totemsdk/act-core": "^0.6.0",
-        "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/edge": "^1.6.0"
-      },
-      "exports": {
-        ".": "dist/index.{js,d.ts}"
-      },
-      "exportsDescription": "createOcppDefinitions, createOcppProfile, negotiateOcppCapabilities, reconcileChargingSession, deriveChargingEffects, chargingInterlocks, ocppErrorTaxonomy",
-      "custody": {
-        "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
-    },
-    {
-      "name": "@totemsdk/act-mavlink",
-      "version": "0.1.1",
-      "description": "Governed MAVLink autonomous-flight profile — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
-      "domain": "edge-computing",
-      "keywords": [
-        "mavlink",
-        "drone",
-        "flight",
-        "mission",
-        "geofence",
-        "governed-action",
-        "act-core"
-      ],
-      "dependencies": {
-        "@totemsdk/act-core": "^0.6.0",
-        "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/edge": "^1.6.0"
-      },
-      "exports": {
-        ".": "dist/index.{js,d.ts}"
-      },
-      "exportsDescription": "createMavlinkDefinitions, createMavlinkProfile, envelopeDigest, validateMissionEnvelope, runMavlinkConformance, deriveFlightEffects, vehicleInterlocks, mavlinkErrorTaxonomy",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"

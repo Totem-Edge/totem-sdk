@@ -132,6 +132,10 @@ calls `getFeedback`/`getResult`; `cancel` calls `cancel`; restart recovery uses
 
 ### 5.3 Nav2 profile
 
+**Packaging (resolved with Q1):** destinations, plans, effects and safe-state
+ship in `@totemsdk/edge-ros2/governed`. `act-*` is reserved for a governed
+domain that owns no protocol package of its own (e.g. `act-training`).
+
 ```ts
 // A destination is a registered resource; the goal is bounded to it.
 export interface DestinationMeta {
@@ -234,8 +238,14 @@ flowchart TD
 
 ## 10. Open questions
 
-- **Q1** Should the action contract live in `@totemsdk/edge-ros2` (proposed) or a
-  shared `@totemsdk/edge-actions` abstraction reused by RFC-027?
+- **Q1** ~~Should the action contract live in `@totemsdk/edge-ros2` (proposed) or a
+  shared `@totemsdk/edge-actions` abstraction reused by RFC-027?~~
+  **Resolved 2026-11:** the ROS 2 action contract (goal/feedback/result/cancel/
+  attach) is wire, so it lives in `@totemsdk/edge-ros2`; the governed Nav2
+  profile lives in `@totemsdk/edge-ros2/governed`, matching RFC-024/025 as
+  amended. There is no `edge-actions` package: the shared async contract is
+  already `act-core` (RFC-022), and a protocol-neutral indirection would only
+  hide which wire a goal travels over. RFC-027 builds on this action contract.
 - **Q2** How is "observed arrival" defined — action `succeeded`, TF readback, or
   both?
 - **Q3** Do waypoint plans belong in the profile or in `act-core` core

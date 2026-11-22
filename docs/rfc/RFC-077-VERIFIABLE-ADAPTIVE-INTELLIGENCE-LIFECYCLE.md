@@ -3,7 +3,7 @@
 **Status:** Draft for architectural review — not implemented; no releaseability claim  
 **Created:** 2026-11-05  
 **Scope:** Contracts and compositional integration across `@totemsdk/intelligence`, `@totemsdk/edge`, `@totemsdk/agent-policy`, `@totemsdk/act-core`, `@totemsdk/qvac`, Storage, ProofGraph, and optional Experience  
-**Prerequisite:** [RFC-022 Amendment A — Governed Async Settlement and Actual-Usage Accounting](RFC-022-AMENDMENT-A-GOVERNED-ASYNC-SETTLEMENT-AND-ACTUAL-USAGE.md) (see §3). This general SDK correction applies to existing `act-mavlink` and `act-ocpp` independently of RFC-077, and requires its own release and migration note.  
+**Prerequisite:** [RFC-022 Amendment A — Governed Async Settlement and Actual-Usage Accounting](RFC-022-AMENDMENT-A-GOVERNED-ASYNC-SETTLEMENT-AND-ACTUAL-USAGE.md) (see §3). This general SDK correction applies to existing `edge-mavlink/governed` and `edge-ocpp/governed` independently of RFC-077, and requires its own release and migration note.  
 **Related:** RFC-006 (landed QVAC integration), RFC-007 (Storage), RFC-010/011/019/022/023 (governed action, durable operations and effects), RFC-047 (Experience, Phase-0-only), RFC-057 (Replication), RFC-076 (SunSpec evidence and bounded resources).
 
 > **Baseline and truthfulness:** This draft uses source inspected on the repository's default branch on 2026-11-05. RFC-047 remains a Phase-0 research authorization; `@totemsdk/experience` is not a published or approved production package. `@totemsdk/qvac` exposes native `finetune` but does not currently implement a governed, independently evaluated model-release lifecycle. All types in this RFC are **proposals**, not existing APIs.
@@ -43,7 +43,7 @@ Machine unlearning; differential privacy; federated aggregation; secure multi-pa
 
 ### 3.1 Confirmed defect and scope
 
-`AgentEdgeRuntime.executeAction` currently uses `result.ok` to commit or abort authorization. `act-core` returns `ok:true, outcome:'accepted'` on async acceptance and `ok:false, errorCode:'OPERATION_PENDING'` on deduplicated pending work. Existing `act-mavlink` and `act-ocpp` async actions can therefore be prematurely settled. This is an existing Act correctness defect, **not** a problem introduced by model training.
+`AgentEdgeRuntime.executeAction` currently uses `result.ok` to commit or abort authorization. `act-core` returns `ok:true, outcome:'accepted'` on async acceptance and `ok:false, errorCode:'OPERATION_PENDING'` on deduplicated pending work. Existing `edge-mavlink/governed` and `edge-ocpp/governed` async actions can therefore be prematurely settled. This is an existing Act correctness defect, **not** a problem introduced by model training.
 
 The more fundamental issue is that `ReservationSettlementOutcome` is currently only `'completed' | 'definitely-not-executed'` and the grant-usage ledger cannot apply *actual* verified consumption. An operation that starts, consumes 40% of its authorization and fails must neither be falsely refunded as unexecuted nor charged 100% without an explicit conservative-accounting policy.
 
@@ -80,7 +80,7 @@ Cancellation follows `accepted -> running -> cancelling -> cancelled | confirmed
 
 The canonical authorized action MUST bind the immutable prepared training descriptor digest, resource envelope, run/step identity and reservation, with a versioned digest that does not silently alter existing signed semantics. The existing reservation `actionDigest` currently stores a nonce; that is **not** proof that the prepared command was committed. Correlate operation and reservation durably before external dispatch, without assuming independent stores share atomic transactions.
 
-No training job is agent-reachable until Amendment A passes its regression matrix. That matrix includes legacy sync compatibility; `ok:true + accepted` hold; `OPERATION_PENDING` hold; known-executed failed and cancelled *partial* settlement; lease expiry and later reconciliation; crash/restart; duplicate replay; and all existing `act-mavlink` mission and `act-ocpp` session actions. **Tests must assert committed, held, released and per-mandate amounts, not only return codes.**
+No training job is agent-reachable until Amendment A passes its regression matrix. That matrix includes legacy sync compatibility; `ok:true + accepted` hold; `OPERATION_PENDING` hold; known-executed failed and cancelled *partial* settlement; lease expiry and later reconciliation; crash/restart; duplicate replay; and all existing `edge-mavlink/governed` mission and `edge-ocpp/governed` session actions. **Tests must assert committed, held, released and per-mandate amounts, not only return codes.**
 
 ## 4. Package boundaries and dependency rules
 
@@ -317,7 +317,7 @@ Quarantine must support per-example or per-source invalidation and dependency tr
 
 ## 12. Walking-skeleton delivery and conformance
 
-**Prerequisite A — RFC-022 Amendment A (separate formal PR/release):** dispatch/terminal/actual-consumption result model; atomic `settleActual` at run-state and grant-usage levels; renew/reconcile after TTL; returned-failure classification, trusted reservation-to-operation correlation, and ledger-asserting regressions across existing MAVLink/OCPP async definitions. No dependence on QVAC or RFC-077. Publish in dependency order (`agent-policy` → `edge` → `act-core` → `act-mavlink`/`act-ocpp`), honoring `check-upstream-published` and updating qualification registry, public docs and consumer migration notes.
+**Prerequisite A — RFC-022 Amendment A (separate formal PR/release):** dispatch/terminal/actual-consumption result model; atomic `settleActual` at run-state and grant-usage levels; renew/reconcile after TTL; returned-failure classification, trusted reservation-to-operation correlation, and ledger-asserting regressions across existing MAVLink/OCPP async definitions. No dependence on QVAC or RFC-077. Publish in dependency order (`agent-policy` → `edge` → `act-core` → `edge-mavlink`/`edge-ocpp`), honoring `check-upstream-published` and updating qualification registry, public docs and consumer migration notes.
 
 **G0 — Contract freeze and vectors:** ratify six records plus TrainingExample atom, separate signed-release descriptor, TrainingPort and TrainingExampleSource, canonical version/hash vectors, task contract, policy actions, resource effects and trust model. Verify all package dependency directions remain acyclic.
 
@@ -353,7 +353,7 @@ Quarantine must support per-example or per-source invalidation and dependency tr
 12. Model Release signature, code/env/base/adapter/tokenizer/collection/evaluation digest tampering fails; incompatible hardware rejected.
 13. Shadow/canary regression forces authorized rollback; prior release remains verifiable; stale or revoked active pointer denied.
 14. Quarantine one poisoned example -> identify affected collections/runs/releases; historical actions retain attributed but revoked release identity.
-15. RFC-022 Amendment A proves existing `act-mavlink` `flight:startMission`/`hold`/`returnToLaunch`/`land` and `act-ocpp` `charging:startSession`/`stopSession` semantics, SQLite/in-memory ledger balances, crash/restart idempotence and synchronous compatibility. Training must not bypass that release gate.
+15. RFC-022 Amendment A proves existing `edge-mavlink/governed` `flight:startMission`/`hold`/`returnToLaunch`/`land` and `edge-ocpp/governed` `charging:startSession`/`stopSession` semantics, SQLite/in-memory ledger balances, crash/restart idempotence and synchronous compatibility. Training must not bypass that release gate.
 16. Dependency graph and package export gates pass; no `intelligence -> agent-policy` import, `act-training -> qvac` import, or `experience` package dependency.
 
 ### 12.2 Release-blocking assertions
@@ -373,7 +373,7 @@ Quarantine must support per-example or per-source invalidation and dependency tr
 ## 14. Open implementation questions (not open architectural decisions)
 
 1. Which minimal additive typed property best commits the prepared descriptor into the existing canonical agent action and persisted reservation without breaking historical signatures/digests?
-2. Where should the common asynchronous result/reconciliation adapter be refactored so `act-mavlink`, `act-ocpp` and `act-training` share its semantics without regressing industrial operation contracts?
+2. Where should the common asynchronous result/reconciliation adapter be refactored so `edge-mavlink/governed`, `edge-ocpp/governed` and `act-training` share its semantics without regressing industrial operation contracts?
 3. Which tested durable settlement-intent and idempotent replay protocol applies if operation and run state stores use different backends? RFC-022 Amendment A already requires atomic run + mandate updates where they share SQLite, and fail-closed recovery otherwise.
 4. Which QVAC SDK version's training and lifecycle APIs are actually supported by a verified native worker target, and which progress/cancellation/inspect features can be truthfully guaranteed?
 5. What are the initial task-specific evaluator policy, hardware enforcement mechanisms and evidence-retention rules for the first non-synthetic demo?

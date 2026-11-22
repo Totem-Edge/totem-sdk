@@ -1,7 +1,15 @@
 # Edge / Act release train plan (2026-11)
 
 Status: prerelease. **No backward-compatibility shims.** The `industrial-*`
-naming is retired; `act-*` is the governed actuation layer.
+naming is retired.
+
+> **Superseded 2026-11 (packaging only).** This plan shipped `act-ocpp` and
+> `act-mavlink` as separate packages. They were folded back into their wire
+> connectors as `@totemsdk/edge-ocpp/governed` and
+> `@totemsdk/edge-mavlink/governed` before either reached a consumer: `act-*`
+> is now reserved for a governed domain that owns no protocol package of its
+> own (see the RFC-024/025 amendments and RFC-026 §10 Q1). Everything else in
+> this document — commit order, gates, version discipline — still applies.
 
 ## Current state
 

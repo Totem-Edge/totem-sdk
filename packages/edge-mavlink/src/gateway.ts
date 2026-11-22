@@ -2,8 +2,8 @@
  * MAVLink Edge Gateway — drone telemetry, heartbeat and command correlation.
  *
  * Wire-only: it does not authorize missions, geofences or physical limits.
- * Governed flight actions belong to the `@totemsdk/act-mavlink` profile
- * (RFC-025), built on `@totemsdk/act-core`.
+ * Governed flight actions live under `@totemsdk/edge-mavlink/governed` (RFC-025),
+ * built on `@totemsdk/act-core`.
  */
 
 import type { EdgeRuntime, EdgeOperationResult } from '@totemsdk/edge';

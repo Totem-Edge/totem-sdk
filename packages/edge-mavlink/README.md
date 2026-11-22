@@ -2,15 +2,22 @@
 
 Edge runtime adapter for MAVLink — drone telemetry, heartbeat, commands and wire framing.
 
-> **Wire layer only.** This package frames, checksums and decodes MAVLink
-> messages. It does not authorize a mission, geofence, speed or altitude
-> envelope. Governed flight actions belong to `@totemsdk/act-mavlink` (RFC-025),
-> built on `@totemsdk/act-core`.
+> **Wire layer only at the package root.** The root frames, checksums and decodes
+> MAVLink messages and does not authorize a mission, geofence, speed or altitude
+> envelope. Governed flight actions live under
+> `@totemsdk/edge-mavlink/governed` (RFC-025), built on `@totemsdk/act-core`.
 
 ## Install
 
 ```bash
 npm install @totemsdk/edge-mavlink
+```
+
+The governed profile ships in the same package — no second install:
+
+```ts
+import { createMavlinkGateway } from '@totemsdk/edge-mavlink';
+import { createMavlinkDefinitions } from '@totemsdk/edge-mavlink/governed';
 ```
 
 ## Design
@@ -77,7 +84,7 @@ teardown against an injected transport simulator.
 
 Not qualified: real serial/UDP transports, MAVLink signing verification,
 mission upload/download, offboard control, parameter protocols, and the governed
-flight envelope. Those belong to `act-mavlink`/the transport binding.
+flight envelope. Those belong to `@totemsdk/edge-mavlink/governed`/the transport binding.
 
 ## Testing
 

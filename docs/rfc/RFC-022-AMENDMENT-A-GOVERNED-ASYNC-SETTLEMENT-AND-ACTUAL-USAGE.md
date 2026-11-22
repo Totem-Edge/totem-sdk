@@ -4,7 +4,7 @@ Status: Draft for implementation review — not implemented; release-blocking co
 Created: 2026-11-05
 Amends: RFC-022 (prepared-command binding and async lifecycle)
 Cross-references: RFC-010, RFC-011, RFC-019, RFC-023, RFC-024, RFC-025, and proposed RFC-077
-Affected: @totemsdk/edge, @totemsdk/agent-policy, @totemsdk/act-core; regression consumers @totemsdk/act-mavlink, @totemsdk/act-ocpp
+Affected: @totemsdk/edge, @totemsdk/agent-policy, @totemsdk/act-core; regression consumers @totemsdk/edge-mavlink/governed, @totemsdk/edge-ocpp/governed
 Baseline: source inspected on Totem-Edge/totem-sdk default branch, 2026-11-05, around commit 37e1b652. Pin an exact implementation commit and inspect concurrent changes before coding.
 Relationship to RFC-077: this amendment must land independently before RFC-077 allows agent-reachable training. It is an existing-act correctness fix, not a QVAC feature.
 
@@ -18,7 +18,7 @@ The amendment preserves existing synchronous actions whose results have no expli
 
 - `packages/edge/src/agent-runtime.ts`: `ok:true` causes `policy.commit`, `ok:false` causes `policy.abort`, and `classifyFailure` only handles thrown failures. `EdgeActionResult` lacks operation/reservation lifecycle fields.
 - `packages/act-core/src/edge-adapter.ts`: `runWithPolicy` returns `ok:true, outcome:'accepted'` for `async.confirmation:'accepted'`, while durable `OPERATION_PENDING` returns `ok:false`; neither boolean encodes settlement correctness.
-- Accepted async definitions are already used by `act-mavlink` (`flight:startMission`, `flight:hold`, `flight:returnToLaunch`, `flight:land`) and `act-ocpp` (`charging:startSession`, `charging:stopSession`).
+- Accepted async definitions are already used by `edge-mavlink/governed` (`flight:startMission`, `flight:hold`, `flight:returnToLaunch`, `flight:land`) and `edge-ocpp/governed` (`charging:startSession`, `charging:stopSession`).
 - `packages/agent-policy/src/run-state-store.ts`: `ReservationSettlementOutcome` is only `'completed' | 'definitely-not-executed'`. `RunStepReceipt.effects` can be folded into run totals, but no explicit reserved versus actual accounting contract exists.
 - `packages/agent-policy/src/grant-usage.ts`: `commit` marks reserved usage committed without reducing it to measured usage; `reconcileReservation` cannot express executed failure with partial charges. Its `commit` fails after reservation expiry and marks the reservation unknown.
 - `packages/agent-policy/src/sqlite-run-state-store.ts` co-locates run and mandate rows in one transactional SQLite authority. New settlement MUST update both within the same transaction, rather than changing the receipt alone. The in-memory run and grant stores require equivalent semantics.
@@ -199,11 +199,11 @@ This is a behavioural correction to a published governed lifecycle, not merely a
 1. First implement `agent-policy` actual-settlement contracts, atomic SQLite + memory storage, TTL renewal/recovery, and full ledger tests. Publish compatible additions before downstream consumers require the new version.
 2. Update `edge` result/action definitions and `AgentEdgeRuntime` settlement logic with backward-compatible synchronous default and explicit async behavior; test old synchronous definitions and the new classification matrices.
 3. Update `act-core` to surface dispatch/terminal/actual evidence and durable operation/reservation correlation; adapt `OperationLifecycle` for reconciled terminal settlement. The source/workspace implementation order may require coordinated branches, but released packages must use published compatible upstream versions.
-4. Requalify `act-mavlink` and `act-ocpp` against the new async contract; publish them only after their declared dependencies are available. Both must validate no premature settlement and no accidental duplicate physical dispatch.
+4. Requalify `edge-mavlink/governed` and `edge-ocpp/governed` against the new async contract; publish them only after their declared dependencies are available. Both must validate no premature settlement and no accidental duplicate physical dispatch.
 5. Run the existing repository's `check-upstream-published` guard, sequential release process, package metadata/export validation, workspace verification, and qualification registry checks. The guard can block downstream publication when prerequisite versions are not yet published: don't bypass it or declare a green release prematurely.
 6. Update `docs/rfc/README.md`, RFC-010/011/022 references, Act package READMEs, public API docs, SDK qualification registry and a consumer migration note. Consumers treating `ok:false` as a terminal failure must migrate to explicit phase/`terminalOutcome` and settled ledger receipts.
 
-Important dependency detail: `act-core` already depends on `edge` and `agent-policy`; `edge` depends on `agent-policy`. Actual published dependency order is therefore `agent-policy -> edge -> act-core -> act-mavlink/act-ocpp`, with any additional current dependency edges checked at implementation baseline. Do not change this order just because tests are developed together.
+Important dependency detail: `act-core` already depends on `edge` and `agent-policy`; `edge` depends on `agent-policy`. Actual published dependency order is therefore `agent-policy -> edge -> act-core -> edge-mavlink/edge-ocpp (`/governed`)`, with any additional current dependency edges checked at implementation baseline. Do not change this order just because tests are developed together.
 
 ## 9. Exit criteria
 

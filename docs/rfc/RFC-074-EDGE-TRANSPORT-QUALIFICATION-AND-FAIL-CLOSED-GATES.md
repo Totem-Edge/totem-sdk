@@ -666,14 +666,17 @@ profiles remain open.
   limit or reserve charging by itself.
 - Renamed `@totemsdk/industrial-action` to `@totemsdk/act-core` (prerelease,
   no compatibility alias) and adopted the loop-aligned naming: `edge-*` is
-  Sense/wire, `act-*` is Act/governed profile. The governed OCPP and MAVLink
-  packages are therefore `act-ocpp` and `act-mavlink` (not `industrial-*`).
+  Sense/wire, `act-*` is Act/governed. **Superseded 2026-11:** where a governed
+  profile rides an existing protocol it ships as that connector's `/governed`
+  subpath (`edge-ocpp/governed`, `edge-mavlink/governed`), and `act-*` is
+  reserved for governed domains with no wire of their own (RFC-024/025 as
+  amended).
 - Evidence: OCPP-J framing vectors and malformed frames; gateway boot, calls,
   CALLERROR mapping, inbound dispatch/NotSupported, timeouts, boot rejection;
   simulator integration covering authorize, remote command dispatch, meter
   values/proofs, connection loss and teardown. `edge-ocpp` is **RC**; a real
   WebSocket/TLS transport, vendor matrix, OCPP 2.0.1 transaction events and the
-  governed `act-ocpp` profile remain unqualified.
+  governed charging profile (`edge-ocpp/governed`) remains unqualified.
 
 ### Sixteenth increment: MAVLink wire connector
 
@@ -684,7 +687,7 @@ profiles remain open.
   COMMAND_ACK, STATUSTEXT).
 - Sensor bindings map decoded telemetry to `sensor:<id>` proofs. The package is
   wire-only: missions, geofences and speed/altitude limits require the governed
-  `@totemsdk/act-mavlink` profile (RFC-025).
+  `@totemsdk/edge-mavlink/governed` profile (RFC-025).
 - Evidence: CRC/frame vectors, corrupt/truncated frame handling, concatenated
   and fragmented frames, heartbeat/telemetry/command tests, simulator
   integration and teardown. `edge-mavlink` is **RC**; real serial/UDP

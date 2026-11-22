@@ -1,1 +1,0 @@
-../../../../packages/act-mavlink/src/index.ts
