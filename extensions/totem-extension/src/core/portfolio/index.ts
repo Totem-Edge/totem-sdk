@@ -171,8 +171,10 @@ class ExtWsFactory implements WebSocketFactory {
 // ── Portfolio backend ─────────────────────────────────────────────────────────
 // One source per mode, and no lossy fallback:
 //   • paired/self-hosted node → node `balance address:… megammr:true tokendetails:true`
-//   • Axia mode              → GET /v1/wallet/portfolio/:address
+//   • Axia mode              → GET /v1/portfolio/:address
 //
+// The old `/v1/wallet/portfolio/:address` duplicate was removed and now answers
+// 410 Gone, which is what made tokens and artwork disappear from Axia mode.
 // `/v1/wallet/coins` is a UTXO/coin-selection endpoint, not a portfolio. It
 // used to be a silent fallback here and that is exactly how token names and
 // artwork disappeared while the balance still looked "live".
@@ -185,7 +187,7 @@ class PortfolioUnavailableError extends Error {
 
 async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[]> {
   const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
-  const url = `${baseUrl.replace(/\/$/, '')}/v1/wallet/portfolio/${encodeURIComponent(address)}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/v1/portfolio/${encodeURIComponent(address)}`;
 
   let res: Response;
   try {

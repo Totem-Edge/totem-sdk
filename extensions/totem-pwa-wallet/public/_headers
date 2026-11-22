@@ -1,8 +1,8 @@
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.axia.to wss://api.axia.to https://*.axia.to; img-src 'self' data: blob:; font-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.axia.to wss://api.axia.to https://*.axia.to https://api.coingecko.com; img-src 'self' data: blob: https:; font-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Paths below are the /web-prefixed ones because production serves this project
@@ -12,11 +12,12 @@
 # cache for 4 hours and keep opening a 404 approval URL.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Main wallet app — strict isolation (COOP/COEP + no framing)
+# Main wallet app — COOP + no framing. No COEP: token artwork is loaded from
+# arbitrary https URLs (ipfs gateways, CDNs) and the wallet uses no
+# SharedArrayBuffer, so require-corp would blank every remote image.
 /web/index.html
   X-Frame-Options: DENY
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
 
 /web/assets/*
   Cache-Control: public, max-age=31536000, immutable
@@ -44,7 +45,6 @@
 /index.html
   X-Frame-Options: DENY
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable

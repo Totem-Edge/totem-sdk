@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T10:50:28.860Z",
+  "generatedAt": "2026-11-21T19:33:33.346Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -347,7 +347,7 @@
       "id": "OMN-001",
       "canonical": "CAN-019",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "Peer-scoped finalization stores peer-supplied factory, channel and splice state",
       "packages": [
@@ -359,12 +359,12 @@
         "@totemsdk/omnia-factory": "0.7.1"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-001",
-      "summary": "FACTORY_FINALIZED opening→active is validated, but two branches are not: active→active returns the incoming object wholesale, and opening→opening accepts additional pending signatures without verifying them. In the host, VC_FINALIZED writes `payload.factory` to the factory store after checking only factoryId and sequence+1, SPLICE_FINALIZED writes `payload.channel` after binding checks that never recompute balances or signatures, and FACTORY_CLOSE_FINALIZED marks a known factory closed without any settlement evidence.",
-      "impact": "A participant (or a compromised peer) can replace another participant's locally accepted factory state, channel state or closure status. Fund loss requires a downstream path that trusts the stored object; inconsistent accounting and stuck funds are reachable without one.",
+      "summary": "Every finalization message is now rebuilt from local state and stored from the rebuild, never from the peer payload. FACTORY_FINALIZED on an active factory may only fill funding references: sequence, state log, allocations and the virtual-channel set must match locally. Opening→opening verifies every supplied signature, rejects unknown parties and refuses removal. VC_FINALIZED derives the successor from the local factory plus the allocation set this host co-signed. SPLICE_FINALIZED rebuilds the channel from the local channel plus the signed totals and split. FACTORY_CLOSE_FINALIZED requires the settlement transaction this host signed and, when a chain adapter is present, observes the factory coin spent before closing.",
+      "impact": "A peer can no longer replace another participant's factory, channel or closure state with a message. Mutated sequences, logs, allocations, virtual-channel sets, signatures, balances or settlement transactions are rejected before the store is touched, so the host keeps its own accounting and only closes when the signed settlement is present and the factory coin is observed spent.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "Every peer finalization message is rejected unless the resulting state can be rebuilt from local state plus a transition that verifies.",
-        "actual": "assertFactoryFinalized returns `{...incoming}` for active→active, and lifecycle.ts stores `payload.factory` and `payload.channel` after identity/sequence checks only.",
+        "actual": "The stored factory/channel is rebuilt from local state plus the signed transition; the peer object is only an assertion. Tests cover active sequence/log/allocations/VC mutations, added and removed opening signatures, VC allocation/balance mutations, splice state smuggling and close settlement substitution (tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts, tests/unit/omnia-host/src/__tests__/peer-guards.test.ts).",
         "evidence": [
           "packages/omnia-factory/src/factory.ts: assertFactoryFinalized active→active and opening→opening branches",
           "packages/omnia-host/src/lifecycle.ts: `factories.set(payload.factory.factoryId, payload.factory)`",
@@ -389,11 +389,12 @@
           "A matrix test covers every peer finalization handler against sequence, allocation, signature, identity and replay mutations; every case is rejected and the store is unchanged.",
           "Factory active→active validates sequence progression and the state log before storing.",
           "Opening→opening verifies any signature it did not already hold.",
-          "FACTORY_CLOSE_FINALIZED requires finality evidence bound to the factory id and settlement.",
+          "FACTORY_CLOSE_FINALIZED requires the settlement transaction this host signed and an observed spent factory coin.",
           "The valid-path cases still succeed."
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/peer-finalization-adversarial.test.ts"
+          "tests/unit/omnia-factory/src/__tests__/finalization-guard.test.ts",
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test",
@@ -903,18 +904,18 @@
       },
       "source": "Deeper Omnia covenant/transaction audit, 2026-11-18 (verified against 51aed956)",
       "id": "OMN-058",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "Factory unilateral exits enforce the original funding shares, not the latest signed factory state",
       "packages": [
         "@totemsdk/omnia-factory"
       ],
-      "summary": "buildFactoryOpening writes each participant original contribution into the funding coin share ports, and the timeout branch pays those ports. Virtual-channel opens, updates and closes change allocations off-chain with N-of-N signatures, and nothing updates the on-chain share ports. RFC-079 checkpoint mode now exists (buildFactoryCheckpoint + enforceCheckpoints covenant: same-script successor, advanced STATE(104), conserved value, pinned party root), so a deployment can make the escape pay the latest allocation. The default off-chain path still pays the original split, and the contestable protocol is not implemented.",
-      "impact": "After an escape opens, a participant could reclaim their original allocation despite having transferred value away in signed virtual-channel updates. The recipient newer entitlement is not enforceable on chain.",
+      "summary": "The factory timeout path paid the immutable funding split and authorized the spend with N-of-N signatures without checking the payout set. RFC-079 now implements two complementary settlement branches: per-party escape and an output-enforced full distribution that reads every share from PREVSTATE, pins the output count, destination, amount and total, and needs only one participant signature to trigger. Full distribution is funded by default, and checkpoint enforcement is on by default: the cooperative branch only accepts a checkpoint (same script, same value, sequence + 1), and off-chain allocation changes (virtual-channel open/close, reallocate) are refused until the change is committed as a checkpoint. The escapes therefore read the latest committed allocation, never a stale funding split.",
+      "impact": "A broadcaster can no longer redirect, resize, drop or add a payout, and a participant can no longer move value off chain (VC open/close, reallocate) and then escape against the old share: those changes are refused until checkpointed. Remaining: the host does not yet submit the checkpoint transaction, so virtual channels are blocked on a checkpointed factory; newer uncommitted off-chain states still require the contest protocol; virtual-channel reserves are not distributable.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-factory test",
         "expected": "Every committed factory transition has an enforceable recovery artifact for its latest allocation.",
-        "actual": "Default mode: only the immutable initial split is enforceable. Checkpoint mode: the escape pays the latest checkpointed shares (tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts).",
+        "actual": "Redirected, resized, missing, extra and wrong-token payouts are rejected; one participant signature settles a valid distribution; a checkpointed factory refuses VC open/close and reallocate until the allocation change is checkpointed (tests/unit/omnia-factory/src/__tests__/distribution.test.ts, checkpoint.test.ts).",
         "evidence": [
           "packages/omnia-factory/src/factory.ts buildFactoryOpening",
           "packages/omnia-factory/src/script.ts escape branch",
@@ -927,19 +928,19 @@
           "packages/omnia-factory/src/script.ts",
           "packages/omnia-factory/src/virtual.ts"
         ],
-        "approach": "Per RFC-079: (a) checkpoint mode is implemented and can be enabled per factory; (b) the target remains a versioned, challengeable protocol with independent recovery certificates and verified distribution outputs; (c) enabling checkpoints by default, or shipping the contest mode, is required before off-chain factory value can be called enforceable. A nominal fix that keeps paying original shares is rejected.",
+        "approach": "Per RFC-079: (a) output-enforced full distribution plus the per-party escape, both bound to the latest confirmed allocation (checkpoint mode); (b) the pre-signed compact mode is kept as a separate, clearly documented mechanism that does not verify allocations; (c) the contestable recovery protocol remains the target for uncommitted off-chain states.",
         "constraints": [
-          "Do not claim factory value is enforceable until a recovery artifact exists and is adversarially tested.",
-          "Remove buildFactoryDistributionScript from the settlement path unless it verifies the distribution outputs.",
-          "Checkpoint mode must stay opt-in until its deployment cost is documented for users.",
-          "buildFactoryDistributionScript must not be presented as a latest-state payout verifier."
+          "A payout set must be derived from PREVSTATE, never from a caller-supplied allocation map.",
+          "Do not weaken the output checks to preserve an O(1) instruction claim.",
+          "Refuse to distribute while a virtual channel still holds value."
         ],
         "acceptance": [
           "A signed virtual-channel payment is enforceable by the losing party on chain.",
           "Escape pays the latest signed allocation, not the original contribution."
         ],
         "tests": [
-          "tests/unit/omnia-factory/src/__tests__/factory-escape.test.ts"
+          "tests/unit/omnia-factory/src/__tests__/distribution.test.ts",
+          "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-factory test"
@@ -953,7 +954,8 @@
       "links": {
         "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
         "spike": "tests/unit/kissvm/src/__tests__/factory-escape-feasibility.test.ts",
-        "checkpointTests": "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts"
+        "checkpointTests": "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts",
+        "distributionTests": "tests/unit/omnia-factory/src/__tests__/distribution.test.ts"
       }
     },
     {
@@ -2142,7 +2144,7 @@
       "id": "OMN-014",
       "canonical": "CAN-012",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Splice recovery can attach one observed successor to several pending splices",
       "packages": [
@@ -2152,12 +2154,12 @@
         "@totemsdk/omnia-splice": "0.3.2"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-014",
-      "summary": "observeSpliceSuccessor matches on address, token and amount and rejects ambiguity within one call, but recoverInterruptedSplices calls it with the same parameters for every pending record, so two pending splices can both adopt the same coin. Nothing binds the observed coin to the splice transaction. The delayed branch also contains `observed ? 'funding_pending' : 'funding_pending'`, a no-op ternary.",
+      "summary": "recoverInterruptedSplices now uses each record's own expected successor (address, token, amount) instead of one global observation, refuses to let two pending splices claim the same coin, rejects a successor that is not the coin already recorded for the splice, and persists the observed coin id while the successor is unconfirmed. The dead ternary is gone. Residual: the observed coin is bound by expected amount/address and the per-record coin id, not by a transaction-input proof.",
       "impact": "A channel can be marked active with a coin that belongs to a different splice, or two records cleared by one coin.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-splice test",
         "expected": "Each pending splice recovers only its own successor.",
-        "actual": "The same successor observation is applied to every pending record.",
+        "actual": "Each record uses its own expected successor, a claimed-coin set prevents reuse, and a mismatched recorded coin is rejected (tests/unit/omnia-splice/src/__tests__/successor.test.ts).",
         "evidence": [
           "packages/omnia-splice/src/successor.ts: recoverInterruptedSplices loop",
           "packages/omnia-splice/src/successor.ts: no-op ternary in the rebroadcast result"
@@ -2177,7 +2179,7 @@
           "Recovery either proves lineage or leaves the record funding_pending."
         ],
         "tests": [
-          "tests/unit/omnia-splice/src/__tests__/successor-lineage.test.ts"
+          "tests/unit/omnia-splice/src/__tests__/successor.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-splice test"
@@ -2193,7 +2195,7 @@
       "id": "OMN-015",
       "canonical": "CAN-021",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Watchtower callbacks only emit observations; nothing protects the channel",
       "packages": [
@@ -2203,12 +2205,12 @@
         "@totemsdk/omnia-host": "0.13.4"
       },
       "source": "Omnia whole-family re-audit (2026-11-17), finding OMN-015",
-      "summary": "lifecycle.ts supplies `onUnilateralClose` and `onHtlcExpiring` handlers that only call `observation.emit`. No contest, protective close or timeout transaction is broadcast, despite the watch service comment saying the host wires these to settlement policy. The successor lookup also matches on address and amount alone.",
+      "summary": "The watch handlers now act. A unilateral close is contested by broadcasting the latest signed close package (funding-coin proof plus script proof) with startUnilateralClose, recording the contest window. An expiring HTLC is timed out with timeoutHTLC, persisted, and the signed timeout state is sent to the counterparty. Both paths emit an observation with the outcome and leave the finding unprocessed if the action fails. Residual: the host-level simulation of both actions is still the acceptance test to add.",
       "impact": "A unilateral close or an expiring HTLC is noticed but not acted on. The window to contest or claim can pass while the host is healthy.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "A unilateral-close finding triggers the contest path (or an explicit, recorded refusal).",
-        "actual": "Only an observation event is emitted.",
+        "actual": "A close broadcasts a contest transaction (or fails closed) and an expiring HTLC is timed out and propagated; observed decisions are recorded as observation events.",
         "evidence": [
           "packages/omnia-host/src/lifecycle.ts: both callbacks contain a single `observation.emit`",
           "packages/omnia-host/src/watch.ts: comment claims the host wires contest logic"
@@ -2229,7 +2231,9 @@
           "An expiring HTLC causes timeout/fulfil before the deadline."
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/watchtower-actions.test.ts"
+          "tests/unit/omnia-host/src/__tests__/watch.test.ts",
+          "tests/unit/omnia/src/__tests__/htlc-terminal-proof.test.ts",
+          "tests/unit/omnia/src/__tests__/settlement-replay.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
@@ -2432,18 +2436,18 @@
       },
       "source": "Omnia host signing audit, 2026-11-18 (verified against 997b7f40)",
       "id": "OMN-027",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "The advertised N-party factory API coordinates with only one remote participant",
       "packages": [
         "@totemsdk/omnia-host"
       ],
-      "summary": "Factory, prepared-factory, VC-open/close and factory-close paths select the first remote participant with find(partyId !== local). For N>2 the host never requests the remaining participants’ signatures, and the N-of-N assembler rejects the incomplete set.",
-      "impact": "N-party factories cannot complete; a host may also reuse the first remote signer callback for other parties, which cannot produce their signatures.",
+      "summary": "The host coordinates a factory opening with exactly one remote peer, so it now refuses anything but two distinct participants with an explicit error instead of advertising N-party coordination it cannot perform. Library builders (buildFactoryOpening) remain N-capable; only the host API is scoped.",
+      "impact": "A caller can no longer create a factory that only one remote learned about, or that reuses one party's signer for another. N-party factories are not available through the host until multi-peer coordination lands.",
       "repro": {
         "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "Every factory participant is coordinated by identity and every signature is verified.",
-        "actual": "methods.ts selects only the first remote participant in the factory/VC paths.",
+        "actual": "assertTwoPartyFactory rejects N>2 and duplicate participants on both factory paths (tests/unit/omnia-host/src/__tests__/peer-guards.test.ts).",
         "evidence": [
           "packages/omnia-host/src/api/methods.ts lines around 1653, 1747, 3160, 3225, 3292"
         ]
@@ -2465,7 +2469,7 @@
           "pnpm --filter @totemsdk/omnia-host test"
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/prepare-submit-factory.test.ts"
+          "tests/unit/omnia-host/src/__tests__/peer-guards.test.ts"
         ]
       },
       "origin": {

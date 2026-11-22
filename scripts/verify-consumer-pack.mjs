@@ -131,6 +131,10 @@ try {
     if (Array.isArray(target)) return target.some((item) => hasCondition(item, condition));
     return Object.hasOwn(target, condition) || hasCondition(target.node, condition);
   }
+  function declaresTypes(target) {
+    if (!target || typeof target !== 'object') return false;
+    return Object.hasOwn(target, 'types') || Object.values(target).some(declaresTypes);
+  }
   const defaultTarget = typeof rootExport === 'string' ? rootExport
     : typeof rootExport?.default === 'string' ? rootExport.default : undefined;
   const supportsImport = Boolean(defaultTarget) || hasCondition(rootExport, 'import') ||
@@ -143,42 +147,100 @@ try {
   if (!supportsImport && !supportsRequire) {
     throw new Error(`No supported root import/require probes selected for ${manifest.name}`);
   }
+  // Every published subpath must resolve and type-check too: a `/governed`
+  // entry that points at a missing dist file, or forgets `types`, is invisible
+  // to a root-only probe and breaks consumers on install.
+  function exportTargets(target) {
+    if (typeof target === 'string') return [target];
+    if (!target || typeof target !== 'object') return [];
+    return Object.values(target).flatMap(exportTargets);
+  }
+  const CODE_TARGET = /\.(?:[cm]?[jt]s)$/;
+  const subpaths = Object.keys(manifest.exports ?? {}).filter((key) => key !== '.' && key.startsWith('./'));
+  const subpathBindings = [];
+  for (const subpath of subpaths) {
+    const target = manifest.exports[subpath];
+    const targets = exportTargets(target);
+    // Asset subpaths (`./test-vectors.json`, `./*.wasm`) are not modules: there is
+    // nothing to import and no declaration file to resolve. Verify the file ships.
+    if (!targets.some((candidate) => CODE_TARGET.test(candidate))) {
+      for (const candidate of targets) {
+        if (!existsSync(join(installedDir, candidate))) {
+          throw new Error(`${manifest.name}: subpath ${subpath} targets missing file ${candidate}`);
+        }
+      }
+      continue;
+    }
+    const subDefault = typeof target === 'string' ? target
+      : typeof target?.default === 'string' ? target.default : undefined;
+    const binding = {
+      subpath,
+      specifier: `${manifest.name}${subpath.slice(1)}`,
+      import: Boolean(subDefault) || hasCondition(target, 'import'),
+      require: hasCondition(target, 'require') ||
+        (Boolean(subDefault) && (subDefault.endsWith('.cjs') || manifest.type !== 'module')),
+      types: Boolean(target && typeof target === 'object' && declaresTypes(target)),
+    };
+    if (!binding.import && !binding.require) {
+      throw new Error(`${manifest.name}: subpath ${binding.subpath} declares no import or require target`);
+    }
+    if (!binding.types) {
+      throw new Error(`${manifest.name}: subpath ${binding.subpath} declares no \`types\` target`);
+    }
+    subpathBindings.push(binding);
+  }
+  const probes = [
+    { specifier: manifest.name, import: supportsImport, require: supportsRequire },
+    ...subpathBindings.map((binding) => ({
+      specifier: binding.specifier, import: binding.import, require: binding.require,
+    })),
+  ];
   const probe = `
     import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-    const packageName = process.env.PACKAGE_NAME;
-    if (process.env.TEST_IMPORT === '1') {
-      const imported = await import(packageName);
-      if (Object.keys(imported).length === 0) throw new Error('ESM import exported no bindings');
-    }
-    if (process.env.TEST_REQUIRE === '1') {
-      const required = createRequire(import.meta.url)(packageName);
-      if (!required || (typeof required === 'object' && Object.keys(required).length === 0)) {
-        throw new Error('CommonJS require exported no bindings');
+    const probes = JSON.parse(process.env.PROBES);
+    for (const { specifier, import: wantImport, require: wantRequire } of probes) {
+      if (wantImport) {
+        const imported = await import(specifier);
+        if (Object.keys(imported).length === 0) throw new Error(\`ESM import exported no bindings: \${specifier}\`);
+      }
+      if (wantRequire) {
+        const required = createRequire(import.meta.url)(specifier);
+        if (!required || (typeof required === 'object' && Object.keys(required).length === 0)) {
+          throw new Error(\`CommonJS require exported no bindings: \${specifier}\`);
+        }
       }
     }
   `;
   run(process.execPath, ['--input-type=module', '--eval', probe], workDir, {
     ...process.env,
-    PACKAGE_NAME: manifest.name,
-    TEST_IMPORT: supportsImport ? '1' : '0',
-    TEST_REQUIRE: supportsRequire ? '1' : '0',
+    PROBES: JSON.stringify(probes),
   });
 
-  function declaresTypes(target) {
-    if (!target || typeof target !== 'object') return false;
-    return Object.hasOwn(target, 'types') || Object.values(target).some(declaresTypes);
-  }
-  const hasTypes = Boolean(manifest.types || manifest.typings) || declaresTypes(rootExport);
+  const hasTypes = Boolean(manifest.types || manifest.typings) || declaresTypes(rootExport) ||
+    subpathBindings.some((binding) => binding.types);
   if (hasTypes) {
     const files = [];
-    if (supportsImport) {
+    // Honour each subpath's declared conditions: an ESM-only entry (`import`
+    // only, e.g. a wasm loader) must not be required from the CJS consumer.
+    const importSpecifiers = [
+      ...(supportsImport ? [manifest.name] : []),
+      ...subpathBindings.filter((binding) => binding.import).map((binding) => binding.specifier),
+    ];
+    const requireSpecifiers = [
+      ...(supportsRequire ? [manifest.name] : []),
+      ...subpathBindings.filter((binding) => binding.require).map((binding) => binding.specifier),
+    ];
+    if (importSpecifiers.length > 0) {
       files.push('consumer.mts');
-      writeFileSync(join(workDir, 'consumer.mts'), `import * as api from ${JSON.stringify(manifest.name)};\nvoid api;\n`);
+      writeFileSync(join(workDir, 'consumer.mts'), `${importSpecifiers
+        .map((specifier, index) => `import * as api${index} from ${JSON.stringify(specifier)};\nvoid api${index};`)
+        .join('\n')}\n`);
     }
-    if (supportsRequire) {
+    if (requireSpecifiers.length > 0) {
       files.push('consumer.cts');
-      writeFileSync(join(workDir, 'consumer.cts'), `import api = require(${JSON.stringify(manifest.name)});\nvoid api;\n`);
+      writeFileSync(join(workDir, 'consumer.cts'), `${requireSpecifiers
+        .map((specifier, index) => `import api${index} = require(${JSON.stringify(specifier)});\nvoid api${index};`)
+        .join('\n')}\n`);
     }
     writeFileSync(join(workDir, 'tsconfig.json'), JSON.stringify({
       compilerOptions: {

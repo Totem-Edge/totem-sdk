@@ -8,6 +8,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Totem" />
+    <!-- Bump this when a deploy changes response headers. The service worker
+         precaches this document, including its HTTP headers, so an unchanged
+         shell keeps an installed PWA on the old CSP until the precache entry
+         changes. -->
+    <meta name="totem-shell" content="2026-11-20.1" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icons/totem.svg" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />

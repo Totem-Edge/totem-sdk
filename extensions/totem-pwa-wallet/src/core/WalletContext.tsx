@@ -24,6 +24,9 @@ export type AppRoute =
   | 'home'
   | 'send'
   | 'receive'
+  | 'activity'
+  | 'tx-detail'
+  | 'token-detail'
   | 'settings'
   | 'add-address'
   | 'session-expired';
@@ -31,6 +34,17 @@ export type AppRoute =
 interface WalletCtx {
   route: AppRoute;
   setRoute: (r: AppRoute) => void;
+  /** TxPoW id backing the transaction detail route. */
+  selectedTxId: string | null;
+  openTx: (txid: string) => void;
+  closeTx: () => void;
+  /** Token id backing the token detail route. */
+  selectedTokenId: string | null;
+  openToken: (tokenid: string) => void;
+  closeToken: () => void;
+  /** Token the Send page should preselect (set by token detail). */
+  pendingSendTokenId: string | null;
+  setPendingSendTokenId: (tokenid: string | null) => void;
   session: SessionState | null;
   activeAccount: AccountRecord | null;
   isUnlocked: boolean;
@@ -62,6 +76,9 @@ function readHashRoute(): AppRoute | null {
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [route, setRoute]   = useState<AppRoute>('loading');
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [pendingSendTokenId, setPendingSendTokenId] = useState<string | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [error, setError]   = useState<string | null>(null);
 
@@ -191,6 +208,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // The detail view is a route (like the extension's tab) so the back button
+  // and the nav always agree on where the user is.
+  const openTx = useCallback((txid: string) => {
+    setSelectedTxId(txid);
+    setRoute('tx-detail');
+  }, []);
+
+  const closeTx = useCallback(() => {
+    setSelectedTxId(null);
+    setRoute('activity');
+  }, []);
+
+  const openToken = useCallback((tokenid: string) => {
+    setSelectedTokenId(tokenid);
+    setRoute('token-detail');
+  }, []);
+
+  const closeToken = useCallback(() => {
+    setSelectedTokenId(null);
+    setRoute('home');
+  }, []);
+
   const activeAccount = session
     ? (session.accounts.find(a => a.index === session.activeIndex) ?? null)
     : null;
@@ -199,6 +238,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     <WalletContext.Provider value={{
       route,
       setRoute,
+      selectedTxId,
+      openTx,
+      closeTx,
+      selectedTokenId,
+      openToken,
+      closeToken,
+      pendingSendTokenId,
+      setPendingSendTokenId,
       session,
       activeAccount,
       isUnlocked: session !== null,

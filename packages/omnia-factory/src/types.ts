@@ -123,6 +123,15 @@ export interface ChannelFactory {
   /** Currently open virtual channels backed by this factory's shared UTXO. */
   virtualChannels: OmniaChannel[];
 
+  /**
+   * OMN-058: the covenant only permits cooperative spends that recreate the
+   * coin at the same script/value with the checkpoint sequence advanced
+   * (`enforceCheckpoints`). When set, off-chain allocation changes (virtual
+   * channels) are refused until they can be committed as a checkpoint, so a
+   * unilateral escape can never pay a stale split.
+   */
+  enforceCheckpoints?: boolean;
+
   /** Monotonically increasing. Incremented on every committed state transition. */
   currentSequence: number;
   status: FactoryStatus;

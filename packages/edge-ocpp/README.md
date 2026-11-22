@@ -2,15 +2,23 @@
 
 Edge runtime adapter for OCPP — EV charging wire protocol and meter proofs.
 
-> **Wire layer only.** This package frames and correlates OCPP-J messages. It
-> has no decision, authority or physical-effect policy. Starting/stopping a
-> charging session, setting limits or unlocking a connector must go through the
-> governed `@totemsdk/act-ocpp` profile (RFC-024), built on `@totemsdk/act-core`.
+> **Wire layer only at the package root.** The root frames and correlates OCPP-J
+> messages and has no decision, authority or physical-effect policy.
+> Starting/stopping a charging session, setting limits or unlocking a connector
+> go through the governed `@totemsdk/edge-ocpp/governed` entry point (RFC-024),
+> built on `@totemsdk/act-core`.
 
 ## Install
 
 ```bash
 npm install @totemsdk/edge-ocpp
+```
+
+The governed profile ships in the same package — no second install:
+
+```ts
+import { createOcppGateway } from '@totemsdk/edge-ocpp';
+import { createOcppDefinitions, createOcppProfile } from '@totemsdk/edge-ocpp/governed';
 ```
 
 ## Design
@@ -96,8 +104,8 @@ proofs and teardown against an injected transport simulator.
 
 Not qualified: a real WebSocket/TLS transport, an OCPP stack/vendor matrix,
 OCPP 2.0.1 transaction-event semantics, and any governed charging action. The
-governed profile is a separate package (`act-ocpp`), required before this
-connector may start, stop, limit or reserve charging.
+governed profile ships in this package at `@totemsdk/edge-ocpp/governed` and is
+required before this connector may start, stop, limit or reserve charging.
 
 ## Testing
 

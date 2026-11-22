@@ -51,7 +51,9 @@ pub fn deserialize_tree_signature(data: &[u8]) -> Result<TreeSignature, String> 
     let (num_proofs, count_bytes) = crate::mmr::read_mini_number(data, offset)?;
     offset += count_bytes;
     if num_proofs == 0 || num_proofs > 8 {
-        return Err(format!("Malformed signature: impossible proof count ({num_proofs})"));
+        return Err(format!(
+            "Malformed signature: impossible proof count ({num_proofs})"
+        ));
     }
 
     let mut proofs = Vec::with_capacity(num_proofs as usize);

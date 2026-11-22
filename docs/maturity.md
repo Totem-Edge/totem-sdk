@@ -17,7 +17,7 @@
 | Level | Packages |
 |---|---:|
 | v1 | 13 |
-| rc | 54 |
+| rc | 52 |
 | beta | 4 |
 | alpha | 5 |
 | excluded | 6 |
@@ -27,18 +27,18 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 43 |
+| Outside production surface | 41 |
 | Excluded | 6 |
 
-Total: **76** publishable packages + **6** excluded entries = **82** workspace entries.
+Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
 
 ## Matrix
 
 | Package | Version | Level | Support tier | Directory |
 |---|---|---|---|---|
-| `@totemsdk/core` | 1.6.0 | v1 | 0 | `packages/core` |
-| `@totemsdk/core-wasm` | 1.0.6 | v1 | 0 | `packages/core-wasm` |
-| `@totemsdk/kissvm` | 1.4.1 | rc | 0 | `packages/kissvm` |
+| `@totemsdk/core` | 1.6.1 | v1 | 0 | `packages/core` |
+| `@totemsdk/core-wasm` | 1.0.7 | v1 | 0 | `packages/core-wasm` |
+| `@totemsdk/kissvm` | 1.4.2 | rc | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.3.1 | v1 | 1 | `packages/edge-mqtt` |
 | `@totemsdk/act-core` | 0.6.0 | rc | 1 | `packages/act-core` |
@@ -46,7 +46,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 3.0.0 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.14.0 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia-host` | 0.15.0 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.3 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
@@ -58,10 +58,10 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/liquidity-bond` | 0.4.0 | rc | 2 | `packages/liquidity-bond` |
 | `@totemsdk/manifest` | 2.2.0 | rc | 2 | `packages/manifest` |
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
-| `@totemsdk/omnia-factory` | 0.7.2 | rc | 2 | `packages/omnia-factory` |
+| `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.0 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.2 | rc | 2 | `packages/omnia-router` |
-| `@totemsdk/omnia-splice` | 0.3.4 | rc | 2 | `packages/omnia-splice` |
+| `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.9.0 | rc | 2 | `packages/omnia-vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
@@ -77,10 +77,8 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/proofgraph` | 1.1.1 | v1 | outside | `packages/proofgraph` |
 | `@totemsdk/raster-proof` | 1.0.2 | v1 | outside | `packages/raster-proof` |
 | `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
-| `@totemsdk/act-mavlink` | 0.1.1 | rc | outside | `packages/act-mavlink` |
-| `@totemsdk/act-ocpp` | 0.1.1 | rc | outside | `packages/act-ocpp` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
-| `@totemsdk/connect` | 3.1.3 | rc | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.1.4 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.2 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.3.0 | rc | outside | `packages/edge-ble` |
@@ -88,9 +86,9 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/edge-gnss` | 0.1.0 | rc | outside | `packages/edge-gnss` |
 | `@totemsdk/edge-grpc` | 0.3.0 | rc | outside | `packages/edge-grpc` |
 | `@totemsdk/edge-matter` | 0.2.2 | rc | outside | `packages/edge-matter` |
-| `@totemsdk/edge-mavlink` | 0.1.0 | rc | outside | `packages/edge-mavlink` |
+| `@totemsdk/edge-mavlink` | 0.2.0 | rc | outside | `packages/edge-mavlink` |
 | `@totemsdk/edge-nfc` | 0.2.0 | rc | outside | `packages/edge-nfc` |
-| `@totemsdk/edge-ocpp` | 0.1.0 | rc | outside | `packages/edge-ocpp` |
+| `@totemsdk/edge-ocpp` | 0.2.0 | rc | outside | `packages/edge-ocpp` |
 | `@totemsdk/edge-opcua` | 0.2.2 | rc | outside | `packages/edge-opcua` |
 | `@totemsdk/edge-ros2` | 0.2.2 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.1 | rc | outside | `packages/eefi` |

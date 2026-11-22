@@ -87,6 +87,25 @@ function verify() {
     }
   }
 
+  // 2b. Domain coverage in both directions. A retired package that lingers in a
+  // domain list is invisible to the entry checks above, and a package that
+  // belongs to no domain is invisible in the catalogue.
+  const manifestNames = new Set(manifest.packages.map((entry) => entry.name));
+  const listedInDomains = new Set();
+  for (const [domainName, domain] of Object.entries(manifest.domains ?? {})) {
+    for (const name of domain.packages ?? []) {
+      listedInDomains.add(name);
+      if (!manifestNames.has(name)) {
+        fail(`domains.${domainName}: lists ${name}, which has no manifest entry`);
+      }
+    }
+  }
+  for (const entry of manifest.packages) {
+    if (!listedInDomains.has(entry.name)) {
+      fail(`${entry.name}: belongs to no manifest domain`);
+    }
+  }
+
   // 3-5. Field-level drift for entries that resolve.
   for (const entry of manifest.packages) {
     const found = byName.get(entry.name);

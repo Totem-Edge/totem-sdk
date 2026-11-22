@@ -170,6 +170,103 @@ so the off-chain design keeps working, with OMN-058 open until the contestable
 protocol lands. Enabling it by default is the deployment decision that turns
 "off-chain value is enforceable" into a true statement.
 
+## 4A. Output-enforced full distribution — implemented
+
+The timeout path now has two complementary settlement branches:
+
+- **per-party escape** — one participant withdraws its committed share; the
+  remainder stays at the factory script with the other shares unchanged, and the
+  withdrawing port is zeroed;
+- **full distribution** — one participant settles the whole factory in a single
+  transaction paying every committed share.
+
+The distribution branch does not trust the transaction to describe its own
+payouts. Every amount is read from the spent coin, and the covenant pins the
+shape:
+
+```
+IF @BLOCK GT PREVSTATE(103) THEN
+  IF @TOTIN EQ 1 THEN
+    IF @TOTOUT EQ N THEN
+      IF GETOUTADDR(N-1) EQ <last payout address> THEN
+        ASSERT @INPUT EQ 0
+        ASSERT PREVSTATE(128) + … + PREVSTATE(128+N-1) EQ @AMOUNT
+        ASSERT VERIFYOUT(0 <addr_0> PREVSTATE(128) @TOKENID FALSE)
+        … one per participant …
+        ASSERT (SIGNEDBY(pk_0) OR … OR SIGNEDBY(pk_N-1))
+        RETURN TRUE
+```
+
+Consequences:
+
+- a redirected, resized, missing or extra payout fails;
+- one signature triggers settlement — no counterparty liveness, and N-of-N is
+  no longer what authorizes the payout set;
+- the amounts come from the latest **confirmed** allocation (funding coin or
+  checkpoint), never from a caller-supplied map;
+- the `GETOUTADDR(N-1)` gate keeps the per-party escape working: a partial exit
+  leaves the remainder at the script address, so this branch is skipped and the
+  per-party branch handles it.
+
+The branch is now part of the **funded** covenant by default:
+`buildFactoryOpening()` / `createFactory()` build with
+`settlement: 'full-distribution'`, and the host exposes the same switch
+(`settlement: "per-party"` opts out to the smaller covenant,
+`enforceCheckpoints: true` additionally pins allocation changes to a checkpoint
+transaction). Pre-release: no migration is provided; factories created before
+this change are test artefacts and are recreated.
+
+Checkpoint enforcement is also the default (OMN-058): the cooperative branch
+only accepts a checkpoint transaction (same script, same value, sequence + 1).
+Because a unilateral escape reads `PREVSTATE`, that is what keeps the payout set
+equal to the latest committed allocation. Off-chain allocation changes —
+virtual-channel open/close and `reallocate()` — are refused on a checkpointed
+factory until the change is committed as a checkpoint; committing it from the
+host is the remaining automation. `enforceCheckpoints: false` is an explicit
+opt-out for factories that will not rely on unilateral exits.
+
+Zero committed shares are rejected rather than skipped. The covenant is built
+once, at funding, and pins one output per participant (`@TOTOUT EQ N` with
+`VERIFYOUT(k … PREVSTATE(128+k))`); a zero share would require a zero-value
+output, which Minima rejects (`0 < amount`). Rather than weaken the check or
+emit an unsatisfiable branch, `factoryDistributionPayouts()` fails closed and
+names the alternatives: rebalance with a checkpoint, or use the per-party
+escape for the other shares. Supporting dynamic zero shares needs a different
+covenant (a non-zero-share count cannot be computed in KISSVM); it is not
+claimed here.
+
+Measured cost (executed instructions, KISSVM evaluator, limit 1024):
+
+| participants | cost |
+|---|---|
+| 2 | 47 |
+| 3 | 59 |
+| 5 | 83 |
+| 10 | 143 |
+
+The combined funding covenant (cooperative + per-party + distribution) measures
+55 / 67 / 91 / 151 instructions for 2 / 3 / 5 / 10 participants — about 8 more
+than the distribution branch alone.
+
+That is roughly 12 instructions per participant. Against the RFC-048 MASH
+composite reservation (≈855–871) the arithmetic still fits at 10 participants
+(≈1014), but with under 10 instructions of headroom. Until a node run measures
+the composite, treat **≤5 participants as comfortable and 10 as requiring
+measurement**, and do not weaken the checks to preserve an O(1) claim.
+
+`buildFactoryPresignedDistributionScript` keeps the old signature-authorized
+compact mode for a dedicated distribution coin. It is documented as such and is
+**not** an allocation verifier.
+
+Remaining gaps in this mode:
+
+- open virtual channels are rejected (`assertFactoryDistributable`) rather than
+  paid to separately enforceable outputs;
+- only confirmed allocations are enforceable; newer off-chain states still need
+  the contest protocol;
+- the funding address changes when the settlement branch is enabled; pre-release
+  factories are recreated rather than migrated.
+
 ## 5. Implementation changes required
 
 | Location | Change |

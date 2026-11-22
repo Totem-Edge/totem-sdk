@@ -4,11 +4,11 @@
 **Created:** 2026-11-05 · **Updated:** 2026-11-05 after settlement-ledger review  
 **Formal change record:** [RFC-022 Amendment A — Governed Async Settlement and Actual-Usage Accounting](../rfc/RFC-022-AMENDMENT-A-GOVERNED-ASYNC-SETTLEMENT-AND-ACTUAL-USAGE.md)  
 **Relevant:** RFC-010/011/022; blocks agent-triggered training in RFC-077.  
-**Packages:** `agent-policy`, `edge`, `act-core`, `act-mavlink`, `act-ocpp`.
+**Packages:** `agent-policy`, `edge`, `act-core`, `edge-mavlink` (`/governed`), `edge-ocpp` (`/governed`).
 
 ## Defect and scope
 
-`AgentEdgeRuntime.executeAction` currently assumes `ok:true` means a completed act and `ok:false` means it never executed. But `act-core` returns `ok:true, outcome:'accepted'` for asynchronous operations and `ok:false, errorCode:'OPERATION_PENDING'` on deduplicated pending operations. `classifyFailure` handles throws, not returned failures. The affected async actions are already in production-shaped `act-mavlink` mission definitions and `act-ocpp` session definitions.
+`AgentEdgeRuntime.executeAction` currently assumes `ok:true` means a completed act and `ok:false` means it never executed. But `act-core` returns `ok:true, outcome:'accepted'` for asynchronous operations and `ok:false, errorCode:'OPERATION_PENDING'` on deduplicated pending operations. `classifyFailure` handles throws, not returned failures. The affected async actions are already in production-shaped `edge-mavlink/governed` mission definitions and `edge-ocpp/governed` session definitions.
 
 **There is a separate accounting defect:** `ReservationSettlementOutcome` is presently `'completed' | 'definitely-not-executed'`. The run-state and grant-usage stores cannot settle a job that started, consumed 40% of its reserved resources, and then failed. Simply re-snapshotting `RunStepReceipt.effects` does not update the mandate usage rows. `GrantUsageStore.commit` commits the reserved delta; a terminal event after TTL rejects commit and leaves the reservation `unknown`.
 
@@ -72,8 +72,8 @@ All tests assert **returned lifecycle**, reservation status, held/committed/rele
 2. **`agent-policy`** first: actual settlement contracts, atomic SQLite and in-memory ledger correctness, renewed/expired reservation handling and golden tests. Cover both `RunStateStore` and `GrantUsageStore`.
 3. **`edge`** next: widened results, explicit dispatch/terminal classification, nonterminal hold, trusted operation/reservation correlation. Preserve legacy sync semantics; update and test the simple-policy bypass separately where relevant.
 4. **`act-core`** next: report precise dispatch/terminal evidence, reconcile actual usage, adapt operation state and terminal classification. Reuse existing `OperationStore` rather than inventing another ledger.
-5. **`act-mavlink` / `act-ocpp`** next: qualification regressions, no premature commit, no duplicate dispatch, public migration guidance. Update other async adapters if the inspection reveals any.
-6. Publish in dependency order: **agent-policy -> edge -> act-core -> act-mavlink/act-ocpp** (confirm exact graph on pinned baseline). `check-upstream-published` WILL block a downstream release requiring unpublished upstream workspace versions. Respect the guard; publish prerequisites first.
+5. **`edge-mavlink/governed` / `edge-ocpp/governed`** next: qualification regressions, no premature commit, no duplicate dispatch, public migration guidance. Update other async adapters if the inspection reveals any.
+6. Publish in dependency order: **agent-policy -> edge -> act-core -> edge-mavlink/edge-ocpp** (confirm exact graph on pinned baseline). `check-upstream-published` WILL block a downstream release requiring unpublished upstream workspace versions. Respect the guard; publish prerequisites first.
 7. Update RFC-010/011/022 references and RFC index, package API docs, public semantics for nonterminal `ok:false`, qualification registry and release notes; run established metadata, workspace and package gate checks.
 
 **Exit:** Both in-memory and SQLite ledgers accurately settle a known executed failure with partial actual use; accepted/unknown always hold; post-TTL recovery is correct; and all six existing MAVLink/OCPP async actions pass end-to-end reconciliation without regressions to synchronous behaviour.

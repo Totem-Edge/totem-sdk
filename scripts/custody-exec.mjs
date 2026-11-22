@@ -63,8 +63,10 @@ function poolExit({ spentShare, successorShare, amount, signers, remainder, exit
     block: 200, inputIndex: 0,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: POOL, amount: BigInt(amount), tokenId: '0x00' }],
     outputs,
-    state: { 101: '1', 102: exitBlockState, 128: String(successorShare) },
-    prevState: { 101: '0', 102: '100', 128: String(spentShare) },
+    // The pool exit must not advance the epoch or move the pool-wide ports;
+    // only the exiting holder's share is zeroed.
+    state: { 100: '0', 101: '0', 102: exitBlockState, 128: String(successorShare) },
+    prevState: { 100: '0', 101: '0', 102: '100', 128: String(spentShare) },
     simulationMode: true,
   }, signers);
 }
@@ -107,8 +109,10 @@ check('party escape is satisfiable (whole share)',
   factoryEscape({ amount: 1000, remainder: 0, successorZero: true }));
 check('party escape is satisfiable (partial, payout@0 remainder@1)',
   factoryEscape({ amount: 1500, remainder: 500, successorZero: true }));
+// A whole-share exit has no successor, so the "share not zeroed" case is a
+// partial exit with a remainder output carrying the successor state.
 check('rejected when the successor does not zero the party share',
-  !factoryEscape({ amount: 1000, remainder: 0, successorZero: false }));
+  !factoryEscape({ amount: 1500, remainder: 500, successorZero: false }));
 
 if (failures > 0) {
   console.error(`\nCustody exec gate: ${failures} check(s) failed.`);

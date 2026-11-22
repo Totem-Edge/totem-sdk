@@ -1,11 +1,15 @@
-# RFC-024: OCPP / EV Charging Profile — `@totemsdk/act-ocpp`
+# RFC-024: OCPP / EV Charging Profile — `@totemsdk/edge-ocpp/governed`
 
-**Status:** Implemented (RC) — `@totemsdk/act-ocpp`; vendor CSMS/charger bindings and OCPP 2.1 remain open
+**Status:** Implemented (RC) — `@totemsdk/edge-ocpp/governed`; vendor CSMS/charger bindings and OCPP 2.1 remain open
+**Amended 2026-11:** the profile ships inside the wire connector as a
+`./governed` subpath rather than as a separate `act-ocpp` package. One protocol,
+one install; `act-*` is reserved for governed domains that own no wire (see
+RFC-026 §10 Q1).
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-021 (Catalogue & Decision Binding), RFC-022 (Prepared-Command Binding & Async Lifecycle), RFC-023 (Physical-Effect Policy Enforcement), RFC-011 (Domain Model)
-**Touches:** new package `@totemsdk/act-ocpp`; `@totemsdk/act-core`; `@totemsdk/edge`
+**Touches:** `@totemsdk/edge-ocpp` (`src/governed/`); `@totemsdk/act-core`; `@totemsdk/edge`
 
 ---
 
@@ -15,7 +19,7 @@ EV charging is the strongest first commercial demonstrator for governed
 industrial action: it has a mature, documented control protocol (OCPP), real
 financial consequences (energy settlement), physical safety limits (power,
 energy, connector state) and naturally asynchronous sessions. This RFC specifies
-`@totemsdk/act-ocpp`: an RFC-011 **profile** that registers charging
+`@totemsdk/edge-ocpp/governed`: an RFC-011 **profile** that registers charging
 resources, interlocks, error taxonomy and definitions, plus a bounded OCPP
 adapter, so start/stop, charging-limit, reservation and session/meter
 reconciliation all execute through the governed edge runtime (RFC-010) with the
@@ -87,13 +91,13 @@ on `@totemsdk/edge`; the wire transport is injected).
 ### 5.2 Package shape
 
 ```
-@totemsdk/act-ocpp
-  src/transport.ts      OcppTransportPort (injected: CSMS or charger stack)
-  src/adapter.ts        OCPP operations → PreparedDeviceOp + actuate/reconcile/cancel
-  src/profile.ts        IndustrialProfile: resources, interlocks, taxonomy, definitions
-  src/effects.ts        deriveEffects → PhysicalEffects (RFC-023)
-  src/meter.ts          meter-value reconciliation → settlement evidence
-  src/capabilities.ts   OCPP version/capability negotiation (explicit, versioned)
+@totemsdk/edge-ocpp (root: wire frames)
+  src/governed/transport.ts      OcppTransportPort (injected: CSMS or charger stack)
+  src/governed/adapter.ts        OCPP operations → PreparedDeviceOp + actuate/reconcile/cancel
+  src/governed/profile.ts        IndustrialProfile: resources, interlocks, taxonomy, definitions
+  src/governed/effects.ts        deriveEffects → PhysicalEffects (RFC-023)
+  src/governed/meter.ts          meter-value reconciliation → settlement evidence
+  src/governed/capabilities.ts   OCPP version/capability negotiation (explicit, versioned)
 ```
 
 ### 5.3 Governed operations (initial)

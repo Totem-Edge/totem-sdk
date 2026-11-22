@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 76,
+  "total": 74,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -74,9 +74,7 @@
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
         "@totemsdk/act-core",
-        "@totemsdk/connect",
-        "@totemsdk/act-ocpp",
-        "@totemsdk/act-mavlink"
+        "@totemsdk/connect"
       ]
     },
     "verifiable-claims": {
@@ -144,7 +142,7 @@
       "dependencies": {
         "@protobuf-ts/runtime": "^2.11.1",
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
@@ -197,7 +195,7 @@
         "strategy-pattern"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/minima-rpc": "^0.5.1"
       },
       "exports": {
@@ -211,7 +209,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "3.1.3",
+      "version": "3.1.4",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
@@ -223,12 +221,12 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/kissvm": "^1.4.1",
+        "@totemsdk/kissvm": "^1.4.2",
         "@totemsdk/lookup-client": "^0.4.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/omnia-factory": "^0.7.2",
+        "@totemsdk/omnia-factory": "^0.8.0",
         "@totemsdk/omnia-router": "^0.4.2",
-        "@totemsdk/omnia-splice": "^0.3.4",
+        "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/pear": "^0.3.0",
         "@totemsdk/statechain": "^0.3.3",
         "@totemsdk/txpow": "^1.1.1",
@@ -246,7 +244,7 @@
     },
     {
       "name": "@totemsdk/core",
-      "version": "1.6.0",
+      "version": "1.6.1",
       "description": "Core cryptographic primitives — WOTS, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -258,7 +256,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core-wasm": "^1.0.6"
+        "@totemsdk/core-wasm": "^1.0.7"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -310,7 +308,7 @@
     },
     {
       "name": "@totemsdk/core-wasm",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "description": "WOTS cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -347,8 +345,8 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/connect": "^3.1.3",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/connect": "^3.1.4",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/decision": "^0.3.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
@@ -379,7 +377,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.1",
@@ -589,7 +587,7 @@
     },
     {
       "name": "@totemsdk/edge-mavlink",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Edge runtime adapter for MAVLink — drone telemetry, heartbeat, commands, wire framing",
       "domain": "edge-computing",
       "keywords": [
@@ -600,10 +598,22 @@
         "commands"
       ],
       "dependencies": {
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./governed": {
+          "import": {
+            "types": "./dist/governed/index.d.ts",
+            "default": "./dist/governed/index.js"
+          },
+          "require": {
+            "types": "./dist/cjs/governed/index.d.ts",
+            "default": "./dist/cjs/governed/index.js"
+          }
+        }
       },
       "exportsDescription": "createMavlinkGateway, createMavlinkSensorBridge, encodeFrame, decodeFrames, MavlinkTransportPort",
       "custody": {
@@ -672,7 +682,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
@@ -716,7 +726,7 @@
     },
     {
       "name": "@totemsdk/edge-ocpp",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Edge runtime adapter for OCPP — EV charging wire protocol and meter proofs",
       "domain": "edge-computing",
       "keywords": [
@@ -727,10 +737,22 @@
         "metering"
       ],
       "dependencies": {
+        "@totemsdk/act-core": "^0.6.0",
+        "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/edge": "^1.6.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./governed": {
+          "import": {
+            "types": "./dist/governed/index.d.ts",
+            "default": "./dist/governed/index.js"
+          },
+          "require": {
+            "types": "./dist/cjs/governed/index.d.ts",
+            "default": "./dist/cjs/governed/index.js"
+          }
+        }
       },
       "exportsDescription": "createOcppGateway, createOcppSensorBridge, parseOcppFrame, OcppTransportPort",
       "custody": {
@@ -797,7 +819,7 @@
       ],
       "dependencies": {
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0"
@@ -822,7 +844,7 @@
         "claims"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/manifest": "^2.2.0"
       },
       "exports": {
@@ -836,7 +858,7 @@
     },
     {
       "name": "@totemsdk/kissvm",
-      "version": "1.4.1",
+      "version": "1.4.2",
       "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -847,7 +869,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -875,7 +897,7 @@
         "pool"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -904,7 +926,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/root-identity": "^1.0.12",
@@ -934,7 +956,7 @@
       "dependencies": {
         "better-sqlite3": "^12.2.0",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/minima-rpc": "^0.5.1",
@@ -962,7 +984,7 @@
         "wire"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -984,7 +1006,7 @@
         "signed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/replication": "^0.2.0"
       },
       "exports": {
@@ -1012,8 +1034,8 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
-        "@totemsdk/kissvm": "^1.4.1",
+        "@totemsdk/core": "^1.6.1",
+        "@totemsdk/kissvm": "^1.4.2",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/stream-transport": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -1036,7 +1058,7 @@
     },
     {
       "name": "@totemsdk/omnia-factory",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
@@ -1047,7 +1069,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -1080,7 +1102,7 @@
         "dijkstra"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -1095,7 +1117,7 @@
     },
     {
       "name": "@totemsdk/omnia-splice",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "description": "Channel splicing — resize eltoo channels without close+reopen",
       "domain": "payment-network",
       "keywords": [
@@ -1104,7 +1126,7 @@
         "channel-resize"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -1134,7 +1156,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1",
@@ -1211,7 +1233,7 @@
         "verification"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0"
       },
@@ -1260,7 +1282,7 @@
         "content-addressed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -1287,7 +1309,7 @@
         "trust"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -1337,7 +1359,7 @@
       ],
       "dependencies": {
         "ws": "^8.21.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/stream-transport": "^0.2.2"
       },
@@ -1385,7 +1407,7 @@
       ],
       "dependencies": {
         "typescript": ">=5.0.0",
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1409,8 +1431,8 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
-        "@totemsdk/kissvm": "^1.4.1",
+        "@totemsdk/core": "^1.6.1",
+        "@totemsdk/kissvm": "^1.4.2",
         "@totemsdk/tx-builder": "^0.3.5"
       },
       "exports": {
@@ -1438,7 +1460,7 @@
         "kyc"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1465,7 +1487,7 @@
         "express": "^5.2.1",
         "pg": "^8.11.3",
         "zod": "^4.4.3",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/storage": "^0.2.2",
@@ -1494,7 +1516,7 @@
       "dependencies": {
         "node-fetch": "^2.6.9",
         "ws": "^8.21.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1"
       },
@@ -1521,7 +1543,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/txpow": "^1.1.1",
@@ -1554,7 +1576,7 @@
       ],
       "dependencies": {
         "hyperswarm": ">=4.0.0",
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1581,7 +1603,7 @@
         "wots"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
@@ -1605,7 +1627,7 @@
         "serialization"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1634,7 +1656,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/connect": "^3.1.3"
+        "@totemsdk/connect": "^3.1.4"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1657,7 +1679,7 @@
         "key-coordination"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2",
@@ -1713,7 +1735,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
@@ -1723,60 +1745,6 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "ActCoreDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
-      "custody": {
-        "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
-    },
-    {
-      "name": "@totemsdk/act-ocpp",
-      "version": "0.1.1",
-      "description": "Governed OCPP EV-charging profile — bounded sessions, charging limits, reservations and meter evidence on the act-core runtime",
-      "domain": "edge-computing",
-      "keywords": [
-        "ocpp",
-        "ev",
-        "charging",
-        "governed-action",
-        "act-core"
-      ],
-      "dependencies": {
-        "@totemsdk/act-core": "^0.6.0",
-        "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/edge": "^1.6.0"
-      },
-      "exports": {
-        ".": "dist/index.{js,d.ts}"
-      },
-      "exportsDescription": "createOcppDefinitions, createOcppProfile, negotiateOcppCapabilities, reconcileChargingSession, deriveChargingEffects, chargingInterlocks, ocppErrorTaxonomy",
-      "custody": {
-        "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
-    },
-    {
-      "name": "@totemsdk/act-mavlink",
-      "version": "0.1.1",
-      "description": "Governed MAVLink autonomous-flight profile — bounded mission envelopes, telemetry reconciliation and conformance on the act-core runtime",
-      "domain": "edge-computing",
-      "keywords": [
-        "mavlink",
-        "drone",
-        "flight",
-        "mission",
-        "geofence",
-        "governed-action",
-        "act-core"
-      ],
-      "dependencies": {
-        "@totemsdk/act-core": "^0.6.0",
-        "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/edge": "^1.6.0"
-      },
-      "exports": {
-        ".": "dist/index.{js,d.ts}"
-      },
-      "exportsDescription": "createMavlinkDefinitions, createMavlinkProfile, envelopeDigest, validateMissionEnvelope, runMavlinkConformance, deriveFlightEffects, vehicleInterlocks, mavlinkErrorTaxonomy",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -1835,7 +1803,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1847,16 +1815,16 @@
       "dependencies": {
         "ws": "^8.21.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/omnia-factory": "^0.7.2",
+        "@totemsdk/omnia-factory": "^0.8.0",
         "@totemsdk/omnia-pool": "^0.6.0",
         "@totemsdk/omnia-router": "^0.4.2",
-        "@totemsdk/omnia-splice": "^0.3.4",
+        "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/p2p-hub": "^0.1.1",
         "@totemsdk/storage": "^0.2.2",
@@ -1890,7 +1858,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1"
       },
@@ -1920,7 +1888,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/location-proof": "^1.0.2",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1"
@@ -1955,7 +1923,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1",
         "@totemsdk/spatial-proof": "^1.0.2"
@@ -1986,12 +1954,12 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/omnia-factory": "^0.7.2",
+        "@totemsdk/omnia-factory": "^0.8.0",
         "@totemsdk/omnia-router": "^0.4.2",
-        "@totemsdk/omnia-splice": "^0.3.4",
+        "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -2030,12 +1998,12 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/omnia-factory": "^0.7.2",
+        "@totemsdk/omnia-factory": "^0.8.0",
         "@totemsdk/omnia-router": "^0.4.2",
-        "@totemsdk/omnia-splice": "^0.3.4",
+        "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/wots-lease": "^1.0.3"
       },
@@ -2110,7 +2078,7 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication": "^0.2.0"
       },
@@ -2183,7 +2151,7 @@
         "edge-ai"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
@@ -2245,7 +2213,7 @@
         "provider-neutral"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -2291,7 +2259,7 @@
         "types"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0"
       },
@@ -2319,7 +2287,7 @@
         "types"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -2343,7 +2311,7 @@
         "contracts"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -2371,7 +2339,7 @@
         "hypercore": "^11.33.5",
         "hyperbee": "^2.27.3",
         "corestore": "^7.11.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
       },

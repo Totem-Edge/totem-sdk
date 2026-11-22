@@ -5,10 +5,31 @@
 
 import { createOmniaCoordination } from '@totemsdk/omnia';
 import type { OmniaPeer, OmniaMessage } from '@totemsdk/omnia';
-import { createFactory, acceptFactory } from '../factory.js';
+import { createFactory as createFactoryStrict, acceptFactory } from '../factory.js';
 import { buildFactorySettlement } from '../settlement.js';
 import { createFactoryCoordination } from '../coordination.js';
 import type { ChannelFactory, FactoryParticipant, FactorySettlementPayload, WotsLeaseBundle } from '../index.js';
+
+// OMN-058: production factories (the host) are created with checkpoint
+// enforcement, which refuses off-chain allocation changes. These tests exercise
+// the virtual-channel mechanics themselves, so they explicitly use the
+// non-checkpoint configuration.
+const createFactory = (
+  participants: Parameters<typeof createFactoryStrict>[0],
+  tokenId: Parameters<typeof createFactoryStrict>[1],
+  bundle: Parameters<typeof createFactoryStrict>[2],
+  provider?: Parameters<typeof createFactoryStrict>[3],
+  tokenScale?: Parameters<typeof createFactoryStrict>[4],
+  funding?: Parameters<typeof createFactoryStrict>[5],
+) => createFactoryStrict(
+  participants,
+  tokenId,
+  bundle,
+  provider,
+  tokenScale,
+  funding,
+  { settlement: 'per-party', enforceCheckpoints: false },
+);
 
 const TOKEN_A = '0x00';
 const PKD_ALICE = '0x' + 'aa'.repeat(32);

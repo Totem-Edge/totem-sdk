@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-19T10:50:28.860Z. 88 findings, 17 open.
+Generated 2026-11-21T19:33:33.346Z. 88 findings, 12 open.
 
 sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 
@@ -11,7 +11,7 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `CAN-010` | critical | sdk-defect | fixed | `@totemsdk/omnia-host` | FACTORY_FUNDING_REQUEST signs an arbitrary peer-supplied digest |
 | `CAN-018` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Factory proposal still signs a peer-controlled commitment |
 | `CAN-024` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/chain-provider`, `@totemsdk/core` | Omnia writes atom amounts with MiniNumber scale 0, encoding channel values 10^44 times too large |
-| `OMN-001` → `CAN-019` | critical | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
+| `OMN-001` → `CAN-019` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | Peer-scoped finalization stores peer-supplied factory, channel and splice state |
 | `OMN-003` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | A transferred VTXO keeps the previous owner's exit entitlement |
 | `OMN-008` | critical | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Vesting policy never enforces the vested amount before the end block |
 | `OMN-022` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | The host signs peer-supplied virtual-channel plans without rebuilding them |
@@ -20,7 +20,7 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-040` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | A replayed opening proposal could overwrite an established channel |
 | `OMN-051` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice`, `@totemsdk/core` | Splice transactions encoded atom amounts as whole MINIMA |
 | `OMN-053` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice` | The splice finalizer constructed a noncanonical witness without spending proofs |
-| `OMN-058` | critical | sdk-defect | open | `@totemsdk/omnia-factory` | Factory unilateral exits enforce the original funding shares, not the latest signed factory state |
+| `OMN-058` | critical | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory unilateral exits enforce the original funding shares, not the latest signed factory state |
 | `OMN-061` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The default co-signer could authorize HTLC fulfilment without a preimage |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
 | `CAN-002` | high | sdk-defect | fixed | `@totemsdk/proof`, `@totemsdk/manifest` | Manifest proofs are not bound to the manifest they attest |
@@ -40,12 +40,12 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-006` | high | sdk-defect | fixed | `@totemsdk/omnia-relay`, `@totemsdk/omnia-router`, `@totemsdk/omnia-host` | Multi-hop recovery does not journal the outstanding backward preimage duty |
 | `OMN-007` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo`, `@totemsdk/omnia-host` | VTXO claim verification accepts a caller-supplied signer list |
 | `OMN-010` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | verifyVtxo accepts a VTXO with no membership proof and never anchors the root |
-| `OMN-014` → `CAN-012` | high | sdk-defect | open | `@totemsdk/omnia-splice` | Splice recovery can attach one observed successor to several pending splices |
-| `OMN-015` → `CAN-021` | high | sdk-defect | open | `@totemsdk/omnia-host` | Watchtower callbacks only emit observations; nothing protects the channel |
+| `OMN-014` → `CAN-012` | high | sdk-defect | fixed | `@totemsdk/omnia-splice` | Splice recovery can attach one observed successor to several pending splices |
+| `OMN-015` → `CAN-021` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Watchtower callbacks only emit observations; nothing protects the channel |
 | `OMN-024` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia` | Payments report success before the counterparty co-signs |
 | `OMN-025` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Exit entitlements still do not prove the witness or the authoritative pool coin |
 | `OMN-026` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | An incoming message can overwrite the cached peer for an unrelated channel |
-| `OMN-027` | high | sdk-defect | open | `@totemsdk/omnia-host` | The advertised N-party factory API coordinates with only one remote participant |
+| `OMN-027` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | The advertised N-party factory API coordinates with only one remote participant |
 | `OMN-030` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | Liquidity deposits can be credited against a coin that does not belong to the claimed LP |
 | `OMN-031` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-factory` | The release gate can ignore an unresolved critical finding through an alias |
 | `OMN-032` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-pool` | Pool accounting can diverge between liquidity positions |

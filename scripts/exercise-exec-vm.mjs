@@ -274,22 +274,40 @@ const distScript = buildFactoryDistributionScript({
     { partyId: 'b', publicKeyDigest: pk(distB), addressIndex: 1, contributionAmount: 500n, settlementAddress: pk(distB) },
   ],
 });
-function distCtx(block) {
+function distCtx(block, overrides = {}) {
   return {
     block,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1500, tokenId: '0x00' }],
+    // `settlementAddress` is a 64-hex digest and the covenant pays
+    // `wotsAddressData(digest)`, not the raw participant key.
     outputs: [
-      { address: pk(distA), amount: 1000, tokenId: '0x00', keepState: false },
-      { address: pk(distB), amount: 500, tokenId: '0x00', keepState: false },
+      { address: wotsAddressData(pk(distA)), amount: 1000, tokenId: '0x00', keepState: false },
+      { address: wotsAddressData(pk(distB)), amount: 500, tokenId: '0x00', keepState: false },
     ],
-    state: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32) },
-    prevState: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32) },
+    // The distribution branch pays each party its *committed* share, read from
+    // PREVSTATE, and proves the sum is the whole input. A context without the
+    // share ports describes a factory that commits no shares.
+    state: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32), 128: '1000', 129: '500' },
+    prevState: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32), 128: '1000', 129: '500' },
+    ...overrides,
   };
 }
-both('after the timeout, all-party sigs allow the distribution', distScript, signWith([distA, distB]), distCtx(300), true);
-both('before the timeout, the distribution is rejected', distScript, signWith([distA, distB]), distCtx(100), false);
-both('rejected without all parties', distScript, signWith([distA]), distCtx(300), false);
+// The trigger is single-signature by design (OMN-058): every output amount and
+// address is pinned to PREVSTATE, so a signer can only ever release the already
+// committed shares — and an absent party cannot strand the factory. The teeth
+// are in the enforcement below, not in who signs.
+both('after the timeout, one party can trigger the committed distribution', distScript, signWith([distA]), distCtx(300), true);
+both('before the timeout, the distribution is rejected', distScript, signWith([distA]), distCtx(100), false);
+both('rejected when a payout is redirected to another party', distScript, signWith([distA]), distCtx(300, {
+  outputs: [
+    { address: wotsAddressData(pk(distA)), amount: 1000, tokenId: '0x00', keepState: false },
+    { address: wotsAddressData(pk(distA)), amount: 500, tokenId: '0x00', keepState: false },
+  ],
+}), false);
+both('rejected when the coin holds value beyond the committed shares', distScript, signWith([distA]), distCtx(300, {
+  inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1600, tokenId: '0x00' }],
+}), false);
 
 console.log('Rust VM strictness — rejects non-canonical scripts (RFC-048 L4)');
 const minimal = { block: 1, inputIndex: 0, inputs: [], outputs: [], state: new Map(), prevState: new Map() };

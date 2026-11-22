@@ -1,0 +1,1 @@
+../../../../../packages/edge-ocpp/src/governed/capabilities.ts

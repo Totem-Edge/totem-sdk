@@ -81,6 +81,8 @@ pub struct TxContext {
     pub prev_state: HashMap<u32, String>,
     #[serde(rename = "txDigest", skip_serializing_if = "Option::is_none")]
     pub tx_digest: Option<Vec<u8>>,
+    #[serde(rename = "blockMilli", skip_serializing_if = "Option::is_none")]
+    pub block_milli: Option<f64>,
     #[serde(rename = "mastBranches", skip_serializing_if = "Option::is_none")]
     pub mast_branches: Option<HashMap<String, String>>,
     #[serde(rename = "prevCoins", skip_serializing_if = "Option::is_none")]

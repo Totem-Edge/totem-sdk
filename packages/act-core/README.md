@@ -21,6 +21,14 @@ This package sits between governance/authority (intent + mandate) and edge proto
 - **Action receipts** — verifiable proof records with integrity checks
 - **Registry** — register definitions and executors, lookup by kind
 
+## Where a profile lives
+
+`act-core` is the engine. A governed profile that rides an existing protocol ships
+inside that protocol's connector as a `./governed` subpath:
+`@totemsdk/edge-ocpp/governed` (RFC-024) and `@totemsdk/edge-mavlink/governed`
+(RFC-025). `act-*` is reserved for a governed domain that owns no wire of its own
+— today that is only `act-training`. Do not add `act-<protocol>` packages.
+
 ## Quick start
 
 ```ts

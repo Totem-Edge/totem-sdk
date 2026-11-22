@@ -22,6 +22,23 @@ import type { OmniaChannel } from '@totemsdk/omnia';
 
 const normalizeHex = (value: string): string => value.replace(/^0x/i, '').toLowerCase();
 
+/**
+ * OMN-027: the host's factory opening coordinates with exactly one remote peer.
+ * Advertising an N-party API while messaging one participant would create a
+ * factory the others never signed, so refuse anything but two distinct parties.
+ */
+export function assertTwoPartyFactory(participants: ReadonlyArray<{ publicKeyDigest: string }>): void {
+  if (participants.length !== 2) {
+    throw new Error(
+      `factory opening coordinates with one remote participant; ${participants.length}-party factories are not supported by this host`,
+    );
+  }
+  const digests = new Set(participants.map((participant) => normalizeHex(participant.publicKeyDigest)));
+  if (digests.size !== 2) {
+    throw new Error('factory participants must have distinct public key digests');
+  }
+}
+
 /** A virtual-channel proposal this host co-signed, awaiting VC_FINALIZED. */
 export interface PendingVcAcceptance {
   kind: 'vc-open' | 'vc-close';
@@ -150,7 +167,8 @@ export function assertFactoryCommitment(
  */
 export function assertFactoryCloseSettlement(
   factory: ChannelFactory,
-  payload: { factoryId?: unknown; txId?: unknown; finalAllocations?: unknown },
+  payload: { factoryId?: unknown; txId?: unknown; finalAllocations?: unknown; settlementTxHex?: unknown },
+  expected?: { settlementTxHex?: string },
 ): void {
   if (payload.factoryId !== factory.factoryId) {
     throw new Error('FACTORY_CLOSE_FINALIZED factoryId does not match the local factory');
@@ -167,6 +185,16 @@ export function assertFactoryCloseSettlement(
   )) {
     throw new Error('FACTORY_CLOSE_FINALIZED allocations do not match the local factory');
   }
+  // If this host signed a settlement for that factory, the finalized message
+  // must carry that exact transaction, not just a txid and a matching split.
+  if (expected?.settlementTxHex) {
+    if (typeof payload.settlementTxHex !== 'string' || payload.settlementTxHex.length === 0) {
+      throw new Error('FACTORY_CLOSE_FINALIZED does not carry the settlement transaction this host signed');
+    }
+    if (normalizeHex(payload.settlementTxHex) !== normalizeHex(expected.settlementTxHex)) {
+      throw new Error('FACTORY_CLOSE_FINALIZED settlement transaction does not match the locally signed one');
+    }
+  }
 }
 
 /**
@@ -181,6 +209,7 @@ export function assertSpliceFinalized(
   acceptances: ReadonlyMap<string, SpliceAcceptance>,
   payload: SpliceFinalizedPayload,
   expectations?: ReadonlyMap<string, SpliceExpectation>,
+  localChannel?: OmniaChannel,
 ): { acceptance: SpliceAcceptance; channel: OmniaChannel } {
   if (typeof payload.spliceId !== 'string' || payload.spliceId.length === 0) {
     throw new Error('SPLICE_FINALIZED without a spliceId');
@@ -225,6 +254,21 @@ export function assertSpliceFinalized(
     if (!sameAmountMap(channel.balances as unknown as Record<string, unknown>, expected.balances)) {
       throw new Error('SPLICE_FINALIZED balances do not match the locally signed splice');
     }
+    if (localChannel) {
+      // Rebuild from the local channel: a splice changes the coin, total and
+      // split, never the local state history or signer material.
+      const reconstructed = {
+        ...localChannel,
+        totalValue: expected.totalValue,
+        balances: { ...expected.balances },
+        ...(typeof payload.txId === 'string' ? { spliceFundingTxId: payload.txId } : {}),
+        splicedFrom: (channel as { splicedFrom?: string }).splicedFrom ?? localChannel.channelId,
+        ...((channel as { fundingCoinId?: string }).fundingCoinId
+          ? { fundingCoinId: (channel as { fundingCoinId?: string }).fundingCoinId }
+          : {}),
+      } as OmniaChannel;
+      return { acceptance, channel: reconstructed };
+    }
   }
   return { acceptance, channel };
 }
@@ -242,7 +286,7 @@ export function assertVcFinalized(input: {
   factories: ReadonlyMap<string, ChannelFactory>;
   hasChannel: (channelId: string) => boolean;
   payload: VcFinalizedPayload;
-}): PendingVcAcceptance {
+}): { acceptance: PendingVcAcceptance; factory: ChannelFactory } {
   const { acceptances, factories, hasChannel, payload } = input;
 
   const kind = payload.kind;
@@ -297,16 +341,63 @@ export function assertVcFinalized(input: {
     }
   }
 
+  if (!expected?.factoryAllocations) {
+    throw new Error('VC_FINALIZED has no locally signed allocation set');
+  }
+
+  // Rebuild the successor from the local factory and the allocation this host
+  // co-signed. The peer object is an assertion to check, never the thing we
+  // store: sequence, log and the VC set are derived here.
+  const nextSequence = local.currentSequence + 1;
+  const virtualChannelIds = kind === 'vc-open'
+    ? [...(local.virtualChannels ?? []).map((vc) => vc.channelId), vcId]
+    : (local.virtualChannels ?? []).filter((vc) => vc.channelId !== vcId).map((vc) => vc.channelId);
+
+  let openedChannel: OmniaChannel | undefined;
   if (kind === 'vc-open') {
-    const opened = factory.virtualChannels.find((vc) => vc.channelId === vcId);
-    if (!opened) {
+    if (!payload.channel) throw new Error('VC_FINALIZED vc-open carries no channel');
+    if (payload.channel.channelId !== vcId) {
+      throw new Error('VC_FINALIZED channel id does not match the accepted proposal');
+    }
+    if (payload.channel.tokenId !== local.tokenId) {
+      throw new Error('VC_FINALIZED channel token does not match the factory');
+    }
+    const parties = payload.channel.parties ?? [];
+    if (parties.length !== 2 || !parties.some((party) => party.partyId === acceptance.localPartyId)) {
+      throw new Error('VC_FINALIZED channel parties do not match the accepted proposal');
+    }
+    if (!factory.virtualChannels.some((vc) => vc.channelId === vcId)) {
       throw new Error('VC_FINALIZED opens a virtual channel that the finalized factory does not contain');
     }
+    openedChannel = {
+      ...payload.channel,
+      balances: { ...(expected.balances ?? payload.channel.balances) },
+      totalValue: expected.totalValue ?? payload.channel.totalValue,
+    };
   } else if (!hasChannel(vcId)) {
     throw new Error('VC_FINALIZED closes a channel this host does not hold');
   }
 
-  return acceptance;
+  const next: ChannelFactory = {
+    ...local,
+    currentSequence: nextSequence,
+    allocations: { ...expected.factoryAllocations },
+    virtualChannels: kind === 'vc-open'
+      ? [...(local.virtualChannels ?? []), openedChannel as OmniaChannel]
+      : (local.virtualChannels ?? []).filter((vc) => vc.channelId !== vcId),
+    stateLog: [
+      ...(local.stateLog ?? []),
+      {
+        sequence: nextSequence,
+        timestamp: Date.now(),
+        event: kind === 'vc-open' ? 'virtual_open' : 'virtual_close',
+        allocations: { ...expected.factoryAllocations },
+        virtualChannelIds,
+      },
+    ],
+  };
+
+  return { acceptance, factory: next };
 }
 
 /**

@@ -1,11 +1,14 @@
-# RFC-025: MAVLink / Autonomous Flight Profile — `@totemsdk/act-mavlink`
+# RFC-025: MAVLink / Autonomous Flight Profile — `@totemsdk/edge-mavlink/governed`
 
-**Status:** Implemented (RC) — `@totemsdk/act-mavlink`; autopilot/SITL vendor bindings remain open
+**Status:** Implemented (RC) — `@totemsdk/edge-mavlink/governed`; autopilot/SITL vendor bindings remain open
+**Amended 2026-11:** the profile ships inside the wire connector as a
+`./governed` subpath rather than as a separate `act-mavlink` package (see
+RFC-024's amendment and RFC-026 §10 Q1).
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-024 (OCPP profile — pattern precedent), RFC-021, RFC-022, RFC-023, RFC-011
-**Touches:** new package `@totemsdk/act-mavlink`; `@totemsdk/act-core`; `@totemsdk/edge`
+**Touches:** `@totemsdk/edge-mavlink` (`src/governed/`); `@totemsdk/act-core`; `@totemsdk/edge`
 
 ---
 
@@ -14,7 +17,7 @@
 Aerial vehicles are the second demonstrator: they combine a well-specified
 command/telemetry protocol (MAVLink), an autopilot that owns real-time
 stabilization, and long-running, safety-critical operations where *acceptance is
-not completion*. This RFC specifies `@totemsdk/act-mavlink`: an RFC-011
+not completion*. This RFC specifies `@totemsdk/edge-mavlink/governed`: an RFC-011
 profile plus a bounded MAVLink adapter that authorizes a **mission envelope** and
 lets the onboard controller maintain the control loop, with the RFC-022 async
 lifecycle (accepted → running → observed arrival) and RFC-023 physical limits
@@ -83,13 +86,13 @@ practical integration path if the SDK lacks a first-class Node binding (§9).
 ### 5.2 Package shape
 
 ```
-@totemsdk/act-mavlink
-  src/transport.ts      MavlinkTransportPort (injected: client SDK / bridge)
-  src/adapter.ts        operations → PreparedDeviceOp + actuate/reconcile/cancel
-  src/profile.ts        IndustrialProfile: vehicle resources, interlocks, taxonomy
-  src/envelope.ts       MissionEnvelope model + digest + validation
-  src/effects.ts        deriveEffects → PhysicalEffects (speed, duration, envelope)
-  src/conformance.ts    per-autopilot conformance harness (§5.8)
+@totemsdk/edge-mavlink (root: wire frames)
+  src/governed/transport.ts      MavlinkTransportPort (injected: client SDK / bridge)
+  src/governed/adapter.ts        operations → PreparedDeviceOp + actuate/reconcile/cancel
+  src/governed/profile.ts        IndustrialProfile: vehicle resources, interlocks, taxonomy
+  src/governed/envelope.ts       MissionEnvelope model + digest + validation
+  src/governed/effects.ts        deriveEffects → PhysicalEffects (speed, duration, envelope)
+  src/governed/conformance.ts    per-autopilot conformance harness (§5.8)
 ```
 
 ### 5.3 Governed operations (initial, narrow)

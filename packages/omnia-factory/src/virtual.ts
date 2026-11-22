@@ -120,6 +120,16 @@ export function buildVirtualChannelOpen(
   if (factory.status !== 'active') {
     throw new Error(`openVirtualChannel requires factory status 'active', got '${factory.status}'`);
   }
+  if (factory.enforceCheckpoints) {
+    // OMN-058: an off-chain allocation change would leave the on-chain coin
+    // paying the previous split. Refuse until the change can be committed as a
+    // checkpoint transaction (same script, same value, sequence + 1).
+    throw new Error(
+      `factory ${factory.factoryId} uses checkpoint mode: opening a virtual channel changes the committed allocation `
+      + 'and must be committed with a factory checkpoint transaction first. '
+      + 'Create the factory with { enforceCheckpoints: false } only for a factory that will not rely on unilateral exits.',
+    );
+  }
   const [partyAId, partyBId] = parties;
   const amountA = amounts[partyAId] ?? 0n;
   const amountB = amounts[partyBId] ?? 0n;
@@ -339,6 +349,12 @@ export function buildVirtualChannelClose(
 ): VirtualChannelClosePlan {
   const existing = factory.virtualChannels.find(c => c.channelId === channel.channelId);
   if (!existing) throw new Error(`Virtual channel '${channel.channelId}' not found in factory`);
+  if (factory.enforceCheckpoints) {
+    throw new Error(
+      `factory ${factory.factoryId} uses checkpoint mode: closing a virtual channel changes the committed allocation `
+      + 'and must be committed with a factory checkpoint transaction first.',
+    );
+  }
 
   const finalAllocations: Record<string, bigint> =
     channel.latestState?.balances ?? { ...channel.balances };

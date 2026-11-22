@@ -4,7 +4,7 @@
  * The gateway owns framing, CALL/CALLRESULT/CALLERROR correlation, inbound CALL
  * dispatch, boot notification and heartbeat. It has no decision, authority or
  * physical-effect policy: starting/stopping a charging session must go through
- * the governed `@totemsdk/act-ocpp` profile (RFC-024).
+ * the governed `@totemsdk/edge-ocpp/governed` profile (RFC-024).
  */
 
 import type { EdgeRuntime, EdgeOperationResult } from '@totemsdk/edge';
