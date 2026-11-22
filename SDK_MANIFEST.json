@@ -146,7 +146,7 @@
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -352,7 +352,7 @@
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
@@ -388,7 +388,7 @@
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/root-identity": "^1.0.12",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
@@ -574,7 +574,7 @@
       ],
       "dependencies": {
         "@totemsdk/edge": "^1.6.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -688,7 +688,7 @@
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -901,7 +901,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/wots-lease": "^1.0.3"
       },
       "exports": {
@@ -1071,7 +1071,7 @@
         "@totemsdk/chain-provider": "^0.4.0",
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.3"
@@ -1104,7 +1104,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1128,7 +1128,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.3"
@@ -1158,7 +1158,7 @@
         "@totemsdk/chain-provider": "^0.4.0",
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.3"
       },
@@ -1195,7 +1195,7 @@
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
@@ -1286,7 +1286,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1313,7 +1313,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1490,7 +1490,7 @@
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/root-identity": "^1.0.12",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/wots-lease": "^1.0.3"
       },
       "exports": {
@@ -1517,7 +1517,7 @@
         "node-fetch": "^2.6.9",
         "ws": "^8.21.1",
         "@totemsdk/core": "^1.6.1",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
@@ -1544,7 +1544,7 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
         "@totemsdk/core": "^1.6.1",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/txpow": "^1.1.1",
         "@totemsdk/wots-lease": "^1.0.3"
@@ -1682,7 +1682,7 @@
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
@@ -1739,7 +1739,7 @@
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1827,7 +1827,7 @@
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/p2p-hub": "^0.1.1",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/wots-lease": "^1.0.3"
       },
@@ -1961,7 +1961,7 @@
         "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
-        "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/storage": "^0.2.3",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/wots-lease": "^1.0.3"
       },
@@ -2154,7 +2154,7 @@
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -2195,7 +2195,7 @@
     },
     {
       "name": "@totemsdk/storage",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
       "domain": "storage",
       "keywords": [
@@ -2312,7 +2312,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.6.1",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -2341,7 +2341,7 @@
         "corestore": "^7.11.0",
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/replication": "^0.2.0",
-        "@totemsdk/storage": "^0.2.2"
+        "@totemsdk/storage": "^0.2.3"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",

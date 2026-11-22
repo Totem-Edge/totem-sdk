@@ -156,7 +156,16 @@ try {
     return Object.values(target).flatMap(exportTargets);
   }
   const CODE_TARGET = /\.(?:[cm]?[jt]s)$/;
-  const subpaths = Object.keys(manifest.exports ?? {}).filter((key) => key !== '.' && key.startsWith('./'));
+  const optionalPeers = new Set(
+    Object.entries(manifest.peerDependenciesMeta ?? {})
+      .filter(([, meta]) => meta && meta.optional)
+      .map(([name]) => name),
+  );
+  const subpaths = Object.keys(manifest.exports ?? {})
+    .filter((key) => key !== '.' && key.startsWith('./'))
+    // A wildcard subpath (`./templates/*`) has no single specifier to import;
+    // its targets are checked by the package's own tests.
+    .filter((key) => !key.includes('*'));
   const subpathBindings = [];
   for (const subpath of subpaths) {
     const target = manifest.exports[subpath];
@@ -198,24 +207,42 @@ try {
   const probe = `
     import { createRequire } from 'node:module';
     const probes = JSON.parse(process.env.PROBES);
+    const optionalPeers = new Set(JSON.parse(process.env.OPTIONAL_PEERS));
+    function optionalPeerMissing(error) {
+      if (error.code !== 'ERR_MODULE_NOT_FOUND') return false;
+      const match = /Cannot find package '([^']+)'/.exec(error.message ?? '');
+      return Boolean(match && optionalPeers.has(match[1]));
+    }
     for (const { specifier, import: wantImport, require: wantRequire, root } of probes) {
-      if (wantImport) {
-        const imported = await import(specifier);
-        // A subpath may legitimately be type-only (its compiled module is empty);
-        // the root must expose the package API.
-        if (root && Object.keys(imported).length === 0) throw new Error(\`ESM import exported no bindings: \${specifier}\`);
-      }
-      if (wantRequire) {
-        const required = createRequire(import.meta.url)(specifier);
-        if (root && (!required || (typeof required === 'object' && Object.keys(required).length === 0))) {
-          throw new Error(\`CommonJS require exported no bindings: \${specifier}\`);
+      try {
+        if (wantImport) {
+          const imported = await import(specifier);
+          // A subpath may legitimately be type-only (its compiled module is empty);
+          // the root must expose the package API.
+          if (root && Object.keys(imported).length === 0) throw new Error(\`ESM import exported no bindings: \${specifier}\`);
         }
+        if (wantRequire) {
+          const required = createRequire(import.meta.url)(specifier);
+          if (root && (!required || (typeof required === 'object' && Object.keys(required).length === 0))) {
+            throw new Error(\`CommonJS require exported no bindings: \${specifier}\`);
+          }
+        }
+      } catch (error) {
+        // A test-harness subpath may depend on an optional peer (e.g. the storage
+        // conformance suite needs a runner). Missing optional peers are the
+        // consumer's choice, not a packaging defect.
+        if (optionalPeerMissing(error)) {
+          console.log(\`skip \${specifier}: optional peer not installed\`);
+          continue;
+        }
+        throw error;
       }
     }
   `;
   run(process.execPath, ['--input-type=module', '--eval', probe], workDir, {
     ...process.env,
     PROBES: JSON.stringify(probes),
+    OPTIONAL_PEERS: JSON.stringify([...optionalPeers]),
   });
 
   const hasTypes = Boolean(manifest.types || manifest.typings) || declaresTypes(rootExport) ||
