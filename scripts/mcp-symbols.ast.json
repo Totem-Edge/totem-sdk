@@ -12616,8 +12616,8 @@
         },
         "buildFactoryScript": {
           "kind": "function",
-          "signature": "buildFactoryScript(participants: FactoryParticipant[], _options?: FactoryScriptOptions): string",
-          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `settlement=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`\n    (the spent coin's share) to its own settlement address, zero its state in\n    the successor (`STATE(base+k) EQ 0`), keep the other parties' balances\n    unchanged, and return the remainder to the factory script. Repeated\n    withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
+          "signature": "buildFactoryScript(participants: FactoryParticipant[], options?: FactoryScriptOptions): string",
+          "doc": "Build the factory funding script.\n\nSpend paths:\n  - **Cooperative / checkpoint** (any time, all parties): `MULTISIG(N …)`.\n    With `enforceCheckpoints`, the successor must stay at this script, keep the\n    value and advance `STATE(104)` by exactly one.\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any single\n    party may withdraw its committed share `PREVSTATE(base+k)` to its own\n    settlement address. With a remainder, the successor keeps the script, the\n    other shares are untouched and the withdrawing port is zeroed.\n  - **Full distribution** (`settlement: 'full-distribution'`, after the same\n    block): one transaction pays **every** committed share. The covenant pins\n    the output count, each destination and each amount read from `PREVSTATE`,\n    so a broadcaster cannot redirect or resize a payout. One participant\n    signature is enough to trigger it.\n\nThe escape branches are terminal (no successor state), so the state-continuity\nassertions live in the cooperative path only.\n\nMinimum 2 participants required."
         },
         "buildAndHashFactoryScript": {
           "kind": "function",
@@ -12667,7 +12667,12 @@
         "buildFactoryDistributionScript": {
           "kind": "function",
           "signature": "buildFactoryDistributionScript(config: FactoryDistributionScriptConfig): string",
-          "doc": "Scalable factory escape covenant (RFC-048 §12.4) — the pre-signed all-party\ndistribution. After the committed escape block **any** party may broadcast the\ndistribution (all-party `MULTISIG`), with no counterparty liveness and no\non-chain root recomputation. The committed party-set and balance roots are\npinned (`SAMESTATE`) so the set and balances cannot move."
+          "doc": "OMN-058/RFC-079 §4A — output-enforced full distribution for a factory coin.\n\nAfter the committed escape block, any participant may settle the factory by\npaying **every** committed share. The covenant reads the shares from the spent\ncoin (`PREVSTATE`), pins the output count, each destination, each amount and\nthe total, so neither the broadcaster nor an outsider can redirect or resize a\npayout. One participant signature authorizes the trigger.\n\nUse `buildFactoryDistribution` to materialize the matching transaction."
+        },
+        "buildFactoryPresignedDistributionScript": {
+          "kind": "function",
+          "signature": "buildFactoryPresignedDistributionScript(config: FactoryDistributionScriptConfig): string",
+          "doc": "Pre-signed all-party distribution (RFC-048 §12.4) — kept as a **separate**\nmechanism for a dedicated distribution coin.\n\nThis script authorizes the spend with `MULTISIG` after the escape height. It\ndoes **not** verify the payout set; allocation correctness comes from the\npre-signed transaction that the parties exchange. Do not describe or use it as\nan allocation verifier — use `buildFactoryDistributionScript` (output-enforced)\nor the `settlement: 'full-distribution'` funding branch instead."
         },
         "FACTORY_BALANCE_PORT_BASE": {
           "kind": "const",
@@ -12678,6 +12683,11 @@
           "kind": "const",
           "signature": "FACTORY_ESCAPE_PORT = 103",
           "doc": "State port carrying the absolute escape block (STATE(103))."
+        },
+        "FACTORY_CHECKPOINT_SEQUENCE_PORT": {
+          "kind": "const",
+          "signature": "FACTORY_CHECKPOINT_SEQUENCE_PORT = 104",
+          "doc": "OMN-058/RFC-079 §4: checkpoint sequence (STATE(104)). Seeded at funding and\nadvanced by exactly one on every checkpoint spend, so a checkpoint can never\nbe replayed against a newer state."
         },
         "FACTORY_ESCAPE_DELAY_BLOCKS": {
           "kind": "const",
@@ -12718,6 +12728,61 @@
           "signature": "computeFactoryStateCommitment(factoryId: string, sequence: number, pendingAllocations: Record<string, bigint>, virtualChannelIds: string[]): Uint8Array",
           "doc": "Compute the canonical 32-byte state commitment for N-of-N factory signing.\n\nCovers:\n  - factoryId        (factory context isolation)\n  - sequence         (monotonicity; prevents replay of old state)\n  - pendingAllocations (the proposed allocation split being signed)\n  - virtualChannelIds (list of currently open VCs; prevents forgery of VC state)\n\nAll fields are sorted lexicographically for determinism regardless of the\norder in which keys appear in the caller's objects.\n\nThis commitment is what every party signs via `FactorySignerOps.sign`, and\nwhat `FactorySignerOps.verify` checks against each stored signature."
         },
+        "assertFactoryDistributable": {
+          "kind": "function",
+          "signature": "assertFactoryDistributable(factory: ChannelFactory): void",
+          "doc": "Refuse to distribute while the factory still backs open virtual channels: the\ndistribution covenant pays only the participant shares, so a VC reserve would\nbe stranded or, worse, paid to the wrong party."
+        },
+        "buildFactoryDistribution": {
+          "kind": "function",
+          "signature": "buildFactoryDistribution(factory: ChannelFactory, params: { fundingCoinId: string; fundingAddress?: string; }): FactoryDistribution",
+          "doc": "Build the distribution transaction for the factory coin. The output order\nmatches the participant order used by the covenant, and every amount comes\nfrom the committed allocation."
+        },
+        "factoryDistributionPayouts": {
+          "kind": "function",
+          "signature": "factoryDistributionPayouts(factory: ChannelFactory): Array<{ partyId: string; address: string; amount: bigint; }>",
+          "doc": "The exact payout set for the current committed allocation, in participant\norder. Addresses default to the participant settlement address."
+        },
+        "FactoryDistribution": {
+          "kind": "interface",
+          "signature": "export interface FactoryDistribution"
+        },
+        "FactoryDistributionEntry": {
+          "kind": "interface",
+          "signature": "export interface FactoryDistributionEntry extends TxOutputDraft"
+        },
+        "buildFactoryCheckpoint": {
+          "kind": "function",
+          "signature": "buildFactoryCheckpoint(params: FactoryCheckpointParams): FactoryCheckpoint",
+          "doc": "Build the checkpoint transaction: one input (the factory coin), one successor\nat the same script and value, carrying the new allocation and sequence."
+        },
+        "factoryCheckpointStateVariables": {
+          "kind": "function",
+          "signature": "factoryCheckpointStateVariables(params: { participants: FactoryParticipant[]; allocations: Record<string, bigint>; tokenId: string; totalValue: bigint; escapeBlock: bigint | number; sequence: bigint | number; }): StateValue[]",
+          "doc": "Build the state variables the successor factory coin must carry. Exported so\na verifier can recompute the commitment from a candidate transition."
+        },
+        "assertFactoryCheckpointTransition": {
+          "kind": "function",
+          "signature": "assertFactoryCheckpointTransition(before: FactoryCheckpointSnapshot, after: FactoryCheckpointSnapshot): void",
+          "doc": "Validate a candidate checkpoint against the state it replaces. This is the\nrule the covenant enforces on chain; running it here lets the SDK refuse to\nbuild a transition the node would reject."
+        },
+        "factoryCheckpointSnapshot": {
+          "kind": "function",
+          "signature": "factoryCheckpointSnapshot(checkpoint: FactoryCheckpoint, participants: FactoryParticipant[]): FactoryCheckpointSnapshot",
+          "doc": "Snapshot helper for the state a checkpoint would produce."
+        },
+        "FactoryCheckpoint": {
+          "kind": "interface",
+          "signature": "export interface FactoryCheckpoint"
+        },
+        "FactoryCheckpointParams": {
+          "kind": "interface",
+          "signature": "export interface FactoryCheckpointParams"
+        },
+        "FactoryCheckpointSnapshot": {
+          "kind": "interface",
+          "signature": "export interface FactoryCheckpointSnapshot"
+        },
         "FactoryDistributionOutput": {
           "kind": "interface",
           "signature": "export interface FactoryDistributionOutput"
@@ -12728,7 +12793,7 @@
         },
         "createFactory": {
           "kind": "function",
-          "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number, funding?: FactoryFundingMaterial[]): Promise<ChannelFactory>",
+          "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number, funding?: FactoryFundingMaterial[], scriptOptions?: Parameters<typeof buildAndHashFactoryScript>[1]): Promise<ChannelFactory>",
           "doc": "Create a factory proposal (proposer step).\n\nThe calling party (`signer.publicKeyDigest` matches one of `participants`)\nsigns the factory opening commitment via `leaseProvider`, performing the full\nWOTS reserve → sign → verify → commit cycle.\n\nWhen ALL participants supply `fundingCoinId` and `chainProvider` is given,\nthe N-input → 1-output funding TX is built (via `@totemsdk/omnia`'s\n`buildFundingTx`), mined (via `@totemsdk/txpow`'s `mineTxPoW`), and broadcast.\nThe TX draft digest is used as the factory opening commitment so that all\nparties are co-signing the EXACT on-chain TX structure.\n\nWithout `fundingCoinId`s or `chainProvider`, the factory is in-memory only\n(useful for testing and off-chain simulation); the commitment falls back to\nthe factory state commitment hash.\n\nThe returned factory is in `'opening'` status.  Every other participant must\ncall `acceptFactory(factory, leaseProvider, signer)` before the factory\ntransitions to `'active'`."
         },
         "createFactoryFromPlan": {
@@ -12743,7 +12808,7 @@
         },
         "buildFactoryOpening": {
           "kind": "function",
-          "signature": "buildFactoryOpening(participants: FactoryParticipant[], tokenId: string, tokenScale: number, chainProvider?: ChainStateProvider, funding?: FactoryFundingMaterial[]): Promise<FactoryOpeningPlan>",
+          "signature": "buildFactoryOpening(participants: FactoryParticipant[], tokenId: string, tokenScale: number, chainProvider?: ChainStateProvider, funding?: FactoryFundingMaterial[], scriptOptions?: Parameters<typeof buildAndHashFactoryScript>[1]): Promise<FactoryOpeningPlan>",
           "doc": "Build a factory and (when every participant supplies a funding coin) its\ndeterministic funding draft, without signing or broadcasting."
         },
         "finalizeFactoryOpening": {
