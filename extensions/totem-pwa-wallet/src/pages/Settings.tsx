@@ -283,7 +283,7 @@ export function Settings() {
             </>
           )}
 
-          <label className="label">WOTS key use</label>
+          <label className="label">WOTS key use tracking</label>
           <select
             className="input"
             style={{ marginBottom: 'var(--space-2)' }}
@@ -296,7 +296,7 @@ export function Settings() {
           </select>
 
           <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}>
-            Statechain SE co-signatures still require an SE (Axia-hosted or a self-hosted se-server).
+            Tracks one-time signing keys. Axia-hosted is the default; self-hosted modes route through your own node.
           </p>
 
           {netStatus && (

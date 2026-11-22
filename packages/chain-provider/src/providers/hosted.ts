@@ -175,15 +175,22 @@ export class HostedProvider implements ChainStateProvider {
   }
 
   /**
-   * Get chain tip via Minima `status` RPC — parses response.chain.
+   * Get the chain tip.
+   *
+   * The old implementation posted the raw `status` command to
+   * `/v1/wallet/rpc`, which the current Axia API rejects with HTTP 400
+   * (that route accepts only `txpow_getHistory`/`minima_coins` JSON-RPC).
+   * The public portfolio route already returns the live `chainTip`; use it
+   * with the burn address so no wallet-specific data is required.
    */
   async getTip(): Promise<ChainTip> {
-    const data = await this.rpc<{ chain?: { block?: number; hash?: string; time?: string } }>('status');
-    const chain = data?.chain;
+    const burnAddress = `0x${'0'.repeat(64)}`;
+    const data = await this.fetchJson<{ chainTip?: number | null; mmrBlock?: number | null }>(
+      `/v1/portfolio/${burnAddress}`,
+    );
     return {
-      block: chain?.block ?? 0,
-      hash:  chain?.hash  ?? '',
-      time:  chain?.time,
+      block: data.chainTip ?? 0,
+      hash:  '',
     };
   }
 

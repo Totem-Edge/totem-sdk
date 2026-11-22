@@ -358,10 +358,13 @@ export function Home() {
           )}
           <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>MINIMA</p>
 
-          {usdValue !== undefined && usdValue > 0 && (
+          {price && (
             <p style={{ marginTop: 2, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-              {formatUsd(usdValue)}
-              {price?.change24h !== undefined && (
+              {usdValue !== undefined && usdValue > 0 && (
+                <span>{formatUsd(usdValue)}{' · '}</span>
+              )}
+              <span>1 MINIMA ≈ {formatUsd(price.usd)}</span>
+              {price.change24h !== undefined && (
                 <span
                   style={{
                     marginLeft: 6,
