@@ -7,7 +7,7 @@
  *   store "vault":    { id: 'seed', encryptedSeed, salt, iv, backupConfirmed }
  *   store "accounts": { index (key), address, publicKey, name }
  */
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, deleteDB, type IDBPDatabase } from 'idb';
 
 export interface VaultRecord {
   id: string;
@@ -212,5 +212,16 @@ export const VaultStore = {
     const db = await getDb();
     await db.clear('vault');
     await db.clear('accounts');
+  },
+
+  /**
+   * Close the cached connection and delete the whole database. Closing first is
+   * required; `deleteDatabase` blocks forever while this page still holds an
+   * open connection, which is why Reset appeared to do nothing.
+   */
+  async destroy(): Promise<void> {
+    try { _db?.close(); } catch { /* already closed */ }
+    _db = null;
+    await deleteDB(DB_NAME);
   },
 };

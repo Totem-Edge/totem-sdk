@@ -24,6 +24,7 @@ export function Settings() {
   const { session, activeAccount, lock, setRoute, addNextAddress } = useWallet();
   const [showReset, setShowReset] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
+  const [resetting, setResetting] = useState(false);
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAccount, setNewAccount] = useState<AccountRecord | null>(null);
   const [error, setError] = useState('');
@@ -164,9 +165,28 @@ export function Settings() {
   }
 
   async function handleReset() {
-    if (resetConfirm !== 'RESET') return;
-    await WalletManager.resetWallet();
-    window.location.reload();
+    if (resetConfirm.trim().toUpperCase() !== 'RESET' || resetting) return;
+    setResetting(true);
+    setError('');
+    try {
+      await WalletManager.resetWallet();
+    } catch (e) {
+      setError(`Reset reported an error: ${String(e)}`);
+    }
+    try { localStorage.clear(); sessionStorage.clear(); } catch { /* unavailable */ }
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } catch { /* ignore */ }
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch { /* ignore */ }
+    window.location.replace(`/web/?reset=${Date.now()}`);
   }
 
   return (
@@ -476,13 +496,15 @@ export function Settings() {
                 value={resetConfirm}
                 onChange={e => setResetConfirm(e.target.value)}
                 placeholder="RESET"
+                autoCapitalize="characters"
               />
+              {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
               <button
                 className="btn btn-danger btn-full"
                 onClick={handleReset}
-                disabled={resetConfirm !== 'RESET'}
+                disabled={resetConfirm.trim().toUpperCase() !== 'RESET' || resetting}
               >
-                Permanently Delete Wallet
+                {resetting ? <span className="spinner" /> : 'Permanently Delete Wallet'}
               </button>
               <button
                 className="btn btn-secondary btn-full"

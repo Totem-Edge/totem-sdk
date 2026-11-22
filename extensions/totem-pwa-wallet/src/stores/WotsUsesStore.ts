@@ -13,7 +13,7 @@
  * Key: `${rootPublicKey}:${addressIndex}`
  * Value: `nextUses` — the next (descending) index that may be consumed.
  */
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, deleteDB, type IDBPDatabase } from 'idb';
 
 interface UsesRecord {
   key: string;
@@ -60,5 +60,11 @@ export const WotsUsesStore = {
   async clearAll(): Promise<void> {
     const db = await getDb();
     await db.clear('wots-uses');
+  },
+
+  async destroy(): Promise<void> {
+    try { _db?.close(); } catch { /* already closed */ }
+    _db = null;
+    await deleteDB(DB_NAME);
   },
 };

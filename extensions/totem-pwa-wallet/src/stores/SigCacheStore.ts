@@ -9,7 +9,7 @@
  *
  * Schema: 'sig-cache' store keyed by walletId (SHA3-256 of rootPublicKey hex)
  */
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, deleteDB, type IDBPDatabase } from 'idb';
 
 export interface SigCacheEntry {
   walletId: string;
@@ -54,5 +54,11 @@ export const SigCacheStore = {
   async clearAll(): Promise<void> {
     const db = await getDb();
     await db.clear('sig-cache');
+  },
+
+  async destroy(): Promise<void> {
+    try { _db?.close(); } catch { /* already closed */ }
+    _db = null;
+    await deleteDB(SC_DB_NAME);
   },
 };

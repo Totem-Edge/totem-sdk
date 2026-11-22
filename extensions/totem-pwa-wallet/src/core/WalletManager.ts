@@ -350,9 +350,21 @@ export const WalletManager = {
 
   async resetWallet(): Promise<void> {
     WalletManager.lock();
-    await VaultStore.clearAll();
-    await SigCacheStore.clearAll();
-    await WotsUsesStore.clearAll();
+
+    // Close each IndexedDB connection before deleting. `deleteDB` blocks while
+    // an open connection exists, which made Reset appear to hang and never
+    // reload. Destroy is best-effort: a second tab can still hold a connection,
+    // so bound the wait and let the reload/fallback finish the job.
+    const destroy = Promise.allSettled([
+      VaultStore.destroy(),
+      SigCacheStore.destroy(),
+      WotsUsesStore.destroy(),
+    ]);
+    await Promise.race([
+      destroy,
+      new Promise<void>(resolve => setTimeout(resolve, 4000)),
+    ]);
+
     if (_keyWorker) { _keyWorker.terminate(); _keyWorker = null; _workerReady = false; }
   },
 };
