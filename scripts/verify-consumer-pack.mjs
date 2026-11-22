@@ -190,22 +190,24 @@ try {
     subpathBindings.push(binding);
   }
   const probes = [
-    { specifier: manifest.name, import: supportsImport, require: supportsRequire },
+    { specifier: manifest.name, import: supportsImport, require: supportsRequire, root: true },
     ...subpathBindings.map((binding) => ({
-      specifier: binding.specifier, import: binding.import, require: binding.require,
+      specifier: binding.specifier, import: binding.import, require: binding.require, root: false,
     })),
   ];
   const probe = `
     import { createRequire } from 'node:module';
     const probes = JSON.parse(process.env.PROBES);
-    for (const { specifier, import: wantImport, require: wantRequire } of probes) {
+    for (const { specifier, import: wantImport, require: wantRequire, root } of probes) {
       if (wantImport) {
         const imported = await import(specifier);
-        if (Object.keys(imported).length === 0) throw new Error(\`ESM import exported no bindings: \${specifier}\`);
+        // A subpath may legitimately be type-only (its compiled module is empty);
+        // the root must expose the package API.
+        if (root && Object.keys(imported).length === 0) throw new Error(\`ESM import exported no bindings: \${specifier}\`);
       }
       if (wantRequire) {
         const required = createRequire(import.meta.url)(specifier);
-        if (!required || (typeof required === 'object' && Object.keys(required).length === 0)) {
+        if (root && (!required || (typeof required === 'object' && Object.keys(required).length === 0))) {
           throw new Error(\`CommonJS require exported no bindings: \${specifier}\`);
         }
       }
