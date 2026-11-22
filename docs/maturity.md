@@ -61,7 +61,7 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.0 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.2 | rc | 2 | `packages/omnia-router` |
-| `@totemsdk/omnia-splice` | 0.3.4 | rc | 2 | `packages/omnia-splice` |
+| `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.9.0 | rc | 2 | `packages/omnia-vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
