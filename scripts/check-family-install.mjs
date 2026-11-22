@@ -40,15 +40,21 @@ const entries = [];
 const unpublished = [];
 const pending = [];
 
-/** Numeric comparison of dotted versions (`1.6.0` vs `1.10.0`). */
-function compareVersions(a, b) {
-  const pa = String(a).split('.').map((n) => Number.parseInt(n, 10) || 0);
-  const pb = String(b).split('.').map((n) => Number.parseInt(n, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (diff !== 0) return diff;
+/**
+ * Is this exact version installable? `dist-tags` is not enough: an rc package
+ * publishes on `next` and leaves `latest` behind, so comparing the workspace
+ * version to `latest` reported the whole rc family as "pending" and silently
+ * shrank this guard to a handful of packages.
+ */
+function versionPublished(name, version) {
+  try {
+    const out = execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
+      encoding: 'utf8', timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out.trim() === version;
+  } catch {
+    return false;
   }
-  return 0;
 }
 
 for (const [dir, meta] of Object.entries(config.packages)) {
@@ -66,14 +72,14 @@ for (const [dir, meta] of Object.entries(config.packages)) {
     unpublished.push(pkg.name);
     continue;
   }
-  // A package whose workspace version is ahead of its published latest is
+  // A package whose workspace version is not on the registry at all is
   // mid-release-train: consumers cannot install the version this commit will
   // publish, so installing the stale tag would check a family that no longer
   // matches the tree (e.g. a peer range already bumped for the new version).
   // Defer it; the publish workflow's per-package `smoke-release-install.mjs`
   // is the authoritative registry check once the version exists.
-  if (!STRICT && compareVersions(pkg.version, tags.latest) > 0) {
-    pending.push(`${pkg.name}@${pkg.version} (published ${tags.latest})`);
+  if (!STRICT && !versionPublished(pkg.name, pkg.version)) {
+    pending.push(`${pkg.name}@${pkg.version} (not on npm)`);
     continue;
   }
   const tag = tags[expected] ? expected : 'latest';

@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-mqtt",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "MQTT adapter for Totem Edge — Rust/WASM-backed canonicalization, topic matching, and MachinePay arithmetic",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

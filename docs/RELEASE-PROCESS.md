@@ -59,6 +59,7 @@ bump does not promote a package by itself.
    node scripts/verify-sdk-manifest.mjs
    node scripts/verify-public-claims.mjs
    node scripts/check-family-install.mjs
+   node scripts/verify-published-ranges.mjs
    node scripts/report-dist-tags.mjs --check
    ```
 6. Create a GitHub Release with the tag convention:

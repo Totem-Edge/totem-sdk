@@ -222,10 +222,10 @@
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
         "@totemsdk/kissvm": "^1.4.2",
-        "@totemsdk/lookup-client": "^0.4.1",
+        "@totemsdk/lookup-client": "^0.4.2",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.2",
+        "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/pear": "^0.3.0",
         "@totemsdk/statechain": "^0.3.3",
@@ -347,7 +347,7 @@
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/connect": "^3.1.4",
         "@totemsdk/core": "^1.6.1",
-        "@totemsdk/decision": "^0.3.0",
+        "@totemsdk/decision": "^0.3.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/manifest": "^2.2.0",
@@ -382,9 +382,9 @@
         "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/location-proof": "^1.0.2",
-        "@totemsdk/lookup-client": "^0.4.1",
+        "@totemsdk/lookup-client": "^0.4.2",
         "@totemsdk/manifest": "^2.2.0",
-        "@totemsdk/omnia-router": "^0.4.2",
+        "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/root-identity": "^1.0.12",
@@ -669,7 +669,7 @@
     },
     {
       "name": "@totemsdk/edge-mqtt",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "MQTT adapter — Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
       "domain": "edge-computing",
       "keywords": [
@@ -915,7 +915,7 @@
     },
     {
       "name": "@totemsdk/lookup-client",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, TxPoW broadcast",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -943,7 +943,7 @@
     },
     {
       "name": "@totemsdk/lookup-node",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "description": "Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1091,7 +1091,7 @@
     },
     {
       "name": "@totemsdk/omnia-router",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "description": "Multi-hop payment routing — single-token and cross-token paths over Omnia channels",
       "domain": "payment-network",
       "keywords": [
@@ -1645,7 +1645,7 @@
     },
     {
       "name": "@totemsdk/wallet-adapter",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
       "domain": "edge-computing",
       "keywords": [
@@ -1822,8 +1822,8 @@
         "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-pool": "^0.6.0",
-        "@totemsdk/omnia-router": "^0.4.2",
+        "@totemsdk/omnia-pool": "^0.6.1",
+        "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/p2p-hub": "^0.1.1",
@@ -1939,7 +1939,7 @@
     },
     {
       "name": "@totemsdk/omnia-pool",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
       "domain": "payment-network",
       "keywords": [
@@ -1958,7 +1958,7 @@
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.2",
+        "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/storage": "^0.2.2",
@@ -1983,7 +1983,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [
@@ -2002,7 +2002,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.2",
+        "@totemsdk/omnia-router": "^0.4.3",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/wots-lease": "^1.0.3"
@@ -2063,7 +2063,7 @@
     },
     {
       "name": "@totemsdk/decision",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
       "domain": "decision",
       "keywords": [

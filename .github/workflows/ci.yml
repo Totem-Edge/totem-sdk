@@ -285,6 +285,10 @@ jobs:
         run: node scripts/check-wallet-adapter-parity.mjs
       - name: Flat whole-family install guard (CAN-008)
         run: node scripts/check-family-install.mjs
+      - name: Published-range drift audit (CAN-008b)
+        run: |
+          node scripts/verify-published-ranges.mjs --self-test
+          node scripts/verify-published-ranges.mjs
       - name: storage→core DAG lint
         run: node scripts/verify-storage-dag.mjs
       - name: Wallet ⇄ connect parity audit (anti-drift)
