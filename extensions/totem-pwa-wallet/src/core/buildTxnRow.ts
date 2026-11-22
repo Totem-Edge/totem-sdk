@@ -9,7 +9,7 @@
  * Serialization primitives match Minima's Java Streamable interface exactly.
  */
 import { sha3_256 } from '@noble/hashes/sha3.js';
-import { mxToHex, serializeTreeSignature, type TreeKey } from '@totemsdk/core';
+import { mxToHex, scriptToAddress, serializeTreeSignature, type TreeKey } from '@totemsdk/core';
 import { assertTokenCreateBalanced } from './tokenCreateBurn.js';
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -386,6 +386,39 @@ function buildWotsUnlockScript(pubKeyHex: string): string {
   return `RETURN SIGNEDBY(0x${raw})`;
 }
 
+/**
+ * Pick the unlock script that actually hashes to the input coin's address.
+ *
+ * `scriptFromWotsPk` changed in 39e7e4cb from
+ *   RETURN SIGNEDBY(<UPPER>)        (legacy)
+ * to
+ *   RETURN SIGNEDBY(0x<UPPER>)      (current)
+ *
+ * Wallets created before that commit hold coins at the legacy script address.
+ * Signing with the current form produces a different address, so the node
+ * reports the script as missing / the SIGNEDBY key as wrong even though the
+ * WOTS signature itself verifies. Match the on-chain address instead.
+ */
+function resolveUnlockScript(pubKeyHex: string, coinAddressHex: string): string {
+  const raw = pubKeyHex.replace(/^0x/i, '');
+  const target = coinAddressHex.replace(/^0x/i, '').toLowerCase();
+  const candidates = [
+    buildWotsUnlockScript(raw),                // current
+    `RETURN SIGNEDBY(${raw.toUpperCase()})`,    // legacy (pre-39e7e4cb)
+    `RETURN SIGNEDBY(0x${raw.toLowerCase()})`,
+    `RETURN SIGNEDBY(${raw.toLowerCase()})`,
+  ];
+  for (const script of candidates) {
+    try {
+      const addr = mxToHex(scriptToAddress(script)).replace(/^0x/i, '').toLowerCase();
+      if (addr === target) return script;
+    } catch {
+      /* try the next form */
+    }
+  }
+  return candidates[0];
+}
+
 function encodeScriptProof(script: string): Uint8Array {
   return concat(writeMiniString(script), encodeEmptyMMRProof());
 }
@@ -438,6 +471,12 @@ export interface BuildSendParams {
   changeAmount: string;
   /** Per-address public key hex (for unlock script and validation) */
   perAddressPublicKey: string;
+  /**
+   * Exact unlock script that hashes to the input coin's address. Optional;
+   * defaults to resolving the current/legacy script forms from
+   * `perAddressPublicKey` and the first input coin's address.
+   */
+  unlockScript?: string;
   /** WOTS key indices for setUses() — from /wots-hardened/prepare response */
   l1: number;
   l2: number;
@@ -489,6 +528,12 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
   // 1. Parse input coins from CoinProof
   const inputs = inputCoinProofsHex.map(parseCoinFromProof);
   if (inputs.length === 0) throw new Error('No input coins provided');
+
+  // The unlock script must hash to the coin's address, not merely use the
+  // current script format. Legacy wallets were created before scriptFromWotsPk
+  // emitted the 0x prefix.
+  const unlockScript = params.unlockScript
+    ?? resolveUnlockScript(perAddressPublicKey, bytesToHex(inputs[0].address));
 
   // Helper: normalise Mx/hex address to bytes (validates checksum + length)
   const addrToBytes = (addr: string): Uint8Array => hexToBytes(normalizeAddressToHex(addr));
@@ -584,7 +629,6 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
   const treeSig = treeKey.sign(digestTx);
 
   // 6. Build witness (signature + coinproofs + script)
-  const unlockScript = buildWotsUnlockScript(perAddressPublicKey);
   const witnessBytes = serializeWitness(treeSig, inputCoinProofsHex, unlockScript);
 
   // 7. Assemble TxnRow: MiniString(id) + Transaction + Witness
