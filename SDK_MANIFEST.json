@@ -258,7 +258,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core-wasm": "^1.0.6"
+        "@totemsdk/core-wasm": "^1.0.7"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -310,7 +310,7 @@
     },
     {
       "name": "@totemsdk/core-wasm",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "description": "WOTS cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
