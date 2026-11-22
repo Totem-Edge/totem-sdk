@@ -74,9 +74,7 @@
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
         "@totemsdk/act-core",
-        "@totemsdk/connect",
-        "@totemsdk/act-ocpp",
-        "@totemsdk/act-mavlink"
+        "@totemsdk/connect"
       ]
     },
     "verifiable-claims": {
