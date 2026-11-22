@@ -142,7 +142,7 @@
       "dependencies": {
         "@protobuf-ts/runtime": "^2.11.1",
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
@@ -195,7 +195,7 @@
         "strategy-pattern"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/minima-rpc": "^0.5.1"
       },
       "exports": {
@@ -244,7 +244,7 @@
     },
     {
       "name": "@totemsdk/core",
-      "version": "1.6.0",
+      "version": "1.6.1",
       "description": "Core cryptographic primitives — WOTS, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -346,7 +346,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/connect": "^3.1.4",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/decision": "^0.3.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
@@ -377,7 +377,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/edge-gnss": "^0.1.0",
         "@totemsdk/identity": "^1.1.1",
@@ -682,7 +682,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
@@ -819,7 +819,7 @@
       ],
       "dependencies": {
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0"
@@ -844,7 +844,7 @@
         "claims"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/manifest": "^2.2.0"
       },
       "exports": {
@@ -869,7 +869,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -897,7 +897,7 @@
         "pool"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -926,7 +926,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/root-identity": "^1.0.12",
@@ -956,7 +956,7 @@
       "dependencies": {
         "better-sqlite3": "^12.2.0",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/minima-rpc": "^0.5.1",
@@ -984,7 +984,7 @@
         "wire"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1006,7 +1006,7 @@
         "signed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/replication": "^0.2.0"
       },
       "exports": {
@@ -1034,7 +1034,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/kissvm": "^1.4.2",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/stream-transport": "^0.2.2",
@@ -1069,7 +1069,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -1102,7 +1102,7 @@
         "dijkstra"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2"
       },
@@ -1126,7 +1126,7 @@
         "channel-resize"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
@@ -1156,7 +1156,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1",
@@ -1233,7 +1233,7 @@
         "verification"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0"
       },
@@ -1282,7 +1282,7 @@
         "content-addressed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -1309,7 +1309,7 @@
         "trust"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/proof": "^1.0.4",
@@ -1359,7 +1359,7 @@
       ],
       "dependencies": {
         "ws": "^8.21.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/stream-transport": "^0.2.2"
       },
@@ -1407,7 +1407,7 @@
       ],
       "dependencies": {
         "typescript": ">=5.0.0",
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1431,7 +1431,7 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/kissvm": "^1.4.2",
         "@totemsdk/tx-builder": "^0.3.5"
       },
@@ -1460,7 +1460,7 @@
         "kyc"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1487,7 +1487,7 @@
         "express": "^5.2.1",
         "pg": "^8.11.3",
         "zod": "^4.4.3",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/storage": "^0.2.2",
@@ -1516,7 +1516,7 @@
       "dependencies": {
         "node-fetch": "^2.6.9",
         "ws": "^8.21.1",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.1"
       },
@@ -1543,7 +1543,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.3.5",
         "@totemsdk/txpow": "^1.1.1",
@@ -1576,7 +1576,7 @@
       ],
       "dependencies": {
         "hyperswarm": ">=4.0.0",
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1603,7 +1603,7 @@
         "wots"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/txpow": "^1.1.1"
       },
       "exports": {
@@ -1627,7 +1627,7 @@
         "serialization"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1679,7 +1679,7 @@
         "key-coordination"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/lookup-protocol": "^0.3.0",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2",
@@ -1735,7 +1735,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/authority": "^1.0.2",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/edge": "^1.6.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/replication": "^0.2.0",
@@ -1815,7 +1815,7 @@
       "dependencies": {
         "ws": "^8.21.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/manifest": "^2.2.0",
@@ -1858,7 +1858,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1"
       },
@@ -1888,7 +1888,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/location-proof": "^1.0.2",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1"
@@ -1923,7 +1923,7 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/proofgraph": "^1.1.1",
         "@totemsdk/spatial-proof": "^1.0.2"
@@ -1954,7 +1954,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
@@ -1998,7 +1998,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
@@ -2078,7 +2078,7 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication": "^0.2.0"
       },
@@ -2151,7 +2151,7 @@
         "edge-ai"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/replication-holepunch": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
@@ -2213,7 +2213,7 @@
         "provider-neutral"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -2259,7 +2259,7 @@
         "types"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/manifest": "^2.2.0"
       },
@@ -2287,7 +2287,7 @@
         "types"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0"
+        "@totemsdk/core": "^1.6.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -2311,7 +2311,7 @@
         "contracts"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -2339,7 +2339,7 @@
         "hypercore": "^11.33.5",
         "hyperbee": "^2.27.3",
         "corestore": "^7.11.0",
-        "@totemsdk/core": "^1.6.0",
+        "@totemsdk/core": "^1.6.1",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"
       },

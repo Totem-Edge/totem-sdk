@@ -36,7 +36,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 
 | Package | Version | Level | Support tier | Directory |
 |---|---|---|---|---|
-| `@totemsdk/core` | 1.6.0 | v1 | 0 | `packages/core` |
+| `@totemsdk/core` | 1.6.1 | v1 | 0 | `packages/core` |
 | `@totemsdk/core-wasm` | 1.0.7 | v1 | 0 | `packages/core-wasm` |
 | `@totemsdk/kissvm` | 1.4.2 | rc | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |

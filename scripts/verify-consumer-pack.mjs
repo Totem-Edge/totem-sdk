@@ -150,12 +150,30 @@ try {
   // Every published subpath must resolve and type-check too: a `/governed`
   // entry that points at a missing dist file, or forgets `types`, is invisible
   // to a root-only probe and breaks consumers on install.
+  function exportTargets(target) {
+    if (typeof target === 'string') return [target];
+    if (!target || typeof target !== 'object') return [];
+    return Object.values(target).flatMap(exportTargets);
+  }
+  const CODE_TARGET = /\.(?:[cm]?[jt]s)$/;
   const subpaths = Object.keys(manifest.exports ?? {}).filter((key) => key !== '.' && key.startsWith('./'));
-  const subpathBindings = subpaths.map((subpath) => {
+  const subpathBindings = [];
+  for (const subpath of subpaths) {
     const target = manifest.exports[subpath];
+    const targets = exportTargets(target);
+    // Asset subpaths (`./test-vectors.json`, `./*.wasm`) are not modules: there is
+    // nothing to import and no declaration file to resolve. Verify the file ships.
+    if (!targets.some((candidate) => CODE_TARGET.test(candidate))) {
+      for (const candidate of targets) {
+        if (!existsSync(join(installedDir, candidate))) {
+          throw new Error(`${manifest.name}: subpath ${subpath} targets missing file ${candidate}`);
+        }
+      }
+      continue;
+    }
     const subDefault = typeof target === 'string' ? target
       : typeof target?.default === 'string' ? target.default : undefined;
-    return {
+    const binding = {
       subpath,
       specifier: `${manifest.name}${subpath.slice(1)}`,
       import: Boolean(subDefault) || hasCondition(target, 'import'),
@@ -163,14 +181,13 @@ try {
         (Boolean(subDefault) && (subDefault.endsWith('.cjs') || manifest.type !== 'module')),
       types: Boolean(target && typeof target === 'object' && declaresTypes(target)),
     };
-  });
-  for (const binding of subpathBindings) {
     if (!binding.import && !binding.require) {
       throw new Error(`${manifest.name}: subpath ${binding.subpath} declares no import or require target`);
     }
     if (!binding.types) {
       throw new Error(`${manifest.name}: subpath ${binding.subpath} declares no \`types\` target`);
     }
+    subpathBindings.push(binding);
   }
   const probes = [
     { specifier: manifest.name, import: supportsImport, require: supportsRequire },
@@ -203,19 +220,27 @@ try {
     subpathBindings.some((binding) => binding.types);
   if (hasTypes) {
     const files = [];
-    const importLines = [manifest.name, ...subpathBindings.map((binding) => binding.specifier)]
-      .map((specifier, index) => `import * as api${index} from ${JSON.stringify(specifier)};\nvoid api${index};`)
-      .join('\n');
-    if (supportsImport) {
+    // Honour each subpath's declared conditions: an ESM-only entry (`import`
+    // only, e.g. a wasm loader) must not be required from the CJS consumer.
+    const importSpecifiers = [
+      ...(supportsImport ? [manifest.name] : []),
+      ...subpathBindings.filter((binding) => binding.import).map((binding) => binding.specifier),
+    ];
+    const requireSpecifiers = [
+      ...(supportsRequire ? [manifest.name] : []),
+      ...subpathBindings.filter((binding) => binding.require).map((binding) => binding.specifier),
+    ];
+    if (importSpecifiers.length > 0) {
       files.push('consumer.mts');
-      writeFileSync(join(workDir, 'consumer.mts'), `${importLines}\n`);
+      writeFileSync(join(workDir, 'consumer.mts'), `${importSpecifiers
+        .map((specifier, index) => `import * as api${index} from ${JSON.stringify(specifier)};\nvoid api${index};`)
+        .join('\n')}\n`);
     }
-    if (supportsRequire) {
-      const requireLines = [manifest.name, ...subpathBindings.map((binding) => binding.specifier)]
-        .map((specifier, index) => `import api${index} = require(${JSON.stringify(specifier)});\nvoid api${index};`)
-        .join('\n');
+    if (requireSpecifiers.length > 0) {
       files.push('consumer.cts');
-      writeFileSync(join(workDir, 'consumer.cts'), `${requireLines}\n`);
+      writeFileSync(join(workDir, 'consumer.cts'), `${requireSpecifiers
+        .map((specifier, index) => `import api${index} = require(${JSON.stringify(specifier)});\nvoid api${index};`)
+        .join('\n')}\n`);
     }
     writeFileSync(join(workDir, 'tsconfig.json'), JSON.stringify({
       compilerOptions: {

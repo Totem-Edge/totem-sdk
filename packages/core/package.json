@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/core",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
   "type": "module",
   "main": "dist/cjs/index.js",
@@ -169,7 +169,8 @@
     "dist",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "test-vectors.json"
   ],
   "dependencies": {
     "@noble/hashes": "^1.8.0",
