@@ -387,36 +387,32 @@ function buildWotsUnlockScript(pubKeyHex: string): string {
 }
 
 /**
- * Pick the unlock script that actually hashes to the input coin's address.
+ * Resolve the unlock script that hashes to the input coin's address.
  *
- * `scriptFromWotsPk` changed in 39e7e4cb from
- *   RETURN SIGNEDBY(<UPPER>)        (legacy)
+ * `scriptFromWotsPk` changed in 39e7e4cb (2026-09-08) from
+ *   RETURN SIGNEDBY(<UPPER>)        (legacy, invalid)
  * to
  *   RETURN SIGNEDBY(0x<UPPER>)      (current)
  *
- * Wallets created before that commit hold coins at the legacy script address.
- * Signing with the current form produces a different address, so the node
- * reports the script as missing / the SIGNEDBY key as wrong even though the
- * WOTS signature itself verifies. Match the on-chain address instead.
+ * The legacy form is not a valid Minima script: both the Java reference and
+ * Hawk tokenize only `0x…` as a HEX value, so SIGNEDBY(<unprefixed>) fails to
+ * parse. Coins at a legacy address are unspendable network-wide; refuse to
+ * build a transaction instead of producing a witness that every node rejects.
  */
 function resolveUnlockScript(pubKeyHex: string, coinAddressHex: string): string {
   const raw = pubKeyHex.replace(/^0x/i, '');
   const target = coinAddressHex.replace(/^0x/i, '').toLowerCase();
-  const candidates = [
-    buildWotsUnlockScript(raw),                // current
-    `RETURN SIGNEDBY(${raw.toUpperCase()})`,    // legacy (pre-39e7e4cb)
-    `RETURN SIGNEDBY(0x${raw.toLowerCase()})`,
-    `RETURN SIGNEDBY(${raw.toLowerCase()})`,
-  ];
-  for (const script of candidates) {
-    try {
-      const addr = mxToHex(scriptToAddress(script)).replace(/^0x/i, '').toLowerCase();
-      if (addr === target) return script;
-    } catch {
-      /* try the next form */
-    }
+  const canonical = buildWotsUnlockScript(raw);
+  try {
+    const addr = mxToHex(scriptToAddress(canonical)).replace(/^0x/i, '').toLowerCase();
+    if (addr === target) return canonical;
+  } catch {
+    /* fall through to the explicit error */
   }
-  return candidates[0];
+  throw new Error(
+    'This wallet address was created before the 8 September script fix and is not spendable. ' +
+    'Add a new account in Settings and send from that address.',
+  );
 }
 
 function encodeScriptProof(script: string): Uint8Array {
