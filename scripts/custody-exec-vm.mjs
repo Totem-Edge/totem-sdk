@@ -134,8 +134,10 @@ const poolExit = ({
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: POOL, amount: Number(amount), tokenId: '0x00' }],
     outputs,
-    state: { 101: '1', 102: exitBlockState, 128: String(successorShare), ...stateExtra },
-    prevState: { 101: '0', 102: '100', 128: String(spentShare), ...prevStateExtra },
+    // An exit must not advance the epoch or move the pool-wide ports; only the
+    // exiting holder's share is zeroed.
+    state: { 100: '0', 101: '0', 102: exitBlockState, 128: String(successorShare), ...stateExtra },
+    prevState: { 100: '0', 101: '0', 102: '100', 128: String(spentShare), ...prevStateExtra },
   };
 };
 console.log('real VM: omnia-vtxo pool owner exit (real TreeSignature, Rust/WASM vs TS)');
@@ -189,7 +191,9 @@ const factoryExit = ({ amount, remainder, successorZero }) => {
 console.log('real VM: omnia-factory per-party escape (real TreeSignature)');
 both('party A escape with real sig (whole share)', factory, signWith([partyAKey]), factoryExit({ amount: 1000, remainder: 0, successorZero: true }), true);
 both('party A escape (partial, payout@0 remainder@1)', factory, signWith([partyAKey]), factoryExit({ amount: 1500, remainder: 500, successorZero: true }), true);
-both('rejected: successor does not zero party share', factory, signWith([partyAKey]), factoryExit({ amount: 1000, remainder: 0, successorZero: false }), false);
+// A whole-share exit has no successor output (`@TOTOUT EQ 1`), so the
+// "share not zeroed" case is a partial exit whose remainder carries state.
+both('rejected: successor does not zero party share', factory, signWith([partyAKey]), factoryExit({ amount: 1500, remainder: 500, successorZero: false }), false);
 both('rejected: signer is party B, not A', factory, signWith([partyBKey]), factoryExit({ amount: 1000, remainder: 0, successorZero: true }), false);
 
 // ── Factory: cooperative MULTISIG(N-of-N) ────────────────────────────────────

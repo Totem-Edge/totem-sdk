@@ -534,6 +534,25 @@ fn resolve_builtin(name: &str, vm: &VmState) -> Result<VmValue, EvalError> {
             let age = (ctx.block - created).max(0.0);
             Ok(VmValue::BigInt(float_to_scaled(age)))
         }
+        // Parity with the TypeScript evaluator (`src/eval.ts` resolveBuiltinVariable).
+        // `@TOTIN`/`@TOTOUT` are load-bearing in custody covenants: a whole-share
+        // escape asserts `@TOTOUT EQ 1` so no state-carrying successor can survive.
+        "TOTIN" => Ok(VmValue::BigInt(BigInt::from(ctx.inputs.len()) * BigInt::from(SCALE))),
+        "TOTOUT" => Ok(VmValue::BigInt(BigInt::from(ctx.outputs.len()) * BigInt::from(SCALE))),
+        "CREATED" => Ok(VmValue::BigInt(float_to_scaled(
+            coin.and_then(|c| c.coin_created_block).unwrap_or(0.0),
+        ))),
+        "COINID" => {
+            let id = coin.map(|c| c.coin_id.clone()).unwrap_or_default();
+            check_string_size(&id)?;
+            Ok(VmValue::String(id))
+        }
+        "BLOCKMILLI" => match ctx.block_milli {
+            Some(block_milli) => Ok(VmValue::BigInt(float_to_scaled(block_milli))),
+            None => Err(EvalError::Runtime(
+                "@BLOCKMILLI requires txCtx.blockMilli to be set".into(),
+            )),
+        },
         _ => Err(EvalError::Runtime(format!("Unknown built-in variable: @{}", name))),
     }
 }
