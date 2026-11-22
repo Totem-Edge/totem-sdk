@@ -102,7 +102,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/server` | 1.0.6 | rc | outside | `packages/server` |
 | `@totemsdk/statechain` | 0.3.3 | rc | outside | `packages/statechain` |
 | `@totemsdk/wallet-adapter` | 2.0.3 | rc | outside | `packages/wallet-adapter` |
-| `@totemsdk/decision` | 0.3.1 | beta | outside | `packages/decision` |
+| `@totemsdk/decision` | 0.3.2 | beta | outside | `packages/decision` |
 | `@totemsdk/edge-mesh` | 0.2.0 | beta | outside | `packages/edge-mesh` |
 | `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.1 | beta | outside | `packages/qvac` |

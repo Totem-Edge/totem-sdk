@@ -347,7 +347,7 @@
         "@totemsdk/agent-policy": "^0.5.1",
         "@totemsdk/connect": "^3.1.4",
         "@totemsdk/core": "^1.6.1",
-        "@totemsdk/decision": "^0.3.1",
+        "@totemsdk/decision": "^0.3.2",
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/intelligence": "^0.2.0",
         "@totemsdk/manifest": "^2.2.0",
@@ -2063,7 +2063,7 @@
     },
     {
       "name": "@totemsdk/decision",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
       "domain": "decision",
       "keywords": [
