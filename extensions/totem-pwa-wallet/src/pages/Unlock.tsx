@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWallet } from '../core/WalletContext';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
+import { TotemEagleMark } from '../components/TotemEagleMark';
 
 export function Unlock() {
   const { unlock } = useWallet();
@@ -29,12 +30,11 @@ export function Unlock() {
   return (
     <div className="page" style={{ paddingTop: 'var(--space-6)' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-5)' }}>
-        <div style={{
-          fontSize: 48,
-          fontWeight: 'var(--weight-bold)',
-          color: 'var(--axia-aqua)',
-          marginBottom: 'var(--space-1)',
-        }}>⬡</div>
+        <TotemEagleMark
+          size={56}
+          color="var(--axia-aqua)"
+          style={{ display: 'block', margin: '0 auto var(--space-1)' }}
+        />
         <h1 style={{
           fontSize: 'var(--text-2xl)',
           fontWeight: 'var(--weight-bold)',

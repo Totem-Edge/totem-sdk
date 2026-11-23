@@ -1,10 +1,11 @@
 import React from 'react';
 import { useWallet, type AppRoute } from '../core/WalletContext';
+import { TotemEagleMark } from './TotemEagleMark';
 
-interface NavItem { route: AppRoute; label: string; icon: string }
+interface NavItem { route: AppRoute; label: string; icon: React.ReactNode }
 
 const ITEMS: NavItem[] = [
-  { route: 'home', label: 'Wallet', icon: '⬡' },
+  { route: 'home', label: 'Wallet', icon: <TotemEagleMark size={18} color="currentColor" /> },
   { route: 'send', label: 'Send', icon: '↑' },
   { route: 'receive', label: 'Receive', icon: '↓' },
   { route: 'activity', label: 'Activity', icon: '≡' },

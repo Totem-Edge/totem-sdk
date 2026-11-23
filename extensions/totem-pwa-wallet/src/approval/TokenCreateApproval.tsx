@@ -5,6 +5,7 @@
  * (0xFF marker + Token descriptor) and signs it with a per-address WOTS leaf.
  */
 import React, { useState, useEffect, useMemo } from 'react';
+import { TotemEagleMark } from '../components/TotemEagleMark';
 import { WalletManager } from '../core/WalletManager';
 import {
   prepareLease, finalizeLease, fetchWatermark,
@@ -152,7 +153,7 @@ export function TokenCreateApproval() {
   return (
     <div className="page" style={{ paddingTop: 'var(--space-3)' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
-        <div style={{ fontSize: 32, color: 'var(--axia-aqua)', marginBottom: 4 }}>⬡</div>
+        <TotemEagleMark size={32} color="var(--axia-aqua)" style={{ display: 'block', margin: '0 auto 4px' }} />
         <h2 style={{
           fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)',
           letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase',

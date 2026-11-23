@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import { useWallet } from '../core/WalletContext';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
+import { TotemEagleMark } from '../components/TotemEagleMark';
 
 type Step = 'choose' | 'create' | 'import' | 'password';
 
@@ -68,13 +69,11 @@ export function Onboard() {
   return (
     <div className="page" style={{ paddingTop: 'var(--space-6)' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
-        <div style={{
-          fontSize: 48,
-          fontWeight: 'var(--weight-bold)',
-          color: 'var(--axia-aqua)',
-          letterSpacing: 'var(--tracking-wider)',
-          marginBottom: 'var(--space-1)',
-        }}>⬡</div>
+        <TotemEagleMark
+          size={56}
+          color="var(--axia-aqua)"
+          style={{ display: 'block', margin: '0 auto var(--space-1)' }}
+        />
         <h1 style={{
           fontSize: 'var(--text-2xl)',
           fontWeight: 'var(--weight-bold)',
@@ -82,7 +81,7 @@ export function Onboard() {
           textTransform: 'uppercase',
         }}>TOTEM WALLET</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-          Self-custodial. Quantum-resistant.
+          Self-Custodial Minima Wallet
         </p>
       </div>
 

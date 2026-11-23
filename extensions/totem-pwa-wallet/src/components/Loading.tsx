@@ -1,4 +1,5 @@
 import React from 'react';
+import { TotemEagleMark } from './TotemEagleMark';
 
 export function Loading({ message = 'Loading…' }: { message?: string }) {
   return (
@@ -12,11 +13,11 @@ export function Loading({ message = 'Loading…' }: { message?: string }) {
       padding: 'var(--space-4)',
     }}>
       <div style={{
-        fontSize: 48,
-        fontWeight: 'var(--weight-bold)',
         color: 'var(--axia-aqua)',
         animation: 'pulse 1.5s ease-in-out infinite',
-      }}>⬡</div>
+      }}>
+        <TotemEagleMark size={56} color="currentColor" />
+      </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{message}</p>
       <style>{`
         @keyframes pulse {

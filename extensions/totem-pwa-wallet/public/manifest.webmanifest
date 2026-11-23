@@ -1,7 +1,7 @@
 {
   "name": "Totem Wallet",
   "short_name": "Totem",
-  "description": "Self-custodial Minima blockchain wallet",
+  "description": "Self-Custodial Minima Wallet",
   "theme_color": "#0f172a",
   "background_color": "#0f172a",
   "display": "standalone",

@@ -3,6 +3,7 @@
  * Signs the digestTx or message from the params using the WOTS key.
  */
 import React, { useState, useEffect, useMemo } from 'react';
+import { TotemEagleMark } from '../components/TotemEagleMark';
 import { WalletManager } from '../core/WalletManager';
 import { signAndSerialize } from '../core/signing';
 import { signVerificationMessage } from '../core/signMessage';
@@ -103,7 +104,7 @@ export function VerifyApproval() {
   return (
     <div className="page" style={{ paddingTop: 'var(--space-3)' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
-        <div style={{ fontSize: 32, color: 'var(--axia-aqua)', marginBottom: 4 }}>⬡</div>
+        <TotemEagleMark size={32} color="var(--axia-aqua)" style={{ display: 'block', margin: '0 auto 4px' }} />
         <h2 style={{
           fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)',
           letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase',
