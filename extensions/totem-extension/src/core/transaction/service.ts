@@ -378,6 +378,12 @@ export class TransactionService {
     TxSignLogger.info(`    leaseToken: ${params.leaseToken.slice(0, 16)}...`);
     TxSignLogger.info(`    format: ${params.signedBase64 ? 'base64' : 'hex'}`);
     TxSignLogger.info(`    size: ${params.signedBase64?.length || params.signedHex?.length || 0} chars`);
+
+    // Defensive: a duplicated 0x prefix ("0x0x…") is not valid hex for the
+    // node. Normalise to exactly one prefix before sending.
+    const requestBody = typeof params.signedHex === 'string'
+      ? { ...params, signedHex: params.signedHex.replace(/^(?:0x)+/i, '0x') }
+      : params;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -385,7 +391,7 @@ export class TransactionService {
         'Content-Type': 'application/json',
         'x-api-key': projectId
       },
-      body: JSON.stringify(params)
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

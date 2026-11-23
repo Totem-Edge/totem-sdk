@@ -38,7 +38,7 @@ function randomId(prefix: string): string {
 }
 
 function strip0x(hex: string): string {
-  return hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
+  return hex.replace(/^(?:0x)+/i, '');
 }
 
 function bytesToHex(bytes: Uint8Array): string {
