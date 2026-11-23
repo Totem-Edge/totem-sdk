@@ -60,7 +60,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.2 | rc | 2 | `packages/omnia-pool` |
-| `@totemsdk/omnia-relay` | 0.9.0 | rc | 2 | `packages/omnia-relay` |
+| `@totemsdk/omnia-relay` | 0.10.0 | rc | 2 | `packages/omnia-relay` |
 | `@totemsdk/omnia-router` | 0.5.0 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.9.0 | rc | 2 | `packages/omnia-vtxo` |

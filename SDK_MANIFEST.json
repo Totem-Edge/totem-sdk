@@ -1983,7 +1983,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [

@@ -16,6 +16,7 @@
 import { IdbStore } from '@totemsdk/storage/idb';
 import {
   createOmniaRelayClient,
+  createApprovalQueue,
   createWalletCoordination,
   createWalletForwarding,
   createDurableHtlcLinkJournal,
@@ -36,27 +37,27 @@ import { setPwaOmniaPort } from './connect/walletRuntime';
 // The host runs outside React; the modal subscribes here.
 
 type ApprovalListener = () => void;
-let pendingApproval: { req: WalletApprovalRequest; resolve: (approved: boolean) => void } | null = null;
 const approvalListeners = new Set<ApprovalListener>();
+// Serialised and fail-closed: a second proposal queues behind the first instead
+// of overwriting it (which used to leave the first handler waiting forever),
+// and an unanswered request expires rather than signing later.
+const approvalQueue = createApprovalQueue<WalletApprovalRequest>({
+  timeoutMs: 5 * 60_000,
+  onChange: () => approvalListeners.forEach((l) => l()),
+});
 
 export function subscribeOmniaApproval(listener: ApprovalListener): () => void {
   approvalListeners.add(listener);
   return () => approvalListeners.delete(listener);
 }
 export function getPendingOmniaApproval(): WalletApprovalRequest | null {
-  return pendingApproval?.req ?? null;
+  return approvalQueue.pending();
 }
 export function resolveOmniaApproval(approved: boolean): void {
-  const current = pendingApproval;
-  pendingApproval = null;
-  approvalListeners.forEach((l) => l());
-  current?.resolve(approved);
+  approvalQueue.resolve(approved);
 }
 function requestOmniaApproval(req: WalletApprovalRequest): Promise<boolean> {
-  return new Promise((resolve) => {
-    pendingApproval = { req, resolve };
-    approvalListeners.forEach((l) => l());
-  });
+  return approvalQueue.enqueue(req);
 }
 
 interface OmniaHost {
@@ -184,4 +185,6 @@ export function stopPwaOmniaHost(): void {
   }
   host = undefined;
   setPwaOmniaPort(undefined);
+  // Lock/teardown denies anything the user had not answered.
+  approvalQueue.cancelAll();
 }

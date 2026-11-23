@@ -18,7 +18,12 @@ import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseAct
 import { activeChainProviderStore, resolveActiveChainProvider } from '../core/config/activeChainProvider';
 import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createWalletForwarding, createDurableHtlcLinkJournal, createStorageCoordinationStore, type WalletCoordination, type WalletApprovalRequest, type ChannelFactory, type QuiescedChannel, type WalletForwarding } from '@totemsdk/omnia-relay';
 import { computeIdentityId } from '@totemsdk/identity';
-import type { ChannelIdentity, OmniaChannel } from '@totemsdk/omnia';
+import {
+  createChainFundingProofProvider,
+  createWalletFundingWitnessBuilder,
+  type ChannelIdentity,
+  type OmniaChannel,
+} from '@totemsdk/omnia';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
 // extension's legacy "node" moduleResolution cannot see it.
 import { IdbStore } from '@totemsdk/storage/idb';
@@ -1205,15 +1210,44 @@ let extensionOmniaForwarding: WalletForwarding | undefined;
 let extensionCoordinationUnsub: (() => void) | undefined;
 const extensionOmniaFactories = new Map<string, ChannelFactory>();
 
-function approveExtensionCoordination(req: WalletApprovalRequest): Promise<boolean> {
-  return showOmniaApprovalPopup({
-    kind: req.kind,
-    ...(req.channelId ? { channelId: req.channelId } : {}),
-    ...(req.factoryId ? { factoryId: req.factoryId } : {}),
-    ...(req.spliceId ? { spliceId: req.spliceId } : {}),
-    ...(req.proposer ? { proposer: req.proposer } : {}),
-    ...(req.custody ? { custody: req.custody as CustodyDisclosure } : {}),
+/**
+ * Coordination approvals are serialised (one popup at a time) and time-boxed: an
+ * abandoned popup must not leave a proposal waiting indefinitely, and a late or
+ * duplicate answer must never turn into a signature.
+ */
+let coordinationApprovalTail: Promise<unknown> = Promise.resolve();
+
+function withApprovalTimeout(opened: Promise<boolean>, timeoutMs = 5 * 60_000): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    opened.then(
+      (approved) => {
+        clearTimeout(timer);
+        resolve(approved);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(false);
+      },
+    );
   });
+}
+
+function approveExtensionCoordination(req: WalletApprovalRequest): Promise<boolean> {
+  const opened = coordinationApprovalTail.then(() =>
+    withApprovalTimeout(
+      showOmniaApprovalPopup({
+        kind: req.kind,
+        ...(req.channelId ? { channelId: req.channelId } : {}),
+        ...(req.factoryId ? { factoryId: req.factoryId } : {}),
+        ...(req.spliceId ? { spliceId: req.spliceId } : {}),
+        ...(req.proposer ? { proposer: req.proposer } : {}),
+        ...(req.custody ? { custody: req.custody as CustodyDisclosure } : {}),
+      }),
+    ),
+  );
+  coordinationApprovalTail = opened.catch(() => false);
+  return opened;
 }
 
 type OmniaCoordinationOptions = Parameters<typeof createWalletCoordination>[0];
@@ -1307,6 +1341,13 @@ async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmni
       leaseProvider,
       chainProvider: chain.provider,
       localParticipant: participant,
+      // The wallet owns the funding coin, so only the wallet may build/sign the
+      // funding witness. dApps supply the coin id and terms, never the witness.
+      fundingWitnessBuilder: createWalletFundingWitnessBuilder({
+        signer,
+        leaseProvider,
+        proofs: createChainFundingProofProvider(chain.provider),
+      }),
     });
     // RFC-035 B5: wire peer coordination to this client's swarm (accepts fail
     // closed until a per-operation approval UI exists).

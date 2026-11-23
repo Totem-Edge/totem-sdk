@@ -398,6 +398,14 @@ under the purported party's digest and that party must be a member of the object
     the PWA shows an in-app modal; both name the operation, the channel/factory/
     splice id, and the requesting peer, and gate on explicit Approve/Reject (the
     per-method `supports()` on the omnia port stays the truthful runtime source).
+  - **Consent queue — landed.** `@totemsdk/omnia-relay` exports
+    `createApprovalQueue(...)`: one decision at a time, the timer starts when a
+    request is shown (not when queued), teardown denies everything outstanding,
+    and a late answer resolves nothing. This replaces the PWA's single pending
+    slot, where a second proposal overwrote the first and left its handler
+    waiting forever. The extension serialises its popups through a promise chain
+    with the same five-minute bound, so an abandoned popup cannot sign later.
+    Tests: `tests/unit/omnia-relay/.../approval-queue.test.ts`.
   - **Capability claims — landed.** The coarse `omnia` block is no longer a
     static constant in either wallet. `@totemsdk/connect` exports
     `deriveOmniaCapabilities(port)`, which asks the installed Omnia port's

@@ -44,6 +44,10 @@ export type {
 export { createDurableHtlcLinkJournal } from './link-journal.js';
 export type { DurableHtlcLinkJournal } from './link-journal.js';
 
+// RFC-035 B5: consent queue for coordination approvals.
+export { createApprovalQueue } from './approval-queue.js';
+export type { ApprovalQueue, ApprovalQueueOptions } from './approval-queue.js';
+
 // RFC-035 B4 (wallet side): inbound STATE_UPDATE -> forwarder hook.
 export { createWalletForwarding } from './wallet-forwarding.js';
 export type {
