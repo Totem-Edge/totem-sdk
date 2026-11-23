@@ -12,6 +12,8 @@ not UI code.
 | `src/pages/Send.tsx` | Fixed step order and the exact `signedHex` handed to `/finalize`. |
 | `../totem-extension/src/core/transaction/service.ts` | Extension finalize request (same wire contract). |
 | `../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts` | Extension `TxnRow` serialization. |
+| `../totem-extension/src/core/transaction/useSendTransaction.ts` | Extension send step order. |
+| `../totem-extension/src/core/transaction/hawkTransactionService.ts` | Hawk-path signed-hex handling. |
 | `../../../axia-platform/packages/axia-api/src/wots/finalize.ts` | Server-side hex validation, `txnimport` → `txncheck` → `txnpost`. |
 
 ## Invariants other agents must not change casually

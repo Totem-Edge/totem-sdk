@@ -34,6 +34,8 @@ export const LOCKED_FILES = [
   'src/pages/Send.tsx',
   '../totem-extension/src/core/transaction/service.ts',
   '../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts',
+  '../totem-extension/src/core/transaction/useSendTransaction.ts',
+  '../totem-extension/src/core/transaction/hawkTransactionService.ts',
   '../../../axia-platform/packages/axia-api/src/wots/finalize.ts',
 ];
 
