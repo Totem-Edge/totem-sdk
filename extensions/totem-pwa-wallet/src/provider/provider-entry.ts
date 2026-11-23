@@ -281,14 +281,30 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         ...extra,
       });
 
-    if (isMobile() || isCustomScheme(returnUrl)) {
-      trace('navigating-full-page', { reason: 'mobile-or-custom-scheme' });
-      // For native app callers with custom scheme returnUrl, skip sessionStorage
-      // caching — the approval page will redirect directly to the custom scheme.
-      if (!isCustomScheme(returnUrl)) {
-        sessionStorage.setItem('totem_redirect_id', id);
-        sessionStorage.setItem('totem_redirect_method', method);
+    if (isCustomScheme(returnUrl)) {
+      trace('navigating-full-page', { reason: 'custom-scheme' });
+      window.location.href = url;
+      return;
+    }
+
+    if (isMobile()) {
+      // The dApp pre-opens a named `totem_wallet` window synchronously from the
+      // click. Navigating that existing window keeps window.opener, so the
+      // approval posts its result back and the dApp never has to resume a
+      // full-page redirect. Only fall back to a redirect if mobile blocks the
+      // window entirely.
+      const mobileWin = window.open(
+        url, 'totem_wallet',
+        `width=${POPUP_W},height=${POPUP_H},resizable=no,scrollbars=no,status=no,toolbar=no,menubar=no`,
+      );
+      if (mobileWin) {
+        walletWin = mobileWin;
+        trace('opened-popup-mobile');
+        return;
       }
+      trace('navigating-full-page', { reason: 'mobile-popup-blocked' });
+      sessionStorage.setItem('totem_redirect_id', id);
+      sessionStorage.setItem('totem_redirect_method', method);
       window.location.href = url;
       return;
     }
