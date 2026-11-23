@@ -16,7 +16,7 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, co
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
 import { activeChainProviderStore, resolveActiveChainProvider } from '../core/config/activeChainProvider';
-import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createStorageCoordinationStore, type WalletCoordination, type WalletApprovalRequest, type ChannelFactory, type QuiescedChannel } from '@totemsdk/omnia-relay';
+import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createWalletForwarding, createDurableHtlcLinkJournal, createStorageCoordinationStore, type WalletCoordination, type WalletApprovalRequest, type ChannelFactory, type QuiescedChannel, type WalletForwarding } from '@totemsdk/omnia-relay';
 import { computeIdentityId } from '@totemsdk/identity';
 import type { ChannelIdentity, OmniaChannel } from '@totemsdk/omnia';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
@@ -1201,6 +1201,7 @@ let extensionOmniaClient: ReturnType<typeof createOmniaRelayClient> | undefined;
  * never consented to.
  */
 let extensionOmniaCoordination: WalletCoordination | undefined;
+let extensionOmniaForwarding: WalletForwarding | undefined;
 let extensionCoordinationUnsub: (() => void) | undefined;
 const extensionOmniaFactories = new Map<string, ChannelFactory>();
 
@@ -1225,6 +1226,8 @@ function wireExtensionCoordination(
 ): void {
   try {
     extensionCoordinationUnsub?.();
+    extensionOmniaForwarding?.close();
+    extensionOmniaForwarding = undefined;
     const store = createStorageCoordinationStore(
       new IdbStore({ databaseName: 'totem-extension-omnia-coord', storeName: 'kv' }),
     );
@@ -1241,8 +1244,29 @@ function wireExtensionCoordination(
         extensionOmniaFactories.set(f.factoryId, f);
       },
     });
+    // RFC-035 B4: an intermediary on a multi-hop route is handed a
+    // STATE_UPDATE carrying `payload.forward`; bind the forwarder to the same
+    // peer stream and reconcile links journaled before the last restart.
+    extensionOmniaForwarding = createWalletForwarding({
+      channels: client.channels as unknown as Map<string, OmniaChannel>,
+      signer,
+      leaseProvider,
+      chainProvider,
+      swarm: client.swarm,
+      linkJournal: createDurableHtlcLinkJournal(
+        new IdbStore({ databaseName: 'totem-extension-omnia-forward', storeName: 'links' }),
+      ),
+      onError: (info) => {
+        console.warn('[connect] forwarding refused:', info.reason, info.channelId, info.hashlock ?? '');
+      },
+    });
+    void extensionOmniaForwarding.forwarder.recover().catch((err: unknown) => {
+      console.warn('[connect] forwarding recovery failed:', err);
+    });
+
     extensionCoordinationUnsub = client.swarm.listenForChannels((peer) => {
       extensionOmniaCoordination?.bindPeer(peer);
+      extensionOmniaForwarding?.bindPeer(peer);
     });
   } catch (err) {
     console.warn('[connect] failed to wire omnia coordination:', err);

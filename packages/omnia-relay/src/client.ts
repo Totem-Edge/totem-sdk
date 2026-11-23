@@ -294,7 +294,24 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     base.channels.set(result.channel.channelId, result.channel);
 
     const peer = await base.swarm.connectToPeer(firstHop.to, firstHop.channelId);
-    const onward = route.hops.slice(1);
+    // RFC-035 §9: every onward hop must be bounded strictly before the HTLC
+    // that funds it, so a route that dies downstream can unwind in order. The
+    // sender's `expiryBlock` bounds the first hop; each further hop steps back
+    // by a fixed delta unless the route already carries an explicit timeout.
+    const hopDelta = typeof params.hopTimeoutDeltaBlocks === 'number'
+      ? BigInt(params.hopTimeoutDeltaBlocks)
+      : 10n;
+    const onward = route.hops.slice(1).map((h, index) => {
+      const existing = (h as { timeoutBlock?: bigint }).timeoutBlock;
+      if (existing !== undefined) return h;
+      const bounded = timeoutBlock - hopDelta * BigInt(index + 1);
+      if (bounded <= 0n) {
+        throw new Error(
+          `Omnia payMultiHop: expiryBlock ${timeoutBlock} cannot fund ${route.hops.length} hops at a ${hopDelta}-block delta`,
+        );
+      }
+      return { ...h, timeoutBlock: bounded };
+    });
     const forward = onward.length > 0
       ? { hashlock, envelope: createCleartextRoutingCodec().build(onward as never) }
       : undefined;

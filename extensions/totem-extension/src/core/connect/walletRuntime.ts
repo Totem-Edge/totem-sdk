@@ -12,13 +12,20 @@
  *   - `selfHosted` — persists the RFC-013 chain-provider selection
  */
 
-import { createWalletRuntime, isConnectMethod } from '@totemsdk/connect';
+import { createWalletRuntime, deriveOmniaCapabilities, isConnectMethod } from '@totemsdk/connect';
 import type {
   WalletHandlerContext,
   WalletCapabilityManifest,
   WalletRuntime,
 } from '@totemsdk/connect';
-import type { TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
+import type { OmniaSupportProbe, TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
+
+// RFC-035 B5: the Omnia claim tracks the installed port, so Axia lease mode
+// (no signing material) cannot over-claim a signing-required operation.
+let activeOmniaPort: OmniaSupportProbe | undefined;
+export function setExtensionOmniaPort(port: OmniaSupportProbe | undefined): void {
+  activeOmniaPort = port;
+}
 
 const EXTENSION_CAPABILITIES: TotemCapabilities = {
   version: '1.0.0',
@@ -41,15 +48,8 @@ const EXTENSION_CAPABILITIES: TotemCapabilities = {
     hyperswarm: false,
   },
   txpow: { localMining: false, progressEvents: true },
-  omnia: {
-    channels: false,
-    routing: true,
-    multiHop: false,
-    crossTokenSwap: false,
-    factory: false,
-    virtualChannels: false,
-    splicing: false,
-    hyperswarm: false,
+  get omnia() {
+    return deriveOmniaCapabilities(activeOmniaPort);
   },
   statechain: { supported: false, blindSE: false },
   scripting: { kissvm: false },
@@ -79,6 +79,7 @@ let runtime: WalletRuntime | undefined;
  * legacy-handler bridge so that legacy methods are never routed twice.
  */
 export function configureExtensionWalletRuntime(ports: Partial<WalletHandlerContext> = {}): void {
+  if (ports.omnia) activeOmniaPort = ports.omnia as OmniaSupportProbe;
   runtime = createWalletRuntime({ info: EXTENSION_INFO, ...ports });
 }
 

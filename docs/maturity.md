@@ -60,8 +60,8 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.1 | rc | 2 | `packages/omnia-pool` |
-| `@totemsdk/omnia-relay` | 0.8.2 | rc | 2 | `packages/omnia-relay` |
-| `@totemsdk/omnia-router` | 0.4.3 | rc | 2 | `packages/omnia-router` |
+| `@totemsdk/omnia-relay` | 0.9.0 | rc | 2 | `packages/omnia-relay` |
+| `@totemsdk/omnia-router` | 0.5.0 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.9.0 | rc | 2 | `packages/omnia-vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
@@ -79,7 +79,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/raster-proof` | 1.0.2 | v1 | outside | `packages/raster-proof` |
 | `@totemsdk/spatial-proof` | 1.0.2 | v1 | outside | `packages/spatial-proof` |
 | `@totemsdk/act-training` | 0.1.0 | rc | outside | `packages/act-training` |
-| `@totemsdk/connect` | 3.1.4 | rc | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.2.0 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.4.2 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.3.0 | rc | outside | `packages/edge-ble` |

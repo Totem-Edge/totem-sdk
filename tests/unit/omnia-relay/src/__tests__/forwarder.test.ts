@@ -598,3 +598,157 @@ describe('relay durability and recovery', () => {
     expect((await journal.list())).toHaveLength(10);
   });
 });
+
+/**
+ * RFC-035 §9 — "a mid-route failure cancels the already-locked hops (no
+ * partially-settled route)".
+ *
+ * HTLCs unwind by timeout rather than by an explicit cancel message, so the
+ * property to prove is: a hop that cannot complete never settles its incoming
+ * leg, journals only a recoverable intent, and bounds every outgoing timeout
+ * strictly before the incoming one so the legs unwind in the right order.
+ */
+describe('mid-route failure (RFC-035 §9)', () => {
+  function setup(inTimeout = 110n, outBalance = 500n) {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const outChannel = makeChannel(I, B, { first: outBalance, second: 1000n - outBalance });
+    const lp = lease();
+    const sg = signer(I);
+    const journal = memoryJournal();
+    return { sendMessage, swarm, inChannel, outChannel, lp, sg, journal, inTimeout };
+  }
+
+  it('does not settle the incoming HTLC when the outgoing lock cannot be funded', async () => {
+    // I holds 10n on the outgoing channel and is asked to forward 90n.
+    const { sendMessage, swarm, inChannel, outChannel, lp, sg, journal, inTimeout } = setup(110n, 10n);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: inTimeout, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: journal,
+    });
+
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    await expect(forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    })).rejects.toThrow(/Insufficient balance/);
+
+    // Nothing was settled and nothing was forwarded onward.
+    const after = channels.get(inChannel.channelId)!;
+    expect(after.pendingHTLCs.find((h) => h.htlcId === incoming.htlcId)?.status).toBe('pending');
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(channels.get(outChannel.channelId)?.pendingHTLCs).toHaveLength(0);
+
+    // Only a recoverable intent is left behind, and recovery drops it because
+    // no outgoing HTLC was ever signed.
+    const intent = await journal.get(hashlock);
+    expect(intent?.status).toBe('intent');
+    expect(intent?.outHtlcId).toBe('');
+    expect(await forwarder.recover()).toEqual([]);
+    expect(await journal.get(hashlock)).toBeUndefined();
+  });
+
+  it('rejects an outgoing timeout that cannot unwind before the incoming HTLC', async () => {
+    const { sendMessage, swarm, inChannel, outChannel, lp, sg, journal } = setup();
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: journal,
+    });
+
+    // A timeout at or after the incoming one would strand this hop: the
+    // downstream could still claim while this node's own incoming expires.
+    const hopLate = { ...hop(outChannel.channelId, I, B, 90n), timeoutBlock: 120n };
+    const envelope = createCleartextRoutingCodec().build([hopLate as unknown as RoutingHop]);
+
+    await expect(forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 120n,
+    })).rejects.toThrow(/earlier than incoming/);
+
+    expect(await journal.get(hashlock)).toBeUndefined();
+    expect(channels.get(outChannel.channelId)?.pendingHTLCs).toHaveLength(0);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('bounds each hop strictly earlier than its incoming HTLC', async () => {
+    const { swarm, inChannel, outChannel, lp, sg, journal } = setup();
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: journal,
+    });
+
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    const result = await forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    });
+    expect(result.status).toBe('forwarded');
+
+    const outgoing = channels.get(outChannel.channelId)!.pendingHTLCs[0]!;
+    const incomingAfter = channels.get(inChannel.channelId)!.pendingHTLCs.find(
+      (h) => h.htlcId === incoming.htlcId,
+    )!;
+    expect(outgoing.timeoutBlock).toBe(100n);
+    // The gap is what lets this node reclaim the outgoing lock before the
+    // upstream can claim against it, if the route dies downstream.
+    expect(outgoing.timeoutBlock < incomingAfter.timeoutBlock).toBe(true);
+  });
+});

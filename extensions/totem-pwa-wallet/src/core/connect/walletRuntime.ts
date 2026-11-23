@@ -7,9 +7,16 @@
  * method resolves to an explicit handled/unsupported — never a silent stub.
  */
 
-import { createWalletRuntime, isConnectMethod } from '@totemsdk/connect';
+import { createWalletRuntime, deriveOmniaCapabilities, isConnectMethod } from '@totemsdk/connect';
 import type { WalletHandlerContext, WalletCapabilityManifest, WalletRuntime } from '@totemsdk/connect';
-import type { TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
+import type { OmniaSupportProbe, TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
+
+// RFC-035 B5: the Omnia claim tracks the installed port, so Axia lease mode
+// (no signing material) cannot over-claim a signing-required operation.
+let activeOmniaPort: OmniaSupportProbe | undefined;
+export function setPwaOmniaPort(port: OmniaSupportProbe | undefined): void {
+  activeOmniaPort = port;
+}
 
 const PWA_CAPABILITIES: TotemCapabilities = {
   version: '1.0.0',
@@ -32,15 +39,8 @@ const PWA_CAPABILITIES: TotemCapabilities = {
     hyperswarm: false,
   },
   txpow: { localMining: false, progressEvents: false },
-  omnia: {
-    channels: false,
-    routing: true,
-    multiHop: false,
-    crossTokenSwap: false,
-    factory: false,
-    virtualChannels: false,
-    splicing: false,
-    hyperswarm: false,
+  get omnia() {
+    return deriveOmniaCapabilities(activeOmniaPort);
   },
   statechain: { supported: false, blindSE: false },
   scripting: { kissvm: false },
@@ -72,6 +72,7 @@ let runtime: WalletRuntime | undefined;
  * discovery-only (info), never a silent stub.
  */
 export function configurePwaWalletRuntime(ports: Partial<WalletHandlerContext> = {}): void {
+  if (ports.omnia) activeOmniaPort = ports.omnia as OmniaSupportProbe;
   runtime = createWalletRuntime({ info: PWA_INFO, ...ports });
 }
 

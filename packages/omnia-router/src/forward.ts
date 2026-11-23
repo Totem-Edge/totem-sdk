@@ -32,6 +32,12 @@ export type PeelResult =
   | { kind: 'forward'; next: ForwardHop; onward?: string };
 
 export interface RoutingEnvelopeCodec {
+  /**
+   * What a forwarder can learn from the envelope. `cleartext` means the path is
+   * visible to every hop it passes through, so a capability manifest must not
+   * claim path privacy while this codec is in use (RFC-035 §6.7).
+   */
+  readonly pathPrivacy: 'cleartext' | 'onion';
   /** Sender: build the envelope from the onward hops (already excludes the first hop). */
   build(hops: (RoutingHop | SwapHop)[]): string;
   /** Forwarder: peel one hop for `self`. */
@@ -53,12 +59,16 @@ export function createCleartextRoutingCodec(): RoutingEnvelopeCodec {
     timeoutBlock?: string;
   }
   return {
+    pathPrivacy: 'cleartext',
     build(hops) {
       const wire: WireHop[] = hops.map((h) => ({
         channelId: h.channelId,
         to: h.to,
         amount: h.amount.toString(),
         tokenId: h.tokenId,
+        // Without this the forwarder has no bound to apply and would have to
+        // reuse the incoming timeout, which can never be strictly earlier.
+        ...(h.timeoutBlock !== undefined ? { timeoutBlock: h.timeoutBlock.toString() } : {}),
       }));
       return JSON.stringify(wire);
     },

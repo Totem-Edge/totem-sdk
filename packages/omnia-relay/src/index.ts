@@ -44,6 +44,14 @@ export type {
 export { createDurableHtlcLinkJournal } from './link-journal.js';
 export type { DurableHtlcLinkJournal } from './link-journal.js';
 
+// RFC-035 B4 (wallet side): inbound STATE_UPDATE -> forwarder hook.
+export { createWalletForwarding } from './wallet-forwarding.js';
+export type {
+  WalletForwarding,
+  WalletForwardingOptions,
+  WalletForwardingError,
+} from './wallet-forwarding.js';
+
 // Routing seam + helpers.
 export {
   channelGraphEdges,

@@ -848,3 +848,44 @@ export function createWalletRuntime(
     },
   };
 }
+
+/**
+ * RFC-035 B5 — derive the coarse `omnia` capability block from what the wallet's
+ * Omnia port will actually attempt.
+ *
+ * The capability manifest is a claim about behaviour, and the same wallet build
+ * runs in two very different modes: self-hosted (WOTS lease material present, so
+ * signing-required operations work) and Axia lease mode (no signing material).
+ * A static block either over-claims in Axia mode or under-claims in self-hosted
+ * mode; deriving it from the port's `supports()` probe is truthful in both.
+ */
+export interface OmniaSupportProbe {
+  supports?(method: string): boolean | { supported: boolean; reason?: string };
+}
+
+export function deriveOmniaCapabilities(
+  probe: OmniaSupportProbe | undefined,
+): TotemCapabilities['omnia'] {
+  const supported = (method: string): boolean => {
+    if (!probe?.supports) return false;
+    try {
+      const verdict = probe.supports(method);
+      return typeof verdict === 'boolean' ? verdict : verdict.supported === true;
+    } catch {
+      return false;
+    }
+  };
+  return {
+    channels: supported('openChannel'),
+    routing: supported('getRoute'),
+    multiHop: supported('payMultiHop'),
+    // The relay client refuses cross-token swap hops today; rate discovery is
+    // `routing`, not swap execution.
+    crossTokenSwap: false,
+    factory: supported('createFactory'),
+    virtualChannels: supported('openVirtualChannel'),
+    splicing: supported('spliceIn') && supported('spliceOut'),
+    // Wallet transports are the relay; hyperswarm is not exposed.
+    hyperswarm: false,
+  };
+}

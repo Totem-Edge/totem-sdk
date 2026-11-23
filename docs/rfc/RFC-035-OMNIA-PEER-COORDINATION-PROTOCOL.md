@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B4 (incl. forwarding + routing-codec seam) + B5 landed; onion codec, forwarder integration hook + capability flips remain
+**Status:** In progress — B0–B5 landed including the wallet forwarder hook, envelope timeouts and derived capability claims; the onion codec remains (§8.1)
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -363,11 +363,27 @@ under the purported party's digest and that party must be a member of the object
   `forwardIncoming` peels one hop, locks the outgoing HTLC (`addHTLC`, same
   hashlock, decreasing timeout), records the in↔out link, and forwards the
   smaller envelope; `revealPreimage` fulfils the incoming HTLC to propagate the
-  preimage backward. **Remaining:** an onion codec (X25519 keypair + AEAD +
-  per-node encryption keys advertised on graph edges) and the wallet
-  channel-handler hook that calls the forwarder on inbound `STATE_UPDATE`s
-  carrying `payload.forward`.
-- **B5 — extension + PWA hosts wired; approval UI + manifest flips pending.** The
+  preimage backward.
+- **B4 (wallet hook) — landed.** `@totemsdk/omnia-relay` adds
+  `createWalletForwarding(...)`: `bindPeer(peer)` recognises an inbound
+  `STATE_UPDATE` carrying `payload.forward`, resolves the pending *received*
+  HTLC by hashlock in the named channel, and calls `forwardIncoming`. It fails
+  closed on an unknown channel or an unmatched hashlock, refuses a replayed
+  instruction (the forwarder's duplicate guard surfaces as `forward-failed`),
+  and both wallet hosts bind it to the same peer stream as coordination and
+  reconcile the durable link journal on start. Tests:
+  `tests/unit/omnia-relay/.../wallet-forwarding.test.ts` plus the §9 mid-route
+  suite in `forwarder.test.ts`.
+- **B4 (envelope timeouts) — fixed.** The cleartext codec never serialised
+  `timeoutBlock`, so an envelope built by `payMultiHop` carried no bound and the
+  forwarder fell back to the incoming timeout, which can never be strictly
+  earlier. `RoutingHop` now carries `timeoutBlock`, the codec serialises it, and
+  `payMultiHop` steps each onward hop back by `hopTimeoutDeltaBlocks` (default
+  10) unless the route already sets one.
+- **B4 (onion codec) — not started; decision recorded in §8.1.** The codec
+  interface now reports `pathPrivacy`; the cleartext codec reports
+  `'cleartext'`, so no capability claim can describe it as private routing.
+- **B5 — extension + PWA hosts, approval UI and capability claims landed.** The
   durable store reloads proposals/acceptances after restart, and
   `@totemsdk/omnia-relay`'s `createWalletCoordination(...)` composes the transport
   + splice/factory handlers with a `bindPeer(peer)` seam.
@@ -382,9 +398,31 @@ under the purported party's digest and that party must be a member of the object
     the PWA shows an in-app modal; both name the operation, the channel/factory/
     splice id, and the requesting peer, and gate on explicit Approve/Reject (the
     per-method `supports()` on the omnia port stays the truthful runtime source).
-  - **Remaining:** flipping the coarse `omnia` capability flags in the wallets'
-    static manifests (which must not over-claim in Axia lease mode where there is
-    no signing material) — a decision, not a code gap.
+  - **Capability claims — landed.** The coarse `omnia` block is no longer a
+    static constant in either wallet. `@totemsdk/connect` exports
+    `deriveOmniaCapabilities(port)`, which asks the installed Omnia port's
+    `supports()` probe, so the claim is `false` in Axia lease mode (no signing
+    material) and flips on only when the self-hosted client is installed. The
+    PWA sets the live port when its host starts and clears it on lock; the
+    extension refreshes it with the rebuilt client.
+
+### 8.1 Onion codec — decision record
+
+The cleartext codec is honest but not private: every forwarder sees the path.
+An onion codec is a separate increment because it needs two things this stack
+does not have yet:
+
+1. **A portable AEAD/KEX primitive.** There is no X25519 or ChaCha20-Poly1305 in
+   `core-wasm` or any Rust crate here. Node has X25519, but the consumers are
+   the extension and the PWA, where WebCrypto X25519 is not broadly available.
+   The portable answer is to add X25519 + ChaCha20-Poly1305 to `core-wasm` with
+   TS/Rust parity vectors, matching the TreeSignature and CHECKSIG gates.
+2. **A key-distribution field.** `ChannelGraphEdge` carries no encryption key, so
+   per-node encryption keys advertised on graph edges are a versioned wire change
+   (§6.7), not a codec detail.
+
+Until both land the envelope stays cleartext, `pathPrivacy` stays
+`'cleartext'`, and no capability block may claim path privacy.
 
 ## 9. Acceptance / verification
 

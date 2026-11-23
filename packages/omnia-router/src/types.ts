@@ -145,6 +145,12 @@ export interface RoutingHop {
   to: string;
   amount: bigint;
   tokenId: string;
+  /**
+   * Absolute timeout (block) for an outgoing HTLC on this hop (RFC-035). Each
+   * hop must be strictly earlier than its incoming HTLC so a failed route can
+   * unwind in order; the routing envelope carries it to the forwarder.
+   */
+  timeoutBlock?: bigint;
   /** Edge fee rate (per SCALE); populated by the routing engine. */
   feeRate?: bigint;
   /** Populated during payment execution */

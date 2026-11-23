@@ -209,7 +209,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "3.1.4",
+      "version": "3.2.0",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
@@ -225,7 +225,7 @@
         "@totemsdk/lookup-client": "^0.4.2",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.3",
+        "@totemsdk/omnia-router": "^0.5.0",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/pear": "^0.3.0",
         "@totemsdk/statechain": "^0.3.3",
@@ -345,7 +345,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.5.1",
-        "@totemsdk/connect": "^3.1.4",
+        "@totemsdk/connect": "^3.2.0",
         "@totemsdk/core": "^1.6.1",
         "@totemsdk/decision": "^0.3.2",
         "@totemsdk/identity": "^1.1.1",
@@ -384,7 +384,7 @@
         "@totemsdk/location-proof": "^1.0.2",
         "@totemsdk/lookup-client": "^0.4.2",
         "@totemsdk/manifest": "^2.2.0",
-        "@totemsdk/omnia-router": "^0.4.3",
+        "@totemsdk/omnia-router": "^0.5.0",
         "@totemsdk/proof": "^1.0.4",
         "@totemsdk/pubsub-transport": "^0.2.1",
         "@totemsdk/root-identity": "^1.0.12",
@@ -1091,7 +1091,7 @@
     },
     {
       "name": "@totemsdk/omnia-router",
-      "version": "0.4.3",
+      "version": "0.5.0",
       "description": "Multi-hop payment routing — single-token and cross-token paths over Omnia channels",
       "domain": "payment-network",
       "keywords": [
@@ -1656,7 +1656,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.4.0",
-        "@totemsdk/connect": "^3.1.4"
+        "@totemsdk/connect": "^3.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1823,7 +1823,7 @@
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
         "@totemsdk/omnia-pool": "^0.6.1",
-        "@totemsdk/omnia-router": "^0.4.3",
+        "@totemsdk/omnia-router": "^0.5.0",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/p2p-hub": "^0.1.1",
@@ -1958,7 +1958,7 @@
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.3",
+        "@totemsdk/omnia-router": "^0.5.0",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/omnia-vtxo": "^0.9.0",
         "@totemsdk/storage": "^0.2.3",
@@ -1983,7 +1983,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.8.2",
+      "version": "0.9.0",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [
@@ -2002,7 +2002,7 @@
         "@totemsdk/identity": "^1.1.1",
         "@totemsdk/omnia": "^3.0.0",
         "@totemsdk/omnia-factory": "^0.8.0",
-        "@totemsdk/omnia-router": "^0.4.3",
+        "@totemsdk/omnia-router": "^0.5.0",
         "@totemsdk/omnia-splice": "^0.3.5",
         "@totemsdk/root-identity": "^1.0.12",
         "@totemsdk/wots-lease": "^1.0.3"

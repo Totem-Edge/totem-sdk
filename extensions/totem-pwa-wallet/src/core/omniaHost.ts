@@ -17,16 +17,20 @@ import { IdbStore } from '@totemsdk/storage/idb';
 import {
   createOmniaRelayClient,
   createWalletCoordination,
+  createWalletForwarding,
+  createDurableHtlcLinkJournal,
   createStorageCoordinationStore,
   type WalletCoordination,
   type WalletApprovalRequest,
   type ChannelFactory,
   type OmniaChannel,
   type RelayOmniaClient,
+  type WalletForwarding,
 } from '@totemsdk/omnia-relay';
 import type { QuiescedChannel } from '@totemsdk/omnia-relay';
 import { buildPwaOmniaSigningMaterial } from './omnia';
 import { WalletManager } from './WalletManager';
+import { setPwaOmniaPort } from './connect/walletRuntime';
 
 // ── Consent UI bridge (RFC-035 B5) ────────────────────────────────────────────
 // The host runs outside React; the modal subscribes here.
@@ -58,6 +62,7 @@ function requestOmniaApproval(req: WalletApprovalRequest): Promise<boolean> {
 interface OmniaHost {
   client: RelayOmniaClient;
   coordination: WalletCoordination;
+  forwarding: WalletForwarding;
   unsub: () => void;
 }
 
@@ -134,8 +139,34 @@ export async function startPwaOmniaHost(): Promise<void> {
         await factoryStore().set(factory.factoryId, factory);
       },
     });
-    const unsub = client.swarm.listenForChannels((peer) => coordination.bindPeer(peer));
-    host = { client, coordination, unsub };
+    // RFC-035 B4: an intermediary on a multi-hop route receives a STATE_UPDATE
+    // carrying `payload.forward`. Bind the forwarder to the same peer stream and
+    // reconcile any link journaled before the last shutdown.
+    const forwarding = createWalletForwarding({
+      channels: channelRegistry as unknown as Map<string, OmniaChannel>,
+      signer: material.signer,
+      leaseProvider: material.leaseProvider,
+      chainProvider: material.chainProvider,
+      swarm: client.swarm,
+      linkJournal: createDurableHtlcLinkJournal(
+        new IdbStore({ databaseName: 'totem-pwa-omnia-forward', storeName: 'links' }),
+      ),
+      onError: (info) => {
+        console.warn('[omnia] forwarding refused:', info.reason, info.channelId, info.hashlock ?? '');
+      },
+    });
+    void forwarding.forwarder.recover().catch((error: unknown) => {
+      console.warn('[omnia] forwarding recovery failed:', error);
+    });
+
+    const unsub = client.swarm.listenForChannels((peer) => {
+      coordination.bindPeer(peer);
+      forwarding.bindPeer(peer);
+    });
+    host = { client, coordination, forwarding, unsub };
+    // The live client is the capability truth: the claim flips on only when
+    // signing material exists (RFC-035 B5), and back off on lock.
+    setPwaOmniaPort(client);
   })().finally(() => {
     starting = undefined;
   });
@@ -146,9 +177,11 @@ export function stopPwaOmniaHost(): void {
   if (!host) return;
   try {
     host.unsub();
+    host.forwarding.close();
     void host.client.close().catch(() => {});
   } catch {
     /* ignore teardown errors */
   }
   host = undefined;
+  setPwaOmniaPort(undefined);
 }

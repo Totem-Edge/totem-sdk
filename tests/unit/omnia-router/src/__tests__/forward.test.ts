@@ -42,4 +42,24 @@ describe('createCleartextRoutingCodec (RFC-035 B4)', () => {
     const codec = createCleartextRoutingCodec();
     expect(codec.peel('not-json', { publicKeyDigest: 'Z' }).kind).toBe('final');
   });
+
+  it('carries each hop timeout so a forwarder can bound the outgoing HTLC', () => {
+    const codec = createCleartextRoutingCodec();
+    const envelope = codec.build([
+      { channelId: '0x1', from: 'A', to: 'B', amount: 90n, tokenId: '0x00', timeoutBlock: 100n },
+      { channelId: '0x2', from: 'B', to: 'C', amount: 80n, tokenId: '0x00', timeoutBlock: 95n },
+    ]);
+    const first = codec.peel(envelope, { publicKeyDigest: 'A' });
+    expect(first.kind).toBe('forward');
+    if (first.kind !== 'forward') return;
+    expect(first.next.timeoutBlock).toBe(100n);
+    const second = codec.peel(first.onward!, { publicKeyDigest: 'B' });
+    if (second.kind !== 'forward') throw new Error('expected a forward');
+    expect(second.next.timeoutBlock).toBe(95n);
+  });
+
+  it('declares that the cleartext codec provides no path privacy', () => {
+    // A capability manifest must not claim path privacy while this codec ships.
+    expect(createCleartextRoutingCodec().pathPrivacy).toBe('cleartext');
+  });
 });
