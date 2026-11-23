@@ -15,6 +15,7 @@ import {
 } from '../core/api';
 import { WalletManager } from '../core/WalletManager';
 import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
+import { addPendingSend } from '../core/pendingSends';
 import { track } from '../core/observability';
 
 type Step = 'form' | 'confirm' | 'signing' | 'done' | 'error';
@@ -130,9 +131,29 @@ export function Send() {
 
       setStatusMsg('Broadcasting transaction…');
       track('send.initiated', { identityHash: session.identityHash, tokenId });
-      await finalizeLease({ leaseToken: lease.leaseToken, signedHex: txnRowHex }, session.identityHash);
+      const finalized = await finalizeLease(
+        { leaseToken: lease.leaseToken, signedHex: txnRowHex },
+        session.identityHash,
+      );
+      if (!finalized?.ok) {
+        throw new Error(finalized?.error || 'The node did not accept the transaction.');
+      }
 
-      track('send.completed', { identityHash: session.identityHash, tokenId });
+      // The node's TxPoW id is the real explorer link and the key Home/Activity
+      // use to show the send while the archive index catches up.
+      const broadcastId = finalized.txpowid || finalized.txid || genTxId;
+      setTxId(broadcastId);
+
+      const balanceEntry = balances.find((b) => b.tokenid === tokenId);
+      addPendingSend({
+        txpowid: broadcastId,
+        address: activeAccount.address,
+        tokenId,
+        amount,
+        balanceBefore: balanceEntry?.confirmed ?? balanceEntry?.total ?? '0',
+      });
+
+      track('send.completed', { identityHash: session.identityHash, tokenId, txpowid: broadcastId });
       setStep('done');
     } catch (e) {
       track('send.failed', { identityHash: session.identityHash, tokenId, reason: String(e) });

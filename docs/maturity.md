@@ -46,7 +46,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/lookup-node` | 0.4.1 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 3.0.0 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.15.0 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia-host` | 0.15.1 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.3 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.3 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/proof` | 1.0.4 | v1 | 2 | `packages/proof` |
@@ -59,7 +59,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/manifest` | 2.2.0 | rc | 2 | `packages/manifest` |
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
-| `@totemsdk/omnia-pool` | 0.6.1 | rc | 2 | `packages/omnia-pool` |
+| `@totemsdk/omnia-pool` | 0.6.2 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-relay` | 0.9.0 | rc | 2 | `packages/omnia-relay` |
 | `@totemsdk/omnia-router` | 0.5.0 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |

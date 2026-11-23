@@ -171,6 +171,69 @@ export async function fetchActivity(address: string, limit = 200): Promise<Activ
   }
 }
 
+export interface ActivityQueryResult {
+  events: ActivityEvent[];
+  /** Number of account queries that failed outright (network / non-2xx). */
+  failed: number;
+  /** Number of accounts queried. */
+  queried: number;
+}
+
+/**
+ * Activity for every account in the wallet.
+ *
+ * The extension's Activity tab queries *all* stored addresses and merges the
+ * results; a per-account lookup would hide history as soon as the user adds a
+ * second address. Dedupe by transaction/coin/event/address and sort newest
+ * first, exactly like `activity:getTransactions` in the extension.
+ */
+export async function fetchActivityForAddresses(
+  addresses: string[],
+  limit = 200
+): Promise<ActivityQueryResult> {
+  const unique = [...new Set(addresses.filter(Boolean))];
+  if (unique.length === 0) return { events: [], failed: 0, queried: 0 };
+
+  const results = await Promise.all(
+    unique.map(async (address) => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/v1/wallet/transactions/${encodeURIComponent(address)}?limit=${limit}`,
+          { headers: { 'x-api-key': PROJECT_ID } }
+        );
+        if (!res.ok) return { address, events: [] as ActivityEvent[], ok: false };
+        const data = await res.json();
+        const events = Array.isArray(data?.events) ? (data.events as ActivityEvent[]) : [];
+        return {
+          address,
+          ok: true,
+          events: events.map((e) => ({ ...e, localAddress: e.localAddress || address })),
+        };
+      } catch {
+        return { address, events: [] as ActivityEvent[], ok: false };
+      }
+    })
+  );
+
+  const seen = new Set<string>();
+  const events = results
+    .flatMap((r) => r.events)
+    .filter((e) => {
+      const key = `${e.txpowid}:${e.coinid}:${e.event_type}:${e.localAddress}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime())
+    .slice(0, limit);
+
+  return {
+    events,
+    failed: results.filter((r) => !r.ok).length,
+    queried: unique.length,
+  };
+}
+
 export async function fetchTransactionDetail(txpowid: string): Promise<TxDetail | null> {
   try {
     const res = await fetch(
@@ -257,6 +320,59 @@ export async function fetchCoins(
   }
 }
 
+export interface HeldToken {
+  name?: string;
+  ticker?: string;
+  decimals?: number;
+  /** Raw total at token creation — the token's max supply. */
+  total?: string;
+  totalamount?: string;
+  scale?: string;
+  /** Block the token was minted in. */
+  created?: string;
+  script?: string;
+  tokenid?: string;
+  /** Parsed `<artimage>` / external URL document attached to the token. */
+  document?: Record<string, unknown>;
+}
+
+export interface HeldCoin {
+  coinId: string;
+  address: string;
+  amount: string;
+  tokenId: string;
+  created?: string;
+  spent?: boolean;
+  mmrEntry?: string;
+  age?: string;
+  token?: HeldToken;
+}
+
+/**
+ * Unspent coins for a set of addresses, including the node's token descriptor.
+ *
+ * `/v1/wallet/coins` is the only route that returns the full token metadata
+ * (`total`, `created`, artwork document) for coins the wallet actually holds;
+ * the portfolio route deliberately exposes only display fields.
+ */
+export async function fetchHeldCoins(addresses: string[]): Promise<HeldCoin[]> {
+  try {
+    const res = await fetch(`${API_BASE}/v1/wallet/coins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': PROJECT_ID,
+      },
+      body: JSON.stringify({ addresses }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { coins?: HeldCoin[] };
+    return Array.isArray(data?.coins) ? data.coins : [];
+  } catch {
+    return [];
+  }
+}
+
 export interface CoinProofEntry {
   coinId: string;
   coinProofHex: string;
@@ -337,6 +453,8 @@ export interface FinalizeLeaseRequest {
 
 export interface FinalizeLeaseResponse {
   ok: boolean;
+  /** TxPoW id returned by the node (`txpowid`); `txid` is kept for old APIs. */
+  txpowid?: string;
   txid?: string;
   error?: string;
 }

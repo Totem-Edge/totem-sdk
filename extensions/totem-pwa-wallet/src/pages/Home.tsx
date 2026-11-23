@@ -16,6 +16,12 @@ import { portfolioStreamManager } from '../core/balanceStream';
 import type { PortfolioStreamListener, PortfolioEntry } from '@totemsdk/realtime';
 import { track } from '../core/observability';
 import { formatAmount } from '../core/format';
+import {
+  effectiveBalance,
+  pendingAmountFor,
+  reconcilePendingSends,
+  usePendingSends,
+} from '../core/pendingSends';
 import { calculateUsdValue, fetchMinimaPrice, formatUsd, type PriceData } from '../core/price';
 import { tokenArtwork } from '../core/tokenImage';
 
@@ -30,7 +36,19 @@ const MINIMA_GLYPH = (
   </svg>
 );
 
-function TokenRow({ entry, onClick }: { entry: PortfolioEntry; onClick?: () => void }) {
+function TokenRow({
+  entry,
+  onClick,
+  displayBalance,
+  sendingAmount,
+}: {
+  entry: PortfolioEntry;
+  onClick?: () => void;
+  /** Confirmed balance with in-flight sends subtracted. */
+  displayBalance?: string;
+  /** Display amount of sends for this token that are still being indexed. */
+  sendingAmount?: string;
+}) {
   const [artFailed, setArtFailed] = useState(false);
   const art = artFailed ? undefined : tokenArtwork(entry);
   const isNft = entry.kind === 'nft';
@@ -145,8 +163,16 @@ function TokenRow({ entry, onClick }: { entry: PortfolioEntry; onClick?: () => v
       {/* Balance */}
       <span style={{ textAlign: 'right', flexShrink: 0 }}>
         <span style={{ display: 'block', fontFamily: 'var(--font-family-mono)', fontWeight: 'var(--weight-bold)' }}>
-          {formatAmount(entry.confirmed)}
+          {formatAmount(displayBalance ?? entry.confirmed)}
         </span>
+        {!!sendingAmount && sendingAmount !== '0' && (
+          <span
+            style={{ display: 'block', fontSize: 9, color: 'var(--axia-aqua)', fontFamily: 'var(--font-family-mono)' }}
+            title={`${sendingAmount} sent — confirming`}
+          >
+            −{formatAmount(sendingAmount)} sending…
+          </span>
+        )}
         {pending && (
           <span style={{ display: 'block', fontSize: 9, color: 'var(--color-warning, #e9b949)', fontFamily: 'var(--font-family-mono)' }}>
             +{formatAmount(entry.unconfirmed)} pending
@@ -172,6 +198,7 @@ export function Home() {
   const [assetTab, setAssetTab] = useState<AssetTab>('assets');
   const [price, setPrice] = useState<PriceData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const pendingSends = usePendingSends(activeAccount?.address);
 
   // Live balance stream (WebSocket with REST polling fallback)
   useEffect(() => {
@@ -268,10 +295,22 @@ export function Home() {
     }
   }
 
+  // Once the chain reports the lower balance, the send is no longer "pending".
+  useEffect(() => {
+    if (!activeAccount) return;
+    reconcilePendingSends(
+      activeAccount.address,
+      balances.map((b) => ({ tokenid: b.tokenid, confirmed: b.confirmed })),
+    );
+  }, [balances, activeAccount?.address]);
+
   const nativeEntry = balances.find((b) => b.kind === 'native');
   const tokenEntries = useMemo(() => balances.filter((b) => b.kind === 'token'), [balances]);
   const nftEntries = useMemo(() => balances.filter((b) => b.kind === 'nft'), [balances]);
-  const minimaAmount = nativeEntry?.confirmed ?? '0';
+  const confirmedMinima = nativeEntry?.confirmed ?? '0';
+  // Show the money leaving immediately; the indexer needs ~90 s to agree.
+  const minimaAmount = effectiveBalance(confirmedMinima, pendingSends, '0x00');
+  const pendingMinima = pendingAmountFor(pendingSends, '0x00');
 
   const usdValue = price ? calculateUsdValue(minimaAmount, price.usd) : undefined;
   const displayed = assetTab === 'assets' ? tokenEntries : nftEntries;
@@ -383,6 +422,38 @@ export function Home() {
         </button>
       </div>
 
+      {pendingSends.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--axia-aqua)',
+            padding: 'var(--space-1-5) var(--space-2)',
+            marginBottom: 'var(--space-2)',
+          }}
+        >
+          <span className="spinner" style={{ width: 14, height: 14, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', color: 'var(--axia-aqua)' }}>
+              {pendingSends.length === 1 ? 'Sending' : `${pendingSends.length} sends`}
+              {pendingMinima !== '0' ? ` ${formatAmount(pendingMinima)} MINIMA` : ''} — confirming
+            </p>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Balance already reflects it. The chain index catches up in the background.
+            </p>
+          </div>
+          <button
+            className="btn btn-sm btn-secondary"
+            onClick={() => setRoute('activity')}
+            style={{ flexShrink: 0 }}
+          >
+            Activity
+          </button>
+        </div>
+      )}
+
       {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
 
       {/* Actions */}
@@ -433,7 +504,15 @@ export function Home() {
             {assetTab === 'assets' ? 'No Custom Tokens' : 'No NFTs'}
           </div>
         ) : (
-          displayed.map((entry) => <TokenRow key={`${entry.tokenid}:${entry.address}`} entry={entry} />)
+          displayed.map((entry) => (
+            <TokenRow
+              key={`${entry.tokenid}:${entry.address}`}
+              entry={entry}
+              onClick={() => openToken(entry.tokenid)}
+              displayBalance={effectiveBalance(entry.confirmed, pendingSends, entry.tokenid)}
+              sendingAmount={pendingAmountFor(pendingSends, entry.tokenid)}
+            />
+          ))
         )}
       </div>
 
