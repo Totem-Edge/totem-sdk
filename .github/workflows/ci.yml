@@ -210,6 +210,16 @@ jobs:
         working-directory: packages/core-wasm
         run: npm run test:web
 
+  pwa-pipeline-lock:
+    name: PWA transaction pipeline lock
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Verify pinned build/sign/finalize files
+        working-directory: extensions/totem-pwa-wallet
+        run: node scripts/lock-txn-pipeline.mjs
+
   omnia-parity:
     name: Omnia Rust/WASM parity
     runs-on: ubuntu-latest
