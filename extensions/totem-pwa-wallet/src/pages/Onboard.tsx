@@ -1,6 +1,7 @@
 /**
  * Onboard — new wallet creation / import flow
- * Implements 3-step wizard: choose → generate/import → set password
+ * New wallet: choose → set password, then Backup shows the phrase once + quiz.
+ * Import: choose → enter phrase → set password (backup already confirmed).
  */
 import React, { useState } from 'react';
 import { WalletManager } from '../core/WalletManager';
@@ -8,7 +9,7 @@ import { useWallet } from '../core/WalletContext';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
 import { TotemEagleMark } from '../components/TotemEagleMark';
 
-type Step = 'choose' | 'create' | 'import' | 'password';
+type Step = 'choose' | 'import' | 'password';
 
 export function Onboard() {
   const { createWallet, importWallet, setRoute } = useWallet();
@@ -22,9 +23,9 @@ export function Onboard() {
   const [fromImport, setFromImport] = useState(false);
 
   function handleGenerate() {
-    const m = WalletManager.generateMnemonic();
-    setMnemonic(m);
-    setStep('create');
+    // Show the phrase once, in Backup (with the quiz), after the password is set.
+    setMnemonic(WalletManager.generateMnemonic());
+    setStep('password');
   }
 
   function handleImportNext() {
@@ -40,10 +41,6 @@ export function Onboard() {
   }
 
   async function handleCreate() {
-    if (step === 'create') {
-      setStep('password');
-      return;
-    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
@@ -92,36 +89,6 @@ export function Onboard() {
           </button>
           <button className="btn btn-secondary btn-full" onClick={() => setStep('import')}>
             Import Existing Wallet
-          </button>
-        </div>
-      )}
-
-      {step === 'create' && (
-        <div>
-          <div className="card" style={{ marginBottom: 'var(--space-3)' }}>
-            <p className="label">Your 24-word seed phrase</p>
-            <p style={{
-              fontFamily: 'var(--font-family-mono)',
-              fontSize: 'var(--text-sm)',
-              lineHeight: 1.8,
-              color: 'var(--axia-aqua)',
-              wordSpacing: 8,
-            }}>
-              {mnemonic}
-            </p>
-          </div>
-          <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>
-            ⚠ Write these 24 words down before continuing. They cannot be recovered.
-          </div>
-          <button className="btn btn-primary btn-full" onClick={() => setStep('password')}>
-            I've Written It Down →
-          </button>
-          <button
-            className="btn btn-secondary btn-full"
-            style={{ marginTop: 'var(--space-1)' }}
-            onClick={() => setStep('choose')}
-          >
-            Back
           </button>
         </div>
       )}
@@ -186,7 +153,7 @@ export function Onboard() {
           <button
             className="btn btn-secondary btn-full"
             style={{ marginTop: 'var(--space-1)' }}
-            onClick={() => setStep(fromImport ? 'import' : 'create')}
+            onClick={() => setStep(fromImport ? 'import' : 'choose')}
             disabled={loading}
           >
             Back

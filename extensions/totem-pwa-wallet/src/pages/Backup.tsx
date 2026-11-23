@@ -1,5 +1,5 @@
 /**
- * Backup — seed phrase display + mandatory 3-word quiz.
+ * Backup — show the seed phrase once and ask the user to confirm they wrote it down.
  * Shows the ACTUAL wallet mnemonic.
  *
  * Recovery path: if the user refreshes the page before completing backup,
@@ -13,27 +13,7 @@ import { WalletManager } from '../core/WalletManager';
 import { Loading } from '../components/Loading';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
 
-type BackupStep = 'show' | 'quiz' | 'done';
-
-function pickQuizWords(words: string[]): Array<{ index: number; word: string }> {
-  const positions = new Set<number>();
-  while (positions.size < 3) {
-    positions.add(Math.floor(Math.random() * 24));
-  }
-  return Array.from(positions)
-    .sort((a, b) => a - b)
-    .map(i => ({ index: i, word: words[i] }));
-}
-
-function getDistractors(correct: string, words: string[]): string[] {
-  const pool = words.filter(w => w !== correct);
-  const picks: string[] = [];
-  while (picks.length < 3) {
-    const p = pool[Math.floor(Math.random() * pool.length)];
-    if (!picks.includes(p)) picks.push(p);
-  }
-  return [correct, ...picks].sort(() => Math.random() - 0.5);
-}
+type BackupStep = 'show' | 'done';
 
 export function Backup() {
   const { setRoute } = useWallet();
@@ -41,8 +21,6 @@ export function Backup() {
   // mnemonic may come from in-memory pending state OR vault recovery
   const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [step, setStep] = useState<BackupStep>('show');
-  const [quizIdx, setQuizIdx] = useState(0);
-  const [error, setError] = useState('');
 
   // vault-recovery state (only shown when _pendingMnemonic was lost on reload)
   const [needsRecovery, setNeedsRecovery] = useState(false);
@@ -76,25 +54,9 @@ export function Backup() {
   }
 
   const words = useMemo(() => mnemonic?.toUpperCase().split(/\s+/) ?? [], [mnemonic]);
-  const quizWords = useMemo(() => (words.length === 24 ? pickQuizWords(words) : []), [words]);
-  const currentQuiz = quizWords[quizIdx];
-  const options = useMemo(
-    () => (currentQuiz ? getDistractors(currentQuiz.word, words) : []),
-    [currentQuiz, words]
-  );
-
-  async function handleAnswer(chosen: string) {
-    if (chosen !== currentQuiz?.word) {
-      setError(`Incorrect. Word #${(currentQuiz?.index ?? 0) + 1} is "${currentQuiz?.word}". Check your backup.`);
-      return;
-    }
-    setError('');
-    if (quizIdx < 2) {
-      setQuizIdx(q => q + 1);
-    } else {
-      await WalletManager.confirmBackup();
-      setStep('done');
-    }
+  async function handleConfirm() {
+    await WalletManager.confirmBackup();
+    setStep('done');
   }
 
   // ── Vault recovery screen ─────────────────────────────────────────────────
@@ -164,31 +126,9 @@ export function Backup() {
         <div className="error-msg" style={{ marginBottom: 'var(--space-3)' }}>
           ⚠ Never share these words. Totem will never ask for them.
         </div>
-        <button className="btn btn-primary btn-full" onClick={() => setStep('quiz')}>
-          I've Written Them Down — Quiz Me →
+        <button className="btn btn-primary btn-full" onClick={handleConfirm}>
+          I've Written It Down →
         </button>
-      </div>
-    );
-  }
-
-  if (step === 'quiz') {
-    return (
-      <div className="page" style={{ paddingTop: 'var(--space-4)' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Quiz {quizIdx + 1} / 3</p>
-        <h3 style={{
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)',
-          letterSpacing: 'var(--tracking-wide)', marginBottom: 'var(--space-3)',
-        }}>
-          What is word #{(currentQuiz?.index ?? 0) + 1}?
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
-          {options.map(opt => (
-            <button key={opt} className="btn btn-secondary btn-full" onClick={() => handleAnswer(opt)}>
-              {opt}
-            </button>
-          ))}
-        </div>
-        {error && <div className="error-msg">{error}</div>}
       </div>
     );
   }
