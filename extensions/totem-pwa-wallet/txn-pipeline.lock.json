@@ -1,0 +1,8 @@
+{
+  "src/core/buildTxnRow.ts": "49d1162e59fd1a4313185fc8197830839673c7523efd7e5f7168879d9434fa7e",
+  "src/core/api.ts": "1dc412e281a49d75a0aa67881b99cd1b1321737a9d4901750ecd1cf325fd52a1",
+  "src/pages/Send.tsx": "9b35094315d2932136f6f7563e2f0277829c706a635e24ea621b6b5147a1dbe4",
+  "../totem-extension/src/core/transaction/service.ts": "25c098556ee1de4b7e61a4fb57a6f401aa215ad88d5346a34129a0ae6b802af8",
+  "../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts": "12b8f330193abb7a6347e09702d28a9b188bebf86b05962d1680e2f8179a77cc",
+  "../../../axia-platform/packages/axia-api/src/wots/finalize.ts": "32dabde026408b760cd1966814b1772c0486466722c820e6146952f5aaec0354"
+}

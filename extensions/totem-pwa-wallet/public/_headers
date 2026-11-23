@@ -22,6 +22,12 @@
 /web/assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# wasm-bindgen's streaming instantiate refuses a generic MIME type, and an
+# index.html fallback then fails with "expected magic word". Pin the type.
+/web/assets/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
 # Approval popup pages — MUST NOT have COOP so window.opener is preserved.
 # Both desktop (popup) and mobile (new tab opened by window.open) flows rely on
 # window.opener?.postMessage() to return the signed result to the dApp page.
@@ -47,6 +53,10 @@
   Cross-Origin-Opener-Policy: same-origin
 
 /assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.wasm
+  Content-Type: application/wasm
   Cache-Control: public, max-age=31536000, immutable
 
 /approval/*

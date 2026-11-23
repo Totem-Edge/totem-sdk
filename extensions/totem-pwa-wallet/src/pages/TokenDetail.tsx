@@ -1,18 +1,28 @@
 /**
- * Token detail — the page behind a Home row, mirroring the extension's
- * TotemTokenDetail: artwork, balance, send/receive, and the token's metadata
- * (id, type, decimals, description, owner, verification, website).
+ * Token detail — the page behind a Home row.
  *
- * NFTs additionally get the vintage badge derived from the mint date, using the
- * same tier table and block-time estimate as the extension.
+ * Tokens and NFTs share one page: a large hero artwork (NFTs render the full
+ * media instead of a cropped thumbnail), balance, send/receive, and the
+ * token's economics — id, author/owner, creation date, max supply, decimals,
+ * description, website and verification.
+ *
+ * Creation date and max supply come from the node's own token descriptor
+ * (`/v1/wallet/coins` → `token.created` / `token.total`). The archive index is
+ * not consulted for these because it deliberately stores display fields only.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useWallet } from '../core/WalletContext';
-import { fetchPortfolio, fetchTokenVintage, type TokenVintage } from '../core/api';
+import {
+  fetchHeldCoins,
+  fetchPortfolio,
+  fetchTokenVintage,
+  type HeldCoin,
+  type TokenVintage,
+} from '../core/api';
 import type { PortfolioEntry } from '@totemsdk/realtime';
 import { formatAmount } from '../core/format';
-import { tokenArtwork } from '../core/tokenImage';
+import { parseTokenImageUrl, tokenArtwork } from '../core/tokenImage';
 
 type VintageTier = 'GENESIS' | 'SPARTACUS' | 'REX' | 'OG' | 'PIONEER' | 'EXPLORER' | 'FRONTIER';
 
@@ -45,6 +55,16 @@ function getVintageTier(ts: number): VintageTier {
   if (y === 2025) return 'PIONEER';
   if (y === 2026) return 'EXPLORER';
   return 'FRONTIER';
+}
+
+function parseDocument(raw?: string): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
 function MetaRow({ label, value, mono, copy, copied }: {
@@ -82,20 +102,32 @@ function MetaRow({ label, value, mono, copy, copied }: {
 export function TokenDetail() {
   const { activeAccount, session, selectedTokenId, closeToken, setRoute, setPendingSendTokenId } = useWallet();
   const [entry, setEntry] = useState<PortfolioEntry | null>(null);
+  const [heldCoins, setHeldCoins] = useState<HeldCoin[]>([]);
   const [vintage, setVintage] = useState<TokenVintage | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [artFailed, setArtFailed] = useState(false);
+
+  const tokenId = selectedTokenId ?? '';
+  const addresses = useMemo(() => {
+    const list = (session?.accounts ?? []).map((a) => a.address).filter(Boolean);
+    if (activeAccount?.address && !list.includes(activeAccount.address)) list.push(activeAccount.address);
+    return list;
+  }, [session?.accounts, activeAccount?.address]);
 
   useEffect(() => {
     if (!activeAccount || !selectedTokenId) return;
     let active = true;
     setLoading(true);
 
-    fetchPortfolio(activeAccount.address, session?.identityHash)
-      .then((entries) => {
+    Promise.all([
+      fetchPortfolio(activeAccount.address, session?.identityHash),
+      fetchHeldCoins(addresses),
+    ])
+      .then(([entries, coins]) => {
         if (!active) return;
         setEntry(entries.find((e) => e.tokenid.toLowerCase() === selectedTokenId.toLowerCase()) ?? null);
+        setHeldCoins(coins);
       })
       .catch(() => undefined)
       .finally(() => { if (active) setLoading(false); });
@@ -105,22 +137,79 @@ export function TokenDetail() {
     }
 
     return () => { active = false; };
-  }, [activeAccount?.address, session?.identityHash, selectedTokenId]);
+  }, [activeAccount?.address, session?.identityHash, selectedTokenId, addresses.join('|')]);
 
-  const art = useMemo(
-    () => (artFailed || !entry ? undefined : tokenArtwork(entry)),
-    [entry, artFailed]
+  const tokenCoin = useMemo(
+    () => heldCoins.find((c) => c.tokenId?.toLowerCase() === tokenId.toLowerCase() && c.token?.tokenid),
+    [heldCoins, tokenId]
   );
+  const descriptor = tokenCoin?.token;
 
-  const isNft = entry?.kind === 'nft';
+  const document = useMemo(() => parseDocument(descriptor?.name), [descriptor?.name]);
+
+  const art = useMemo(() => {
+    if (artFailed) return undefined;
+    const fromEntry = entry ? tokenArtwork(entry) : undefined;
+    if (fromEntry) return fromEntry;
+    const docUrl = typeof document.url === 'string' ? document.url : undefined;
+    const docIcon = typeof document.icon === 'string' ? document.icon : undefined;
+    const docArt = typeof document.artimage === 'string' ? document.artimage : undefined;
+    return parseTokenImageUrl(docIcon) || parseTokenImageUrl(docUrl) || parseTokenImageUrl(docArt);
+  }, [entry, document, artFailed]);
+
+  const isNft = entry?.kind === 'nft' || (descriptor?.decimals === 0 && tokenId !== '0x00');
   const isNative = !selectedTokenId || selectedTokenId === '0x00';
-  const name = entry?.ticker || entry?.name || (selectedTokenId ?? '').slice(0, 12);
+  const name =
+    entry?.ticker ||
+    entry?.name ||
+    (typeof document.ticker === 'string' && document.ticker) ||
+    (typeof document.name === 'string' && document.name) ||
+    (tokenId ? tokenId.slice(0, 12) : 'Token');
+  const description =
+    entry?.description ||
+    (typeof document.description === 'string' && document.description) ||
+    '';
+  const author =
+    entry?.owner ||
+    (typeof document.owner === 'string' && document.owner) ||
+    (typeof document.author === 'string' && document.author) ||
+    '';
+  const website =
+    entry?.url && !entry.url.startsWith('<artimage>')
+      ? entry.url
+      : typeof document.external_url === 'string'
+        ? document.external_url
+        : '';
   const verified = !!entry?.webvalidate;
+
+  const createdBlock = useMemo(() => {
+    const raw = descriptor?.created ?? vintage?.mintBlock;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [descriptor?.created, vintage?.mintBlock]);
 
   const mintTimestamp =
     vintage?.mintTimestamp ??
-    (vintage?.mintBlock != null ? estimateMintTimestamp(vintage.mintBlock) : null);
+    (createdBlock != null ? estimateMintTimestamp(createdBlock) : null);
   const vintageMeta = mintTimestamp ? VINTAGE_META[getVintageTier(mintTimestamp)] : null;
+
+  const maxSupply = descriptor?.total ?? undefined;
+  const decimals = entry?.decimals ?? descriptor?.decimals;
+
+  // Wallet-wide holding of this token, summed across accounts.
+  const heldBalance = useMemo(() => {
+    const coins = heldCoins.filter((c) => c.tokenId?.toLowerCase() === tokenId.toLowerCase());
+    if (coins.length === 0) return entry?.confirmed ?? '0';
+    const total = coins.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    return Number.isFinite(total) ? String(total) : (entry?.confirmed ?? '0');
+  }, [heldCoins, tokenId, entry?.confirmed]);
+
+  const fmtSupply = (raw?: string) => {
+    if (raw === undefined || raw === null || raw === '') return '—';
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return String(raw);
+    return n.toLocaleString('en-GB', { maximumFractionDigits: 8 });
+  };
 
   return (
     <div className="page">
@@ -131,6 +220,37 @@ export function TokenDetail() {
       {loading && !entry && (
         <div style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
           <span className="spinner" />
+        </div>
+      )}
+
+      {/* Hero artwork — NFTs get the full media, not a cropped chip. */}
+      {!isNative && art && (
+        <div
+          style={{
+            width: '100%',
+            background: '#08090c',
+            border: '1px solid var(--border-subtle)',
+            marginBottom: 'var(--space-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            minHeight: isNft ? 280 : 160,
+            maxHeight: isNft ? 420 : 220,
+          }}
+        >
+          <img
+            src={art}
+            alt={name}
+            onError={() => setArtFailed(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              maxHeight: isNft ? 420 : 220,
+              objectFit: isNft ? 'contain' : 'cover',
+              display: 'block',
+            }}
+          />
         </div>
       )}
 
@@ -207,12 +327,15 @@ export function TokenDetail() {
 
         <p className="label" style={{ marginBottom: 2 }}>Balance</p>
         <p style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold)', color: 'var(--axia-aqua)', fontFamily: 'var(--font-family-mono)' }}>
-          {formatAmount(entry?.confirmed ?? '0')}
+          {formatAmount(heldBalance)}
         </p>
         {entry?.unconfirmed && entry.unconfirmed !== '0' && (
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning, #e9b949)' }}>
             +{formatAmount(entry.unconfirmed)} pending
           </p>
+        )}
+        {isNft && maxSupply === '1' && (
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>1 of 1</p>
         )}
 
         <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: 'var(--space-2)' }}>
@@ -242,14 +365,28 @@ export function TokenDetail() {
           copy={selectedTokenId ?? undefined}
           copied={copied}
         />
-        {entry?.decimals !== undefined && <MetaRow label="Decimals" value={String(entry.decimals)} />}
+        <MetaRow label="Author" value={author || 'Not published'} mono={!!author} />
+        <MetaRow
+          label="Created"
+          value={
+            mintTimestamp
+              ? new Date(mintTimestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              : '—'
+          }
+        />
+        {createdBlock != null && <MetaRow label="Mint block" value={createdBlock.toLocaleString('en-GB')} />}
+        <MetaRow label="Max supply" value={fmtSupply(maxSupply)} />
+        <MetaRow label="Your balance" value={formatAmount(heldBalance)} />
+        {decimals !== undefined && <MetaRow label="Decimals" value={String(decimals)} />}
         {!!entry?.coins && <MetaRow label="UTXOs" value={String(entry.coins)} />}
-        {entry?.description && <MetaRow label="Description" value={entry.description} />}
-        {entry?.owner && <MetaRow label="Owner" value={entry.owner} mono />}
+        {description && <MetaRow label="Description" value={description} />}
+        {author && <MetaRow label="Owner address" value={author} mono />}
         {entry?.webvalidate && <MetaRow label="Verified by" value={entry.webvalidate} mono />}
-        {entry?.url && <MetaRow label="Website" value={entry.url} mono />}
-        {vintage?.mintBlock != null && <MetaRow label="Mint block" value={vintage.mintBlock.toLocaleString('en-GB')} />}
+        {website && <MetaRow label="Website" value={website} mono />}
+        {descriptor?.script && <MetaRow label="Token script" value={descriptor.script} mono />}
       </div>
+
+      <div style={{ height: 'var(--space-4)' }} />
     </div>
   );
 }

@@ -8,6 +8,15 @@ export function UpdateBanner() {
   } = useRegisterSW({
     onRegistered(r: ServiceWorkerRegistration | undefined) {
       console.log('[PWA] Service worker registered', r);
+      if (!r) return;
+      // A stale worker is how an old HTML/JS pair asks for a wasm file that the
+      // new deployment no longer ships. Poll so the update banner appears
+      // without a hard refresh.
+      const check = () => { void r.update().catch(() => undefined); };
+      setInterval(check, 15 * 60_000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') check();
+      });
     },
     onRegisterError(error: unknown) {
       console.warn('[PWA] Service worker registration error', error);

@@ -48,6 +48,23 @@ export default {
       assetUrl.pathname = url.pathname.slice(PWA_PREFIX.length) || "/";
       const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
 
+      // A missing hashed asset used to fall through to index.html. That turns
+      // a stale chunk's wasm request into "expected magic word, found <!do".
+      // Hashed assets must 404, never return the shell.
+      const looksLikeAsset = /\.(?:js|css|wasm|png|jpe?g|svg|ico|json|webmanifest|woff2?)$/i.test(
+        assetUrl.pathname
+      );
+      const contentType = response.headers.get("content-type") || "";
+      if (looksLikeAsset && response.ok && contentType.includes("text/html")) {
+        return new Response("Not found", {
+          status: 404,
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "no-store",
+          },
+        });
+      }
+
       // Cloudflare Pages' pretty URLs redirect `*.html` to the extensionless
       // path. That Location is root-relative, so without the /web prefix the
       // browser would leave the wallet surface and hit the portfolio.

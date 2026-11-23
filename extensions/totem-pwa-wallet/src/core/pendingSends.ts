@@ -172,7 +172,12 @@ export function reconcilePendingSends(address: string, entries: BalanceLike[]): 
     const amount = Number(send.amount);
     if (!Number.isFinite(confirmed) || !Number.isFinite(before) || !Number.isFinite(amount)) continue;
     // Small epsilon so 0.1 - 0.1 does not stay pending forever on float noise.
-    if (confirmed <= before - amount + 1e-12) {
+    // When balanceBefore was unavailable (deep link, no portfolio yet) the
+    // only safe signal is the token reaching zero.
+    const settled = before > 0
+      ? confirmed <= before - amount + 1e-12
+      : confirmed <= 0;
+    if (settled) {
       removePendingSend(send.txpowid);
     }
   }

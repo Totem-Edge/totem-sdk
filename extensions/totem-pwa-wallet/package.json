@@ -30,7 +30,9 @@
     "build:app": "tsc && vite build",
     "build:provider": "vite build --config vite.provider.config.ts",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test test/*.test.mjs"
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
+    "lock:verify": "node scripts/lock-txn-pipeline.mjs",
+    "lock:update": "node scripts/lock-txn-pipeline.mjs --update"
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",

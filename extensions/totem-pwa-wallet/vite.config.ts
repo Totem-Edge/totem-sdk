@@ -41,10 +41,15 @@ export default defineConfig({
       includeAssets: ['icons/*.svg', 'icons/*.png'],
       manifest: false,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // `.wasm` must be precached and revisioned with the JS that loads it.
+        // When it was excluded, a stale worker/HTML pair could ask for a wasm
+        // file that no longer existed and receive index.html, which surfaces as
+        // "expected magic word 00 61 73 6d, found 3c 21 64 6f".
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,wasm}'],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // The portfolio is a separate app on the wallet host; never serve the
         // wallet shell for its navigations.
-        navigateFallbackDenylist: [/^\/portfolio(\/|$)/],
+        navigateFallbackDenylist: [/^\/portfolio(\/|$)/, /\.(?:wasm|js|css|png|svg|json)$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.axia\.to\//,
