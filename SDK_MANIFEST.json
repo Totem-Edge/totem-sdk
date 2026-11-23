@@ -1983,7 +1983,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [
@@ -2023,7 +2023,7 @@
       "exportsDescription": "createOmniaRelayClient, RoutingPort, channelGraphEdges, buildGraph, queryRoute, createRelayOmniaSwarm",
       "custody": {
         "classification": "non-custodial",
-        "reason": "coordination transport; holds no value (liveness-only)"
+        "reason": "coordination transport; holds no on-chain value and cannot move funds — liveness and forwarding only (RFC-035)"
       }
     },
     {
