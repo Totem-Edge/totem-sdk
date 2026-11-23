@@ -76,8 +76,13 @@ export function verifyPins() {
       problems.push(`${file}: content changed (expected ${expected[file].slice(0, 12)}…, got ${hash.slice(0, 12)}…)`);
     }
   }
+  // Cross-repo entries are optional: a standalone PWA checkout does not contain
+  // the extension or api repos. Missing files are skipped by computePins().
+  // Files inside this package must exist.
   for (const file of Object.keys(expected)) {
-    if (!actual[file]) problems.push(`${file}: pinned file is missing`);
+    if (file.startsWith('src/') && !actual[file]) {
+      problems.push(`${file}: pinned file is missing`);
+    }
   }
   return problems;
 }
