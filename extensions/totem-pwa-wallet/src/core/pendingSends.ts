@@ -106,12 +106,13 @@ export function usePendingSends(address?: string): PendingSend[] {
 export function subtractAmount(amount: string, ...deltas: string[]): string {
   let value = Number(amount);
   if (!Number.isFinite(value)) return amount;
+  if (deltas.length === 0) return amount;
   let scale = 0;
   for (const s of [amount, ...deltas]) {
     const dot = s.indexOf('.');
     if (dot >= 0) scale = Math.max(scale, s.length - dot - 1);
-    value -= Number(s);
   }
+  for (const delta of deltas) value -= Number(delta);
   if (!Number.isFinite(value) || value <= 0) return '0';
   const fixed = value.toFixed(Math.min(Math.max(scale, 2), 18));
   // Only trim fractional zeros — "100" must stay "100", not "1".
@@ -122,10 +123,16 @@ export function subtractAmount(amount: string, ...deltas: string[]): string {
 export function pendingAmountFor(sends: PendingSend[], tokenId: string): string {
   const matching = sends.filter((p) => p.tokenId.toLowerCase() === tokenId.toLowerCase());
   if (matching.length === 0) return '0';
-  return matching.reduce((total, p) => {
-    const n = Number(total) + Number(p.amount);
-    return Number.isFinite(n) ? String(n) : total;
-  }, '0');
+  let total = 0;
+  let scale = 0;
+  for (const p of matching) {
+    total += Number(p.amount);
+    const dot = p.amount.indexOf('.');
+    if (dot >= 0) scale = Math.max(scale, p.amount.length - dot - 1);
+  }
+  if (!Number.isFinite(total) || total <= 0) return '0';
+  const fixed = total.toFixed(Math.min(scale, 18));
+  return fixed.includes('.') ? (fixed.replace(/0+$/, '').replace(/\.$/, '') || '0') : fixed;
 }
 
 /**
