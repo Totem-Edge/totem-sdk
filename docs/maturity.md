@@ -17,17 +17,17 @@
 | Level | Packages |
 |---|---:|
 | v1 | 13 |
-| rc | 52 |
+| rc | 53 |
 | beta | 4 |
-| alpha | 5 |
+| alpha | 4 |
 | excluded | 6 |
 
 | Support tier | Packages |
 |---|---:|
 | Tier 0 | 3 |
 | Tier 1 | 10 |
-| Tier 2 | 20 |
-| Outside production surface | 41 |
+| Tier 2 | 21 |
+| Outside production surface | 40 |
 | Excluded | 6 |
 
 Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
@@ -60,6 +60,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.8.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.6.1 | rc | 2 | `packages/omnia-pool` |
+| `@totemsdk/omnia-relay` | 0.8.1 | rc | 2 | `packages/omnia-relay` |
 | `@totemsdk/omnia-router` | 0.4.3 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.3.5 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.9.0 | rc | 2 | `packages/omnia-vtxo` |
@@ -107,7 +108,6 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.1 | beta | outside | `packages/qvac` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
-| `@totemsdk/omnia-relay` | 0.8.1 | alpha | outside | `packages/omnia-relay` |
 | `@totemsdk/replication` | 0.2.0 | alpha | outside | `packages/replication` |
 | `@totemsdk/replication-holepunch` | 0.2.0 | alpha | outside | `packages/replication-holepunch` |
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |

@@ -515,12 +515,15 @@
     },
     "packages/omnia-relay": {
       "status": "publishable",
-      "maturity": "alpha",
-      "supportTier": "outside",
+      "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "coordination transport; holds no value (liveness-only)"
-      }
+        "reason": "coordination transport; holds no on-chain value and cannot move funds — liveness and forwarding only (RFC-035)"
+      },
+      "supportReason": "RC relay transport: forwarder auth, preimage recovery, signer, identity and channel-coordination suites plus the security-train forwarder-auth integration gate; the RFC-035 peer coordination protocol (multi-party routing, N-of-N factory coordination) remains open and multi-hop is limited to the single-hop forwarder",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-034-OMNIA-RELAY-METHOD-PARITY.md"
     },
     "packages/omnia-router": {
       "status": "publishable",

@@ -149,6 +149,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/omnia-factory`](packages/omnia-factory) | Scale payment channels — N-of-N funded factory channels with virtual channel support |
 | [`@totemsdk/omnia-vtxo`](packages/omnia-vtxo) | VTXO management for Omnia channels — Merkle-verified exit proofs |
 | [`@totemsdk/omnia-pool`](packages/omnia-pool) | Generic Omnia liquidity pool orchestration — deposit, allocate, fee, NAV, and withdraw across the Omnia execution family |
+| [`@totemsdk/omnia-relay`](packages/omnia-relay) | Wallet-side Omnia client — composes the relay transport, routing and the single-party factory/splice halves without a package cycle |
 | [`@totemsdk/statechain`](packages/statechain) | Off-chain UTXO ownership transfer using the Mercury protocol with blind SE co-signatures |
 | [`@totemsdk/se-server`](packages/se-server) | Statechain Entity server — blind co-signatures for off-chain UTXO custody |
 | [`@totemsdk/tx-builder`](packages/tx-builder) | Construct Minima transactions in pure TypeScript with verified multisig |
