@@ -337,6 +337,11 @@ export function TokenDetail() {
         {isNft && maxSupply === '1' && (
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>1 of 1</p>
         )}
+        {isNft && maxSupply && maxSupply !== '1' && (
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            Owned: {formatAmount(heldBalance)} of {fmtSupply(maxSupply)}
+          </p>
+        )}
 
         <div style={{ display: 'flex', gap: 'var(--space-1)', marginTop: 'var(--space-2)' }}>
           <button
