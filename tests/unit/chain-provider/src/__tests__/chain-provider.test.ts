@@ -59,24 +59,26 @@ describe('HostedProvider', () => {
 
   // ── getTip ───────────────────────────────────────────────────────────────
 
-  it('getTip posts to /v1/wallet/rpc with "status" command', async () => {
-    mockFetch({ status: true, response: { chain: { block: 100, hash: '0xHASH' } } });
+  it('getTip reads chainTip from /v1/portfolio/<burn address>', async () => {
+    mockFetch({ chainTip: 100, mmrBlock: 100 });
     await provider.getTip();
-    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
-    expect(url).toContain('/v1/wallet/rpc');
-    expect(init.method).toBe('POST');
-    expect(init.body).toBe('status');
+    const [url, init] = (global as any).fetch.mock.calls[0];
+    // The wallet rpc `status` command is rejected by the current Axia API; the
+    // tip comes from the burn-address portfolio envelope.
+    expect(url).toContain(`/v1/portfolio/0x${'0'.repeat(64)}`);
+    expect(init?.method ?? 'GET').toBe('GET');
   });
 
-  it('getTip parses chain.block from RPC response envelope', async () => {
-    mockFetch({ status: true, response: { chain: { block: 200, hash: '0xHASH2' } } });
+  it('getTip parses chainTip from the portfolio envelope', async () => {
+    mockFetch({ chainTip: 200, mmrBlock: 198 });
     const tip = await provider.getTip();
     expect(tip.block).toBe(200);
-    expect(tip.hash).toBe('0xHASH2');
+    // The portfolio envelope has no block hash to report.
+    expect(tip.hash).toBe('');
   });
 
-  it('getTip returns 0 when chain missing from RPC response', async () => {
-    mockFetch({ status: true, response: null });
+  it('getTip returns 0 when chainTip is missing', async () => {
+    mockFetch({ chainTip: null });
     const tip = await provider.getTip();
     expect(tip.block).toBe(0);
     expect(tip.hash).toBe('');
