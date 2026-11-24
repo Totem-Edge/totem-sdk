@@ -88,5 +88,7 @@
 | [RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md](RFC-077-VERIFIABLE-ADAPTIVE-INTELLIGENCE-LIFECYCLE.md) | RFC-077 — Verifiable Adaptive Intelligence Lifecycle | Draft for architectural review — not implemented; no releaseability claim |
 | [RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md](RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md) | RFC-078 — Omnia Authorization and One-Time-Key Hardening | Draft — security and correctness remediation; no application-specific code |
 | [RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md](RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md) | RFC-079: Factory Escape State Enforceability | Accepted decision — checkpoint fallback specified, contestable mode |
+| [RFC-080-OMNIA-POOL-001-DEPLOYMENT-AND-CAPITAL-SAFETY.md](RFC-080-OMNIA-POOL-001-DEPLOYMENT-AND-CAPITAL-SAFETY.md) | RFC-080: Omnia Pool 001 — Deployment Architecture, Capital Safety and Commercial Acceptance Gates | Proposed — commissioning may begin; funded deployment and external LP admission are gated. |
+| [RFC-EMBR-001-EMULATED-MINT-BURN-RECYCLE.md](RFC-EMBR-001-EMULATED-MINT-BURN-RECYCLE.md) | RFC-EMBR-001: Emulated Mint, Burn & Recycle for Fixed-Supply Minima Tokens | Unknown |
 
-Total: **84** RFC documents.
+Total: **86** RFC documents.
