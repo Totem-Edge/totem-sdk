@@ -46,6 +46,10 @@ export default defineConfig({
         // file that no longer existed and receive index.html, which surfaces as
         // "expected magic word 00 61 73 6d, found 3c 21 64 6f".
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,wasm}'],
+        // Cloudflare Pages consumes _worker.js as the routing worker, so it is
+        // not a fetchable /web asset. Precaching it fails installation and
+        // silently removes the service worker, which also disables update checks.
+        globIgnores: ['**/_worker.js'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // The portfolio is a separate app on the wallet host; never serve the
         // wallet shell for its navigations.
