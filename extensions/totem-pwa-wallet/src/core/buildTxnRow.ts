@@ -9,8 +9,21 @@
  * Serialization primitives match Minima's Java Streamable interface exactly.
  */
 import { sha3_256 } from '@noble/hashes/sha3.js';
-import { mxToHex, scriptToAddress, serializeTreeSignature, type TreeKey } from '@totemsdk/core';
+import {
+  mxToHex,
+  scriptToAddress,
+  serializeTreeSignature,
+  type StateVariable,
+  type TreeKey,
+} from '@totemsdk/core';
 import { assertTokenCreateBalanced } from './tokenCreateBurn.js';
+import {
+  serializeStateVariables,
+  STATETYPE_BOOL,
+  STATETYPE_HEX,
+  STATETYPE_NUMBER,
+  STATETYPE_STRING,
+} from './stateSerialization.js';
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
@@ -200,17 +213,22 @@ export function parseCoinFromProof(coinProofHex: string): ParsedInputCoin {
   if (stateCountRaw.length >= 3) stateCount = stateCountRaw[2];  // scale=0, len=1, value
 
   for (let s = 0; s < stateCount && s < 256; s++) {
-    o += 1; // port byte
+    const port = b[o++]; // port byte
     const type = b[o++]; // type byte
-    if (type === 1) {
+    if (type === STATETYPE_HEX) {
       // HEX: MiniData
       const l = readU32(b, o); o += 4 + l;
-    } else if (type === 2) {
+    } else if (type === STATETYPE_NUMBER) {
       // NUMBER: MiniNumber
       const l = b[o + 1]; o += (l === 0 ? 2 : 2 + l);
-    } else if (type === 3) {
-      // SCRIPT: MiniString (= MiniData)
+    } else if (type === STATETYPE_STRING) {
+      // STRING: MiniString (= MiniData)
       const l = readU32(b, o); o += 4 + l;
+    } else if (type === STATETYPE_BOOL) {
+      // BOOL: MiniByte
+      o += 1;
+    } else {
+      throw new Error(`Unsupported state variable type ${type} at port ${port}`);
     }
   }
   const rawStateSection = b.slice(stateStart, o);
@@ -245,8 +263,10 @@ interface OutputCoin {
   address: Uint8Array;    // 32-byte address hash
   amountDecimal: string;  // "1.5" etc.
   tokenId: Uint8Array;    // 0x00 for native MINIMA
-  /** Keep state on this output (token-create output = true). */
+  /** Keep state on this output. Defaults to true when `state` is present. */
   storeState?: boolean;
+  /** State variables to persist on this output. */
+  state?: StateVariable[];
   /** Exact amount bytes (overrides amountDecimal) — used for token create. */
   rawAmountBytes?: Uint8Array;
   /** Serialized Token descriptor (Java Token.writeDataStream) for token create. */
@@ -291,16 +311,17 @@ function serializeInputCoin(c: ParsedInputCoin): Uint8Array {
 
 /** Serialize an output coin (constructed, no CoinProof) */
 function serializeOutputCoin(c: OutputCoin): Uint8Array {
+  const hasState = (c.state?.length ?? 0) > 0;
   const parts: Uint8Array[] = [
     writeHashToStream(c.coinId),
     writeHashToStream(c.address),
     c.rawAmountBytes ?? writeMiniNumberFromDecimal(c.amountDecimal),
     writeMiniData(c.tokenId),
-    writeMiniByte(c.storeState ?? false),  // storeState
+    writeMiniByte(c.storeState ?? hasState),  // storeState
     writeMMREntryNumber(0n),       // mmrEntryNumber = 0
     writeMiniByte(false),          // spent
     writeMiniNumber(0n),           // blockCreated = 0
-    writeMiniNumber(0n),           // state count = 0
+    serializeStateVariables(c.state ?? []),
   ];
   if (c.tokenData && c.tokenData.length > 0) {
     parts.push(writeMiniByte(true));
@@ -361,6 +382,7 @@ function precomputeOutputCoinIds(inputs: ParsedInputCoin[], outputs: OutputCoin[
 function serializeTransactionBytes(
   inputs: ParsedInputCoin[],
   outputs: OutputCoin[],
+  transactionState: readonly StateVariable[] = [],
 ): { txBytes: Uint8Array; digestTx: Uint8Array } {
   const parts: Uint8Array[] = [];
 
@@ -370,7 +392,7 @@ function serializeTransactionBytes(
   parts.push(writeMiniNumber(BigInt(outputs.length)));
   for (const c of outputs) parts.push(serializeOutputCoin(c));
 
-  parts.push(writeMiniNumber(0n)); // state variable count = 0
+  parts.push(serializeStateVariables(transactionState));
 
   parts.push(writeHashToStream(ZERO_LINK_HASH));
 
@@ -465,6 +487,12 @@ export interface BuildSendParams {
   changeAddressHex: string;
   /** Change amount, decimal string */
   changeAmount: string;
+  /** State variables to store on the recipient output. */
+  state?: StateVariable[];
+  /** Whether the recipient output keeps state. Defaults to true when `state` is set. */
+  storeState?: boolean;
+  /** Transaction-level state variables (KISSVM `STATE` / `PREVSTATE` inputs). */
+  transactionState?: StateVariable[];
   /** Per-address public key hex (for unlock script and validation) */
   perAddressPublicKey: string;
   /**
@@ -494,6 +522,8 @@ export interface BuildSendParams {
     totalSupply: string;
     /** MINIMA to burn with the mint; excluded from token supply. */
     burn?: string;
+    /** Initial state stored on the token-create output. */
+    state?: StateVariable[];
   };
 }
 
@@ -548,6 +578,8 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
       address: addrToBytes(toAddressHex),
       amountDecimal: toAmount,
       tokenId,
+      ...(params.state?.length ? { state: params.state } : {}),
+      ...(params.storeState !== undefined ? { storeState: params.storeState } : {}),
     });
   }
 
@@ -599,13 +631,18 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     outputs[0].storeState = true;
     outputs[0].rawAmountBytes = writeMiniNumber(minimaUnscaled, scale);
     outputs[0].tokenData = tokenData;
+    if (tc.state?.length) outputs[0].state = tc.state;
   }
 
   // 3. Precompute output coinIDs (must happen BEFORE digest computation)
   precomputeOutputCoinIds(inputs, outputs);
 
   // 4. Serialize Transaction + compute digestTx
-  const { txBytes, digestTx } = serializeTransactionBytes(inputs, outputs);
+  const { txBytes, digestTx } = serializeTransactionBytes(
+    inputs,
+    outputs,
+    params.transactionState ?? [],
+  );
 
   // Build-only mode: return the unsigned serialized Transaction. No WOTS leaf
   // is consumed and no witness is produced (AUD-040).

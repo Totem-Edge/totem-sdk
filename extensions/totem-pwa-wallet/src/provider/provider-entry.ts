@@ -140,6 +140,11 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     'totem_omniaSpliceOut',
   ]);
 
+  /** Accept either a state array or an already-serialized JSON string. */
+  function encodeStateParam(value: unknown): string {
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  }
+
   function paramsToQs(method: string, params?: Record<string, unknown>): Record<string, string> {
     if (!params) return {};
     const out: Record<string, string> = {};
@@ -170,7 +175,12 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           out.to = String(outputs[0].address ?? '');
           out.amount = String(outputs[0].amount ?? '0');
           if (outputs[0].tokenId) out.tokenId = String(outputs[0].tokenId);
+          if (outputs[0].state !== undefined) out.state = encodeStateParam(outputs[0].state);
+          if (outputs[0].storeState !== undefined) out.storeState = String(outputs[0].storeState);
         }
+      }
+      if (request?.transactionState !== undefined) {
+        out.transactionState = encodeStateParam(request.transactionState);
       }
       if (params.to) out.to = String(params.to);
       if (params.amount) out.amount = String(params.amount);
@@ -202,6 +212,17 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       if (bp.to) out.to = String(bp.to);
       if (bp.amount) out.amount = String(bp.amount);
       if (bp.tokenId) out.tokenId = String(bp.tokenId);
+      const outputs = bp.outputs as Array<Record<string, unknown>> | undefined;
+      if (outputs?.length) {
+        out.to = String(outputs[0].address ?? out.to ?? '');
+        out.amount = String(outputs[0].amount ?? out.amount ?? '0');
+        if (outputs[0].tokenId) out.tokenId = String(outputs[0].tokenId);
+        if (outputs[0].state !== undefined) out.state = encodeStateParam(outputs[0].state);
+        if (outputs[0].storeState !== undefined) out.storeState = String(outputs[0].storeState);
+      }
+      if (bp.transactionState !== undefined) {
+        out.transactionState = encodeStateParam(bp.transactionState);
+      }
       if (params.mode) out.mode = String(params.mode);
     }
 
@@ -223,6 +244,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         if (request.totalSupply !== undefined) out.totalSupply = String(request.totalSupply);
         if (request.script !== undefined) out.script = String(request.script);
         if (request.burn !== undefined) out.burn = String(request.burn);
+        if (request.state !== undefined) out.state = encodeStateParam(request.state);
       }
     }
 

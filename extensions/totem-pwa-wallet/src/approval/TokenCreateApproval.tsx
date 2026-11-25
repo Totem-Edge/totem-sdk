@@ -12,6 +12,7 @@ import {
   fetchCoins, fetchCoinProofs,
 } from '../core/api';
 import { addDecimalAmounts, buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
+import { parseStateVariablesJson } from '../core/stateVariables';
 import { track } from '../core/observability';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
@@ -26,6 +27,7 @@ function getParams() {
     totalSupply: url.searchParams.get('totalSupply') ?? '0',
     script: url.searchParams.get('script') ?? 'RETURN TRUE',
     burn: url.searchParams.get('burn') ?? '',
+    stateJson: url.searchParams.get('state') ?? '',
   };
 }
 
@@ -49,7 +51,7 @@ export function TokenCreateApproval() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const ctx = useMemo(parseApprovalContext, []);
-  const { metadata, decimals, totalSupply, script, burn } = getParams();
+  const { metadata, decimals, totalSupply, script, burn, stateJson } = getParams();
   const tokenName = String((metadata as { name?: unknown }).name ?? '');
   const isNft = decimals === 0;
 
@@ -83,6 +85,7 @@ export function TokenCreateApproval() {
       if (burn && (!/^\d+(\.\d+)?$/.test(burn) || BigInt(burn.split('.')[0] || '0') < 0n)) {
         throw new Error('burn must be a non-negative decimal string');
       }
+      const state = parseStateVariablesJson(stateJson, 'state');
 
       const fromHex = normalizeAddressToHex(account.address);
       const colorminima = colorminimaDecimal(totalSupply, decimals);
@@ -129,7 +132,14 @@ export function TokenCreateApproval() {
         l1: lease.l1,
         l2: lease.l2,
         sign: true,
-        tokenCreate: { name: JSON.stringify(metadata), script, decimals, totalSupply, ...(burn ? { burn } : {}) },
+        tokenCreate: {
+          name: JSON.stringify(metadata),
+          script,
+          decimals,
+          totalSupply,
+          ...(burn ? { burn } : {}),
+          ...(state ? { state } : {}),
+        },
       });
 
       await WalletManager.flushSigCache();

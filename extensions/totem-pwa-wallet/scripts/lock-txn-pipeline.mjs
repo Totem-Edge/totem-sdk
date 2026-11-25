@@ -30,6 +30,7 @@ const LOCK_FILE = join(ROOT, 'txn-pipeline.lock.json');
  */
 export const LOCKED_FILES = [
   'src/core/buildTxnRow.ts',
+  'src/core/stateSerialization.ts',
   'src/core/api.ts',
   'src/pages/Send.tsx',
   '../totem-extension/src/core/transaction/service.ts',

@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TotemEagleMark } from '../components/TotemEagleMark';
 import { WalletManager } from '../core/WalletManager';
+import { parseStateVariablesJson } from '../core/stateVariables';
 import {
   prepareLease, finalizeLease, fetchWatermark,
   fetchCoins, fetchCoinProofs,
@@ -23,6 +24,9 @@ function getParams() {
     amount: url.searchParams.get('amount') ?? '0',
     tokenId: url.searchParams.get('tokenId') ?? '0x00',
     mode: url.searchParams.get('mode') ?? 'submit',
+    stateJson: url.searchParams.get('state') ?? '',
+    transactionStateJson: url.searchParams.get('transactionState') ?? '',
+    storeState: url.searchParams.get('storeState') ?? '',
   };
 }
 
@@ -33,8 +37,17 @@ export function SendApproval() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const ctx = useMemo(parseApprovalContext, []);
-  const { to, amount, tokenId, mode } = getParams();
+  const { to, amount, tokenId, mode, stateJson, transactionStateJson, storeState } = getParams();
   const isBuildMode = mode === 'build';
+  const stateCount = (() => {
+    if (!stateJson.trim()) return 0;
+    try {
+      const parsed = JSON.parse(stateJson);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  })();
 
   useEffect(() => {
     if (!WalletManager.isUnlocked()) setStep('password');
@@ -61,9 +74,13 @@ export function SendApproval() {
     setStep('sending');
 
     try {
-      // Validate/normalise both addresses before any network or signing work (AUD-036)
+      // Validate/normalise both addresses and state before any network or
+      // signing work (AUD-036).
       const fromHex = normalizeAddressToHex(account.address);
       const toHex   = normalizeAddressToHex(to);
+      const state = parseStateVariablesJson(stateJson, 'state');
+      const transactionState = parseStateVariablesJson(transactionStateJson, 'transactionState');
+      const keepState = storeState === '' ? undefined : storeState === 'true';
 
       setStatusMsg('Syncing watermark…');
       await fetchWatermark(session.rootPublicKey, session.identityHash);
@@ -104,6 +121,9 @@ export function SendApproval() {
         toAmount: amount,
         changeAddressHex: fromHex,
         changeAmount,
+        ...(state ? { state } : {}),
+        ...(transactionState ? { transactionState } : {}),
+        ...(keepState !== undefined ? { storeState: keepState } : {}),
         perAddressPublicKey: account.publicKey,
         l1: lease.l1,
         l2: lease.l2,
@@ -121,7 +141,7 @@ export function SendApproval() {
           signed: false,
           plan: {
             inputs: selected.map(c => ({ coinId: c.coinid, amount: c.amount, tokenId: c.tokenid, address: c.address })),
-            outputs: [{ address: to, amount, tokenId }],
+            outputs: [{ address: to, amount, tokenId, ...(state ? { state } : {}) }],
             change: { address: account.address, amount: changeAmount, tokenId },
             fee: null,
           },
@@ -196,12 +216,18 @@ export function SendApproval() {
                 {amount} {tokenId === '0x00' ? 'MINIMA' : tokenId.slice(0, 8)}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: stateCount ? 'var(--space-1-5)' : 0 }}>
               <span className="label" style={{ marginBottom: 0 }}>To</span>
               <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>
                 {to.slice(0, 20)}…
               </span>
             </div>
+            {stateCount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="label" style={{ marginBottom: 0 }}>State variables</span>
+                <span style={{ fontWeight: 'var(--weight-bold)' }}>{stateCount}</span>
+              </div>
+            )}
           </div>
           <div className="error-msg" style={{ marginBottom: 'var(--space-3)' }}>
             ⚠ WOTS signatures are one-time-use. Verify before approving.

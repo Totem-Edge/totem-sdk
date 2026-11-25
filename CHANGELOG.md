@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — PWA stateful sends (unreleased)
+
+`totem-pwa-wallet` can now store state variables on a send's recipient output
+and transaction state on the transaction itself. The send UI exposes an
+advanced JSON state editor; `TOTEM_SEND_TRANSACTION` approval URLs carry
+`state`, `storeState` and `transactionState`; and token creation accepts an
+initial `state` array for the token-create output. `buildTxnRow.ts` serializes
+state via the new pinned `stateSerialization.ts` (Java
+`StateVariable.writeDataStream` layout), and the input CoinProof parser now
+handles all four state types (hex, number, string, bool).
+
 ### Fixed — `@totemsdk/minima-rpc` single command schema (unreleased)
 
 Removed every hand-written switch arm from `buildCommandString`. Commands that

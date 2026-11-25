@@ -8,6 +8,7 @@ not UI code.
 | File | Why |
 |---|---|
 | `src/core/buildTxnRow.ts` | Byte-exact `TxnRow` serialization; must match `TxnRow`/`CoinProof`/`TreeSignature` in the Java node. |
+| `src/core/stateSerialization.ts` | `StateVariable` port/type/length encoding; must match Java `StateVariable.writeDataStream()`. |
 | `src/core/api.ts` | Lease, coin proof, watermark and `finalizeLease` request shapes. |
 | `src/pages/Send.tsx` | Fixed step order and the exact `signedHex` handed to `/finalize`. |
 | `../totem-extension/src/core/transaction/service.ts` | Extension finalize request (same wire contract). |

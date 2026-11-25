@@ -7,6 +7,7 @@
  * /finalize expects a complete TxnRow hex (not just signature bytes).
  */
 import React, { useState, useEffect } from 'react';
+import type { StateVariable } from '@totemsdk/core';
 import { useWallet } from '../core/WalletContext';
 import { QrScanner } from '../components/QrScanner';
 import {
@@ -15,6 +16,7 @@ import {
 } from '../core/api';
 import { WalletManager } from '../core/WalletManager';
 import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
+import { parseStateVariablesJson } from '../core/stateVariables';
 import { addPendingSend } from '../core/pendingSends';
 import { track } from '../core/observability';
 
@@ -33,6 +35,7 @@ interface PreparedSend {
   fromHex: string;
   toAmount: string;
   tokenId: string;
+  state?: StateVariable[];
   digestTx: string;
   unsignedHex: string;
 }
@@ -45,6 +48,8 @@ export function Send() {
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [tokenId, setTokenId] = useState('0x00');
+  const [stateJson, setStateJson] = useState('');
+  const [showState, setShowState] = useState(false);
   const [balances, setBalances] = useState<PortfolioEntry[]>([]);
   const [txId, setTxId] = useState('');
   const [error, setError] = useState('');
@@ -89,6 +94,11 @@ export function Send() {
       return `Invalid recipient address: ${(e as Error).message}`;
     }
     if (!amount.trim() || isNaN(Number(amount)) || Number(amount) <= 0) return 'Invalid amount.';
+    try {
+      parseStateVariablesJson(stateJson, 'State variables');
+    } catch (e) {
+      return (e as Error).message;
+    }
     return null;
   }
 
@@ -112,6 +122,7 @@ export function Send() {
       const selection = selectCoins(coins, amount, tokenId);
       const fromHex = normalizeAddressToHex(activeAccount.address);
       const toHex = normalizeAddressToHex(toAddress);
+      const state = parseStateVariablesJson(stateJson, 'State variables');
       const genTxId = `pwa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setStatusMsg('Reserving a one-time WOTS key…');
@@ -141,6 +152,7 @@ export function Send() {
         toAmount: amount,
         changeAddressHex: fromHex,
         changeAmount: selection.changeAmount,
+        ...(state ? { state } : {}),
         perAddressPublicKey: activeAccount.publicKey,
         l1: lease.l1,
         l2: lease.l2,
@@ -160,6 +172,7 @@ export function Send() {
         fromHex,
         toAmount: amount,
         tokenId,
+        ...(state ? { state } : {}),
         digestTx: built.digestTx,
         unsignedHex: built.txnRowHex,
       });
@@ -195,6 +208,7 @@ export function Send() {
         toAmount: prepared.toAmount,
         changeAddressHex: prepared.fromHex,
         changeAmount: prepared.changeAmount,
+        ...(prepared.state ? { state: prepared.state } : {}),
         perAddressPublicKey: activeAccount.publicKey,
         l1: prepared.lease.l1,
         l2: prepared.lease.l2,
@@ -362,6 +376,12 @@ export function Send() {
             <span className="label" style={{ marginBottom: 0 }}>Change back</span>
             <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>{prepared.changeAmount} {tokenLabel(prepared.tokenId)}</span>
           </div>
+          {prepared.state && prepared.state.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+              <span className="label" style={{ marginBottom: 0 }}>State variables</span>
+              <span style={{ fontWeight: 'var(--weight-bold)' }}>{prepared.state.length}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span className="label" style={{ marginBottom: 0 }}>Total input</span>
             <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>{prepared.totalInputAmount} {tokenLabel(prepared.tokenId)}</span>
@@ -386,6 +406,15 @@ export function Send() {
             </div>
           )}
         </div>
+
+        {prepared.state && prepared.state.length > 0 && (
+          <details style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            <summary style={{ cursor: 'pointer' }}>State variables ({prepared.state.length})</summary>
+            <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+              {JSON.stringify(prepared.state, null, 2)}
+            </pre>
+          </details>
+        )}
 
         <details style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
           <summary style={{ cursor: 'pointer' }}>Exact unsigned transaction and digest</summary>
@@ -466,6 +495,29 @@ export function Send() {
             MAX
           </button>
         </div>
+        <button
+          className="btn btn-secondary btn-sm"
+          style={{ marginBottom: 'var(--space-2)' }}
+          onClick={() => setShowState(v => !v)}
+        >
+          {showState ? 'Hide state variables' : 'Advanced: state variables'}
+        </button>
+        {showState && (
+          <div style={{ marginBottom: 'var(--space-2)' }}>
+            <label className="label">State variables (JSON)</label>
+            <textarea
+              className="input mono"
+              rows={5}
+              placeholder={'[{"port":0,"type":"string","value":"genesis"}]'}
+              value={stateJson}
+              onChange={e => { setStateJson(e.target.value); setError(''); }}
+              style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}
+            />
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', marginTop: 4 }}>
+              Stored on the recipient output. Types: bool, number, hex, string.
+            </p>
+          </div>
+        )}
         {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
         <button
           className="btn btn-primary btn-full"
