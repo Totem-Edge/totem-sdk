@@ -25,9 +25,9 @@
 
 import { HostedRelaySwarmImpl } from './relay.js';
 import { createOmniaIntegration } from './integration.js';
-import { createChannel, updateState } from './channel.js';
+import { buildChannelOpening, finalizeChannelOpening, updateState } from './channel.js';
 import { proposeSettlement, markChannelClosing, markChannelClosed } from './settlement.js';
-import { hexToBytes } from '@totemsdk/core';
+import type { FundingWitnessBuilder } from './funding-witness.js';
 import type { OmniaSwarm, OmniaSwarmConfig } from './messaging-types.js';
 import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel } from './types.js';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
@@ -81,6 +81,12 @@ export interface RelayOmniaOperationsOptions {
   leaseProvider: WotsLeaseProvider;
   /** Chain provider used to broadcast the funding / settlement TxPoW. */
   chainProvider: ChainStateProvider;
+  /**
+   * Wallet-side funding witness builder. Required for `openChannel`: the wallet
+   * owns the funding coin and must build/sign its witness. A dApp-supplied
+   * `fundingWitnessHex` is rejected.
+   */
+  fundingWitnessBuilder?: FundingWitnessBuilder;
 }
 
 function reqString(params: Record<string, unknown>, key: string): string {
@@ -104,22 +110,40 @@ function reqBigInt(params: Record<string, unknown>, key: string): bigint {
  * `@totemsdk/omnia-host`'s `openChannel`/`pay`/`settle`/`closeChannel` handlers
  * (RFC-014 §6.3), browser-safe (no SQLite/RPC/Node builtins).
  *
- * `openChannel` expects the wallet/dApp to supply `fundingWitnessHex` (the signed
- * funding-input witness) — the wallet signs the funding transaction itself.
+ * `openChannel` builds the funding transaction and requires the wallet's
+ * `fundingWitnessBuilder` to sign it. A dApp or provider MUST NOT supply
+ * `fundingWitnessHex`; that would let it substitute a witness for another coin.
  */
 export function createRelayOmniaOperations(
   options: RelayOmniaOperationsOptions,
 ): RelayOmniaOperations {
-  const { swarm, channels, localParticipant, signer, leaseProvider, chainProvider } = options;
+  const {
+    swarm,
+    channels,
+    localParticipant,
+    signer,
+    leaseProvider,
+    chainProvider,
+    fundingWitnessBuilder,
+  } = options;
 
   return {
     async openChannel(params) {
+      if (typeof params.fundingWitnessHex === 'string') {
+        throw new Error(
+          'fundingWitnessHex is not accepted from a dApp; the wallet must build the funding witness',
+        );
+      }
+
       const remote: ChannelParticipant = {
         partyId: reqString(params, 'remotePartyId'),
         publicKeyDigest: reqString(params, 'remotePublicKeyDigest'),
         addressIndex: typeof params.remoteAddressIndex === 'number' ? params.remoteAddressIndex : 0,
         ...(typeof params.remoteSettlementAddress === 'string'
           ? { settlementAddress: params.remoteSettlementAddress }
+          : {}),
+        ...(typeof params.remoteTransportPubkey === 'string'
+          ? { transportPubkey: params.remoteTransportPubkey }
           : {}),
       };
       const createParams: CreateChannelParams = {
@@ -129,9 +153,26 @@ export function createRelayOmniaOperations(
         remoteAmount: reqBigInt(params, 'remoteAmount'),
         ...(typeof params.tokenId === 'string' ? { tokenId: params.tokenId } : {}),
         fundingCoinId: reqString(params, 'fundingCoinId'),
-        fundingWitnessBytes: hexToBytes(reqString(params, 'fundingWitnessHex').replace(/^0x/i, '')),
       };
-      const created = await createChannel(createParams, chainProvider);
+
+      const plan = await buildChannelOpening(createParams, chainProvider);
+      if (!fundingWitnessBuilder) {
+        throw new Error(
+          'Omnia openChannel requires a wallet funding-witness builder; the wallet must build the funding witness',
+        );
+      }
+      const { fundingWitnessBytes } = await fundingWitnessBuilder.build({
+        plan,
+        fundingCoinId: createParams.fundingCoinId,
+        tokenId: createParams.tokenId,
+        localAmount: createParams.localAmount,
+        remoteAmount: createParams.remoteAmount,
+      });
+      const created = await finalizeChannelOpening(
+        plan,
+        { fundingWitnessBytes },
+        chainProvider,
+      );
       const channel: OmniaChannel = { ...created.channel, localSigner: signer };
       channels.set(channel.channelId, channel);
 
@@ -231,6 +272,8 @@ export interface RelayOmniaClientOptions extends RelayOmniaSwarmOptions {
   signer?: ChannelSigner;
   leaseProvider?: WotsLeaseProvider;
   chainProvider?: ChainStateProvider;
+  /** Wallet-side funding witness builder; required for `openChannel`. */
+  fundingWitnessBuilder?: FundingWitnessBuilder;
   /** Wire inbound CHANNEL_PROPOSAL/STATE_UPDATE/SETTLEMENT_PROPOSAL handling. Default true. */
   autoAccept?: boolean;
 }
@@ -316,6 +359,7 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
           signer: options.signer,
           leaseProvider: options.leaseProvider,
           chainProvider: options.chainProvider,
+          fundingWitnessBuilder: options.fundingWitnessBuilder,
         })
       : undefined);
 

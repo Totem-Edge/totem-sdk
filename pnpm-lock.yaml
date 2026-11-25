@@ -1507,6 +1507,31 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/omnia-lsp:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/omnia-lsp-provider:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/omnia-lsp':
+        specifier: workspace:^
+        version: link:../omnia-lsp
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/omnia-pool:
     dependencies:
       '@totemsdk/agent-policy':

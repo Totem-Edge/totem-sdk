@@ -85,7 +85,8 @@
     "smoke:bare": "node scripts/run-bare.mjs scripts/bare-core-smoke.mjs",
     "smoke:bare:pack": "node scripts/bare-pack-consumer.mjs",
     "smoke:mcp:apps": "node scripts/mcp-generated-app-consumer.mjs",
-    "validate:sdk-integration": "node scripts/verify-sdk-integration.mjs"
+    "validate:sdk-integration": "node scripts/verify-sdk-integration.mjs",
+    "test:omnia:lsp": "node scripts/omnia-lsp-e2e.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

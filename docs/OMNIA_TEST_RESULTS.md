@@ -523,6 +523,114 @@ final 55,000,000 / 45,000,000
 - Balances and sequence agree; B did not receive the close (known gap).
 - The feeds are **per-node journals** (different cursors); compare both.
 
+### 2026-11-24 — Cross-host S4 on AWS A/B (current dist, solo test chain)
+
+**Why a solo test chain:** the mainnet wallet on A had no spendable MIN left
+(the earlier 0.2 MIN funding coin is locked in a channel), so the funded
+mainnet path is blocked on a top-up. This run exercises the current
+`@totemsdk/omnia@3.0.0` / `@totemsdk/omnia-host@0.15.1` build across the two
+AWS hosts against a fresh `-test -solo` hawk-node on A. The hosts and wallet
+processes are the same ones used for mainnet; only `OMNIA_CHAIN_RPC` points at
+the test node.
+
+**Environment:** AWS `t4g.small` A (`172.31.68.246`, public `13.220.105.81`)
+and B (`172.31.74.14`, public `3.239.89.225`). Solo test node
+`1.0.100-TEST-TEST.0` on A at `172.31.68.246:9015`; B reaches it over the VPC.
+Non-custodial coordinators `coordinator-a` on A:50055 and `coordinator-b` on
+B:50056; separate wallet services on 51060/51061 (the gate-sdk wallet service
+is protocol-compatible because signing is digest-based). Native DHT seed
+`8146640f…@172.31.68.246:49737`; A 49740, B 49739. Current dist deployed to
+`/home/ubuntu/omnia-current` on both hosts. The temporary SG rule
+`172.31.0.0/16 -> TCP 9015` used for the cross-host test chain was removed
+after the run; re-add it (and open 9015 to your IP for local polling) to
+reproduce.
+
+```text
+A coordinator-a 0x688D06ACD854AB9F4133BC7B9F3B11CAF06790C8BDDAD502B4374998605ABCF8
+B coordinator-b 0x7B655ADEED67D4B98AF5C6E01D6B0133260B934D0018D8E6BD38A5F07999802F
+funding input coin 0xAD6FC773BC59184E2AB6A392D9457399D58083F194D792B164856921669D277D (1 test MIN)
+channel 0x0ef5827abe49b28252eaf47640bc9e64
+A status active; B status active; initial 0.6 / 0.4
+pay 0.05 -> A seq 1 0.55 / 0.45; B seq 1 0.55 / 0.45
+settle 0x000020CCC5F488C0ACB90E264DB529F15D128F2A84A358437E5E1F4FBE195521 (block 59)
+on-chain outputs: 0.55 -> A settlement 0xAF404257…, 0.45 -> B settlement 0xA89E89FF…
+close -> both hosts report closed
+OMNIA_RESULT {... "balances":{"coordinator-a":"0.55","coordinator-b":"0.45"},"pass":true}
+S4_PASS
+```
+
+**Fixes and findings from this run (current dist):**
+
+- The initiator stayed in `opening` after funding confirmed because
+  `totem_omniaGetChannelState` only re-checked `funding_pending`. It now
+  re-checks `opening` too and promotes the channel on read
+  (`packages/omnia-host/src/api/methods.ts`). The acceptor already re-checked
+  `funding_pending`.
+- A network `CHANNEL_PROPOSAL` must carry `remoteTransportPubkey` (the peer's
+  DHT transport key, not its WOTS digest) or the dial waits for a connection
+  that never matches. `omnia-s4-cross.mjs` now passes it from the wallet info.
+- The proposal must carry `remoteSettlementAddress`, otherwise settlement
+  fails with “Settlement address for party … does not match the channel's
+  agreed address”. `omnia-s4-cross.mjs` now passes `whoB.settlementAddress`.
+- Amount units changed at the RPC boundary: 0.13.x expected atom-integer
+  strings, the current host expects decimal MINIMA text. `S4_AMOUNT_UNITS`
+  selects the encoding.
+- Coin selection now picks the smallest signable coin that covers the target,
+  so a large wallet output is not fully locked into a test channel.
+- Solo chains only mine when a transaction is posted, so the funding output is
+  created with 0 confirmations. `S4_NUDGE_BLOCKS=1` posts a 1e-9 MIN
+  transaction to advance the tip; mainnet runs must not set it.
+- `totem_omniaCloseChannel` is local-only; B still reported `active` after A
+  closed. Calling close on B makes both sides agree. Settlement itself is
+  on-chain and final.
+
+**Reproduce:**
+
+```bash
+S4_AMOUNT_UNITS=decimal S4_CONTEST_DELAY=2 S4_PAY_AMOUNT=0.05 \
+S4_FUNDING_TARGET=0.2 S4_NUDGE_BLOCKS=1 \
+B_TRANSPORT_PUBKEY=0xEB86438FDBAEFB8B68CA5348F352FB2D0F1CE4973C828838E13A18E311721242 \
+NODE_A=http://13.220.105.81:9015 NODE_B=http://13.220.105.81:9015 \
+HOST_A=http://13.220.105.81:50055/rpc HOST_B=http://3.239.89.225:50056/rpc \
+MINIMA_RPC_PASSWORD=test RPC_TOKEN=test \
+node scripts/omnia-s4-cross.mjs
+```
+
+**Mainnet status:** not re-run to completion in this session. The mainnet node
+is back up on A:9005 with `balance.sendable = 0`. Send a small amount (≥ ~0.3
+MIN) to the node's dedicated funding address
+`0x66F5C50C2AB25AAE99E6C51E1F66A636C9A9773595381D975F8F2BFD8106A79F`
+(`newaddress`, simple, tracked) to unblock the mainnet A/B run; then restart the hosts with
+`OMNIA_CHAIN_RPC=http://127.0.0.1:9005` (A) /
+`http://172.31.68.246:9005` (B) and run the same script without
+`S4_NUDGE_BLOCKS`.
+
+### 2026-11-25 — LSP-1 provider-funded direct open (AWS A/B)
+
+**Environment:** AWS A/B, solo test chain on A (`9015`); provider host
+`coordinator-a` on A:50055, consumer host `coordinator-b` on B:50056; current
+`@totemsdk/omnia-lsp-provider` dist. The LSP provider host auto-selected its own
+funding coin (no `fundingCoinId` supplied) and opened a provider-funded channel.
+
+```text
+provider coordinator-a 0x688D…BCF8
+consumer coordinator-b 0x7B65…802F
+provider funding address 0x8642BC6B… (1 test MIN, auto-selected)
+channel 0xe443a85f7d3cde9b42f7ebfd9db29b90
+initial provider 0.4 / consumer 0.6
+pay 0.05 -> provider 0.45 / consumer 0.55
+settlement 0x000033E50E5EFB43F71C56341ACE6875C02852B0810034A94FF3C03BD9C2B568
+on-chain outputs: 0.45 -> provider, 0.55 -> consumer (block 57)
+close -> both hosts report closed
+OMNIA_LSP_RESULT {... "pass":true}
+LSP_PASS
+```
+
+**Caveats:** this is the provider-funded host path, not the consumer extension
+wallet path. The extension's quote/approval/funding-witness e2e and the live
+Axia lease/coinproof path remain. The channel used a 2-block contest delay on
+the test chain; mainnet uses the default floor.
+
 ## Run log
 
 | Date | Stage | Transport | SDK commit | Result | Evidence |
@@ -568,6 +676,8 @@ final 55,000,000 / 45,000,000
 | 2026-10-22 | 7-hop teardown | native (AWS) | current dist | BLOCKED | factory registry lost on restart; `Factory ... not found` |
 | 2026-10-23 | S4 (non-custodial, hawk-node) | native DHT | current dist (omnia-host 0.12.0) | PASS | solo hawk-node genesis; `NONCUSTODIAL_OPEN_PASS` + `NONCUSTODIAL_SETTLE_PASS`; 60/40 → 55/45; settlement `0x0001E04A…` |
 | 2026-10-23 | S4 cross-host (non-custodial) | native DHT (AWS A/B) | current dist (host 0.12.0) | PASS | open `0x27ba…`, pay 5M, settle `0x00028566…`; A closed / B active (close gap) |
+| 2026-11-24 | S4 cross-host (current dist) | native DHT (AWS A/B, solo test chain) | current dist (host 0.15.1) | PASS | channel `0x0ef5827a…`; 0.6/0.4 → 0.55/0.45; settle `0x000020CC…` (block 59); outputs 0.55/0.45 on-chain; mainnet blocked on wallet top-up |
+| 2026-11-25 | LSP-1 (provider-funded) | native DHT (AWS A/B, solo test chain) | current dist | PASS | host auto-selected provider coin; 0.4/0.6 → 0.45/0.55; settle `0x000033E5…`; close both |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`

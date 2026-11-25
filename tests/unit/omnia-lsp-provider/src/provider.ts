@@ -1,0 +1,1 @@
+../../../../packages/omnia-lsp-provider/src/provider.ts

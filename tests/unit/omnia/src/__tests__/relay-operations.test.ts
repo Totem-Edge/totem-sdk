@@ -4,6 +4,8 @@
  */
 
 jest.mock('../channel.js', () => ({
+  buildChannelOpening: jest.fn(),
+  finalizeChannelOpening: jest.fn(),
   createChannel: jest.fn(),
   updateState: jest.fn(),
 }));
@@ -13,13 +15,14 @@ jest.mock('../settlement.js', () => ({
   markChannelClosed: jest.fn((c: unknown) => ({ ...(c as object), status: 'closed' })),
 }));
 
-import { createChannel, updateState } from '../channel.js';
+import { buildChannelOpening, finalizeChannelOpening, updateState } from '../channel.js';
 import { proposeSettlement, markChannelClosed } from '../settlement.js';
 import { createRelayOmniaOperations } from '../relay-client.js';
 import type { OmniaSwarm, OmniaPeer } from '../messaging-types.js';
 import type { OmniaChannel } from '../types.js';
 
-const createChannelMock = createChannel as jest.Mock;
+const buildChannelOpeningMock = buildChannelOpening as jest.Mock;
+const finalizeChannelOpeningMock = finalizeChannelOpening as jest.Mock;
 const updateStateMock = updateState as jest.Mock;
 const proposeSettlementMock = proposeSettlement as jest.Mock;
 const markChannelClosedMock = markChannelClosed as jest.Mock;
@@ -60,6 +63,9 @@ function channel(overrides: Partial<OmniaChannel> = {}): OmniaChannel {
 
 function ops(channels = new Map<string, OmniaChannel>()) {
   const { swarm, peer } = fakeSwarm();
+  const fundingWitnessBuilder = {
+    build: jest.fn(async () => ({ fundingWitnessBytes: new Uint8Array([1, 2, 3]) })),
+  };
   const operations = createRelayOmniaOperations({
     swarm,
     channels,
@@ -67,19 +73,27 @@ function ops(channels = new Map<string, OmniaChannel>()) {
     signer: signer as never,
     leaseProvider: leaseProvider as never,
     chainProvider,
+    fundingWitnessBuilder,
   });
-  return { operations, swarm, peer, channels };
+  return { operations, swarm, peer, channels, fundingWitnessBuilder };
 }
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('RelayOmniaOperations', () => {
-  it('openChannel creates the channel, stores it and sends a CHANNEL_PROPOSAL', async () => {
-    createChannelMock.mockResolvedValue({
+  it('openChannel builds the plan, uses the wallet witness builder and sends a CHANNEL_PROPOSAL', async () => {
+    const plan = {
+      channel: { channelId: 'c1' },
+      proposal: { channelId: 'c1' },
+      fundingDigest: new Uint8Array(32),
+      inputCoinId: '0xabc',
+    };
+    buildChannelOpeningMock.mockResolvedValue(plan);
+    finalizeChannelOpeningMock.mockResolvedValue({
       channel: { channelId: 'c1', fundingTxId: 'f1' },
       proposal: { channelId: 'c1' },
     });
-    const { operations, peer, channels } = ops();
+    const { operations, peer, channels, fundingWitnessBuilder } = ops();
 
     const result = (await operations.openChannel!({
       remotePartyId: 'p2',
@@ -87,10 +101,17 @@ describe('RelayOmniaOperations', () => {
       localAmount: '10',
       remoteAmount: '10',
       fundingCoinId: '0xabc',
-      fundingWitnessHex: '0xdead',
     })) as { success: boolean; channelId: string };
 
-    expect(createChannelMock).toHaveBeenCalledTimes(1);
+    expect(buildChannelOpeningMock).toHaveBeenCalledTimes(1);
+    expect(fundingWitnessBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ plan, fundingCoinId: '0xabc' }),
+    );
+    expect(finalizeChannelOpeningMock).toHaveBeenCalledWith(
+      plan,
+      { fundingWitnessBytes: expect.any(Uint8Array) },
+      chainProvider,
+    );
     expect(channels.get('c1')).toBeDefined();
     expect(peer.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'CHANNEL_PROPOSAL', channelId: 'c1' }),

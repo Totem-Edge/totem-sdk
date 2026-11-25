@@ -89,6 +89,7 @@
 | [RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md](RFC-078-OMNIA-AUTHORIZATION-AND-ONE-TIME-KEY-HARDENING.md) | RFC-078 — Omnia Authorization and One-Time-Key Hardening | Draft — security and correctness remediation; no application-specific code |
 | [RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md](RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md) | RFC-079: Factory Escape State Enforceability | Accepted decision — checkpoint fallback specified, contestable mode |
 | [RFC-080-OMNIA-POOL-001-DEPLOYMENT-AND-CAPITAL-SAFETY.md](RFC-080-OMNIA-POOL-001-DEPLOYMENT-AND-CAPITAL-SAFETY.md) | RFC-080: Omnia Pool 001 — Deployment Architecture, Capital Safety and Commercial Acceptance Gates | Proposed — commissioning may begin; funded deployment and external LP admission are gated. |
+| [RFC-081-OMNIA-LSP.md](RFC-081-OMNIA-LSP.md) | RFC-081 — Omnia LSP: Provider Discovery, Capacity Onboarding and the Capacity Marketplace | Draft — Phase 0/1 partial. `@totemsdk/omnia-lsp` (manifest/quote/ranking), `@totemsdk/omnia-lsp-provider` (policy/quote + `omnia-host` adapter), the wallet-side funding-witness port, the Omnia lease path, and MOKA's open-capacity flow have landed. Omnia defaults to durable local lease storage; an explicit `OMNIA_AXIA_LEASE=true` opt-in uses the Axia hardened lease adapter. The provider-funded host open → pay → settle → close e2e passes on AWS A/B (2026-11-25). The remaining gates are live-Axia verification of the opt-in path and the consumer extension wallet ↔ provider host e2e. |
 | [RFC-EMBR-001-EMULATED-MINT-BURN-RECYCLE.md](RFC-EMBR-001-EMULATED-MINT-BURN-RECYCLE.md) | RFC-EMBR-001: Emulated Mint, Burn & Recycle for Fixed-Supply Minima Tokens | Unknown |
 
-Total: **86** RFC documents.
+Total: **87** RFC documents.

@@ -38,6 +38,8 @@ export type { SeedLeaseWatermarkParams } from './seed.js';
 
 export { AxiaLeaseProvider } from './axia.js';
 export type { AxiaLeaseProviderConfig } from './axia.js';
+export { OmniaAxiaLeaseProvider } from './omnia-axia.js';
+export type { OmniaAxiaLeaseProviderConfig } from './omnia-axia.js';
 
 export { HybridLeaseProvider } from './hybrid.js';
 export type { HybridLeaseProviderConfig } from './hybrid.js';

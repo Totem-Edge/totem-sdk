@@ -27,6 +27,7 @@ npm install @totemsdk/wots-lease
 |----------|----------|
 | `LocalLeaseProvider` | Single-device, in-process coordination |
 | `AxiaLeaseProvider` | Cloud-coordinated leases via Axia API |
+| `OmniaAxiaLeaseProvider` | Axia hardened-WOTS leases for Omnia channel state/funding digests; keys the local watermark by the Omnia channel tree id |
 | `HybridLeaseProvider` | Local-first with Axia sync fallback |
 | `PersonalLeaseNodeProvider` | Coordinates through your personal lookup node |
 | `P2PQuorumLeaseProvider` | Multi-device quorum consensus — peers attest to the same slot before it is handed out |

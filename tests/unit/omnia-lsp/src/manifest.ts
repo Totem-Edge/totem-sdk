@@ -1,0 +1,1 @@
+../../../../packages/omnia-lsp/src/manifest.ts

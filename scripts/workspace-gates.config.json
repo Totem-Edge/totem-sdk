@@ -504,6 +504,24 @@
         "reason": "signing host; TreeKey stays in-wallet; holds no value"
       }
     },
+    "packages/omnia-lsp": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "supportTier": 2,
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "protocol types, manifests and ranking; holds no value and moves no funds"
+      }
+    },
+    "packages/omnia-lsp-provider": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "supportTier": 2,
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "provider facade and quote policy; delegates channel execution to an injected non-custodial host"
+      }
+    },
     "packages/omnia-pool": {
       "status": "publishable",
       "maturity": "rc",

@@ -580,6 +580,10 @@ export async function omniaGetChannels(origin: string, params?: {
 
 export async function omniaOpenChannel(origin: string, params: {
   remotePartyId: string;
+  remotePublicKeyDigest: string;
+  remoteAddressIndex?: number;
+  remoteSettlementAddress?: string;
+  remoteTransportPubkey?: string;
   localAmount: string;
   remoteAmount: string;
   tokenId?: string;

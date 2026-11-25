@@ -393,9 +393,18 @@ export interface TotemOmniaOpenChannelRequest {
   params: {
     origin: string;
     remotePartyId: string;
+    /** Counterparty channel key digest (32-byte hex). Required for the 2-of-2 script. */
+    remotePublicKeyDigest: string;
+    remoteAddressIndex?: number;
+    remoteSettlementAddress?: string;
+    remoteTransportPubkey?: string;
     localAmount: string;
     remoteAmount: string;
     tokenId?: string;
+    /**
+     * Coin the consumer funds. The wallet MUST verify ownership and build/sign
+     * the funding witness; `fundingWitnessHex` is never accepted from a dApp.
+     */
     fundingCoinId: string;
   };
 }

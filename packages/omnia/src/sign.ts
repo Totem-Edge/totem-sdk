@@ -1,4 +1,4 @@
-import { hexToBytes, sha3_256 } from '@totemsdk/core';
+import { bytesToHex, hexToBytes, sha3_256 } from '@totemsdk/core';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
@@ -66,7 +66,7 @@ export async function signTxDraft(
   });
 
   const signature = await effectiveSigner.sign(digest, reservation.indices);
-  await leaseProvider.commitKeyUse(reservation.reservationId, purpose);
+  await leaseProvider.commitKeyUse(reservation.reservationId, bytesToHex(digest));
 
   const transactionHex = serializeTxDraft(draft);
   return { signature, indices: reservation.indices, transactionHex };
@@ -336,11 +336,11 @@ export async function signState(
     );
     await leaseProvider.commitKeyUse(
       prepared.updateReservation.reservationId,
-      `channel-update-seq-${prepared.newSequence}`,
+      bytesToHex(prepared.updateDigest),
     );
     await leaseProvider.commitKeyUse(
       prepared.settlementReservation.reservationId,
-      `channel-settlement-seq-${prepared.newSequence}`,
+      bytesToHex(prepared.settlementDigest),
     );
     await commitSigningAttempt(channel.channelId, prepared.newSequence, payloadHash).catch(() => {});
     return finalizeStateUpdate(prepared, updateSignature, settlementSignature);

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Omnia LSP packages (unreleased)
+
+`@totemsdk/omnia-lsp` 0.1.0 and `@totemsdk/omnia-lsp-provider` 0.1.0 add signed
+provider manifests, open quotes, deterministic provider ranking, provider
+admission policy and an `omnia-host` adapter. The wallet-side funding-witness
+builder, Axia funding-proof provider, opt-in Axia lease adapter and provider
+funding auto-selection are included. See RFC-081.
+
 ### Fixed — MinimaNode transaction links (1.0.31)
 
 "View on minimanode" on the Activity transaction detail page opened

@@ -249,6 +249,19 @@ export {
 } from './channel.js';
 
 export {
+  createWalletFundingWitnessBuilder,
+  createChainFundingProofProvider,
+} from './funding-witness.js';
+export { createAxiaFundingProofProvider } from './axia-proofs.js';
+export type { AxiaFundingProofProviderConfig } from './axia-proofs.js';
+export type {
+  FundingWitnessBuilder,
+  FundingWitnessBuilderInput,
+  FundingProofProvider,
+  WalletFundingWitnessBuilderOptions,
+} from './funding-witness.js';
+
+export {
   addHTLC,
   fulfillHTLC,
   timeoutHTLC,

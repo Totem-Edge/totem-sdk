@@ -19,18 +19,18 @@
 | v1 | 13 |
 | rc | 53 |
 | beta | 4 |
-| alpha | 4 |
+| alpha | 6 |
 | excluded | 6 |
 
 | Support tier | Packages |
 |---|---:|
 | Tier 0 | 3 |
 | Tier 1 | 10 |
-| Tier 2 | 21 |
+| Tier 2 | 23 |
 | Outside production surface | 40 |
 | Excluded | 6 |
 
-Total: **74** publishable packages + **6** excluded entries = **80** workspace entries.
+Total: **76** publishable packages + **6** excluded entries = **82** workspace entries.
 
 ## Matrix
 
@@ -69,6 +69,8 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
 | `@totemsdk/tx-builder` | 0.3.5 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
+| `@totemsdk/omnia-lsp` | 0.1.0 | alpha | 2 | `packages/omnia-lsp` |
+| `@totemsdk/omnia-lsp-provider` | 0.1.0 | alpha | 2 | `packages/omnia-lsp-provider` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
 | `@totemsdk/edge-can` | 0.3.1 | v1 | outside | `packages/edge-can` |
 | `@totemsdk/edge-coap` | 0.3.0 | v1 | outside | `packages/edge-coap` |
@@ -105,7 +107,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/wallet-adapter` | 2.0.3 | rc | outside | `packages/wallet-adapter` |
 | `@totemsdk/decision` | 0.3.2 | beta | outside | `packages/decision` |
 | `@totemsdk/edge-mesh` | 0.2.0 | beta | outside | `packages/edge-mesh` |
-| `@totemsdk/intelligence` | 0.2.0 | beta | outside | `packages/intelligence` |
+| `@totemsdk/intelligence` | 0.2.1 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.1 | beta | outside | `packages/qvac` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/replication` | 0.2.0 | alpha | outside | `packages/replication` |
@@ -113,6 +115,6 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |
-| `totem-extension` | 1.0.16 | excluded | excluded | `extensions/totem-extension` |
+| `totem-extension` | 1.0.31 | excluded | excluded | `extensions/totem-extension` |
 | `totem-pear-android-starter` | 0.1.0 | excluded | excluded | `extensions/totem-pear-android-starter` |
-| `totem-pwa-wallet` | 1.0.0 | excluded | excluded | `extensions/totem-pwa-wallet` |
+| `totem-pwa-wallet` | 1.0.31 | excluded | excluded | `extensions/totem-pwa-wallet` |

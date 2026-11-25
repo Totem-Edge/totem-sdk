@@ -1,0 +1,42 @@
+{
+  "version": "omnia-lsp/v1",
+  "providerId": "prov-invalid-key",
+  "identity": {
+    "address": "MxPROVIDERIDENTITY0000000000000000000000000000000000000000000001",
+    "publicKey": "0x1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "service": {
+    "type": "omnia-lsp",
+    "name": "Invalid Key Provider",
+    "version": "1.0.0",
+    "relayUrl": "wss://api.axia.to/api/relay/ws"
+  },
+  "channel": {
+    "partyId": "party-invalid-key",
+    "publicKeyDigest": "not-a-32-byte-hex",
+    "settlementAddress": "MxPROVIDERSETTLEMENT000000000000000000000000000000000000000000002"
+  },
+  "assets": [
+    {
+      "tokenId": "0x00",
+      "scale": 44,
+      "inboundCapacity": "1000",
+      "outboundCapacity": "1000",
+      "minChannel": "10",
+      "maxChannel": "500"
+    }
+  ],
+  "fees": {},
+  "terms": {
+    "lease": false,
+    "jit": false,
+    "closePolicy": "either"
+  },
+  "custody": {
+    "mode": "self",
+    "canMoveFunds": false
+  },
+  "publishedAt": 1735689600000,
+  "expiresAt": 4102444800000,
+  "sequence": 1
+}

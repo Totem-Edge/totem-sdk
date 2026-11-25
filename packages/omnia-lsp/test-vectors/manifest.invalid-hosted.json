@@ -1,0 +1,41 @@
+{
+  "version": "omnia-lsp/v1",
+  "providerId": "prov-hosted-without-disclosure",
+  "identity": {
+    "address": "MxPROVIDERIDENTITY0000000000000000000000000000000000000000000001"
+  },
+  "service": {
+    "type": "omnia-lsp",
+    "name": "Hosted Provider",
+    "version": "1.0.0",
+    "relayUrl": "wss://api.axia.to/api/relay/ws"
+  },
+  "channel": {
+    "partyId": "party-hosted",
+    "publicKeyDigest": "0x2222222222222222222222222222222222222222222222222222222222222222",
+    "settlementAddress": "MxPROVIDERSETTLEMENT000000000000000000000000000000000000000000002"
+  },
+  "assets": [
+    {
+      "tokenId": "0x00",
+      "scale": 44,
+      "inboundCapacity": "1000",
+      "outboundCapacity": "1000",
+      "minChannel": "10",
+      "maxChannel": "500"
+    }
+  ],
+  "fees": {},
+  "terms": {
+    "lease": false,
+    "jit": false,
+    "closePolicy": "either"
+  },
+  "custody": {
+    "mode": "hosted",
+    "canMoveFunds": true
+  },
+  "publishedAt": 1735689600000,
+  "expiresAt": 4102444800000,
+  "sequence": 1
+}

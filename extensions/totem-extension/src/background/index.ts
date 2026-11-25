@@ -20,6 +20,7 @@ import { activeChainProviderStore, resolveActiveChainProvider } from '../core/co
 import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createWalletForwarding, createDurableHtlcLinkJournal, createStorageCoordinationStore, type WalletCoordination, type WalletApprovalRequest, type ChannelFactory, type QuiescedChannel, type WalletForwarding } from '@totemsdk/omnia-relay';
 import { computeIdentityId } from '@totemsdk/identity';
 import {
+  createAxiaFundingProofProvider,
   createChainFundingProofProvider,
   createWalletFundingWitnessBuilder,
   type ChannelIdentity,
@@ -60,6 +61,9 @@ import { serializeMMRProof } from '@totemsdk/core';
 import { scriptFromWotsPk } from '@totemsdk/core';
 import { scriptToAddress } from '@totemsdk/core';
 import { encodeMx, hexToBytes } from '@totemsdk/core';
+import { HostedProvider } from '@totemsdk/chain-provider';
+import { OmniaAxiaLeaseProvider } from '@totemsdk/wots-lease';
+import { getApiBase, getProjectId } from '../core/api/base';
 import { TxSendLogger, TxSignLogger, generateTxCorrelationId } from '../core/transaction/TxLogger';
 import { quotaTracker } from '../core/api/QuotaTracker';
 
@@ -1173,14 +1177,77 @@ function getExtensionLease(): Promise<import('@totemsdk/wots-lease').WotsLeasePr
         const store = activeChainProviderStore();
         const config = await loadWalletNetworkConfig(store);
         const storage = new IdbStore({ databaseName: 'totem-extension-lease', storeName: 'kv' });
+
+        // Axia mode: Omnia signs arbitrary channel state/funding digests, but
+        // the Axia lease API is transaction-shaped. Use the Omnia adapter that
+        // leases the wallet's per-address slot and keys the local watermark by
+        // the Omnia channel tree id.
+        if (config.lease.mode === 'axia') {
+          const rootPublicKey = walletManager.getRootPublicKey();
+          if (!rootPublicKey) return null;
+          const [apiUrl, apiKey] = await Promise.all([getApiBase(), getProjectId()]);
+          return new OmniaAxiaLeaseProvider({
+            apiUrl,
+            apiKey,
+            rootPublicKey,
+            addressIndex: 0,
+            storage,
+          });
+        }
+
         return buildWalletLeaseProvider(config.lease, { storage, deviceId: 'extension' });
       } catch (err) {
-        console.warn('[connect] failed to construct self-hosted lease provider:', err);
+        console.warn('[connect] failed to construct WOTS lease provider:', err);
         return null;
       }
     })();
   }
   return extensionLeasePromise;
+}
+
+/**
+ * Omnia defaults to a **local** WOTS lease store. Omnia signs arbitrary channel
+ * digests, so local storage avoids the transaction-shaped Axia lease quota and
+ * keeps per-channel watermarks durable across restarts. A user can explicitly
+ * opt into the Axia hardened lease service for Omnia by setting
+ * `OMNIA_AXIA_LEASE=true` in extension storage.
+ */
+let omniaLeasePromise: Promise<import('@totemsdk/wots-lease').WotsLeaseProvider | null> | undefined;
+function getOmniaLease(): Promise<import('@totemsdk/wots-lease').WotsLeaseProvider | null> {
+  if (!omniaLeasePromise) {
+    omniaLeasePromise = (async () => {
+      try {
+        const storage = new IdbStore({
+          databaseName: 'totem-extension-omnia-lease',
+          storeName: 'kv',
+        });
+
+        const stored = await chrome.storage.local.getTyped(['OMNIA_AXIA_LEASE']);
+        if (stored.OMNIA_AXIA_LEASE === true) {
+          const rootPublicKey = walletManager.getRootPublicKey();
+          if (rootPublicKey) {
+            const [apiUrl, apiKey] = await Promise.all([getApiBase(), getProjectId()]);
+            return new OmniaAxiaLeaseProvider({
+              apiUrl,
+              apiKey,
+              rootPublicKey,
+              addressIndex: 0,
+              storage,
+            });
+          }
+        }
+
+        return buildWalletLeaseProvider(
+          { mode: 'local' },
+          { storage, deviceId: 'extension-omnia' },
+        );
+      } catch (err) {
+        console.warn('[connect] failed to construct Omnia lease provider:', err);
+        return null;
+      }
+    })();
+  }
+  return omniaLeasePromise;
 }
 
 /**
@@ -1317,10 +1384,16 @@ function wireExtensionCoordination(
 async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmniaRelayClient>> {
   const base = createOmniaRelayClient({ autoAccept: false });
   try {
-    const leaseProvider = await getExtensionLease();
+    const leaseProvider = await getOmniaLease();
     if (!leaseProvider) return base;
-    const chain = await resolveActiveChainProvider();
-    if (!chain) return base;
+
+    const activeChain = await resolveActiveChainProvider();
+    const [apiBase, apiKey] = await Promise.all([getApiBase(), getProjectId()]);
+    // Axia mode has no self-hosted chain provider; use the hosted provider for
+    // channel reads/broadcast. Funding proofs come from the Axia hardened
+    // lease + coinproofs service instead of coinexport.
+    const chainProvider = activeChain?.provider ?? new HostedProvider({ baseUrl: apiBase, apiKey });
+
     const addressIndex = 0;
     const treeKey = walletManager.getPerAddressTreeKey(addressIndex);
     if (!treeKey) return base; // wallet locked
@@ -1342,23 +1415,28 @@ async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmni
       participant.partyId = identity.id;
     }
 
+    const fundingScript = scriptFromWotsPk(treeKey.getPublicKey());
+    const fundingProofs = activeChain
+      ? createChainFundingProofProvider(chainProvider)
+      : createAxiaFundingProofProvider({ apiBase, apiKey, fundingScript });
+
     const client = createOmniaRelayClient({
       autoAccept: false,
       signer,
       leaseProvider,
-      chainProvider: chain.provider,
+      chainProvider,
       localParticipant: participant,
       // The wallet owns the funding coin, so only the wallet may build/sign the
       // funding witness. dApps supply the coin id and terms, never the witness.
       fundingWitnessBuilder: createWalletFundingWitnessBuilder({
         signer,
         leaseProvider,
-        proofs: createChainFundingProofProvider(chain.provider),
+        proofs: fundingProofs,
       }),
     });
     // RFC-035 B5: wire peer coordination to this client's swarm (accepts fail
     // closed until a per-operation approval UI exists).
-    wireExtensionCoordination(client, signer, leaseProvider, chain.provider);
+    wireExtensionCoordination(client, signer, leaseProvider, chainProvider);
     return client;
   } catch (err) {
     console.warn('[connect] omnia signing material unavailable:', err);
