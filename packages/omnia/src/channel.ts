@@ -452,6 +452,9 @@ export async function acceptChannel(
     // channel output coin is not on-chain yet. Poll for it (bounded) instead of
     // failing immediately.
     let coin = await provider.getCoin(proposal.fundingCoinId);
+    if (process.env.OMNIA_DEBUG) {
+      console.error('[omnia-accept] coin lookup', proposal.fundingCoinId, coin ? `${coin.amount} ${coin.address}` : 'null');
+    }
     if (!coin) {
       const deadline = Date.now() + FUNDING_COIN_WAIT_MS;
       while (!coin && Date.now() < deadline) {
@@ -489,6 +492,9 @@ export async function acceptChannel(
     if (minConfirmations > 0) {
       const tip = await provider.getTip();
       const confirmations = confirmationsAt(coin, tip.block);
+      if (process.env.OMNIA_DEBUG) {
+        console.error('[omnia-accept] tip', tip.block, 'created', coin.created, 'confirmations', confirmations);
+      }
       fundingConfirmed = confirmations !== null && confirmations >= minConfirmations;
     } else {
       fundingConfirmed = true;

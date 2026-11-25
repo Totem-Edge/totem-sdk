@@ -91,4 +91,41 @@ describe('omnia-host JSON-RPC methods', () => {
     expect(view.latestState.stateVariables[0].value).toBe('4');
     await expect(methods.get('totem_omniaGetChannelState')!({ channelId: 'missing' })).rejects.toThrow(/not found/);
   });
+
+  it('activates an opening channel once its funding coin is confirmed', async () => {
+    const channels = new Map<string, any>([['channel-1', {
+      channelId: 'channel-1',
+      status: 'opening',
+      channelType: 'direct',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: atoms('10'),
+      currentSequence: 0,
+      fundingCoinId: 'coin',
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'a', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'b', addressIndex: 1 },
+      ],
+      balances: { alice: atoms('6'), bob: atoms('4') },
+      pendingHTLCs: [],
+      stateLog: [],
+      createdAt: 1,
+      updatedAt: 2,
+    }]]);
+    const methods = createHostMethods({
+      channels,
+      routing: new InProcessRoutingProvider(),
+      chainProvider: {
+        getCoin: async () => ({
+          coinid: 'coin', amount: '10', address: 'addr', tokenid: '0x00',
+          spent: false, created: 10,
+        }),
+        getTip: async () => ({ block: 11 }),
+      } as any,
+    });
+
+    const view = await methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, any>;
+    expect(view.status).toBe('active');
+    expect(channels.get('channel-1')!.status).toBe('active');
+  });
 });

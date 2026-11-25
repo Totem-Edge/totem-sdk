@@ -2816,9 +2816,11 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const channelId = requiredString(params, 'channelId');
     let channel = context.channels.get(channelId);
     if (!channel) throw new Error(`Channel ${channelId} not found`);
-    // The acceptor does not see the funding confirmation event. Re-check on
-    // read so a channel becomes active once its funding coin is buried enough.
-    if (channel.status === 'funding_pending' && context.chainProvider) {
+    // Neither side sees a funding-confirmation event (the acceptor starts in
+    // `funding_pending`, the initiator in `opening` while the funding tx is
+    // still shallow). Re-check on read so both sides become active once the
+    // funding coin is buried enough.
+    if ((channel.status === 'funding_pending' || channel.status === 'opening') && context.chainProvider) {
       try {
         const coin = await context.chainProvider.getCoin(channel.fundingCoinId);
         const tip = await context.chainProvider.getTip();

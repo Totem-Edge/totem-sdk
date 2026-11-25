@@ -631,6 +631,48 @@ wallet path. The extension's quote/approval/funding-witness e2e and the live
 Axia lease/coinproof path remain. The channel used a 2-block contest delay on
 the test chain; mainnet uses the default floor.
 
+### 2026-11-25 — S4 on mainnet (AWS A/B, real MIN)
+
+**Chain repair first.** The A mainnet node (`hawk-node 0.3.3`, standalone,
+`megammr` disabled) could not spend its 0.3 MIN: `send` and channel funding both
+failed with `MMRProof::getProofChunk index out of range (const)`. The exception
+is raised by `MMR::updateEntry` when the input coin proof does not line up with
+the local TxPoW-tree MMR. The wallet coin itself was canonical (`created
+2438366`, coin `0xCA0799F3…`, block `0x0000003D90…` matched the Axia archive
+node), so the wallet was never wiped. `archive action:resync
+host:eurobuddha.com:9001` refilled the archive but did not repair the tree MMR.
+Fix: stop the node, move `chaintree.db*`, `txpowsql/` and `archivesql/` aside
+(wallet and `cascade.db` kept), restart. The tree re-synced from the cascade tip
+(`2436579` → `tree_root 2436580`, `tree_size 2143`) and rebuilt a consistent
+MMR; the wallet coin re-derived the same `mmrentry 1802859`. Spend test:
+`send` 0.001 MIN to `0x4BE7EDD0…` mined at block `2438708` (change `0.299` at
+`0x8AA2377A…`). An encrypted wallet backup and a full data tar were taken (and
+copied to S3) before the repair, and no second copy of the seed was ever
+signing.
+
+**Mainnet run:** hosts restarted with the mainnet RPC (`127.0.0.1:9005` on A,
+`172.31.68.246:9005` from B) and no `S4_NUDGE_BLOCKS`. From `b6db015d` /
+current dist (`omnia-host 0.15.1`):
+
+```text
+A coordinator-a 0x688D…BCF8
+B coordinator-b 0x7B65…802F
+funding coin 0x2D6B4ADF9869CADB9DDFDA630BDA6D267FD2C23E9F41F25B8613CA7B17FA1C0F (0.299 mainnet MIN)
+channel 0x256e7baa5db08a913be300507fd2356f
+A status active; initial 0.6 / 0.4
+pay 0.05 -> A seq 1 0.1294 / 0.1696; B seq 1 0.1294 / 0.1696
+settle 0x00000FF2928C5BAED9926E1AD998E2F7EF9F3CAACCA50F37F718B8914A72470F (block 2438727)
+on-chain outputs: 0.1294 -> A settlement 0xAF404257…, 0.1696 -> B settlement 0xA89E89FF…
+close -> both hosts report closed
+OMNIA_RESULT {... "sequence":1,"balances":{"coordinator-a":"0.1294","coordinator-b":"0.1696"},"pass":true}
+S4_PASS
+```
+
+The 0.299 channel output was the only funding input (`0x5CA0ABDF…`), so the
+settlement is the real mainnet proof for the repaired coin path. Remaining A
+node wallet balance after the run was 0.001 MIN (the spend-test change stays on
+the node; channel balances live at the Omnia settlement addresses).
+
 ## Run log
 
 | Date | Stage | Transport | SDK commit | Result | Evidence |
@@ -678,6 +720,7 @@ the test chain; mainnet uses the default floor.
 | 2026-10-23 | S4 cross-host (non-custodial) | native DHT (AWS A/B) | current dist (host 0.12.0) | PASS | open `0x27ba…`, pay 5M, settle `0x00028566…`; A closed / B active (close gap) |
 | 2026-11-24 | S4 cross-host (current dist) | native DHT (AWS A/B, solo test chain) | current dist (host 0.15.1) | PASS | channel `0x0ef5827a…`; 0.6/0.4 → 0.55/0.45; settle `0x000020CC…` (block 59); outputs 0.55/0.45 on-chain; mainnet blocked on wallet top-up |
 | 2026-11-25 | LSP-1 (provider-funded) | native DHT (AWS A/B, solo test chain) | current dist | PASS | host auto-selected provider coin; 0.4/0.6 → 0.45/0.55; settle `0x000033E5…`; close both |
+| 2026-11-25 | S4 (mainnet, real MIN) | native DHT (AWS A/B, mainnet A:9005) | current dist (host 0.15.1) | PASS | repaired 0.299 MIN coin; channel `0x256e7baa…`; 0.6/0.4 → 0.1294/0.1696 after 0.05 pay; settle `0x00000FF2…` (block 2438727); outputs 0.1294/0.1696 on-chain |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`

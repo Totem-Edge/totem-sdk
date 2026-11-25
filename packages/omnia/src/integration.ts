@@ -383,6 +383,9 @@ async function _handleChannelProposal(
       config.onChannelAccepted?.(existing, peer);
       return;
     }
+    if (process.env.OMNIA_DEBUG) {
+      console.error('[omnia-integration] acceptChannel start', proposal.channelId, 'coin', proposal.fundingCoinId);
+    }
     const channel = await acceptChannel(proposal, config.chainProvider, 1, {
       localPublicKeyDigest: enforcing ? config.signer?.publicKeyDigest : undefined,
       // `peer.pubkey` is the authenticated transport identity of the proposer.
@@ -391,6 +394,9 @@ async function _handleChannelProposal(
       allowShortContestDelay: config.allowShortContestDelay
         ?? process.env.OMNIA_ALLOW_SHORT_CONTEST_DELAY === '1',
     });
+    if (process.env.OMNIA_DEBUG) {
+      console.error('[omnia-integration] acceptChannel done', proposal.channelId, channel.status);
+    }
     store.set(channel.channelId, channel);
 
     if (bindPeer) {
@@ -400,6 +406,10 @@ async function _handleChannelProposal(
     _sendAck(peer, channel.channelId, msg.nonce);
     config.onChannelAccepted?.(channel, peer);
   } catch (err) {
+    console.error(
+      '[omnia-integration] channel proposal rejected:',
+      err instanceof Error ? (err.stack ?? err.message) : String(err),
+    );
     _sendError(
       peer,
       msg.channelId,

@@ -14,6 +14,10 @@
  *   RPC_TOKEN                control-plane bearer token (default "test")
  *   S4_CONTEST_DELAY         contest delay blocks (default 2)
  *   S4_PAY_AMOUNT            off-chain payment amount in decimal MINIMA (default 1)
+ *   S4_AMOUNT_UNITS          "decimal" (current host) or "atoms" (host <=0.13.x)
+ *   S4_FUNDING_TARGET        minimum coin size to select, decimal (default 0.2)
+ *   B_TRANSPORT_PUBKEY       B's DHT transport key when whoami omits it
+ *   S4_NUDGE_BLOCKS          "1" posts tiny txs to advance a solo/test chain
  *
  * Flags:
  *   --json                   only print the final result JSON
@@ -34,6 +38,9 @@ const MINIMA_RPC_PASSWORD = process.env.MINIMA_RPC_PASSWORD ?? 'test';
 const RPC_TOKEN = process.env.RPC_TOKEN ?? 'test';
 const CONTEST_DELAY = Number(process.env.S4_CONTEST_DELAY ?? 2);
 const PAY_AMOUNT = process.env.S4_PAY_AMOUNT ?? '1';
+// omnia-host 0.14+ takes decimal MINIMA; 0.13.x takes integer atom strings.
+const AMOUNT_UNITS = process.env.S4_AMOUNT_UNITS ?? 'decimal';
+const hostAmount = (atoms) => (AMOUNT_UNITS === 'atoms' ? atoms.toString() : atomsToAmount(atoms));
 const JSON_ONLY = process.argv.includes('--json');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -88,26 +95,47 @@ async function main() {
 
   const coins = await node(NODE_A, 'coins');
   const list = Array.isArray(coins) ? coins : (coins?.coins ?? []);
-  const coin = list.find((c) => !c.spent && BigInt(c.amount) > 0n && (!c.tokenid || c.tokenid === '0x00'));
-  if (!coin) throw new Error('no spendable native coin on NODE_A');
+  const targetAtoms = amountToAtoms(process.env.S4_FUNDING_TARGET ?? '0.2');
+  // Smallest coin that covers the channel total: the remainder returns to the
+  // funding address as change, so a huge wallet coin is not locked in the channel.
+  const candidates = list
+    .filter((c) => !c.spent && (!c.tokenid || c.tokenid === '0x00'))
+    .map((c) => ({ coin: c, atoms: amountToAtoms(String(c.amount)) }))
+    .filter((c) => c.atoms > 0n)
+    .sort((a, b) => (a.atoms < b.atoms ? -1 : a.atoms > b.atoms ? 1 : 0));
+  const pool = candidates.some((c) => c.atoms >= targetAtoms)
+    ? candidates.filter((c) => c.atoms >= targetAtoms)
+    : candidates.slice(-1);
+  let coin;
+  let addr;
+  let exported;
+  for (const candidate of pool) {
+    const info = await node(NODE_A, `getaddressinfo address:${candidate.coin.address}`);
+    if (!info?.publickey || !info?.script) continue;
+    const proof = await node(NODE_A, `coinexport coinid:${candidate.coin.coinid}`);
+    if (!proof?.data) continue;
+    coin = candidate.coin;
+    addr = info;
+    exported = proof;
+    break;
+  }
+  if (!coin) throw new Error('no spendable native coin with a signable address on NODE_A');
   log('funding coin', coin.coinid, coin.amount);
-
-  const addr = await node(NODE_A, `getaddressinfo address:${coin.address}`);
-  const exported = await node(NODE_A, `coinexport coinid:${coin.coinid}`);
-  if (!addr?.publickey || !addr?.script) throw new Error('getaddressinfo missing publickey/script');
-  if (!exported?.data) throw new Error('coinexport missing data');
 
   // Node amounts are decimal MINIMA text; the RPC takes decimal text too.
   const totalAtoms = amountToAtoms(String(coin.amount));
   const localAtoms = (totalAtoms * 6n) / 10n;
-  const localAmount = atomsToAmount(localAtoms);
-  const remoteAmount = atomsToAmount(totalAtoms - localAtoms);
+  const localAmount = hostAmount(localAtoms);
+  const remoteAmount = hostAmount(totalAtoms - localAtoms);
+  const payAmount = hostAmount(amountToAtoms(PAY_AMOUNT));
 
   const opened = await host(HOST_A, 'totem_omniaOpenChannel', {
     operationId: `s4-open-${Date.now()}`,
     remotePartyId: whoB.identityId,
     remotePublicKeyDigest: whoB.publicKeyDigest,
+    remoteTransportPubkey: process.env.B_TRANSPORT_PUBKEY ?? whoB.transportPubkey,
     remoteAddressIndex: 0,
+    remoteSettlementAddress: whoB.settlementAddress,
     localAmount,
     remoteAmount,
     fundingCoinId: coin.coinid,
@@ -120,16 +148,37 @@ async function main() {
   if (!channelId) throw new Error(`openChannel returned no channelId: ${JSON.stringify(opened)}`);
   log('channel', channelId);
 
-  const active = await waitFor('channel active', 120, 1_000, async () => {
+  // Solo/test chains only mine a block when a transaction is posted. The
+  // funding output is created at the current tip (0 confirmations), so nudge
+  // one block before waiting for the channel to activate. Mainnet must never
+  // do this: gate it behind an explicit env flag.
+  const nudgeBlock = async () => {
+    const nudge = await node(NODE_A, 'newaddress');
+    if (nudge?.miniaddress) {
+      await node(NODE_A, `send address:${nudge.miniaddress} amount:0.000000001 mine:true`);
+    }
+  };
+  if (process.env.S4_NUDGE_BLOCKS === '1') {
+    await nudgeBlock();
+    log('nudged block');
+  }
+
+  let active;
+  for (let i = 0; i < 120; i += 1) {
     const state = await host(HOST_A, 'totem_omniaGetChannelState', { channelId });
-    return state.status === 'active' ? state : null;
-  });
+    if (state.status === 'active') { active = state; break; }
+    // A solo chain may have mined the funding tx and the first nudge into the
+    // same block; one more tx is needed to give the funding output depth.
+    if (process.env.S4_NUDGE_BLOCKS === '1' && i % 4 === 0) await nudgeBlock();
+    await sleep(1_000);
+  }
+  if (!active) throw new Error('channel active timed out (120 attempts)');
   log('A status', active.status, 'fundingCoin', active.fundingCoinId);
 
   const paid = await host(HOST_A, 'totem_omniaPay', {
     operationId: `s4-pay-${Date.now()}`,
     channelId,
-    amount: PAY_AMOUNT,
+    amount: payAmount,
   });
   log('pay', JSON.stringify(paid));
 
@@ -150,6 +199,7 @@ async function main() {
     const age = Number(tip.block) - created;
     if (i % 5 === 0) log('channel coinage', age, '/', CONTEST_DELAY + 1);
     if (age >= CONTEST_DELAY + 1) break;
+    if (process.env.S4_NUDGE_BLOCKS === '1' && i % 4 === 0) await nudgeBlock();
     await sleep(2_000);
     created = Number((await freshCoin())?.coinproof?.coin?.created ?? created);
   }

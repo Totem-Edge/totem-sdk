@@ -50,13 +50,17 @@ async function main() {
   console.log('A status', stateA.status, 'balances', JSON.stringify(stateA.balances), 'seq', stateA.currentSequence);
   console.log('B status', stateB.status, 'balances', JSON.stringify(stateB.balances), 'seq', stateB.currentSequence);
 
-  const paid = await host(HOST_A, 'totem_omniaPay', { operationId: `s4-pay-${Date.now()}`, channelId: CHANNEL_ID, amount: PAY_AMOUNT });
-  console.log('pay', JSON.stringify(paid));
-
-  const bUpdated = await waitFor('counterparty state update', 180, 1_000, async () => {
-    const s = await host(HOST_B, 'totem_omniaGetChannelState', { channelId: CHANNEL_ID });
-    return s.currentSequence >= 1 ? s : null;
-  });
+  let bUpdated = stateB;
+  if (process.env.S4_SKIP_PAY === '1') {
+    console.log('skip pay; continuing at sequence', stateB.currentSequence);
+  } else {
+    const paid = await host(HOST_A, 'totem_omniaPay', { operationId: `s4-pay-${Date.now()}`, channelId: CHANNEL_ID, amount: PAY_AMOUNT });
+    console.log('pay', JSON.stringify(paid));
+    bUpdated = await waitFor('counterparty state update', 180, 1_000, async () => {
+      const s = await host(HOST_B, 'totem_omniaGetChannelState', { channelId: CHANNEL_ID });
+      return s.currentSequence >= 1 ? s : null;
+    });
+  }
   const aUpdated = await host(HOST_A, 'totem_omniaGetChannelState', { channelId: CHANNEL_ID });
   console.log('A seq', aUpdated.currentSequence, JSON.stringify(aUpdated.balances));
   console.log('B seq', bUpdated.currentSequence, JSON.stringify(bUpdated.balances));
@@ -64,12 +68,24 @@ async function main() {
   const contestDelay = Number(stateA.contestDelayBlocks ?? 2);
   let created = 0;
   for (let i = 0; i < 300; i += 1) {
-    const c = await node(`coinexport coinid:${stateA.fundingCoinId}`);
-    created = Number(c?.coinproof?.coin?.created ?? 0);
+    let c;
+    try {
+      c = await node(`coinexport coinid:${stateA.fundingCoinId}`);
+    } catch {
+      await sleep(2_000);
+      continue;
+    }
+    created = Number(c?.coinproof?.coin?.created ?? created);
     const tip = await node('getchaintip');
     const age = Number(tip.block) - created;
     if (i % 5 === 0) console.log('channel coinage', age, '/', contestDelay + 1);
     if (age >= contestDelay + 1) break;
+    if (process.env.S4_NUDGE_BLOCKS === '1' && i % 4 === 0) {
+      const addr = await node('newaddress');
+      if (addr?.miniaddress) {
+        await node(`send address:${addr.miniaddress} amount:0.000000001 mine:true`);
+      }
+    }
     await sleep(2_000);
   }
   const channelExport = await node(`coinexport coinid:${stateA.fundingCoinId}`);
