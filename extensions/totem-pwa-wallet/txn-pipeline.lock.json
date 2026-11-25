@@ -1,10 +1,10 @@
 {
   "src/core/buildTxnRow.ts": "49d1162e59fd1a4313185fc8197830839673c7523efd7e5f7168879d9434fa7e",
   "src/core/api.ts": "1dc412e281a49d75a0aa67881b99cd1b1321737a9d4901750ecd1cf325fd52a1",
-  "src/pages/Send.tsx": "9b35094315d2932136f6f7563e2f0277829c706a635e24ea621b6b5147a1dbe4",
-  "../totem-extension/src/core/transaction/service.ts": "25c098556ee1de4b7e61a4fb57a6f401aa215ad88d5346a34129a0ae6b802af8",
-  "../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts": "12b8f330193abb7a6347e09702d28a9b188bebf86b05962d1680e2f8179a77cc",
-  "../totem-extension/src/core/transaction/useSendTransaction.ts": "f02655ba88d13367ba4a84d6fd228b5d6735723c544f8670496e50113797d939",
+  "src/pages/Send.tsx": "9cb741c8393419b2da28859fbc4c6272beb98abad4594a1f60b09211da2e6928",
+  "../totem-extension/src/core/transaction/service.ts": "11272a8782a274df8fd8d8fd607bccfa4a490ca4867b2e4169298d9d46fad891",
+  "../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts": "4d93590d6ba341ec9f27a55e4cd26b1c1bdc1280435da93ce0dbdae360551e8f",
+  "../totem-extension/src/core/transaction/useSendTransaction.ts": "4d0c1d2cb3d5548911a18dcf1261561e3befc11a41867a994d5533a915688f65",
   "../totem-extension/src/core/transaction/hawkTransactionService.ts": "d3a1b5009552a77f88f48411cc016bc0c3a5f6c67eb67f03f2b0f54441356373",
   "../../../axia-platform/packages/axia-api/src/wots/finalize.ts": "32dabde026408b760cd1966814b1772c0486466722c820e6146952f5aaec0354"
 }
