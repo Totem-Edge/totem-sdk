@@ -1,5 +1,6 @@
 import { createOmniaRelayClient } from '@totemsdk/omnia-relay';
 import { isSharedConnectMethod, dispatchSharedConnectMethod, configurePwaWalletRuntime } from '../core/connect/walletRuntime';
+import { APP_VERSION } from '../version';
 
 // RFC-034 A4: install execution ports so the shared connect runtime serves the
 // Omnia method family instead of resolving every method `unsupported`. The
@@ -584,7 +585,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
 
   const totemProvider = {
     isTotem: true as const,
-    version: '1.0.0' as const,
+    version: APP_VERSION,
 
     request(args: { method: string; params?: Record<string, unknown> }): Promise<unknown> {
       const { method, params } = args;
@@ -632,7 +633,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
 
       if (method === 'totem_getCapabilities') {
         return Promise.resolve({
-          version: '1.0.0',
+          version: APP_VERSION,
           wallet: {
             selfCustody: true,
             wotsTreeKey: true,
@@ -862,7 +863,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
             id: 'totem-pwa',
             name: 'Totem Wallet',
             icon: `${WALLET_ORIGIN}${withBase('/icons/totem.svg')}`,
-            version: '1.0.0',
+            version: APP_VERSION,
           },
           provider: totemProvider,
         },
@@ -875,7 +876,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
           id: 'totem-pwa',
           name: 'Totem Wallet',
           icon: `${WALLET_ORIGIN}/icons/totem.svg`,
-          version: '1.0.0',
+          version: APP_VERSION,
         },
         provider: totemProvider,
       },

@@ -10,6 +10,7 @@
 import { createWalletRuntime, deriveOmniaCapabilities, isConnectMethod } from '@totemsdk/connect';
 import type { WalletHandlerContext, WalletCapabilityManifest, WalletRuntime } from '@totemsdk/connect';
 import type { OmniaSupportProbe, TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
+import { APP_VERSION } from '../../version';
 
 // RFC-035 B5: the Omnia claim tracks the installed port, so Axia lease mode
 // (no signing material) cannot over-claim a signing-required operation.
@@ -19,7 +20,7 @@ export function setPwaOmniaPort(port: OmniaSupportProbe | undefined): void {
 }
 
 const PWA_CAPABILITIES: TotemCapabilities = {
-  version: '1.0.0',
+  version: APP_VERSION,
   wallet: {
     selfCustody: true,
     wotsTreeKey: true,
@@ -58,7 +59,7 @@ const PWA_STATUS: TotemProviderStatus = {
 
 const PWA_INFO = {
   wallet: 'totem-pwa',
-  version: '1.0.0',
+  version: APP_VERSION,
   capabilities: PWA_CAPABILITIES,
   status: PWA_STATUS,
 } as const;

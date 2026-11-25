@@ -16,6 +16,7 @@ import {
 import { WalletPasswordInput } from '../components/WalletPasswordInput';
 import { ConnectedSitesStore, type ConnectedSite, type TxPermission } from '../stores/ConnectedSitesStore';
 import { applyTheme, storedTheme, themeList, THEME_STORAGE_KEY, type ThemeId } from '../theme/themes';
+import { APP_VERSION } from '../version';
 
 const AXIA_BASE = import.meta.env.VITE_AXIA_API_BASE ?? 'https://api.axia.to';
 const AXIA_PROJECT_ID = import.meta.env.VITE_AXIA_PROJECT_ID ?? 'totem-shared';
@@ -518,7 +519,7 @@ export function Settings() {
         </div>
 
         <p style={{ color: 'var(--text-disabled)', fontSize: 'var(--text-xs)', textAlign: 'center' }}>
-          Totem PWA Wallet v1.0.0 · wallet.totem.ing
+          Totem PWA Wallet v{APP_VERSION} · wallet.totem.ing
         </p>
       </div>
     </div>

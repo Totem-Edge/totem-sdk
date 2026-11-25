@@ -1,6 +1,6 @@
 {
   "name": "totem-pwa-wallet",
-  "version": "1.0.0",
+  "version": "1.0.28",
   "private": true,
   "description": "Self-custodial Totem PWA wallet \u2014 installable, cross-origin embeddable via provider.js",
   "repository": {

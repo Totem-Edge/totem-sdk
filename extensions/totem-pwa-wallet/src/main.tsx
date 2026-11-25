@@ -5,6 +5,7 @@ import './theme/axia-tokens.css';
 import { applyTheme, storedTheme } from './theme/themes';
 import { init as initObs, track } from './core/observability';
 import { ensureWasm } from './core/wasm';
+import { APP_VERSION } from './version';
 
 // Apply the saved palette before React renders so there is no flash of the
 // default theme on cold start.
@@ -13,7 +14,7 @@ applyTheme(storedTheme());
 initObs({
   dappId: import.meta.env.VITE_OBS_DAPP_ID ?? 'totem-pwa-wallet',
   endpoint: import.meta.env.VITE_OBS_ENDPOINT ?? 'https://api.axia.to/v1/telemetry',
-  clientVersion: '1.0.0',
+  clientVersion: APP_VERSION,
 });
 
 // Track PWA install events for observability
