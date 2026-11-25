@@ -49,6 +49,8 @@ function activeObserver(fundingAddress: string, amount: bigint) {
       created: '1',
     }],
     getTip: async () => ({ block: 100 }),
+    // Lineage evidence (OMN-072): the successor must be an output of the splice.
+    getTransactionOutputs: async () => ['0x' + '77'.repeat(32)],
   };
 }
 
@@ -676,6 +678,7 @@ describe('finalizeSplice', () => {
       chainProvider: {
         getCoins: async () => [successor],
         getTip: async () => ({ block: 10 }),
+        getTransactionOutputs: async () => [successor.coinid],
       },
       confirmations: 2,
       successorTimeoutMs: 0,
@@ -696,6 +699,7 @@ describe('finalizeSplice', () => {
       chainProvider: {
         getCoins: async () => [{ ...successor, created: '10' }],
         getTip: async () => ({ block: 10 }),
+        getTransactionOutputs: async () => [successor.coinid],
       },
       confirmations: 3,
       successorTimeoutMs: 0,

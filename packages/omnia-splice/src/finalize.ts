@@ -76,8 +76,18 @@ export interface FinalizeSpliceOptions {
   successorTimeoutMs?: number;
   /** Observation poll interval. Default 1s. */
   successorPollMs?: number;
-  /** Durable journal written before broadcast, cleared after confirmation. */
+  /**
+   * Durable journal written before broadcast, cleared after confirmation.
+   *
+   * Every production entry carries `expected` so recovery reconciles against
+   * the splice's own successor rather than one global observation (OMN-073).
+   */
   pendingSpliceStore?: PendingSpliceStore;
+  /**
+   * Activate the channel even when the chain surface cannot prove the successor
+   * was created by this splice. Default false (OMN-072).
+   */
+  allowUnverifiedLineage?: boolean;
   /** Serialized Minima CoinProof for every spending input (OMN-053). */
   coinProofs?: Uint8Array[];
   /** Serialized Minima ScriptProof for every spending input (OMN-053). */
@@ -310,6 +320,11 @@ export async function finalizeSplice(
         txHex,
         txpowId: spliceFundingTxId,
         broadcastAt: Date.now(),
+        expected: {
+          address: (channel as unknown as OmniaChannel).fundingAddress,
+          tokenId: (channel as unknown as OmniaChannel).tokenId,
+          amount: proposal.params.newTotalValue.toString(),
+        },
       };
       await options.pendingSpliceStore?.save(record);
       const result = await options.broadcast(txHex);
@@ -361,17 +376,20 @@ export async function finalizeSplice(
       confirmations: options.confirmations ?? 1,
       timeoutMs: options.successorTimeoutMs ?? 30_000,
       pollIntervalMs: options.successorPollMs ?? 1_000,
+      // A coin at the channel address with the right numbers is not proof that
+      // this splice created it (OMN-072). Require the creator to match.
+      spliceTxpowId: spliceFundingTxId,
+      predecessorCoinId: (channel as unknown as OmniaChannel).fundingCoinId,
+      ...(options.allowUnverifiedLineage === true ? { allowUnverifiedLineage: true } : {}),
     });
     if (observed) {
       spliceFundingCoinId = observed.coinId;
-      successorStatus = observed.confirmed ? 'active' : 'funding_pending';
+      const activatable = observed.confirmed
+        && (observed.lineageVerified || options.allowUnverifiedLineage === true);
+      successorStatus = activatable ? 'active' : 'funding_pending';
     } else {
       successorStatus = 'funding_pending';
     }
-  }
-
-  if (successorStatus === 'active') {
-    await options?.pendingSpliceStore?.clear(proposal.spliceId);
   }
 
   const splicedChannel: SplicedChannel = {
@@ -404,6 +422,16 @@ export async function finalizeSplice(
   // Mark the old (quiesced) channel as spliced — it is now invalidated.
   // Any further operations on `channel` should be rejected by status checks.
   (channel as unknown as OmniaChannel).status = 'spliced';
+
+  // Clear the recovery journal only once the successor object exists. If the
+  // process dies before the caller persists `splicedChannel`, the entry is still
+  // there and recovery re-observes instead of leaving an on-chain successor with
+  // no local record (OMN-074). Persisting the successor itself is the caller's
+  // responsibility; a shared store that can write both in one transaction is the
+  // durable fix tracked for the cross-package journal work.
+  if (successorStatus === 'active') {
+    await options?.pendingSpliceStore?.clear(proposal.spliceId);
+  }
 
   return splicedChannel;
 }

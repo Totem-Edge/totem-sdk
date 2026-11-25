@@ -158,6 +158,7 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
             created: '1',
           }],
           getTip: async () => ({ block: 100 }),
+          getTransactionOutputs: async () => ['0x' + '77'.repeat(32)],
         },
       },
       onFinalized: (s) => {
@@ -216,6 +217,7 @@ describe('splice coordination round-trip (RFC-035 B1)', () => {
             created: '1',
           }],
           getTip: async () => ({ block: 100 }),
+          getTransactionOutputs: async () => ['0x' + '77'.repeat(32)],
         },
       },
       onFinalized: (s) => {

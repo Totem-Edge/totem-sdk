@@ -27,8 +27,17 @@ export interface SpliceChainObserver {
     spent?: boolean;
     created?: string;
     mmrentry?: string;
+    /** Creating TxPoW id, when the chain surface can report it. */
+    createdBy?: string;
   }>>;
   getTip(): Promise<{ block: number }>;
+  /**
+   * Coin ids created by a transaction. This is the only authoritative lineage
+   * evidence: Minima derives an output coin id from the first input's coin id
+   * and the output index, and a splice's channel input floats (COINID_ELTOO), so
+   * the successor's coin id cannot be predicted from the draft.
+   */
+  getTransactionOutputs?(txpowid: string): Promise<string[]>;
 }
 
 export interface SpliceSuccessorOptions {
@@ -44,6 +53,21 @@ export interface SpliceSuccessorOptions {
   timeoutMs?: number;
   /** Poll interval. Default 1s. */
   pollIntervalMs?: number;
+  /**
+   * The splice transaction that must have created the successor. When supplied,
+   * a candidate whose creator is known and different is discarded, and the
+   * observation reports whether lineage could actually be established.
+   */
+  spliceTxpowId?: string;
+  /** The old funding coin the splice spends; never a valid successor. */
+  predecessorCoinId?: string;
+  /**
+   * Accept a successor whose lineage the chain surface cannot prove. Default
+   * false: address, token and amount are not identity — anyone can pay the
+   * channel address with a matching amount, and the observation would adopt a
+   * coin this splice did not create (OMN-072).
+   */
+  allowUnverifiedLineage?: boolean;
   /** Absolute deadline override (used by recovery paths). */
   now?: () => number;
   /** Injected sleep (tests). */
@@ -54,12 +78,19 @@ export interface ObservedSuccessor {
   coinId: string;
   confirmations: number;
   confirmed: boolean;
+  /**
+   * True when the successor is proven to have been created by `spliceTxpowId`.
+   * False means the chain surface could not prove it; callers must not treat
+   * the channel as active on that basis unless they opted in.
+   */
+  lineageVerified: boolean;
   coin: {
     coinid: string;
     amount: string;
     address: string;
     tokenid: string;
     created?: string;
+    createdBy?: string;
   };
 }
 
@@ -70,6 +101,14 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
  * coin. A coin with `spent: true` is never a valid successor. Confirmation
  * depth is derived from the coin's creation height when the provider supplies
  * it; otherwise it is treated as unconfirmed.
+ *
+ * Successor identity is NOT address + token + amount: those fields are public,
+ * so a third party can pay the channel address an identical amount and the coin
+ * would be indistinguishable (OMN-072). When `spliceTxpowId` is supplied, the
+ * candidate must be provably created by that transaction — via
+ * `getTransactionOutputs()` or a coin's `createdBy` — and such a candidate is
+ * reported with `lineageVerified: true`. A candidate whose creator is known and
+ * different is discarded outright.
  */
 export async function observeSpliceSuccessor(
   chain: SpliceChainObserver,
@@ -81,15 +120,46 @@ export async function observeSpliceSuccessor(
   const now = options.now ?? (() => Date.now());
   const sleep = options.sleep ?? defaultSleep;
   const deadline = now() + timeoutMs;
+  const predecessor = options.predecessorCoinId?.toLowerCase();
+
+  /** Outputs of the splice tx, when the chain surface can report them. */
+  let spliceOutputs: Set<string> | null = null;
+  if (options.spliceTxpowId && chain.getTransactionOutputs) {
+    try {
+      const outputs = await chain.getTransactionOutputs(options.spliceTxpowId);
+      spliceOutputs = new Set(outputs.map((id) => id.toLowerCase()));
+    } catch {
+      spliceOutputs = null;
+    }
+  }
+
+  function lineageOf(candidate: { coinid: string; createdBy?: string }): 'verified' | 'contradicted' | 'unknown' {
+    if (spliceOutputs) {
+      return spliceOutputs.has(candidate.coinid.toLowerCase()) ? 'verified' : 'contradicted';
+    }
+    if (options.spliceTxpowId && candidate.createdBy) {
+      return candidate.createdBy.toLowerCase() === options.spliceTxpowId.toLowerCase()
+        ? 'verified'
+        : 'contradicted';
+    }
+    return 'unknown';
+  }
 
   for (;;) {
     const coins = await chain.getCoins({ address: options.address, tokenId: options.tokenId });
-    const candidates = coins.filter((coin) =>
+    const matching = coins.filter((coin) =>
       !coin.spent
       && coin.address.toLowerCase() === options.address.toLowerCase()
       && coin.tokenid.toLowerCase() === options.tokenId.toLowerCase()
       && coinAmountAtoms(coin) === options.amount,
-    );
+    ).filter((coin) => !predecessor || coin.coinid.toLowerCase() !== predecessor);
+
+    // Discard coins the splice demonstrably did not create; prefer proven ones.
+    const verified = matching.filter((coin) => lineageOf(coin) === 'verified');
+    const unknown = matching.filter((coin) => lineageOf(coin) === 'unknown');
+    const candidates = verified.length > 0 ? verified : unknown;
+    const lineageVerified = verified.length > 0;
+
     // CAN-012: the channel input floats (COINID_ELTOO), so the coin id cannot be
     // predicted from the transaction. Two coins matching the same address, token
     // and amount are indistinguishable here; picking the first would silently
@@ -102,12 +172,21 @@ export async function observeSpliceSuccessor(
     }
     const candidate = candidates[0];
 
+    if (options.spliceTxpowId && candidate && !lineageVerified && !options.allowUnverifiedLineage) {
+      // Present but unprovable. Return it with the flag false so the caller keeps
+      // the channel funding_pending instead of activating on a guess.
+      const tip = await chain.getTip();
+      const created = candidate.created !== undefined ? Number(candidate.created) : NaN;
+      const confirmations = Number.isFinite(created) && created > 0 ? Math.max(0, tip.block - created + 1) : 0;
+      return { coinId: candidate.coinid, confirmations, confirmed: confirmations >= required, lineageVerified: false, coin: candidate };
+    }
+
     if (candidate) {
       const tip = await chain.getTip();
       const created = candidate.created !== undefined ? Number(candidate.created) : NaN;
       const confirmations = Number.isFinite(created) && created > 0 ? Math.max(0, tip.block - created + 1) : 0;
       if (confirmations >= required) {
-        return { coinId: candidate.coinid, confirmations, confirmed: true, coin: candidate };
+        return { coinId: candidate.coinid, confirmations, confirmed: true, lineageVerified, coin: candidate };
       }
       // Found but not deep enough; keep polling until the deadline.
     }
@@ -117,7 +196,7 @@ export async function observeSpliceSuccessor(
         const tip = await chain.getTip();
         const created = candidate.created !== undefined ? Number(candidate.created) : NaN;
         const confirmations = Number.isFinite(created) && created > 0 ? Math.max(0, tip.block - created + 1) : 0;
-        return { coinId: candidate.coinid, confirmations, confirmed: confirmations >= required, coin: candidate };
+        return { coinId: candidate.coinid, confirmations, confirmed: confirmations >= required, lineageVerified, coin: candidate };
       }
       return null;
     }
@@ -183,6 +262,10 @@ export async function recoverInterruptedSplices(
     try {
       const options: SpliceSuccessorOptions = {
         ...observe,
+        // The journal records the exact TxPoW, so recovery can require the
+        // successor to have been created by it rather than by any coin that
+        // happens to match address/token/amount (OMN-072).
+        spliceTxpowId: record.txpowId,
         ...(record.expected
           ? {
               address: record.expected.address,
@@ -206,7 +289,7 @@ export async function recoverInterruptedSplices(
         }
         claimed.add(observed.coinId);
       }
-      if (observed?.confirmed) {
+      if (observed?.confirmed && (observed.lineageVerified || observe.allowUnverifiedLineage === true)) {
         await store.clear(record.spliceId);
         results.push({
           spliceId: record.spliceId,

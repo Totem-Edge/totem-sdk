@@ -104,6 +104,9 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       created: '1',
     }]);
     const getTip = jest.fn(async () => ({ block: 100 }));
+    // OMN-072: a successor is only adopted when the splice transaction created
+    // it, so the chain must report the transaction's outputs.
+    const getTransactionOutputs = jest.fn(async () => ['0x' + '77'.repeat(32)]);
     const getCoin = jest.fn(async (coinId: string) => ({
       coinid: coinId,
       amount: '500',
@@ -125,7 +128,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       },
       signer: alice.signer,
       leaseProvider: alice.leaseProvider,
-      chainProvider: { broadcastTxPoW, getCoins, getCoin, getTip },
+      chainProvider: { broadcastTxPoW, getCoins, getCoin, getTip, getTransactionOutputs },
       localParticipant: { partyId: 'alice', publicKeyDigest: alice.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
       swarm: { connectToPeer: jest.fn(async () => peer) },

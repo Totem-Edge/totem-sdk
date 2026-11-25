@@ -97,7 +97,11 @@ describe('recoverInterruptedSplices', () => {
     const journal = store([record]);
     const results = await recoverInterruptedSplices(
       journal,
-      { getCoins: async () => [coin({ created: '1' })], getTip: async () => ({ block: 100 }) },
+      {
+        getCoins: async () => [coin({ created: '1' })],
+        getTip: async () => ({ block: 100 }),
+        getTransactionOutputs: async () => ['0x' + '11'.repeat(32)],
+      },
       { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1 },
       async () => ({ success: true }),
     );
@@ -133,6 +137,7 @@ describe('recoverInterruptedSplices', () => {
           coin({ coinid: '0x' + '22'.repeat(32), amount: 2000, created: '1' }),
         ],
         getTip: async () => ({ block: 100 }),
+        getTransactionOutputs: async () => ['0x' + '11'.repeat(32), '0x' + '22'.repeat(32)],
       },
       { address: ADDRESS, tokenId: TOKEN, amount: 0n, confirmations: 1 },
       async () => ({ success: true }),
@@ -151,7 +156,11 @@ describe('recoverInterruptedSplices', () => {
     ]);
     const results = await recoverInterruptedSplices(
       journal,
-      { getCoins: async () => [coin({ created: '1' })], getTip: async () => ({ block: 100 }) },
+      {
+        getCoins: async () => [coin({ created: '1' })],
+        getTip: async () => ({ block: 100 }),
+        getTransactionOutputs: async () => ['0x' + '11'.repeat(32)],
+      },
       { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1 },
       async () => ({ success: true }),
     );
@@ -183,5 +192,106 @@ describe('recoverInterruptedSplices', () => {
       async () => ({ success: true }),
     );
     expect(journal.saved.map((entry) => entry.coinId)).toEqual(['0x' + '11'.repeat(32)]);
+  });
+});
+
+describe('observeSpliceSuccessor — successor lineage (OMN-072)', () => {
+  const SPLICE_TX = 'tx-splice-1';
+  const successorId = '0x' + '11'.repeat(32);
+
+  it('ignores a matching coin the splice transaction did not create', async () => {
+    const observed = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [
+          coin(),
+          coin({ coinid: '0x' + '99'.repeat(32), amount: 1500 }),
+        ],
+        getTip: async () => ({ block: 105 }),
+        // The splice only created the other output.
+        getTransactionOutputs: async () => ['0x' + '99'.repeat(32)],
+      },
+      {
+        address: ADDRESS,
+        tokenId: TOKEN,
+        amount: 1500n,
+        confirmations: 1,
+        timeoutMs: 0,
+        spliceTxpowId: SPLICE_TX,
+      },
+    );
+
+    expect(observed?.coinId).toBe('0x' + '99'.repeat(32));
+    expect(observed?.lineageVerified).toBe(true);
+  });
+
+  it('adopts nothing when every matching coin was created elsewhere', async () => {
+    const observed = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [coin({ createdBy: 'tx-someone-else' })],
+        getTip: async () => ({ block: 105 }),
+        getTransactionOutputs: async () => ['0x' + 'aa'.repeat(32)],
+      },
+      {
+        address: ADDRESS,
+        tokenId: TOKEN,
+        amount: 1500n,
+        confirmations: 1,
+        timeoutMs: 0,
+        spliceTxpowId: SPLICE_TX,
+      },
+    );
+
+    expect(observed).toBeNull();
+  });
+
+  it('uses the coin creator when the chain cannot list transaction outputs', async () => {
+    const wrong = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [coin({ createdBy: 'tx-someone-else' })],
+        getTip: async () => ({ block: 105 }),
+      },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1, timeoutMs: 0, spliceTxpowId: SPLICE_TX },
+    );
+    expect(wrong).toBeNull();
+
+    const right = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [coin({ createdBy: SPLICE_TX })],
+        getTip: async () => ({ block: 105 }),
+      },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1, timeoutMs: 0, spliceTxpowId: SPLICE_TX },
+    );
+    expect(right?.lineageVerified).toBe(true);
+    expect(right?.coinId).toBe(successorId);
+  });
+
+  it('reports unproven lineage rather than claiming it', async () => {
+    const observed = await observeSpliceSuccessor(
+      { getCoins: async () => [coin()], getTip: async () => ({ block: 105 }) },
+      { address: ADDRESS, tokenId: TOKEN, amount: 1500n, confirmations: 1, timeoutMs: 0, spliceTxpowId: SPLICE_TX },
+    );
+
+    expect(observed?.lineageVerified).toBe(false);
+    expect(observed?.confirmed).toBe(true);
+  });
+
+  it('never treats the old funding coin as the successor', async () => {
+    const observed = await observeSpliceSuccessor(
+      {
+        getCoins: async () => [coin({ coinid: '0x' + '22'.repeat(32) })],
+        getTip: async () => ({ block: 105 }),
+        getTransactionOutputs: async () => [],
+      },
+      {
+        address: ADDRESS,
+        tokenId: TOKEN,
+        amount: 1500n,
+        confirmations: 1,
+        timeoutMs: 0,
+        predecessorCoinId: '0x' + '22'.repeat(32),
+      },
+    );
+
+    expect(observed).toBeNull();
   });
 });
