@@ -39,6 +39,7 @@
     "test": "node scripts/verify-workspace.mjs --test",
     "test:integration": "node scripts/verify-workspace.mjs --integration",
     "test:pack": "node scripts/verify-workspace.mjs --pack",
+    "test:training-pack": "node scripts/verify-training-pack.mjs",
     "test:conformance": "node scripts/verify-workspace.mjs --conformance",
     "test:recovery": "node scripts/verify-workspace.mjs --recovery",
     "test:consumer": "node scripts/verify-workspace.mjs --consumer",

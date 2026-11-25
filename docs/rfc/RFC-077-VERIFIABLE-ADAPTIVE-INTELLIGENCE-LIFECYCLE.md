@@ -8,6 +8,14 @@
 
 > **Baseline and truthfulness:** This draft uses source inspected on the repository's default branch on 2026-11-05. RFC-047 remains a Phase-0 research authorization; `@totemsdk/experience` is not a published or approved production package. `@totemsdk/qvac` exposes native `finetune` but does not currently implement a governed, independently evaluated model-release lifecycle. All types in this RFC are **proposals**, not existing APIs.
 
+> **Implementation status (2026-11-25).** Slice 0 contracts/canonical/fakes and
+> G1 `act-training` are implemented and published (`@totemsdk/intelligence@0.2.0`
+> beta; `@totemsdk/act-training@0.1.0`). The packed `./training` gate is
+> `pnpm test:training-pack`; 0.2.1 adds the legacy `typesVersions` mapping.
+> G3 (concrete QVAC `TrainingPort`) and G7 (remote distribution qualification)
+> are **not** implemented. The RFC remains draft and this is not a releaseability
+> claim.
+
 ## 1. Decision
 
 Totem SHALL support locally trained, verifiably attributable candidate model updates using six independent top-level records: **Experience Episode, Training Collection, Training Run, Evaluation Report, Model Release, and Memory Revision**. A **TrainingExample** is an additional first-class immutable *atom* referenced by Training Collections, not a substitute for any of the six records.

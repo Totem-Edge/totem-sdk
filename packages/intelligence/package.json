@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/intelligence",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Provider-neutral intelligence contracts \u2014 capabilities, operations, receipts, errors for local self-hosted AI inference",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -117,6 +117,9 @@
       ],
       "constants": [
         "./dist/cjs/constants.d.ts"
+      ],
+      "training": [
+        "./dist/cjs/training/index.d.ts"
       ]
     }
   }

@@ -42,6 +42,15 @@ That silent gap had two user-visible effects:
   compared itself against 1.0.27 and saw "no update". Both spellings are
   accepted now, and a cached result is discarded when the running manifest
   version changes, so a freshly updated build re-checks immediately.
+### Fixed — `@totemsdk/intelligence` 0.2.1 packed training subpath (unreleased)
+
+`0.2.0` shipped `dist/training` and the `exports["./training"]` map but omitted
+`training` from `typesVersions`, so a consumer using `moduleResolution: node`
+could not resolve `@totemsdk/intelligence/training` even though the tarball
+contained the declarations. Add the mapping and a generic packed-consumer gate,
+`pnpm test:training-pack`, which packs the package, checks the ESM/CJS/types
+files, compiles under `node` and `bundler` resolution, and imports the subpath
+from both module systems.
 
 ### Fixed — `@totemsdk/connect` peer range (unreleased)
 
