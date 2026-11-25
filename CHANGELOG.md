@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `@totemsdk/minima-rpc` single command schema (unreleased)
+
+Removed every hand-written switch arm from `buildCommandString`. Commands that
+had diverged from the generated node schema — `balance`, `history`, `coins`,
+`tokens`, `burn`, `newaddress`, `webhooks`, `txnpost`, `txnsign`, `txnimport`,
+`txnexport`, `txninput`, `txnscript`, `txnclear`, `coincheck`, `sendsign` and
+the send family — now use the same schema path as everything else. Unknown
+commands retain the validated passthrough. Divergence is no longer possible by
+construction.
+
+The generator now:
+- skips parenthetical help prose (`newaddress` no longer invents a
+  `"not a default change address"` parameter), while retaining single-identifier
+  params whose colon the reference omits (`(address)`, `(action)`);
+- carries overrides matching C++ `getValidParams()` for parameters the manifest
+  summary omits — `balance`, `coins`, `history`, `webhooks`, `txnexport`,
+  `txnsign`, `txnaddamount`, `send`, `sendnosign`, `sendfrom` and `sendsign`.
+
+This also removes invalid passthroughs (`history address:`, `burn last:`,
+`coincheck coinid:`, `txnpost data:`, `txnsign txndata:`). `burn()` now takes no
+arguments, `coinCheck()` takes the CoinProof `data` payload the node expects,
+`HistoryQuery.address` is gone (the node has no address filter), and the Pear
+starter's history lookup fails explicitly instead of returning unscoped
+history. `BalanceQuery` and `CoinsQuery` expose the full node parameter set;
+`TxnInputParams` gains `coindata`/`scriptmmr`, and `TxnScriptParams` gains
+`auto` with an object-valued `scripts` map.
+
+### Fixed — `@totemsdk/minima-rpc` stateful `send` (unreleased)
+
+`send()` and `runCommand('send', …)` now share one generated-schema path. The
+typed wrapper previously had its own switch arm that serialized only
+`address`, `amount`, `tokenid`, `burn` and `split`, silently dropping `state`
+and never accepting `storestate`. The arm is removed, `SendParams` exposes both
+fields, and the generator now carries `storestate` and treats `Mx..|0x..`
+placeholder unions as strings rather than enums. The same treatment removes the
+divergent `sendfrom` and `sendnosign` arms: `sendfrom` now carries `state` and
+`privatekey`, and both serialize object/array values as JSON instead of
+`String(value)`. The Pear starter payment port now calls `send()` with the
+node's `{"port":"value"}` state shape instead of an array the node discarded.
+
 ### Added — Omnia LSP packages (unreleased)
 
 `@totemsdk/omnia-lsp` 0.1.0 and `@totemsdk/omnia-lsp-provider` 0.1.0 add signed

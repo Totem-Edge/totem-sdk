@@ -25,8 +25,10 @@ export function createLookupPort(rpc) {
           const token = await rpc.tokens(query);
           if (token) results.push(token);
         } else if (kind === 'history') {
-          const history = await rpc.history({ address: query });
-          results.push(...(history ?? []));
+          // The node's `history` command has no address filter. Returning
+          // unscoped history would look like an address match, so fail
+          // explicitly until a lineage indexer is wired in.
+          throw new Error('history lookup by address is not supported; use a lineage index');
         } else {
           const coins = await rpc.coins({ address: query });
           results.push(...(coins ?? []));

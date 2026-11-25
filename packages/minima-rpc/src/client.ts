@@ -121,18 +121,16 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
       return result as HistoryEntry[];
     },
 
-    async burn(last?: number) {
-      const p: Record<string, unknown> = {};
-      if (last !== undefined) p.last = last;
-      return run('burn', p) as Promise<BurnInfo>;
+    async burn() {
+      return run('burn') as Promise<BurnInfo>;
     },
 
     async send(params: SendParams) {
       return run('send', params as unknown as Record<string, unknown>) as Promise<TxnPostResult>;
     },
 
-    async coinCheck(coinId: string) {
-      return run('coincheck', { coinid: coinId }, true) as Promise<CoinCheckResult>;
+    async coinCheck(data: string) {
+      return run('coincheck', { data }, true) as Promise<CoinCheckResult>;
     },
 
     async addressInfo(address: string) {

@@ -105,8 +105,11 @@ export interface Balance {
 
 export interface BalanceQuery {
   address?: string;
+  tokenid?: string;
+  confirmations?: number;
   megammr?: boolean;
   tokendetails?: boolean;
+  simple?: boolean;
 }
 
 export interface Coin {
@@ -131,7 +134,14 @@ export interface CoinsQuery {
   address?: string;
   tokenid?: string;
   coinage?: number;
+  checkmempool?: boolean;
+  order?: string;
+  simplestate?: boolean;
+  totalamount?: boolean;
+  depth?: number;
+  state?: Record<string, unknown>;
   megammr?: boolean;
+  confirmations?: number;
 }
 
 export interface TokenInfo {
@@ -251,6 +261,10 @@ export interface TxnMineParams {
 export interface TxnInputParams {
   id: string;
   coinid?: string;
+  /** Serialized coin data (CoinProof hex) instead of a coin id. */
+  coindata?: string;
+  /** Attach the script MMR proof for the input. */
+  scriptmmr?: boolean;
   address?: string;
   /**
    * Raw amount in the token's smallest unit. The generic transport passes this
@@ -279,13 +293,21 @@ export interface TxnStateParams {
 
 export interface TxnScriptParams {
   id: string;
-  scripts: string;
+  scripts: Record<string, string>;
+  /** Automatically apply the scripts to the transaction. */
+  auto?: boolean;
 }
 
 export interface TxnSignParams {
   id: string;
   publickey?: string;
-  txndata?: string;
+  password?: string;
+  privatekey?: string;
+  keyuses?: number;
+  txnpostauto?: string;
+  txnpostburn?: string;
+  txnpostmine?: string;
+  txndelete?: string;
 }
 
 export interface TxnCheckResult {
@@ -311,6 +333,15 @@ export interface SendParams {
   address: string;
   amount: string;
   tokenid?: string;
+  /**
+   * State variables to set on the output coin(s), as `port -> value`.
+   * Serialized to the node's `state:{"port":"value"}` JSON object.
+   */
+  state?: Record<string, string>;
+  /**
+   * Whether output coins keep the supplied state. The node defaults to `true`.
+   */
+  storestate?: boolean;
   burn?: string;
   split?: number;
 }
@@ -320,7 +351,10 @@ export interface HistoryQuery {
   max?: number;
   offset?: number;
   relevant?: boolean;
-  address?: string;
+  depth?: number;
+  startmilli?: number;
+  /** SQL WHERE clause for `action:customsize`. */
+  where?: string;
 }
 
 export interface HistoryEntry {
@@ -366,9 +400,14 @@ export interface MinimaRpcClient {
   /** `magic` — current network Magic numbers (incl. `currentmintxpowwork`). */
   magic(): Promise<MagicInfo>;
   history(params?: HistoryQuery): Promise<HistoryEntry[]>;
-  burn(last?: number): Promise<BurnInfo>;
+  burn(): Promise<BurnInfo>;
+  /**
+   * `send` — supports stateful sends. `state` is serialized as the node's
+   * `state:{"port":"value"}` parameter and `storestate` is passed through.
+   */
   send(params: SendParams): Promise<TxnPostResult>;
-  coinCheck(coinId: string): Promise<CoinCheckResult>;
+  /** `coincheck data:` — pass the CoinProof hex from `coinexport`. */
+  coinCheck(data: string): Promise<CoinCheckResult>;
   coinExport(coinId: string): Promise<CoinExportResult>;
   /** `getaddressinfo` — public key + address script for an address. */
   addressInfo(address: string): Promise<AddressInfo>;

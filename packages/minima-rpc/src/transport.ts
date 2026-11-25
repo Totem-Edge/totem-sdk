@@ -161,322 +161,42 @@ async function sleep(ms: number): Promise<void> {
 
 /**
  * Build the Minima command string from a method name + params object.
- * Ported from MinimaRpcAdapter.translateToMinimaCommand() with Gap 1 + Gap 2 fixes applied.
+ *
+ * Known commands are serialized exclusively from the generated node schema;
+ * unknown commands keep a validated passthrough for node extensions.
  */
 export function buildCommandString(
   method: string,
   params?: Record<string, unknown>,
 ): string {
-  const p = params ?? {};
-
-  switch (method) {
-    case 'balance': {
-      const parts = ['balance'];
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.megammr !== undefined) pushParam(parts, 'megammr', p.megammr);
-      if (p.tokendetails !== undefined) pushParam(parts, 'tokendetails', p.tokendetails);
-      return parts.join(' ');
-    }
-
-    case 'history': {
-      const parts = ['history'];
-      if (p.action !== undefined) pushParam(parts, 'action', p.action);
-      if (p.max !== undefined) pushParam(parts, 'max', p.max);
-      if (p.offset !== undefined) pushParam(parts, 'offset', p.offset);
-      if (p.relevant !== undefined) pushParam(parts, 'relevant', p.relevant);
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      return parts.join(' ');
-    }
-
-    case 'coins': {
-      const parts = ['coins'];
-      if (p.relevant !== undefined) pushParam(parts, 'relevant', p.relevant);
-      if (p.sendable !== undefined) pushParam(parts, 'sendable', p.sendable);
-      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.coinage !== undefined) pushParam(parts, 'coinage', p.coinage);
-      if (p.megammr !== undefined) pushParam(parts, 'megammr', p.megammr);
-      return parts.join(' ');
-    }
-
-    case 'tokens': {
-      const parts = ['tokens'];
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.action !== undefined) pushParam(parts, 'action', p.action);
-      return parts.join(' ');
-    }
-
-    case 'status':
-      return 'status';
-
-    case 'burn': {
-      const parts = ['burn'];
-      if (p.last !== undefined) pushParam(parts, 'last', p.last);
-      return parts.join(' ');
-    }
-
-    case 'send': {
-      const parts = ['send'];
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
-      if (p.split !== undefined) pushParam(parts, 'split', p.split);
-      return parts.join(' ');
-    }
-
-    case 'getaddress':
-      return 'getaddress';
-
-    case 'newaddress': {
-      const parts = ['newaddress'];
-      // The node's capability manifest does not list this optional modifier,
-      // but the SDK's deterministic-address probe uses it.
-      if (p.modifier !== undefined) pushParam(parts, 'modifier', p.modifier);
-      return parts.join(' ');
-    }
-
-    case 'megammr':
-      return 'megammr';
-
-    case 'coinexport': {
-      const parts = ['coinexport'];
-      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
-      return parts.join(' ');
-    }
-
-    case 'verify': {
-      const parts = ['verify'];
-      if (p.publickey !== undefined) pushParam(parts, 'publickey', p.publickey);
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      if (p.signature !== undefined) pushParam(parts, 'signature', p.signature);
-      return parts.join(' ');
-    }
-
-    case 'webhooks': {
-      const parts = ['webhooks'];
-      if (p.action !== undefined) pushParam(parts, 'action', p.action);
-      if (p.hook !== undefined) pushParam(parts, 'hook', p.hook);
-      if (p.filter !== undefined) pushParam(parts, 'filter', p.filter);
-      return parts.join(' ');
-    }
-
-    case 'txncreate': {
-      const parts = ['txncreate'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnbasics': {
-      const parts = ['txnbasics'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnpost': {
-      const parts = ['txnpost'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      if (p.auto !== undefined) pushParam(parts, 'auto', p.auto);
-      if (p.mine !== undefined) pushParam(parts, 'mine', p.mine);
-      if (p.txndelete !== undefined) pushParam(parts, 'txndelete', p.txndelete);
-      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
-      return parts.join(' ');
-    }
-
-    case 'txnsign': {
-      const parts = ['txnsign'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.publickey !== undefined) pushParam(parts, 'publickey', p.publickey);
-      if (p.txndata !== undefined) pushParam(parts, 'txndata', p.txndata);
-      return parts.join(' ');
-    }
-
-    case 'txncheck': {
-      const parts = ['txncheck'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnimport': {
-      const parts = ['txnimport'];
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnexport': {
-      const parts = ['txnexport'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnlist': {
-      const parts = ['txnlist'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.transactiononly !== undefined) pushParam(parts, 'transactiononly', p.transactiononly);
-      return parts.join(' ');
-    }
-
-    case 'txndelete': {
-      const parts = ['txndelete'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txninput': {
-      const parts = ['txninput'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.floating !== undefined) pushParam(parts, 'floating', p.floating);
-      return parts.join(' ');
-    }
-
-    case 'txnoutput': {
-      const parts = ['txnoutput'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.storestate !== undefined) pushParam(parts, 'storestate', p.storestate);
-      return parts.join(' ');
-    }
-
-    case 'txnstate': {
-      const parts = ['txnstate'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.port !== undefined) pushParam(parts, 'port', p.port);
-      if (p.value !== undefined) pushParam(parts, 'value', p.value);
-      return parts.join(' ');
-    }
-
-    case 'txnscript': {
-      const parts = ['txnscript'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.scripts !== undefined) pushParam(parts, 'scripts', p.scripts);
-      return parts.join(' ');
-    }
-
-    case 'txnclear': {
-      const parts = ['txnclear'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      return parts.join(' ');
-    }
-
-    case 'txnmine': {
-      const parts = ['txnmine'];
-      if (p.id !== undefined) pushParam(parts, 'id', p.id);
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      return parts.join(' ');
-    }
-
-    case 'txnminepost': {
-      const parts = ['txnminepost'];
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      return parts.join(' ');
-    }
-
-    case 'sendtransaction': {
-      const parts = ['sendtransaction'];
-      if (p.data !== undefined) pushParam(parts, 'data', p.data);
-      return parts.join(' ');
-    }
-
-    case 'sendfrom': {
-      const parts = ['sendfrom'];
-      if (p.fromaddress !== undefined) pushParam(parts, 'fromaddress', p.fromaddress);
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.script !== undefined) pushParam(parts, 'script', p.script);
-      if (p.keyuses !== undefined) pushParam(parts, 'keyuses', p.keyuses);
-      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
-      if (p.mine !== undefined) pushParam(parts, 'mine', p.mine);
-      return parts.join(' ');
-    }
-
-    case 'sendnosign': {
-      const parts = ['sendnosign'];
-      if (p.address !== undefined) pushParam(parts, 'address', p.address);
-      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
-      if (p.multi !== undefined) pushParam(parts, 'multi', p.multi);
-      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
-      if (p.state !== undefined) pushParam(parts, 'state', p.state);
-      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
-      if (p.split !== undefined) pushParam(parts, 'split', p.split);
-      if (p.file !== undefined) pushParam(parts, 'file', p.file);
-      if (p.debug !== undefined) pushParam(parts, 'debug', p.debug);
-      return parts.join(' ');
-    }
-
-    case 'sendview': {
-      const parts = ['sendview'];
-      if (p.file !== undefined) pushParam(parts, 'file', p.file);
-      return parts.join(' ');
-    }
-
-    case 'sendsign': {
-      const parts = ['sendsign'];
-      if (p.file !== undefined) pushParam(parts, 'file', p.file);
-      return parts.join(' ');
-    }
-
-    case 'sendpost': {
-      const parts = ['sendpost'];
-      if (p.file !== undefined) pushParam(parts, 'file', p.file);
-      return parts.join(' ');
-    }
-
-    /**
-     * MinimaRpc-specific commands.
-     * Command names inferred from Minima naming conventions.
-     * Verify against https://github.com/spartacusrex-minima/minima-core/tree/main/src/org/minima/system/commands/
-     */
-    case 'getmmrproof': {
-      const parts = ['getmmrproof'];
-      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
-      return parts.join(' ');
-    }
-
-    case 'coincheck': {
-      const parts = ['coincheck'];
-      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
-      return parts.join(' ');
-    }
-
-    case 'getchaintip':
-      return 'getchaintip';
-
-    default: {
-      if (!/^[a-zA-Z0-9_-]+$/.test(method)) {
-        throw new MinimaRpcError(
-          `Invalid command name: ${method}`,
-          method,
-        );
-      }
-      const schema = commandSchema(method);
-      if (schema) return buildKnownCommand(method, params, schema);
-      if (!params || Object.keys(params).length === 0) {
-        return method;
-      }
-      const parts = [method];
-      for (const [key, value] of Object.entries(params)) {
-        if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
-          throw new MinimaRpcError(
-            `Invalid parameter name: ${key}`,
-            method,
-          );
-        }
-        pushParam(parts, key, value);
-      }
-      return parts.join(' ');
-    }
+  if (!/^[a-zA-Z0-9_-]+$/.test(method)) {
+    throw new MinimaRpcError(
+      `Invalid command name: ${method}`,
+      method,
+    );
   }
+
+  // One path for every known command: the generated node schema owns the
+  // parameter names, order, types and required checks. Keeping hand-written
+  // switch arms here is what let send/balance/txnsign drift from the node.
+  const schema = commandSchema(method);
+  if (schema) return buildKnownCommand(method, params, schema);
+
+  // Unknown commands retain an explicit passthrough for node extensions.
+  if (!params || Object.keys(params).length === 0) {
+    return method;
+  }
+  const parts = [method];
+  for (const [key, value] of Object.entries(params)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+      throw new MinimaRpcError(
+        `Invalid parameter name: ${key}`,
+        method,
+      );
+    }
+    pushParam(parts, key, value);
+  }
+  return parts.join(' ');
 }
 
 /**

@@ -97,6 +97,13 @@ function parseParams(summary) {
     }
     const body = section.slice(i + 1, j);
     const colon = body.indexOf(':');
+    // Parenthetical prose such as `(not a default change address)` is help
+    // text, not a parameter. Real params are a single identifier even when the
+    // reference omits their colon (`(address)`, `(action)`).
+    if (colon < 0 && open === '(' && !/^[A-Za-z0-9_-]+$/.test(body.trim())) {
+      i = j + 1;
+      continue;
+    }
     const name = (colon < 0 ? body : body.slice(0, colon)).trim();
     const rawValue = colon < 0 ? '' : body.slice(colon + 1).trim();
     if (name) params.push({ name, required: open === '[', rawValue });
@@ -115,6 +122,10 @@ function inferParam(param) {
   const { name, required, rawValue } = param;
   if (rawValue.includes('|')) {
     const values = rawValue.split('|').map((v) => v.trim()).filter(Boolean);
+    // Type hints such as `Mx..|0x..` are placeholders, not enumerated values.
+    if (values.some((v) => v.endsWith('..'))) {
+      return { name, type: 'string', required };
+    }
     if (values.length === 2 && values.every((v) => v === 'true' || v === 'false')) {
       return { name, type: 'boolean', required, enum: values };
     }
@@ -137,10 +148,79 @@ function inferParam(param) {
   return { name, type: 'string', required };
 }
 
+/**
+ * Parameters the node accepts but the generated COMMAND_REFERENCE.md omits.
+ * `send.cpp` lists `storestate` in getValidParams() and reads it (default
+ * true), but the reference's `send` row does not include it.
+ */
+const PARAM_OVERRIDES = {
+  send: [
+    { name: 'storestate', type: 'boolean', required: false },
+    { name: 'action', type: 'string', required: false },
+    { name: 'uid', type: 'string', required: false },
+    { name: 'fromaddress', type: 'string', required: false },
+    { name: 'signkey', type: 'string', required: false },
+  ],
+  sendnosign: [
+    { name: 'coinage', type: 'string', required: false },
+    { name: 'dryrun', type: 'string', required: false },
+  ],
+  sendsign: [{ name: 'password', type: 'string', required: false }],
+  txnaddamount: [
+    { name: 'fromaddress', type: 'string', required: false },
+    { name: 'storestate', type: 'boolean', required: false },
+  ],
+  // `sendfrom` reads state with getJSONObjectParam(), but the reference shows
+  // `(state:)` without a `{}` marker, so inference treats it as a string.
+  sendfrom: [{ name: 'state', type: 'object', required: false }],
+  // The manifest summary omits parameters accepted by C++ getValidParams().
+  balance: [
+    { name: 'tokenid', type: 'string', required: false },
+    { name: 'confirmations', type: 'number', required: false },
+    { name: 'tokendetails', type: 'boolean', required: false },
+    { name: 'megammr', type: 'boolean', required: false },
+    { name: 'simple', type: 'boolean', required: false },
+  ],
+  coins: [
+    { name: 'checkmempool', type: 'boolean', required: false },
+    { name: 'order', type: 'string', required: false },
+    { name: 'simplestate', type: 'boolean', required: false },
+    { name: 'totalamount', type: 'boolean', required: false },
+    { name: 'depth', type: 'number', required: false },
+    { name: 'state', type: 'object', required: false },
+    { name: 'megammr', type: 'boolean', required: false },
+    { name: 'confirmations', type: 'number', required: false },
+  ],
+  history: [
+    { name: 'depth', type: 'number', required: false },
+    { name: 'startmilli', type: 'number', required: false },
+    { name: 'where', type: 'string', required: false },
+  ],
+  newaddress: [{ name: 'modifier', type: 'string', required: false }],
+  webhooks: [
+    { name: 'enable', type: 'boolean', required: false },
+    { name: 'filter', type: 'string', required: false },
+  ],
+  txnexport: [{ name: 'showtxn', type: 'boolean', required: false }],
+  txnsign: [
+    { name: 'password', type: 'string', required: false },
+    { name: 'privatekey', type: 'string', required: false },
+    { name: 'keyuses', type: 'number', required: false },
+  ],
+};
+
 const commands = rows.map((row) => ({
   name: row.name,
   params: parseParams(row.summary).map(inferParam),
 }));
+
+for (const command of commands) {
+  for (const override of PARAM_OVERRIDES[command.name] ?? []) {
+    const existing = command.params.find((param) => param.name === override.name);
+    if (existing) Object.assign(existing, override);
+    else command.params.push(override);
+  }
+}
 
 const lines = [];
 lines.push('/**');

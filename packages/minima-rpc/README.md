@@ -53,6 +53,22 @@ const status = await rpc.status();
 console.log('Block height:', status.block);
 ```
 
+### Stateful send
+
+`send()` and `runCommand('send', …)` share the same generated-schema path, so
+`state` and `storestate` are serialized exactly once:
+
+```typescript
+await rpc.send({
+  address: 'Mx...',
+  amount: '1',
+  state: { 0: '0xAA...', 1: '0xBB...' },
+  storestate: true, // node default; controls whether outputs keep state
+});
+```
+
+State values are strings; the node receives `state:{"port":"value"}`.
+
 ### Build and post a raw transaction
 
 ```typescript

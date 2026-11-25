@@ -82,8 +82,10 @@ export const MINIMA_COMMAND_PARAMS = {
   "balance": [
     { name: "address", type: 'string', required: false },
     { name: "tokenid", type: 'string', required: false },
-    { name: "confirmations", type: 'string', required: false },
-    { name: "megammr", type: 'string', required: false },
+    { name: "confirmations", type: 'number', required: false },
+    { name: "megammr", type: 'boolean', required: false },
+    { name: "tokendetails", type: 'boolean', required: false },
+    { name: "simple", type: 'boolean', required: false },
   ],
   "block": [],
   "burn": [],
@@ -109,8 +111,14 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "address", type: 'string', required: false },
     { name: "tokenid", type: 'string', required: false },
     { name: "coinage", type: 'string', required: false },
-    { name: "checkmempool", type: 'string', required: false },
+    { name: "checkmempool", type: 'boolean', required: false },
     { name: "order", type: 'string', required: false },
+    { name: "simplestate", type: 'boolean', required: false },
+    { name: "totalamount", type: 'boolean', required: false },
+    { name: "depth", type: 'number', required: false },
+    { name: "state", type: 'object', required: false },
+    { name: "megammr", type: 'boolean', required: false },
+    { name: "confirmations", type: 'number', required: false },
   ],
   "cointrack": [
     { name: "enable", type: 'boolean', required: true, enum: ["true", "false"] },
@@ -189,9 +197,7 @@ export const MINIMA_COMMAND_PARAMS = {
   "getrawtransaction": [
     { name: "txpowid", type: 'string', required: true },
   ],
-  "getsupply": [
-    { name: "MMR total", type: 'string', required: false },
-  ],
+  "getsupply": [],
   "hash": [
     { name: "data", type: 'string', required: false },
     { name: "file", type: 'string', required: false },
@@ -209,6 +215,9 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "max", type: 'number', required: false },
     { name: "offset", type: 'number', required: false },
     { name: "relevant", type: 'string', required: false },
+    { name: "depth", type: 'number', required: false },
+    { name: "startmilli", type: 'number', required: false },
+    { name: "where", type: 'string', required: false },
   ],
   "incentivecash": [
     { name: "uid", type: 'string', required: false },
@@ -247,7 +256,7 @@ export const MINIMA_COMMAND_PARAMS = {
   "multisig": [],
   "multisigread": [],
   "newaddress": [
-    { name: "not a default change address", type: 'string', required: false },
+    { name: "modifier", type: 'string', required: false },
   ],
   "newscript": [
     { name: "script", type: 'string', required: true },
@@ -358,6 +367,8 @@ export const MINIMA_COMMAND_PARAMS = {
   "webhooks": [
     { name: "action", type: 'string', required: false, enum: ["list", "add", "remove", "clear"] },
     { name: "hook", type: 'string', required: false },
+    { name: "enable", type: 'boolean', required: false },
+    { name: "filter", type: 'string', required: false },
   ],
   "whitepaper": [],
   "mashaddresses": [],
@@ -413,7 +424,7 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "host", type: 'string', required: true },
   ],
   "send": [
-    { name: "address", type: 'string', required: false, enum: ["Mx..", "0x.."] },
+    { name: "address", type: 'string', required: false },
     { name: "amount", type: 'string', required: false },
     { name: "multi", type: 'array', required: false },
     { name: "tokenid", type: 'string', required: false },
@@ -425,13 +436,18 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "mine", type: 'string', required: false },
     { name: "debug", type: 'string', required: false },
     { name: "dryrun", type: 'string', required: false },
+    { name: "storestate", type: 'boolean', required: false },
+    { name: "action", type: 'string', required: false },
+    { name: "uid", type: 'string', required: false },
+    { name: "fromaddress", type: 'string', required: false },
+    { name: "signkey", type: 'string', required: false },
   ],
   "sendfrom": [
     { name: "fromaddress", type: 'string', required: true },
     { name: "address", type: 'string', required: true },
     { name: "amount", type: 'string', required: true },
     { name: "tokenid", type: 'string', required: false },
-    { name: "state", type: 'string', required: false },
+    { name: "state", type: 'object', required: false },
     { name: "script", type: 'string', required: true },
     { name: "privatekey", type: 'string', required: true },
     { name: "keyuses", type: 'number', required: true },
@@ -439,7 +455,7 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "mine", type: 'string', required: false },
   ],
   "sendnosign": [
-    { name: "address", type: 'string', required: false, enum: ["Mx..", "0x.."] },
+    { name: "address", type: 'string', required: false },
     { name: "amount", type: 'string', required: false },
     { name: "multi", type: 'array', required: false },
     { name: "tokenid", type: 'string', required: false },
@@ -448,6 +464,8 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "split", type: 'string', required: false },
     { name: "file", type: 'string', required: false },
     { name: "debug", type: 'string', required: false },
+    { name: "coinage", type: 'string', required: false },
+    { name: "dryrun", type: 'string', required: false },
   ],
   "sendpoll": [
     { name: "action", type: 'string', required: false, enum: ["add", "list", "remove"] },
@@ -458,6 +476,7 @@ export const MINIMA_COMMAND_PARAMS = {
   ],
   "sendsign": [
     { name: "file", type: 'string', required: true },
+    { name: "password", type: 'string', required: false },
   ],
   "sendtransaction": [
     { name: "data", type: 'string', required: true },
@@ -472,6 +491,8 @@ export const MINIMA_COMMAND_PARAMS = {
     { name: "onlychange", type: 'string', required: false },
     { name: "tokenid", type: 'string', required: false },
     { name: "burn", type: 'string', required: false },
+    { name: "fromaddress", type: 'string', required: false },
+    { name: "storestate", type: 'boolean', required: false },
   ],
   "txnauto": [
     { name: "id", type: 'string', required: true },
@@ -506,6 +527,7 @@ export const MINIMA_COMMAND_PARAMS = {
   "txnexport": [
     { name: "id", type: 'string', required: true },
     { name: "file", type: 'string', required: false },
+    { name: "showtxn", type: 'boolean', required: false },
   ],
   "txnimport": [
     { name: "id", type: 'string', required: false },
@@ -562,11 +584,14 @@ export const MINIMA_COMMAND_PARAMS = {
   ],
   "txnsign": [
     { name: "id", type: 'string', required: true },
-    { name: "publickey", type: 'string', required: true, enum: ["0x..", "auto"] },
+    { name: "publickey", type: 'string', required: true },
     { name: "txnpostauto", type: 'string', required: false },
     { name: "txnpostburn", type: 'string', required: false },
     { name: "txnpostmine", type: 'string', required: false },
     { name: "txndelete", type: 'string', required: false },
+    { name: "password", type: 'string', required: false },
+    { name: "privatekey", type: 'string', required: false },
+    { name: "keyuses", type: 'number', required: false },
   ],
   "txnstate": [
     { name: "id", type: 'string', required: true },

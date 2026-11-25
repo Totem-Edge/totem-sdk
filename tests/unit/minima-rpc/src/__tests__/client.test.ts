@@ -34,6 +34,52 @@ describe('buildCommandString', () => {
     );
   });
 
+  it('send — state + storestate go through the generated schema', () => {
+    expect(
+      buildCommandString('send', {
+        address: 'Mx1',
+        amount: '1',
+        state: { 0: '0xAA', 1: '0xBB' },
+        storestate: false,
+      }),
+    ).toBe(
+      'send address:Mx1 amount:1 state:{"0":"0xAA","1":"0xBB"} storestate:false',
+    );
+  });
+
+  it('send — unknown params are rejected (no silent divergence)', () => {
+    expect(() =>
+      buildCommandString('send', { address: 'Mx1', amount: '1', nope: 'x' }),
+    ).toThrow(/Unknown parameter nope/);
+  });
+
+  it('sendfrom — state, privatekey and keyuses go through the schema', () => {
+    expect(
+      buildCommandString('sendfrom', {
+        fromaddress: 'MxFrom',
+        address: 'MxTo',
+        amount: '1',
+        tokenid: '0x00',
+        state: { 0: '0xAA' },
+        script: 'RETURN',
+        privatekey: '0xPK',
+        keyuses: 10,
+      }),
+    ).toBe(
+      'sendfrom fromaddress:MxFrom address:MxTo amount:1 tokenid:0x00 state:{"0":"0xAA"} script:RETURN privatekey:0xPK keyuses:10',
+    );
+  });
+
+  it('sendnosign — state goes through the schema', () => {
+    expect(
+      buildCommandString('sendnosign', {
+        address: 'Mx1',
+        amount: '1',
+        state: { 0: '0xAA' },
+      }),
+    ).toBe('sendnosign address:Mx1 amount:1 state:{"0":"0xAA"}');
+  });
+
   it('txnpost — mine + txndelete + burn (Gap 1 fix)', () => {
     expect(
       buildCommandString('txnpost', {
@@ -43,7 +89,7 @@ describe('buildCommandString', () => {
         txndelete: true,
         burn: '0.001',
       }),
-    ).toBe('txnpost id:tx1 auto:false mine:true txndelete:true burn:0.001');
+    ).toBe('txnpost id:tx1 auto:false burn:0.001 mine:true txndelete:true');
   });
 
   it('txnlist — id + transactiononly (Gap 1 fix)', () => {
@@ -54,8 +100,154 @@ describe('buildCommandString', () => {
 
   it('txnimport — data + id (Gap 1 fix)', () => {
     expect(buildCommandString('txnimport', { data: '0xABCD', id: 'imp1' })).toBe(
-      'txnimport data:0xABCD id:imp1',
+      'txnimport id:imp1 data:0xABCD',
     );
+  });
+
+  it('balance — tokenid, confirmations, tokendetails and simple', () => {
+    expect(
+      buildCommandString('balance', {
+        address: 'Mx1',
+        tokenid: '0x01',
+        confirmations: 3,
+        megammr: true,
+        tokendetails: true,
+        simple: true,
+      }),
+    ).toBe(
+      'balance address:Mx1 tokenid:0x01 confirmations:3 megammr:true tokendetails:true simple:true',
+    );
+  });
+
+  it('coins — checkmempool, order and depth', () => {
+    expect(
+      buildCommandString('coins', {
+        address: 'Mx1',
+        checkmempool: true,
+        order: 'asc',
+        depth: 5,
+      }),
+    ).toBe('coins address:Mx1 checkmempool:true order:asc depth:5');
+  });
+
+  it('history — depth and where; address is not a node parameter', () => {
+    expect(
+      buildCommandString('history', {
+        action: 'list',
+        relevant: false,
+        depth: 10,
+        where: 'isblock=1',
+      }),
+    ).toBe('history action:list relevant:false depth:10 where:isblock=1');
+    expect(() => buildCommandString('history', { address: 'Mx1' })).toThrow(
+      /Unknown parameter address/,
+    );
+  });
+
+  it('newaddress — modifier only, not the help-text phrase', () => {
+    expect(buildCommandString('newaddress', { modifier: 'abc' })).toBe(
+      'newaddress modifier:abc',
+    );
+    expect(() =>
+      buildCommandString('newaddress', { 'not a default change address': 'x' }),
+    ).toThrow(/Unknown parameter/);
+  });
+
+  it('webhooks — enable and filter', () => {
+    expect(
+      buildCommandString('webhooks', {
+        action: 'add',
+        hook: 'https://example.com/hook',
+        enable: true,
+        filter: 'NEWBLOCK',
+      }),
+    ).toBe('webhooks action:add hook:https://example.com/hook enable:true filter:NEWBLOCK');
+  });
+
+  it('txnsign — privatekey and keyuses', () => {
+    expect(
+      buildCommandString('txnsign', {
+        id: 'tx1',
+        publickey: '0xPK',
+        privatekey: '0xSK',
+        keyuses: 10,
+      }),
+    ).toBe('txnsign id:tx1 publickey:0xPK privatekey:0xSK keyuses:10');
+  });
+
+  it('txnexport — file and showtxn', () => {
+    expect(
+      buildCommandString('txnexport', { id: 'tx1', file: 'out.txn', showtxn: true }),
+    ).toBe('txnexport id:tx1 file:out.txn showtxn:true');
+  });
+
+  it('txninput — coindata and scriptmmr', () => {
+    expect(
+      buildCommandString('txninput', {
+        id: 'tx1',
+        coinid: '0xC',
+        coindata: '0xD',
+        scriptmmr: true,
+      }),
+    ).toBe('txninput id:tx1 coinid:0xC coindata:0xD scriptmmr:true');
+  });
+
+  it('txnscript — auto and scripts', () => {
+    expect(
+      buildCommandString('txnscript', {
+        id: 'tx1',
+        auto: false,
+        scripts: { 0: 'RETURN' },
+      }),
+    ).toBe('txnscript id:tx1 auto:false scripts:{"0":"RETURN"}');
+  });
+
+  it('txnclear — scripts, mmr and signatures', () => {
+    expect(
+      buildCommandString('txnclear', {
+        id: 'tx1',
+        scripts: true,
+        mmr: true,
+        signatures: true,
+      }),
+    ).toBe('txnclear id:tx1 scripts:true mmr:true signatures:true');
+  });
+
+  it('coincheck — data only', () => {
+    expect(buildCommandString('coincheck', { data: '0xCOIN' })).toBe(
+      'coincheck data:0xCOIN',
+    );
+    expect(() => buildCommandString('coincheck', { coinid: '0xC' })).toThrow(
+      /Unknown parameter coinid/,
+    );
+  });
+
+  it('sendnosign — coinage and dryrun', () => {
+    expect(
+      buildCommandString('sendnosign', {
+        address: 'Mx1',
+        amount: '1',
+        coinage: '5',
+        dryrun: true,
+      }),
+    ).toBe('sendnosign address:Mx1 amount:1 coinage:5 dryrun:true');
+  });
+
+  it('sendsign — password', () => {
+    expect(
+      buildCommandString('sendsign', { file: 'tx.txn', password: 'pw' }),
+    ).toBe('sendsign file:tx.txn password:pw');
+  });
+
+  it('txnaddamount — fromaddress and storestate', () => {
+    expect(
+      buildCommandString('txnaddamount', {
+        id: 'tx1',
+        amount: '1',
+        fromaddress: 'Mx1',
+        storestate: false,
+      }),
+    ).toBe('txnaddamount id:tx1 amount:1 fromaddress:Mx1 storestate:false');
   });
 
   it('getaddress — no params (Gap 2 explicit)', () => {
@@ -220,12 +412,40 @@ describe('createMinimaRpcClient — fetch mocking', () => {
     );
   });
 
+  it('burn() sends no params', async () => {
+    mockFetch({});
+    const client = createMinimaRpcClient(config);
+    await client.burn();
+    expect((global.fetch as jest.Mock).mock.calls[0][1].body).toBe('burn');
+  });
+
+  it('coinCheck() sends data, not coinid', async () => {
+    mockFetch({ found: true, spent: false });
+    const client = createMinimaRpcClient(config);
+    await client.coinCheck('0xPROOF');
+    expect((global.fetch as jest.Mock).mock.calls[0][1].body).toBe('coincheck data:0xPROOF');
+  });
+
+  it('send() includes state and storestate in the request body', async () => {
+    mockFetch({ txpowid: '0xTX' });
+    const client = createMinimaRpcClient(config);
+    await client.send({
+      address: 'Mx1',
+      amount: '1',
+      state: { 0: '0xAA' },
+      storestate: false,
+    });
+    expect((global.fetch as jest.Mock).mock.calls[0][1].body).toBe(
+      'send address:Mx1 amount:1 state:{"0":"0xAA"} storestate:false',
+    );
+  });
+
   it('txnImport() with id sends correct command', async () => {
     mockFetch(null);
     const client = createMinimaRpcClient(config);
     await client.txnImport('0xHEX', 'lease-1');
     expect((global.fetch as jest.Mock).mock.calls[0][1].body).toBe(
-      'txnimport data:0xHEX id:lease-1',
+      'txnimport id:lease-1 data:0xHEX',
     );
   });
 
