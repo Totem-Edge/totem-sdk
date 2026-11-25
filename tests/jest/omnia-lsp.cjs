@@ -15,6 +15,7 @@ module.exports = {
   },
   modulePathIgnorePatterns: ['<rootDir>/packages/.*/dist/'],
   moduleNameMapper: {
+    '^@totemsdk/core$': '<rootDir>/packages/core/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

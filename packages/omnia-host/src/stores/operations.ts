@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
+import { assertOperationTransition, type OperationStatus } from '@totemsdk/core';
 
-export type OperationStatus = 'pending' | 'reserved' | 'executing' | 'committed' | 'failed' | 'unknown';
+export type { OperationStatus };
 
 export interface OperationRecord {
   operationId: string;
@@ -134,6 +135,10 @@ export class OperationStore {
       if (record.status !== from) {
         throw new Error(`Operation ${operationId} expected status ${from} but is ${record.status}`);
       }
+      // The caller's expected `from` already matched; this additionally refuses
+      // transitions that are illegal in the shared lifecycle (for example
+      // committed -> failed), so an illegal move cannot be persisted.
+      assertOperationTransition(record.status, to);
       const next: OperationRecord = {
         ...record,
         status: to,

@@ -503,7 +503,13 @@ function stateVariableView(sv: { port: number; value: unknown; type: string; sca
   return { port: sv.port, value, type: sv.type, ...(sv.scale !== undefined ? { scale: sv.scale } : {}) };
 }
 
-async function withOperation<T>(
+/**
+ * Idempotency and crash-safety boundary for mutations.
+ *
+ * Exported for tests and for host wrappers that need the same guarantees around
+ * an operation the built-in methods do not cover.
+ */
+export async function withOperation<T>(
   context: HostApiContext,
   params: Record<string, unknown>,
   run: () => Promise<T>,
@@ -511,10 +517,14 @@ async function withOperation<T>(
   if (!context.operations) throw new Error('Operation store is not configured');
   const id = operationId(params);
   const existing = context.operations.get(id);
-  const verifier = (context.operations as OperationStoreLike & {
+
+  // OMN-075: `OperationStore.verifyRequest()` reads `this.get()`. Extracting the
+  // method into a variable detached it from the store, so every retry threw
+  // instead of returning the committed result. Call it on the store object.
+  const store = context.operations as OperationStoreLike & {
     verifyRequest?: (operationId: string, request: unknown) => boolean;
-  }).verifyRequest;
-  if (existing && verifier && !verifier(id, params)) {
+  };
+  if (existing && store.verifyRequest && !store.verifyRequest(id, params)) {
     throw new OperationConflictError(
       'operation-conflict', id, existing.status,
       `Operation ${id} request does not match the original request`,
@@ -532,37 +542,59 @@ async function withOperation<T>(
   if (existing && !['pending', 'failed'].includes(existing.status)) {
     throw new OperationConflictError(
       'operation-in-progress', id, existing.status,
-      `Operation ${id} is already ${existing.status}`,
+      existing.status === 'unknown'
+        ? `Operation ${id} has an unknown outcome; reconcile it before retrying`
+        : `Operation ${id} is already ${existing.status}`,
     );
   }
+  // Observability is a notification boundary, not part of the financial state
+  // machine: a rejecting observer must not strand an operation or turn a
+  // committed effect into an error (OMN-076).
+  const emit = async (event: Parameters<NonNullable<HostApiContext['observe']>['emit']>[0]): Promise<void> => {
+    try {
+      await context.observe?.emit(event);
+    } catch {
+      // Swallowed deliberately: delivery must not fail the operation.
+    }
+  };
+
   if (!existing) {
     context.operations.create(id, params);
-    await context.observe?.emit({
+    await emit({
       domain: 'operation', kind: 'operation.created', phase: 'proposed',
       entity: { type: 'operation', id }, operationId: id,
       data: { request: params },
     });
   }
   context.operations.transition(id, existing?.status === 'failed' ? 'failed' : 'pending', 'executing');
-  await context.observe?.emit({
+  await emit({
     domain: 'operation', kind: 'operation.executing', phase: 'executing',
     entity: { type: 'operation', id }, operationId: id,
   });
   try {
     const result = await run();
     context.operations.transition(id, 'executing', 'committed', { result });
-    await context.observe?.emit({
+    await emit({
       domain: 'operation', kind: 'operation.committed', phase: 'committed',
       entity: { type: 'operation', id }, operationId: id,
       data: { result },
     });
     return result;
   } catch (error) {
-    context.operations.transition(id, 'executing', 'failed', { error: error instanceof Error ? error.message : String(error) });
-    await context.observe?.emit({
-      domain: 'operation', kind: 'operation.failed', phase: 'failed',
+    const message = error instanceof Error ? error.message : String(error);
+    // OMN-077: an exception here may have happened after signing, broadcast or a
+    // remote acceptance. Recording it as `failed` invites a retry that repeats
+    // the effect, so the outcome is recorded as unknown and must be reconciled.
+    try {
+      context.operations.transition(id, 'executing', 'unknown', { error: message });
+    } catch {
+      // The transition itself failed (for example the store is unavailable);
+      // the original error is still the one the caller must see.
+    }
+    await emit({
+      domain: 'operation', kind: 'operation.unknown', phase: 'failed',
       entity: { type: 'operation', id }, operationId: id,
-      data: { error: error instanceof Error ? error.message : String(error) },
+      data: { error: message },
     });
     throw error;
   }

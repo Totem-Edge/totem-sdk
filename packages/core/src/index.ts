@@ -327,6 +327,30 @@ export {
   wotsSignLegacy,
 } from './wots.js';
 
+
+// Amounts, operation lifecycle and clock (shared financial primitives)
+export {
+  AMOUNT_SCALE,
+  addAmounts,
+  applyBps,
+  compareAmounts,
+  effectiveBps,
+  formatDecimalAmount,
+  gte,
+  parseDecimalAmount,
+  subAmounts,
+} from './amounts.js';
+export {
+  TERMINAL_OPERATION_STATUSES,
+  OperationTransitionError,
+  assertOperationTransition,
+  canTransitionOperation,
+  isTerminalOperationStatus,
+} from './operation-state.js';
+export type { OperationStatus } from './operation-state.js';
+export { fixedClock, isClock, systemClock } from './clock.js';
+export type { Clock } from './clock.js';
+
 // Canonical helpers (deterministic JSON + hashing)
 export { toHex, canonicalJson } from './canonical.js';
 export { hashCanonical } from './canonical-hash.js';

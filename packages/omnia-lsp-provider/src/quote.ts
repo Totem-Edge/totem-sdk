@@ -1,8 +1,12 @@
-import { hashCanonical } from '@totemsdk/core';
 import type { OmniaLspManifest, OmniaLspOpenQuote } from '@totemsdk/omnia-lsp';
+import { openQuoteTermsHash } from '@totemsdk/omnia-lsp';
 import type { OmniaLspOpenRequest } from './policy.js';
+import { addAmounts, applyBps } from './amounts.js';
 
 export type UnsignedOmniaLspOpenQuote = Omit<OmniaLspOpenQuote, 'signature'>;
+
+/** Distinguishes two quotes issued for identical terms in the same millisecond. */
+let quoteSequence = 0;
 
 export interface CreateQuoteOptions {
   manifest: OmniaLspManifest;
@@ -12,36 +16,16 @@ export interface CreateQuoteOptions {
   quoteId?: string;
 }
 
-const DECIMAL_SCALE = 18n;
-const DECIMAL_FACTOR = 10n ** DECIMAL_SCALE;
-
-function decimalKey(value: string): bigint {
-  const [whole = '0', fraction = ''] = value.split('.');
-  return (
-    BigInt(whole) * DECIMAL_FACTOR +
-    BigInt(fraction.padEnd(Number(DECIMAL_SCALE), '0').slice(0, Number(DECIMAL_SCALE)))
-  );
-}
-
-function formatScaled(value: bigint): string {
-  const negative = value < 0n;
-  const absolute = negative ? -value : value;
-  const whole = absolute / DECIMAL_FACTOR;
-  const fraction = absolute % DECIMAL_FACTOR;
-  const fractionText = fraction
-    .toString()
-    .padStart(Number(DECIMAL_SCALE), '0')
-    .replace(/0+$/, '');
-  return `${negative ? '-' : ''}${whole.toString()}${fractionText ? `.${fractionText}` : ''}`;
-}
-
-function applyBps(amount: string, bps: number): string {
-  return formatScaled((decimalKey(amount) * BigInt(bps)) / 10_000n);
-}
-
 /**
  * Build the provider's unsigned open quote. The provider host signs it before
  * returning it to the consumer; a quote without a signature is not authoritative.
+ *
+ * Fee basis (OMN-070): variable fees are charged on the consumer's contribution
+ * (`localAmount`) and are ADDED to the flat opening fee. The previous code used
+ * `openFlat ?? openBps(localAmount)`, so a manifest that declared both silently
+ * dropped the percentage fee, and the admission check only looked at the bps
+ * value — a flat-fee-only provider could quote any amount above a consumer's
+ * limit.
  */
 export function createUnsignedOpenQuote(options: CreateQuoteOptions): UnsignedOmniaLspOpenQuote {
   const { manifest, request } = options;
@@ -49,16 +33,28 @@ export function createUnsignedOpenQuote(options: CreateQuoteOptions): UnsignedOm
   const ttlMs = options.ttlMs ?? 60_000;
   const expiresAt = now + ttlMs;
 
-  const openFee =
-    manifest.fees.openFlat ??
-    (manifest.fees.openBps ? applyBps(request.localAmount, manifest.fees.openBps) : '0');
-  const leaseFee =
-    request.lease === true && manifest.fees.leaseBps
-      ? applyBps(request.localAmount, manifest.fees.leaseBps)
-      : undefined;
+  const variableOpenFee =
+    manifest.fees.openBps !== undefined
+      ? applyBps(request.localAmount, manifest.fees.openBps)
+      : '0';
+  if (variableOpenFee === null) {
+    throw new Error('localAmount is not a valid decimal amount for fee calculation');
+  }
+  const openFee = addAmounts(manifest.fees.openFlat ?? '0', variableOpenFee);
+  if (openFee === null) {
+    throw new Error('manifest open fee is not a valid decimal amount');
+  }
 
-  const terms = {
-    version: 'omnia-lsp/open-terms/v1' as const,
+  let leaseFee: string | undefined;
+  if (request.lease === true && manifest.fees.leaseBps !== undefined) {
+    const computed = applyBps(request.localAmount, manifest.fees.leaseBps);
+    if (computed === null) {
+      throw new Error('localAmount is not a valid decimal amount for lease fee calculation');
+    }
+    leaseFee = computed;
+  }
+
+  const termsHash = openQuoteTermsHash({
     providerId: manifest.providerId,
     consumerAddress: request.consumerAddress,
     consumerPartyId: request.consumerPartyId,
@@ -74,13 +70,14 @@ export function createUnsignedOpenQuote(options: CreateQuoteOptions): UnsignedOm
     providerPublicKeyDigest: manifest.channel.publicKeyDigest,
     providerSettlementAddress: manifest.channel.settlementAddress,
     expiresAt,
-  };
-  const rawTermsHash = hashCanonical('omnia-lsp:open-terms:v1', terms);
-  const termsHash = rawTermsHash.startsWith('0x') ? rawTermsHash : `0x${rawTermsHash}`;
+  });
 
   return {
     version: 'omnia-lsp/open-quote/v1',
-    quoteId: options.quoteId ?? `quote-${termsHash.slice(2, 18)}-${now.toString(36)}`,
+    // A quote id must be unique even for identical requests: two quotes for the
+    // same terms in the same millisecond previously collided, so the capacity
+    // reservation and single-use ledger treated them as one quote.
+    quoteId: options.quoteId ?? `quote-${termsHash.slice(2, 18)}-${now.toString(36)}-${(quoteSequence++).toString(36)}`,
     providerId: manifest.providerId,
     consumerAddress: request.consumerAddress,
     consumerPartyId: request.consumerPartyId,
@@ -107,6 +104,10 @@ export function createUnsignedOpenQuote(options: CreateQuoteOptions): UnsignedOm
 /**
  * Sign an unsigned quote with a provider identity signer. The signer is injected
  * so the package stays runtime-neutral and never holds a private key.
+ *
+ * The signature must cover `openQuoteSigningPayload(quote)` from
+ * `@totemsdk/omnia-lsp` — that binds the terms hash, quote id, version and
+ * expiry. Verifiers are handed exactly that payload.
  */
 export function signOpenQuote(
   quote: UnsignedOmniaLspOpenQuote,

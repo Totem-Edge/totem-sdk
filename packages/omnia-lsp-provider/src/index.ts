@@ -8,6 +8,16 @@ export type {
 } from './policy.js';
 
 export {
+  LSP_AMOUNT_SCALE,
+  addAmounts,
+  applyBps,
+  effectiveBps,
+  formatDecimalAmount,
+  gte,
+  parseDecimalAmount,
+} from './amounts.js';
+
+export {
   createUnsignedOpenQuote,
   signOpenQuote,
 } from './quote.js';
@@ -17,15 +27,18 @@ export type {
 } from './quote.js';
 
 export {
+  createInMemoryQuoteConsumptionStore,
   createOmniaLspProvider,
 } from './provider.js';
 export type {
   OmniaLspHostCloseResult,
   OmniaLspHostOpenInput,
   OmniaLspHostOpenResult,
+  OmniaLspOpenQuoteOptions,
   OmniaLspProvider,
   OmniaLspProviderConfig,
   OmniaLspProviderHost,
+  OmniaLspQuoteConsumptionStore,
 } from './provider.js';
 export { createOmniaHostProviderHost } from './host.js';
 export type {

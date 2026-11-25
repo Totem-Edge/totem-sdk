@@ -1,3 +1,4 @@
+import { compareAmounts, gte } from '@totemsdk/core';
 import type { OmniaLspManifest } from './manifest.js';
 
 export type OmniaLspDirection = 'send' | 'receive' | 'both';
@@ -39,18 +40,6 @@ export interface OmniaLspRankedProvider {
   reasons: string[];
 }
 
-const DECIMAL_SCALE = 18n;
-const DECIMAL_FACTOR = 10n ** DECIMAL_SCALE;
-
-function decimalKey(value: string): bigint {
-  const [whole = '0', fraction = ''] = value.split('.');
-  return BigInt(whole) * DECIMAL_FACTOR + BigInt(fraction.padEnd(Number(DECIMAL_SCALE), '0').slice(0, Number(DECIMAL_SCALE)));
-}
-
-function gte(a: string, b: string): boolean {
-  return decimalKey(a) >= decimalKey(b);
-}
-
 function capacityFor(
   candidate: OmniaLspCandidate,
   direction: OmniaLspDirection,
@@ -87,9 +76,11 @@ function compareCandidates(
   const feeB = openFeeBps(b.candidate.manifest);
   if (feeA !== feeB) return feeA - feeB;
 
-  const capA = decimalKey(capacityFor(a.candidate, direction));
-  const capB = decimalKey(capacityFor(b.candidate, direction));
-  if (capA !== capB) return capB > capA ? 1 : -1;
+  const capacityCompare = compareAmounts(
+    capacityFor(a.candidate, direction),
+    capacityFor(b.candidate, direction),
+  );
+  if (capacityCompare !== null && capacityCompare !== 0) return -capacityCompare;
 
   const uptimeA = uptimeBps(a.candidate);
   const uptimeBpsB = uptimeBps(b.candidate);

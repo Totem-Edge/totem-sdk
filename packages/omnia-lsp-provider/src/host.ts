@@ -101,12 +101,28 @@ export function createOmniaHostProviderHost(
           operationId: `${prefix}-open-${quote.quoteId}`,
         })) as HostOpenResponse;
 
+        // A missing or malformed response is not success. The previous
+        // `result?.success !== false` treated `undefined`, `{}` and an
+        // error-only object as a successfully opened channel (OMN-068), so an
+        // adapter that silently returned nothing looked identical to a real
+        // funded channel.
+        const opened = result?.success === true
+          && typeof result.channelId === 'string'
+          && result.channelId.length > 0;
+        if (!opened) {
+          return {
+            success: false,
+            ...(result?.channelId ? { channelId: result.channelId } : {}),
+            ...(result?.fundingTxId ? { fundingTxId: result.fundingTxId } : {}),
+            error: result?.error ?? 'Host did not confirm a channel id',
+            errorCode: result?.errorCode ?? 'HOST_OPEN_UNCONFIRMED',
+          };
+        }
+
         return {
-          success: result?.success !== false,
+          success: true,
           ...(result?.channelId ? { channelId: result.channelId } : {}),
           ...(result?.fundingTxId ? { fundingTxId: result.fundingTxId } : {}),
-          ...(result?.error ? { error: result.error } : {}),
-          ...(result?.errorCode ? { errorCode: result.errorCode } : {}),
         };
       } catch (error) {
         return {
@@ -132,11 +148,14 @@ export function createOmniaHostProviderHost(
           channelId,
           operationId: `${prefix}-close-${channelId}`,
         })) as HostCloseResponse;
-        return {
-          success: result?.success !== false,
-          ...(result?.error ? { error: result.error } : {}),
-          ...(result?.errorCode ? { errorCode: result.errorCode } : {}),
-        };
+        if (result?.success !== true) {
+          return {
+            success: false,
+            error: result?.error ?? 'Host did not confirm the close',
+            errorCode: result?.errorCode ?? 'HOST_CLOSE_UNCONFIRMED',
+          };
+        }
+        return { success: true };
       } catch (error) {
         return {
           success: false,

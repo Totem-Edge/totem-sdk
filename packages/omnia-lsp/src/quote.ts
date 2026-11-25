@@ -1,4 +1,8 @@
-import { OMNIA_LSP_VERSION, type OmniaLspManifest } from './manifest.js';
+import type { OmniaLspManifest } from './manifest.js';
+import {
+  openQuoteSigningPayload,
+  validateOpenQuoteTerms,
+} from './open-quote-terms.js';
 
 export const OMNIA_LSP_OPEN_QUOTE_VERSION = 'omnia-lsp/open-quote/v1' as const;
 
@@ -149,6 +153,67 @@ export function quoteIsFresh(quote: OmniaLspOpenQuote, now = Date.now()): boolea
  * A quote is not a substitute for manifest verification; it must be checked
  * after the manifest signature and identity binding have been verified.
  */
+/**
+ * Provider signature verifier. Receives the canonical signing payload that
+ * `openQuoteSigningPayload()` produces and returns whether the signature over
+ * it is valid for the provider identity. WOTS/Ed25519/etc. live outside this
+ * package, so the primitive is injected rather than assumed.
+ */
+export interface OpenQuoteSignatureVerifier {
+  (payload: string, quote: OmniaLspOpenQuote): boolean | Promise<boolean>;
+}
+
+export interface VerifyOpenQuoteResult {
+  ok: boolean;
+  errors: string[];
+}
+
+/**
+ * Cryptographically verify an open quote (OMN-069).
+ *
+ * Structural validation alone is not authenticity: it proves a signature string
+ * is present, not that the provider produced it over these terms. This performs
+ * all three checks a consumer must make before acting on a quote:
+ *
+ *  1. structural validity (fields, formats, expiry),
+ *  2. the terms hash recomputed from the received fields, so no economic term
+ *     was edited after signing,
+ *  3. the provider's signature over the canonical payload.
+ *
+ * It deliberately does not check the manifest: callers that have one should
+ * additionally apply `quoteMatchesManifest()`.
+ */
+export async function verifyOpenQuote(
+  value: unknown,
+  verifySignature: OpenQuoteSignatureVerifier,
+  options: QuoteValidationOptions = {},
+): Promise<VerifyOpenQuoteResult> {
+  const structural = validateOpenQuote(value, options);
+  const errors = [...structural.errors];
+  if (!structural.ok) {
+    return { ok: false, errors };
+  }
+
+  const quote = value as OmniaLspOpenQuote;
+  const terms = validateOpenQuoteTerms(quote);
+  errors.push(...terms.errors);
+  if (!terms.ok) {
+    return { ok: false, errors };
+  }
+
+  let signatureValid = false;
+  try {
+    signatureValid = await verifySignature(openQuoteSigningPayload(quote), quote);
+  } catch (error) {
+    errors.push(`signature verification failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!signatureValid) {
+    errors.push('quote signature is not valid for this provider');
+  }
+
+  return { ok: errors.length === 0, errors };
+}
+
 export function quoteMatchesManifest(
   quote: OmniaLspOpenQuote,
   manifest: OmniaLspManifest,

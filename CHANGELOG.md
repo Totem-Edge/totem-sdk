@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — LSP quote authorization and splice successor integrity (unreleased)
+
+Audit findings OMN-064–077, 091 in the Omnia LSP, splice and host packages.
+
+- **LSP provider (OMN-064/065/066/067/068/069/070/071):** `openQuote()` now
+  verifies the quote instead of trusting a signature string: structural
+  validity, the terms hash recomputed from the received fields, the provider
+  signature over a canonical payload, manifest binding, the consumer it was
+  issued to, and a re-application of admission policy — then consumes the quote
+  once and reserves capacity. Admission validates BOTH channel contributions
+  (the provider's `remoteAmount` was previously unchecked while the host swapped
+  it into the provider side), total channel size, directional capacity and
+  operator-funded liquidity. The caller's clock no longer moves the freshness
+  window, a flat opening fee counts against the consumer's fee ceiling,
+  percentage fees are added to it rather than replacing it, and amounts are
+  parsed strictly (no truncation past 18 decimals, no signs or exponents).
+  The host adapter requires explicit success plus a channel id rather than
+  treating `undefined` or an error-only object as an opened channel.
+- **Splice (OMN-072/073/074):** a successor must be proven to have been created
+  by the splice transaction before a channel becomes active; recovery journal
+  entries carry their own expected successor and are cleared only after the
+  successor object exists.
+- **Host (OMN-075/076/077):** retries call `verifyRequest` on the store (the
+  detached method lost `this` and threw), observability delivery can no longer
+  strand an operation or turn a committed effect into an error, and an
+  ambiguous execution failure is recorded as `unknown` so a retry cannot repeat
+  a financial side effect without reconciliation.
+- **Shared primitives:** exact decimal amounts, the operation lifecycle
+  (`pending/reserved/executing/committed/failed/unknown` with one transition
+  table) and a `Clock` port now live in `@totemsdk/core`, replacing the
+  per-package copies that caused OMN-071 and let the same journal-ordering bug
+  appear in five packages.
+
 ### Added — Omnia LSP packages (unreleased)
 
 `@totemsdk/omnia-lsp` 0.1.0 and `@totemsdk/omnia-lsp-provider` 0.1.0 add signed
