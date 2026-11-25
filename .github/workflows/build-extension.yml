@@ -246,11 +246,37 @@ jobs:
           prerelease: true
           files: |
             totem-extension.zip
-            totem-extension-v${VERSION}.zip
+            totem-extension-v${{ steps.version.outputs.value }}.zip
             totem-extension.crx
+            totem-extension-v${{ steps.version.outputs.value }}.crx
             totem-extension.xml
             SHA256SUMS.txt
           generate_release_notes: false
+
+      # A missing versioned zip is not cosmetic: totem.ing links the versioned
+      # asset so the downloaded file keeps its version in the filename, and it
+      # refuses to advertise a version it cannot serve. `files:` values are not
+      # shell-expanded, so `${VERSION}` silently produced no asset at all —
+      # this step is the guard that the versioned files really landed.
+      - name: Verify rolling release carries the versioned assets
+        if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'extension-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 10); do
+            NAMES=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/extension-latest" \
+              --jq '.assets[].name' || true)
+            if grep -qx "totem-extension-v${VERSION}.zip" <<<"$NAMES" \
+              && grep -qx "totem-extension-v${VERSION}.crx" <<<"$NAMES"; then
+              echo "extension-latest serves totem-extension-v${VERSION}.{zip,crx}"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::extension-latest is missing totem-extension-v${VERSION}.zip/.crx; totem.ing would fall back to an older versioned asset"
+          exit 1
 
       # Approval gate for a *versioned* release: only an `extension-v<version>`
       # release attaches the stable artifacts under that tag.

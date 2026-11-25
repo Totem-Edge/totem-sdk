@@ -24,6 +24,8 @@ interface ExtensionUpdateState {
   latestVersion: string;
   checkedAt: number;
   downloadUrl: string;
+  /** Version this result was computed for; a new build must re-check at once. */
+  currentVersion?: string;
 }
 
 function parseVersion(value: string): number[] {
@@ -44,12 +46,23 @@ export function isNewerVersion(candidate: string, current: string): boolean {
   return false;
 }
 
-function latestFromAssets(assets: unknown): string | null {
+/**
+ * Newest published version from the rolling release's assets.
+ *
+ * The release workflow attaches both a fixed-name `totem-extension.zip` and a
+ * version-stamped `totem-extension-v<version>.zip` (older builds used a bare
+ * `totem-extension-<version>.zip`). Both spellings must be accepted: comparing
+ * against only the unversioned spelling made every build after 1.0.27 look
+ * older than it was, so the update notice never fired.
+ */
+const VERSIONED_ASSET_NAME = /^totem-extension-v?(\d+\.\d+\.\d+)\.zip$/;
+
+export function latestFromAssets(assets: unknown): string | null {
   if (!Array.isArray(assets)) return null;
   const versions = assets
     .map((asset) => {
       const name = typeof asset?.name === 'string' ? asset.name : '';
-      return /^totem-extension-(\d+\.\d+\.\d+)\.zip$/.exec(name)?.[1] || null;
+      return VERSIONED_ASSET_NAME.exec(name)?.[1] || null;
     })
     .filter((value): value is string => Boolean(value));
   versions.sort((a, b) => (isNewerVersion(a, b) ? -1 : isNewerVersion(b, a) ? 1 : 0));
@@ -67,8 +80,13 @@ async function readUpdateState(): Promise<ExtensionUpdateState | null> {
 }
 
 export async function checkForExtensionUpdate(force = false): Promise<ExtensionUpdateState | null> {
+  const currentVersion = chrome.runtime.getManifest().version;
   const cached = await readUpdateState();
-  if (!force && cached && Date.now() - cached.checkedAt < UPDATE_CHECK_INTERVAL_MINUTES * 60_000) {
+  const cacheApplies =
+    cached &&
+    cached.currentVersion === currentVersion &&
+    Date.now() - cached.checkedAt < UPDATE_CHECK_INTERVAL_MINUTES * 60_000;
+  if (!force && cacheApplies) {
     return cached;
   }
   try {
@@ -84,6 +102,7 @@ export async function checkForExtensionUpdate(force = false): Promise<ExtensionU
       latestVersion,
       checkedAt: Date.now(),
       downloadUrl: DOWNLOAD_URL,
+      currentVersion,
     };
     await chrome.storage.local.set({ [EXTENSION_UPDATE_STORAGE_KEY]: state });
     return state;

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — extension download filename and update notice (1.0.30)
+
+The rolling `extension-latest` release was never receiving the version-stamped
+artifacts: `action-gh-release`'s `files:` input is not shell-expanded, so
+`totem-extension-v${VERSION}.zip` matched nothing. The publish step now passes
+the resolved version explicitly (and the versioned `.crx` too), and a new
+verification step fails the release if either asset is missing from
+`extension-latest`.
+
+That silent gap had two user-visible effects:
+
+- **totem.ing served the wrong build.** `/api/config` resolves the newest
+  versioned asset from the release listing, so after 1.0.27 it kept pointing at
+  `totem-extension-1.0.27.zip` — visitors downloaded 1.0.27 while 1.0.29 was
+  live. The site now reads the published version from `totem-extension.xml`
+  (written by the same build) and serves exactly that version, falling back to
+  the unversioned `totem-extension.zip` when the versioned copy is missing
+  rather than quietly serving an older build.
+- **The update notice never fired.** The extension accepted only the legacy
+  `totem-extension-<version>.zip` asset name, so every build after 1.0.27
+  compared itself against 1.0.27 and saw "no update". Both spellings are
+  accepted now, and a cached result is discarded when the running manifest
+  version changes, so a freshly updated build re-checks immediately.
+
 ### Fixed — `@totemsdk/connect` peer range (unreleased)
 
 `@totemsdk/chain-provider` 0.4.0 reverses the 0.3.3 unit contract, so the
