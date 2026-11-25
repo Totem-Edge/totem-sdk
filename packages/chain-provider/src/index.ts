@@ -22,6 +22,9 @@ export {
   withDepositVerifier,
 } from './verify-deposit.js';
 
+export { extractTxPowCoinIds, extractTxPowOutputs } from './txpow.js';
+export type { TxPowOutput } from './txpow.js';
+
 export { HostedProvider } from './providers/hosted.js';
 export type { HostedProviderConfig } from './providers/hosted.js';
 

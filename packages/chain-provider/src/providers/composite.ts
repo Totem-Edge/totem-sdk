@@ -54,6 +54,33 @@ export class CompositeProvider implements ChainStateProvider {
     return this.withNoArg('getTip');
   }
 
+  /**
+   * Lineage answers are optional per provider. A composite must not pretend it
+   * has one: a provider that cannot answer returns null ("unknown"), and if
+   * neither side implements the command the result is null, never an empty list
+   * that would read as "this transaction created nothing".
+   */
+  async getTransactionOutputs(txpowid: string): Promise<string[] | null> {
+    const primary = this.primary.getTransactionOutputs?.bind(this.primary);
+    const fallback = this.fallback.getTransactionOutputs?.bind(this.fallback);
+    if (primary) {
+      try {
+        const result = await primary(txpowid);
+        if (result !== null) return result;
+      } catch (error) {
+        this.onFallback?.('getTransactionOutputs', error);
+      }
+    }
+    if (fallback) {
+      try {
+        return await fallback(txpowid);
+      } catch (error) {
+        this.onFallback?.('getTransactionOutputs', error);
+      }
+    }
+    return null;
+  }
+
   getToken(tokenId: string): Promise<TokenInfo> {
     return this.withArg('getToken', tokenId);
   }

@@ -25,6 +25,7 @@ import type {
   DepositVerification,
 } from '../types.js';
 import { depositAddressFor, evaluateDeposit, notFoundResult } from '../verify-deposit.js';
+import { extractTxPowCoinIds } from '../txpow.js';
 
 export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
   constructor(private readonly client: MinimaRpcClient) {}
@@ -39,6 +40,20 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
       megammr: query.megammr,
     });
     return result as unknown as Coin[];
+  }
+
+  /**
+   * Outputs of a TxPoW via the node's own `txpow` command. The node keeps every
+   * TxPoW (and a MegaMMR node keeps the MMR too), so this works on a wallet node
+   * and on an archive/MegaMMR node without a new endpoint.
+   */
+  async getTransactionOutputs(txpowid: string): Promise<string[] | null> {
+    try {
+      const response = await this.client.runCommand('txpow', { txpowid });
+      return extractTxPowCoinIds(response);
+    } catch {
+      return null;
+    }
   }
 
   async getAddressInfo(address: string): Promise<AddressInfo | null> {

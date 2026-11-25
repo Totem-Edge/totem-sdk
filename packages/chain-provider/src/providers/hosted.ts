@@ -20,6 +20,7 @@ import type {
   TokenSearchQuery,
   BroadcastResult,
 } from '../types.js';
+import { extractTxPowCoinIds } from '../txpow.js';
 
 export interface HostedProviderConfig {
   baseUrl: string;
@@ -107,6 +108,20 @@ export class HostedProvider implements ChainStateProvider {
    * Get coins (UTXOs) for an address.
    * Maps GET /v1/wallet/utxos/:address → Coin[].
    */
+  /**
+   * Outputs of a TxPoW via the hosted node RPC (`txpow txpowid:0x…`). The
+   * hosted node is the same Minima node shape as a local one, so no extra
+   * endpoint is required.
+   */
+  async getTransactionOutputs(txpowid: string): Promise<string[] | null> {
+    try {
+      const response = await this.rpc<unknown>(`txpow txpowid:${txpowid}`);
+      return extractTxPowCoinIds(response);
+    } catch {
+      return null;
+    }
+  }
+
   async getCoins(query: CoinsQuery): Promise<Coin[]> {
     if (!query.address && !query.coinId) return [];
 

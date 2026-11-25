@@ -177,6 +177,16 @@ export interface ChainStateProvider {
   getCoin(coinId: string): Promise<Coin | null>;
   getProof(coinId: string): Promise<MMRProof>;
   getTip(): Promise<ChainTip>;
+  /**
+   * Coin ids created by a TxPoW, from `txpow txpowid:0x…`.
+   *
+   * This is the authoritative lineage answer for a coin: Minima derives output
+   * coin ids from the first input's coin id and the output index, so an output
+   * id cannot be computed from a transaction draft whose input floats (as a
+   * channel splice does). `null` means "the node could not tell us"; an empty
+   * array would wrongly claim a transaction created nothing.
+   */
+  getTransactionOutputs?(txpowid: string): Promise<string[] | null>;
   getToken(tokenId: string): Promise<TokenInfo>;
   searchTokens(query: TokenSearchQuery): Promise<TokenInfo[]>;
   getTokensByCreator(address: string): Promise<TokenInfo[]>;
