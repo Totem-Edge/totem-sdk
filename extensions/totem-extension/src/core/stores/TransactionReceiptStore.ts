@@ -37,8 +37,8 @@ export interface TransactionReceipt {
 const STORAGE_KEY = 'totem_transaction_receipts';
 const MAX_RECEIPTS = 1000;
 
-// Minima explorer base URL
-const EXPLORER_BASE_URL = 'https://explorer.minima.global';
+// MinimaNode transaction detail base URL
+const MINIMANODE_TX_BASE = 'https://minimanode.com/#/tx';
 
 export class TransactionReceiptStore {
   private receipts: TransactionReceipt[] = [];
@@ -47,8 +47,13 @@ export class TransactionReceiptStore {
   async load(): Promise<void> {
     try {
       const result = await chrome.storage.local.getTyped(STORAGE_KEY);
-      if (result[STORAGE_KEY]) {
-        this.receipts = result[STORAGE_KEY];
+      if (Array.isArray(result[STORAGE_KEY])) {
+        // Migrate receipts written before the switch from explorer.minima.global
+        // (and the old broken #/<txid> shape) to the canonical MinimaNode link.
+        this.receipts = result[STORAGE_KEY].map((receipt) => {
+          const explorerUrl = this.buildExplorerUrl(receipt.txpowid);
+          return explorerUrl ? { ...receipt, explorerUrl } : receipt;
+        });
       }
       this.initialized = true;
     } catch (error) {
@@ -74,7 +79,7 @@ export class TransactionReceiptStore {
     const enrichedReceipt: TransactionReceipt = {
       ...receipt,
       lifecycle: receipt.lifecycle || this.statusToLifecycle(receipt.status),
-      explorerUrl: receipt.explorerUrl || this.buildExplorerUrl(receipt.txpowid),
+      explorerUrl: this.buildExplorerUrl(receipt.txpowid),
       updatedAt: Date.now()
     };
     
@@ -211,7 +216,7 @@ export class TransactionReceiptStore {
     if (!txpowid || txpowid.startsWith('pending-')) {
       return '';
     }
-    return `${EXPLORER_BASE_URL}/tx/${txpowid}`;
+    return `${MINIMANODE_TX_BASE}/${txpowid}`;
   }
 
   private statusToLifecycle(status: TransactionReceipt['status']): TransactionLifecycle {

@@ -26,7 +26,7 @@ export interface TransactionReceiptProps {
   onViewActivity?: () => void;
 }
 
-const EXPLORER_BASE_URL = 'https://explorer.minima.global';
+const MINIMANODE_TX_BASE = 'https://minimanode.com/#/tx';
 
 export function TransactionReceipt({
   txpowid,
@@ -42,7 +42,7 @@ export function TransactionReceipt({
   onClose,
   onViewActivity
 }: TransactionReceiptProps) {
-  const finalExplorerUrl = explorerUrl || `${EXPLORER_BASE_URL}/transactions/${txpowid}`;
+  const finalExplorerUrl = explorerUrl || `${MINIMANODE_TX_BASE}/${txpowid}`;
   
   const getStatusConfig = () => {
     switch (status) {
@@ -74,7 +74,7 @@ export function TransactionReceipt({
         return {
           icon: '?',
           title: 'Confirmation Pending',
-          subtitle: 'Transaction was broadcast but not yet confirmed. Check back later or view on explorer.',
+          subtitle: 'Transaction was broadcast but not yet confirmed. Check back later or view on MinimaNode.',
           color: 'var(--color-warning)',
           bgColor: 'rgba(245, 158, 11, 0.15)'
         };
@@ -246,7 +246,7 @@ export function TransactionReceipt({
             fontSize: '0.9rem'
           }}
         >
-          <span>View on Explorer</span>
+          <span>View on MinimaNode</span>
           <span style={{ fontSize: '0.8rem' }}>↗</span>
         </a>
       )}

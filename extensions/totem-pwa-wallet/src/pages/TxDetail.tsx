@@ -18,7 +18,7 @@ import {
   tokenLabel,
 } from '../core/format';
 
-const explorerUrl = (txpowid: string) => `https://minimanode.com/#/${txpowid}`;
+const explorerUrl = (txpowid: string) => `https://minimanode.com/#/tx/${txpowid}`;
 
 interface TokenMeta {
   name?: string;

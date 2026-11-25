@@ -184,7 +184,7 @@ export function Send() {
         {txId && (
           <a
             className="btn btn-secondary btn-full"
-            href={`https://minimanode.com/#/${txId}`}
+            href={`https://minimanode.com/#/tx/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ marginBottom: 'var(--space-1)' }}
