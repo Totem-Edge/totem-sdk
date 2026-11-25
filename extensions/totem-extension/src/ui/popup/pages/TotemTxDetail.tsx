@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Typography, StatusPill } from '../../components/atoms';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { formatAmount, groupThousands, shortAddress, tokenLabel, formatWhen, decodeMinimaAmount } from '../utils/format';
+import { minimanodeTxUrl as explorerUrl } from '../../../core/links/minimanode';
 import '../../theme/axia-tokens.css';
 
 interface Leg {
@@ -36,8 +37,6 @@ interface TotemTxDetailProps {
   activeAccountAddress?: string;
   onBack: () => void;
 }
-
-const explorerUrl = (txpowid: string) => `https://minimanode.com/#/${txpowid}`;
 
 export function TotemTxDetail({ txpowid, activeAccountAddress, onBack }: TotemTxDetailProps) {
   const [tx, setTx] = useState<TxDetail | null>(null);

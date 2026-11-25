@@ -26,7 +26,7 @@ export interface TransactionReceiptProps {
   onViewActivity?: () => void;
 }
 
-const MINIMANODE_TX_BASE = 'https://minimanode.com/#/tx';
+import { minimanodeTxUrl } from '../../../core/links/minimanode';
 
 export function TransactionReceipt({
   txpowid,
@@ -42,7 +42,7 @@ export function TransactionReceipt({
   onClose,
   onViewActivity
 }: TransactionReceiptProps) {
-  const finalExplorerUrl = explorerUrl || `${MINIMANODE_TX_BASE}/${txpowid}`;
+  const finalExplorerUrl = explorerUrl || minimanodeTxUrl(txpowid);
   
   const getStatusConfig = () => {
     switch (status) {

@@ -1,4 +1,5 @@
 import type { SigningIndices, WotsIndices } from './WatermarkStore';
+import { minimanodeTxUrl } from '../links/minimanode';
 
 export type TransactionLifecycle = 
   | 'created'      // Transaction created but not yet submitted
@@ -36,9 +37,6 @@ export interface TransactionReceipt {
 
 const STORAGE_KEY = 'totem_transaction_receipts';
 const MAX_RECEIPTS = 1000;
-
-// MinimaNode transaction detail base URL
-const MINIMANODE_TX_BASE = 'https://minimanode.com/#/tx';
 
 export class TransactionReceiptStore {
   private receipts: TransactionReceipt[] = [];
@@ -213,10 +211,7 @@ export class TransactionReceiptStore {
   }
 
   private buildExplorerUrl(txpowid: string): string {
-    if (!txpowid || txpowid.startsWith('pending-')) {
-      return '';
-    }
-    return `${MINIMANODE_TX_BASE}/${txpowid}`;
+    return minimanodeTxUrl(txpowid);
   }
 
   private statusToLifecycle(status: TransactionReceipt['status']): TransactionLifecycle {

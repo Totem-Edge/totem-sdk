@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — MinimaNode transaction links (1.0.31)
+
+"View on minimanode" on the Activity transaction detail page opened
+`https://minimanode.com/#/<txpowid>` — the popup's own deep-link shape — instead
+of the explorer's `#/tx/<txpowid>`. MinimaNode routes on the `tx/` prefix and
+renders its dashboard for anything else, so the transaction was dropped and the
+visitor landed on the explorer home page.
+
+Explorer links now come from `src/core/links/minimanode.ts`, which both the
+detail page and the transaction receipt/receipt store use, and a test pins the
+URL shape so the two hash forms cannot be confused again.
+
 ### Fixed — extension download filename and update notice (1.0.30)
 
 The rolling `extension-latest` release was never receiving the version-stamped
