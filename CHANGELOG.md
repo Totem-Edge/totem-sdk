@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — LSP quote authorization and splice successor integrity (unreleased)
 
-Audit findings OMN-064–077, 091 in the Omnia LSP, splice and host packages.
+Audit findings OMN-064–077 in the Omnia LSP, splice and host packages.
+(OMN-078–092 remain open; OMN-091's HTLC boundary is not changed here.)
 
 - **LSP provider (OMN-064/065/066/067/068/069/070/071):** `openQuote()` now
   verifies the quote instead of trusting a signature string: structural
