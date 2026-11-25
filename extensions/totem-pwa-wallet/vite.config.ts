@@ -50,6 +50,9 @@ export default defineConfig({
         // not a fetchable /web asset. Precaching it fails installation and
         // silently removes the service worker, which also disables update checks.
         globIgnores: ['**/_worker.js'],
+        // Claim the first load immediately. Updates still wait for the user to
+        // accept the prompt; clientsClaim only closes the first-install gap.
+        clientsClaim: true,
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // The portfolio is a separate app on the wallet host; never serve the
         // wallet shell for its navigations.
