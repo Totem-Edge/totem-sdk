@@ -1,4 +1,5 @@
 import { resolveActiveChainProvider } from '../config/activeChainProvider';
+import { mxToHex } from '@totemsdk/core';
 
 export class CoinSelectionError extends Error {
   constructor(
@@ -62,14 +63,11 @@ export interface CoinSelectionResult {
   fromAddresses: string[];
 }
 
-export type SendMode = 'global' | 'focused';
-
 export interface CoinSelectionOptions {
-  mode: SendMode;
+  /** The currently selected wallet address. Sends never span addresses. */
+  sourceAddress: string;
   targetAmount: string;
   tokenId?: string;
-  focusedAddress?: string;
-  excludedAddresses?: string[];
 }
 
 const MINIMA_DECIMALS = 44;  // Minima uses 44 decimal precision
@@ -126,7 +124,21 @@ function isPositive(value: string): boolean {
   return parseDecimalToBigInt(value) > 0n;
 }
 
-function normAddr(a: string): string { return (a || '').toLowerCase(); }
+function normAddr(a: string): string {
+  const value = (a || '').trim();
+  if (!value) return '';
+  try {
+    // The node/API returns coin addresses as 0x hex while wallet addresses
+    // are Mx. Compare a single canonical form so focused sends do not select
+    // zero coins just because the encodings differ.
+    const hex = value.startsWith('Mx') || value.startsWith('mx')
+      ? mxToHex(value)
+      : value;
+    return hex.replace(/^0x/i, '').toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
+}
 function normToken(t: string): string { return (t || '').toLowerCase(); }
 
 /** Map a chain-provider coin to the wallet's SpendableCoin shape. */
@@ -415,17 +427,10 @@ class CoinSelectionService {
     coins: SpendableCoin[],
     options: CoinSelectionOptions
   ): CoinSelectionResult {
-    let availableCoins = [...coins];
-    
-    if (options.mode === 'focused' && options.focusedAddress) {
-      const normFocused = normAddr(options.focusedAddress);
-      availableCoins = availableCoins.filter(c => normAddr(c.address) === normFocused);
-    }
-    
-    const exclusions = options.excludedAddresses || this.getExcludedAddresses();
-    if (exclusions.length > 0 && options.mode === 'global') {
-      availableCoins = availableCoins.filter(c => !exclusions.includes(c.address));
-    }
+    // The send source is always the address selected in Settings. There is no
+    // global/multi-address send mode.
+    const source = normAddr(options.sourceAddress);
+    let availableCoins = coins.filter(c => normAddr(c.address) === source);
     
     if (options.tokenId && options.tokenId !== '0x00') {
       const normTok = normToken(options.tokenId);
@@ -480,19 +485,10 @@ class CoinSelectionService {
   }
   
   async selectCoinsForSend(
-    allAddresses: string[],
-    options: CoinSelectionOptions
+    sourceAddress: string,
+    options: Omit<CoinSelectionOptions, 'sourceAddress'>
   ): Promise<CoinSelectionResult> {
-    let addressesToQuery: string[];
-    
-    if (options.mode === 'focused' && options.focusedAddress) {
-      addressesToQuery = [options.focusedAddress];
-    } else {
-      const exclusions = options.excludedAddresses || this.getExcludedAddresses();
-      addressesToQuery = allAddresses.filter(addr => !exclusions.includes(addr));
-    }
-    
-    if (addressesToQuery.length === 0) {
+    if (!sourceAddress) {
       return {
         selectedCoins: [],
         totalSelected: '0',
@@ -501,9 +497,9 @@ class CoinSelectionService {
         fromAddresses: []
       };
     }
-    
-    const coins = await this.fetchSpendableCoins(addressesToQuery, options.tokenId);
-    return this.selectCoins(coins, options);
+
+    const coins = await this.fetchSpendableCoins([sourceAddress], options.tokenId);
+    return this.selectCoins(coins, { ...options, sourceAddress });
   }
   
   formatCoinInputs(coins: SpendableCoin[]): Array<{ coinId: string }> {

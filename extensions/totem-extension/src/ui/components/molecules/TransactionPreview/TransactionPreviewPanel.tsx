@@ -130,8 +130,7 @@ export function TransactionPreviewPanel({
 
       <RecipientsList
         recipients={viewModel.recipients}
-        sourceAddress={viewModel.inputs[0]?.address}
-        sourceMode={viewModel.sourceMode || 'global'}
+        sourceAddress={viewModel.inputs[0]?.address || ''}
         change={viewModel.change}
         changeAddress={viewModel.outputs.find(o => o.isChange)?.address}
       />

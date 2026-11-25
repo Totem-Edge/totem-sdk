@@ -1,10 +1,23 @@
 /**
- * AXIA TOTEM ACTIVITY PAGE - TOTEM REDESIGN
- * Transaction history fetched via TxpowIndexer SQL backend
+ * AXIA TOTEM ACTIVITY PAGE
+ *
+ * Transaction history from the analytics archive index (via the API), grouped
+ * by day, newest first. State-only (zero-amount) updates are hidden behind a
+ * toggle so they do not drown out real transfers.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Typography, Button, StatusPill } from '../../components/atoms';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Card, Typography, StatusPill } from '../../components/atoms';
+import { usePortfolio } from '../../hooks/usePortfolio';
+import {
+  formatSignedAmount,
+  isZeroAmount,
+  shortAddress,
+  tokenLabel,
+  formatWhen,
+  formatAmount,
+  decodeMinimaAmount,
+} from '../utils/format';
 import '../../theme/axia-tokens.css';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
@@ -15,101 +28,320 @@ interface TxEvent {
   amount: string;
   tokenid: string;
   token_name?: string;
+  /** Token scale supplied by the archive index; null when unknown. */
+  decimals?: number | null;
   event_date: string;
   coinid: string;
   localAddress: string;
+  height?: number;
 }
 
 interface TotemActivityProps {
   activeAccountAddress?: string;
+  onSelectTx?: (txpowid: string) => void;
 }
 
-export function TotemActivity({ activeAccountAddress }: TotemActivityProps) {
+export function TotemActivity({ activeAccountAddress, onSelectTx }: TotemActivityProps) {
   const [events, setEvents] = useState<TxEvent[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [showStateUpdates, setShowStateUpdates] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+
+  // Cache key is address-scoped: switching accounts must not show another
+  // account's history.
+  const cacheKey = `activityCache:${activeAccountAddress ?? 'all'}`;
+
+  const { entries, startStream } = usePortfolio();
+
+  // The portfolio snapshot carries the token names and scales. Only Home and
+  // Send used to request it, so Activity rendered every token as an unknown
+  // `0x050D…C1` chip. Requesting the stream here also delivers the cached
+  // snapshot immediately, so names are present on first paint.
+  useEffect(() => {
+    if (activeAccountAddress) startStream([activeAccountAddress]);
+  }, [activeAccountAddress, startStream]);
+
+  // tokenid -> display name + scale, resolved from the portfolio the wallet
+  // already holds (the history endpoint only returns ids and raw amounts).
+  const tokens = useMemo(() => {
+    const map: Record<string, { name?: string; ticker?: string; decimals?: number }> = {};
+    for (const entry of entries as Array<{ tokenid?: string; name?: string; ticker?: string; decimals?: number }>) {
+      if (entry?.tokenid) {
+        map[entry.tokenid.toLowerCase()] = {
+          name: entry.name,
+          ticker: entry.ticker,
+          decimals: entry.decimals,
+        };
+      }
+    }
+    return map;
+  }, [entries]);
 
   const loadTransactions = useCallback(async () => {
-    setLoadingState('loading');
+    setLoadingState((prev) => (prev === 'success' ? prev : 'loading'));
     setError(null);
     try {
       const response = await chrome.runtime.sendMessage({
         method: 'activity:getTransactions',
-        limit: 50,
+        limit: 200,
       });
       if (response?.ok) {
-        setEvents(response.events || []);
+        const fresh: TxEvent[] = response.events || [];
+        setEvents(fresh);
+        setFromCache(false);
         setLoadingState('success');
+        // Persist for instant/offline rendering next time the tab opens.
+        try {
+          await chrome.storage.local.set({ [cacheKey]: { at: Date.now(), events: fresh } });
+        } catch {
+          /* quota/unavailable — cache is best-effort */
+        }
       } else {
         throw new Error(response?.error || 'Failed to load transactions');
       }
     } catch (err: any) {
       console.error('[TotemActivity] Failed to load transactions:', err);
+      // Keep showing whatever we have (cache or previous fetch) instead of
+      // blanking the tab on a transient API failure.
+      setEvents((prev) => {
+        if (prev.length > 0) return prev;
+        return prev;
+      });
       setError(err.message || 'Failed to load transaction history');
-      setLoadingState('error');
+      setLoadingState((prev) => (prev === 'success' ? 'success' : 'error'));
+    }
+  }, [cacheKey]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      // 1. Render cached history immediately.
+      try {
+        const stored = await chrome.storage.local.get(cacheKey);
+        const cached = stored?.[cacheKey] as { at?: number; events?: TxEvent[] } | undefined;
+        if (active && cached?.events?.length) {
+          setEvents(cached.events);
+          setFromCache(true);
+          setLoadingState('success');
+        }
+      } catch {
+        /* no cache */
+      }
+      // 2. Then refresh from the API (cache is a fast first paint, not a TTL).
+      if (active) await loadTransactions();
+    })();
+    return () => {
+      active = false;
+    };
+  }, [cacheKey, loadTransactions, activeAccountAddress]);
+
+  const copyText = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(text);
+      setTimeout(() => setCopied(null), 1200);
+    } catch {
+      // clipboard unavailable; no-op
     }
   }, []);
 
-  useEffect(() => {
-    loadTransactions();
-  }, [loadTransactions, activeAccountAddress]);
+  /**
+   * Node amounts are written at 44 decimal places. Native MINIMA uses all 44,
+   * so its text is already the display value; a token's base units must be
+   * divided by its own decimals. The archive index supplies the scale, which
+   * also covers tokens the wallet no longer holds; the portfolio is the
+   * fallback for older index rows that omit it.
+   */
+  const decimalsFor = useCallback(
+    (tokenid?: string, fromServer?: number | null) => {
+      if (tokenid && tokenid.toLowerCase() !== '0x00' && typeof fromServer === 'number') {
+        return fromServer;
+      }
+      if (!tokenid || tokenid.toLowerCase() === '0x00') return 44;
+      return tokens[tokenid.toLowerCase()]?.decimals ?? 44;
+    },
+    [tokens]
+  );
 
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 3_600_000) {
-      const mins = Math.floor(diff / 60_000);
-      return mins <= 1 ? 'Just now' : `${mins}m ago`;
-    }
-    if (diff < 86_400_000) {
-      return `${Math.floor(diff / 3_600_000)}h ago`;
-    }
-    if (diff < 604_800_000) {
-      return `${Math.floor(diff / 86_400_000)}d ago`;
-    }
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-    });
-  };
+  const zeroCount = useMemo(
+    () =>
+      events.filter((e) =>
+        isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid, e.decimals)))
+      ).length,
+    [events, decimalsFor]
+  );
 
-  const formatAmount = (amount: string): string => {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return '0';
-    if (num < 0.01) return num.toFixed(8);
-    if (num < 1) return num.toFixed(4);
-    return num.toFixed(2);
-  };
+  // Newest first, grouped by local day.
+  const groups = useMemo(() => {
+    const sorted = [...events].sort(
+      (a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()
+    );
+    const isZero = (e: TxEvent) =>
+      isZeroAmount(decodeMinimaAmount(e.amount, decimalsFor(e.tokenid, e.decimals)));
+    const filtered = showStateUpdates ? sorted : sorted.filter((e) => !isZero(e));
 
-  const truncateTxId = (id: string): string => {
-    if (id.length <= 14) return id;
-    return id.slice(0, 8) + '…' + id.slice(-4);
+    const byDay: Array<{ key: string; label: string; items: TxEvent[] }> = [];
+    for (const event of filtered) {
+      const when = formatWhen(event.event_date);
+      const last = byDay[byDay.length - 1];
+      if (last && last.key === when.dayKey) last.items.push(event);
+      else byDay.push({ key: when.dayKey, label: when.dayKey, items: [event] });
+    }
+    return byDay;
+  }, [events, showStateUpdates, decimalsFor]);
+
+  const renderRow = (ev: TxEvent) => {
+    const isSend = ev.event_type === 'send';
+    const { label: unit, known } = tokenLabel(ev.tokenid, tokens);
+    const displayAmount = decodeMinimaAmount(ev.amount, decimalsFor(ev.tokenid, ev.decimals));
+    const when = formatWhen(ev.event_date);
+    const zero = isZeroAmount(displayAmount);
+
+    return (
+      <button
+        key={`${ev.txpowid}-${ev.coinid}-${ev.event_type}`}
+        type="button"
+        onClick={() => onSelectTx?.(ev.txpowid)}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          background: 'transparent',
+          border: 'none',
+          borderTop: '1px solid var(--border-subtle)',
+          padding: 'var(--space-1-5)',
+          cursor: onSelectTx ? 'pointer' : 'default',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', minWidth: 0 }}>
+            <Typography variant="body" bold uppercase>
+              {zero ? 'State update' : isSend ? 'Sent' : 'Received'}
+            </Typography>
+            <StatusPill variant="success" size="sm">confirmed</StatusPill>
+            {!known && (
+              <span
+                title={`Unknown token ${ev.tokenid}`}
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.04em',
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                token
+              </span>
+            )}
+          </div>
+          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+            <Typography variant="body" bold mono>
+              {formatSignedAmount(displayAmount, isSend)}
+            </Typography>
+            <Typography variant="caption" color="muted" uppercase>
+              <span
+                title={unit}
+                style={{
+                  display: 'inline-block',
+                  maxWidth: 132,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'bottom',
+                }}
+              >
+                {unit}
+              </span>
+            </Typography>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', marginTop: 2 }}>
+          <span
+            title={when.full}
+            style={{ fontSize: 11, color: 'var(--text-muted)' }}
+          >
+            {when.short}
+            {typeof ev.height === 'number' && ev.height > 0 ? ` · block ${ev.height.toLocaleString('en-GB')}` : ''}
+          </span>
+          <span
+            role="button"
+            tabIndex={0}
+            title={`${ev.txpowid} — click to copy`}
+            onClick={(e) => {
+              e.stopPropagation();
+              void copyText(ev.txpowid);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                void copyText(ev.txpowid);
+              }
+            }}
+            style={{
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              cursor: 'copy',
+            }}
+          >
+            {copied === ev.txpowid ? 'copied' : shortAddress(ev.txpowid)}
+          </span>
+        </div>
+      </button>
+    );
   };
 
   return (
     <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        flex: 1,
-        minHeight: 0,
-        padding: 'var(--space-2)',
-        paddingBottom: 'var(--space-4)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-2)',
-      }}>
-        <Typography variant="h2" color="accent">
-          Activity
-        </Typography>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          padding: 'var(--space-2)',
+          paddingBottom: 'var(--space-4)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+          overflowY: 'auto',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <Typography variant="h2" color="accent">Activity</Typography>
+            {fromCache && loadingState === 'success' && (
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }} title="Cached — refreshing">
+                cached
+              </span>
+            )}
+          </div>
+          {zeroCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowStateUpdates((v) => !v)}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 999,
+                color: 'var(--text-muted)',
+                fontSize: 11,
+                padding: '4px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              {showStateUpdates ? 'Hide' : 'Show'} state updates ({zeroCount})
+            </button>
+          )}
+        </div>
 
         {loadingState === 'loading' && (
           <Card padding="md" shadow>
             <div style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
-              <Typography variant="body" uppercase bold>
-                Loading Transactions...
-              </Typography>
+              <Typography variant="body" uppercase bold>Loading Transactions...</Typography>
             </div>
           </Card>
         )}
@@ -117,86 +349,61 @@ export function TotemActivity({ activeAccountAddress }: TotemActivityProps) {
         {loadingState === 'error' && (
           <Card padding="md" shadow>
             <div style={{ textAlign: 'center', padding: 'var(--space-2)' }}>
-              <Typography variant="body" uppercase bold color="danger">
-                Error Loading Transactions
-              </Typography>
-              <Typography variant="caption" style={{ marginTop: 'var(--space-1)' }}>
-                {error}
-              </Typography>
-              <Button
-                variant="primary"
-                size="sm"
+              <Typography variant="body" uppercase bold color="danger">Error Loading Transactions</Typography>
+              <Typography variant="caption" style={{ marginTop: 'var(--space-1)' }}>{error}</Typography>
+              <button
+                type="button"
                 onClick={loadTransactions}
-                style={{ marginTop: 'var(--space-2)' }}
+                style={{ marginTop: 'var(--space-2)', padding: '6px 14px', cursor: 'pointer' }}
               >
                 Retry
-              </Button>
+              </button>
             </div>
           </Card>
         )}
 
-        {loadingState === 'success' && events.length === 0 && (
+        {loadingState === 'success' && groups.length === 0 && (
           <Card>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--space-4)',
-              gap: 'var(--space-2)',
-            }}>
-              <div style={{ fontSize: '48px', opacity: 0.3 }}>📊</div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'var(--space-4)',
+                gap: 'var(--space-2)',
+              }}
+            >
+              <div style={{ fontSize: 48, opacity: 0.3 }}>📊</div>
               <Typography variant="h3" uppercase>No Transactions Yet</Typography>
-              <Typography variant="body" style={{ textAlign: 'center', opacity: 0.7, maxWidth: '280px' }}>
+              <Typography variant="body" style={{ textAlign: 'center', opacity: 0.7, maxWidth: 280 }}>
                 Your transaction history will appear here once you start using your wallet
               </Typography>
             </div>
           </Card>
         )}
 
-        {loadingState === 'success' && events.length > 0 && (
+        {loadingState === 'success' && groups.length > 0 && (
           <Card padding="none" shadow>
-            <div style={{ padding: 'var(--space-1-5)', borderBottom: '2px solid var(--border-accent)' }}>
-              <Typography variant="body" uppercase bold>Transaction History</Typography>
-            </div>
-            <div>
-              {events.map((ev, index) => {
-                const isSend = ev.event_type === 'send';
-                const tokenLabel = ev.token_name || (ev.tokenid === '0x00' ? 'MINIMA' : ev.tokenid.slice(0, 8));
-                return (
-                  <div
-                    key={`${ev.txpowid}-${ev.coinid}-${ev.event_type}`}
-                    style={{
-                      padding: 'var(--space-1-5)',
-                      borderBottom: index < events.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'var(--space-1)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                        <Typography variant="body" bold uppercase>
-                          {isSend ? 'Sent' : 'Received'}
-                        </Typography>
-                        <StatusPill variant="success" size="sm">confirmed</StatusPill>
-                      </div>
-                      <Typography variant="body" bold>
-                        {isSend ? '–' : '+'}{formatAmount(ev.amount)} {tokenLabel}
-                      </Typography>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="caption" color="muted">
-                        {formatDate(ev.event_date)}
-                      </Typography>
-                      <Typography variant="caption" color="muted" mono>
-                        {truncateTxId(ev.txpowid)}
-                      </Typography>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {groups.map((group) => (
+              <div key={group.key}>
+                <div
+                  style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1,
+                    padding: '4px var(--space-1-5)',
+                    background: 'var(--bg-elevated, var(--bg-base))',
+                    borderBottom: '1px solid var(--border-accent)',
+                  }}
+                >
+                  <Typography variant="caption" color="muted" uppercase bold>
+                    {group.label}
+                  </Typography>
+                </div>
+                {group.items.map(renderRow)}
+              </div>
+            ))}
           </Card>
         )}
       </div>

@@ -149,7 +149,7 @@ Keeps the service worker alive while a session is active (balance keepalive).
 
 ### Host permissions
 `api.axia.to` and `rpc.axia.to` are required for balance, portfolio, and
-transaction submission. `api2.axia.to` is the WAF-bypass submission host.
+transaction submission.
 `telemetry.axia.to` is used **only** for opt-in anonymous telemetry (default off),
 gated in `src/telemetry.ts`, with an allowlisted payload (version/event/timing/
 outcome; no addresses, keys, content, or origins). `api.coingecko.com` supplies

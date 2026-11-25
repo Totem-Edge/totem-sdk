@@ -17,11 +17,7 @@ import { parseMinimaAmount, formatAmount, formatTokenAmount, parseTokenImageUrl 
 import { useSendTransaction } from '../../../core/transaction/useSendTransaction';
 import { parseDecimalToBaseUnits } from '../../../core/transaction/MinimaTransactionBuilder';
 import { validateMinimaAddress } from '../../../core/validation';
-import { 
-  transactionAssembler, 
-  type TransactionArtifact, 
-  type TransactionAssemblyRequest 
-} from '../../../core/transaction';
+import type { PreparedSendPreview } from '../../../core/transaction/preparedSend';
 import { useUnlock } from '../contexts/UnlockContext';
 import { usePortfolio } from '../../hooks';
 import type { TokenDetailData } from './TotemTokenDetail';
@@ -67,14 +63,12 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
   // Balance state
   const [balance, setBalance] = useState<string>('0');
   const [addresses, setAddresses] = useState<any[]>([]);
-  const [excludedAddresses, setExcludedAddresses] = useState<number[]>([]);
 
   const addressesRef = useRef(addresses);
-  const excludedAddressesRef = useRef(excludedAddresses);
   const scannerOpenedRef = useRef(false);
 
   // Transaction assembly state - holds fully assembled transaction for preview
-  const [transactionArtifact, setTransactionArtifact] = useState<TransactionArtifact | null>(null);
+  const [transactionArtifact, setTransactionArtifact] = useState<PreparedSendPreview | null>(null);
   const [assemblyLoading, setAssemblyLoading] = useState(false);
   const [assemblyError, setAssemblyError] = useState<string | null>(null);
   
@@ -86,21 +80,6 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     openUnlock(reason, retryAction);
   }, [openUnlock]);
   
-  const addDecimalStrings = (a: string, b: string): string => {
-    if (!a || a === '0' || a === '') return b || '0';
-    if (!b || b === '0' || b === '') return a || '0';
-    const [aInt, aDecStr = ''] = a.split('.');
-    const [bInt, bDecStr = ''] = b.split('.');
-    const maxDec = 18;
-    const aDec = aDecStr.padEnd(maxDec, '0');
-    const bDec = bDecStr.padEnd(maxDec, '0');
-    const sumFull = BigInt(aInt + aDec) + BigInt(bInt + bDec);
-    const sumStr = sumFull.toString().padStart(maxDec + 1, '0');
-    const intPart = sumStr.slice(0, -maxDec) || '0';
-    const decPart = sumStr.slice(-maxDec).replace(/0+$/, '');
-    return decPart ? `${intPart}.${decPart}` : intPart;
-  };
-
   const { entries, startStream } = usePortfolio();
 
   // Derive WalletToken[] from PortfolioEntry[] whenever entries change
@@ -142,7 +121,6 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     error: txError, 
     txpowid, 
     result: txResult,
-    sendTransaction, 
     reset: resetTransaction,
     review: reviewTransaction,
     confirmAndSend,
@@ -162,7 +140,6 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
   }, [initialToken, onTokenConsumed]);
 
   useEffect(() => { addressesRef.current = addresses; }, [addresses]);
-  useEffect(() => { excludedAddressesRef.current = excludedAddresses; }, [excludedAddresses]);
 
   useEffect(() => {
     chrome.storage.session.getTyped(['pendingQRScan']).then((result) => {
@@ -208,8 +185,6 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
             setAddresses(walletAddresses);
           }
         }
-        const stored = await chrome.storage.local.getTyped(['excludedAddresses']);
-        setExcludedAddresses(stored.excludedAddresses || []);
       } catch (error) {
         console.error('[TotemSend] Failed to load wallet state:', error);
       }
@@ -267,6 +242,11 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
   const handleReview = async () => {
     const sourceAddress = getSourceAddress();
     const tokenId = selectedTokenId;
+
+    if (!sourceAddress) {
+      setAssemblyError('No active wallet address selected.');
+      return;
+    }
     
     console.log('[TotemSend] Assembling transaction before review...');
     setAssemblyLoading(true);
@@ -274,57 +254,45 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     setTransactionArtifact(null);
     
     try {
-      // Get wallet addresses and WOTS root public key
-      const walletState = await chrome.runtime.sendMessage({ method: 'wallet:getState' });
-      const walletAddresses = walletState.result?.accounts?.map((acc: any) => acc.address) || [];
-      const wotsRootPublicKey = walletState.result?.wotsRootPublicKey || '';
-      
-      // Build assembly request
-      const assemblyRequest: TransactionAssemblyRequest = {
-        type: 'simple_send',
-        recipient,
-        amount,
-        tokenId,
-        tokenSymbol: selectedAsset,
-        sourceMode: 'focused',
-        sourceAddress,
-        excludedAddresses: [],
-        burn: burnAmount && parseFloat(burnAmount) > 0 ? burnAmount : undefined,
-        walletAddresses,
-        wotsRootPublicKey
-      };
-      
-      console.log('[TotemSend] Calling TransactionAssembler with:', assemblyRequest);
-      
-      // Assemble the full transaction with coin selection and proofs
-      const result = await transactionAssembler.assemble(assemblyRequest);
-      
-      if (!result.success || !result.artifact) {
-        console.error('[TotemSend] Assembly failed:', result.error);
-        setAssemblyError(result.error || 'Failed to assemble transaction');
+      const amountInBaseUnits = parseMinimaAmount(amount);
+      const burnBaseUnits = burnAmount && parseFloat(burnAmount) > 0
+        ? parseMinimaAmount(burnAmount)
+        : undefined;
+
+      console.log('[TotemSend] Preparing exact transaction for review...');
+      const response = await chrome.runtime.sendMessage({
+        method: 'WOTS_PREPARE_SEND',
+        params: {
+          to: recipient,
+          amount: amountInBaseUnits,
+          tokenid: tokenId,
+          tokenSymbol: selectedAsset,
+          sourceAddress,
+          ...(burnBaseUnits ? { burn: burnBaseUnits } : {})
+        }
+      });
+
+      if (!response?.ok || !response?.result?.preview) {
+        console.error('[TotemSend] Preparation failed:', response?.error);
+        setAssemblyError(response?.error || 'Failed to prepare transaction');
         setAssemblyLoading(false);
         return;
       }
-      
-      console.log('[TotemSend] Transaction assembled successfully:', {
-        inputCount: result.artifact.inputs.length,
-        outputCount: result.artifact.outputs.length,
-        rawHexLength: result.artifact.rawTransactionHex.length
+
+      const preview = response.result.preview as PreparedSendPreview;
+      console.log('[TotemSend] Exact transaction prepared:', {
+        inputCount: preview.inputs.length,
+        outputCount: preview.outputs.length,
+        rawHexLength: preview.rawTransactionHex.length
       });
-      
-      setTransactionArtifact(result.artifact);
-      
-      // Store pending params in hook state (including burn amount)
-      const amountInBaseUnits = parseMinimaAmount(amount);
-      const burnBaseUnits = burnAmount && parseFloat(burnAmount) > 0 ? parseMinimaAmount(burnAmount) : undefined;
-      
+
+      setTransactionArtifact(preview);
       reviewTransaction({
         address: recipient,
         amount: amountInBaseUnits,
         tokenid: tokenId,
         sourceAddress,
-        sendMode: 'focused',
-        excludedAddresses: [],
+        preparedId: response.result.prepareId,
         burn: burnBaseUnits
       });
       
@@ -363,36 +331,6 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     // walletTokens is derived — no manual restore needed
   };
 
-  // Legacy handleSend for direct send (skip review)
-  const handleSend = async () => {
-    try {
-      const amountInBaseUnits = parseMinimaAmount(amount);
-      const sourceAddress = getSourceAddress();
-      const burnBaseUnits = burnAmount && parseFloat(burnAmount) > 0 ? parseMinimaAmount(burnAmount) : undefined;
-
-      console.log('[TotemSend] Direct send:', { 
-        sourceAddress,
-        recipient, 
-        amount: amountInBaseUnits, 
-        selectedAsset,
-        burn: burnBaseUnits
-      });
-
-      await sendTransaction({
-        address: recipient,
-        amount: amountInBaseUnits,
-        tokenid: selectedTokenId,
-        sourceAddress,
-        sendMode: 'focused',
-        excludedAddresses: [],
-        burn: burnBaseUnits
-      });
-      
-    } catch (error) {
-      console.error('[TotemSend] Send failed:', error);
-    }
-  };
-  
   // Handle transaction status changes - transition to receipt screen
   useEffect(() => {
     if (txStatus === 'signing' || txStatus === 'submitting') {
@@ -450,34 +388,28 @@ export function TotemSend({ initialToken, onTokenConsumed, activeAccountIndex = 
     // 'amount' is the React state — the user's original typed value ("888").
     // pendingParams.amount has already been converted to base units and must NOT be used here.
     if (transactionArtifact && reviewTokenId !== '0x00' && amount) {
-      const totalOutEntry = transactionArtifact.totalOut.find(
-        t => t.tokenId.toLowerCase() === reviewTokenId.toLowerCase()
-      );
-      if (totalOutEntry) {
-        try {
-          const displayBU = parseDecimalToBaseUnits(amount);   // "888" → 888×10^44
-          const backingBU = BigInt(totalOutEntry.amount);      // "88800000000" → 888×10^8
-          if (backingBU > 0n && displayBU > 0n) {
-            const ratio = displayBU / backingBU;
-            let scale = 0;
-            let r = ratio;
-            while (r > 1n && scale <= 44) { r /= 10n; scale++; }
-            if (scale > 0 && scale <= 44) tokenScale = scale;
-          }
-        } catch { /* leave tokenScale undefined */ }
-      }
+      try {
+        const displayBU = parseDecimalToBaseUnits(amount);
+        const backingBU = parseDecimalToBaseUnits(transactionArtifact.sentTokenAmount);
+        if (backingBU > 0n && displayBU > 0n) {
+          const ratio = displayBU / backingBU;
+          let scale = 0;
+          let r = ratio;
+          while (r > 1n && scale <= 44) { r /= 10n; scale++; }
+          if (scale > 0 && scale <= 44) tokenScale = scale;
+        }
+      } catch { /* leave tokenScale undefined */ }
     }
 
-    // Use assembled transaction artifact when available for complete preview
     const previewViewModel = buildTransactionPreviewViewModel({
-      transaction: transactionArtifact?.transaction,
+      previewInputs: transactionArtifact?.inputs,
+      previewOutputs: transactionArtifact?.outputs,
       scriptDescriptors: transactionArtifact?.scriptDescriptors,
       recipient: pendingParams.address,
       amount: pendingParams.amount,
       tokenSymbol: selectedAsset,
       tokenId: reviewTokenId,
       sourceAddress: pendingParams.sourceAddress,
-      sourceMode: 'focused',
       burn: pendingParams.burn,
       balance: balance,
       rawTransactionHex: transactionArtifact?.rawTransactionHex,

@@ -38,6 +38,9 @@ export function usePortfolio(): UsePortfolioResult {
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const addressesRef = useRef<string[]>([]);
+  // Whether we have ever received entries (live or from the persistent cache).
+  // A later transport failure must not erase a balance we can still display.
+  const hasEntriesRef = useRef(false);
 
   const connect = useCallback(() => {
     if (portRef.current) return;
@@ -54,12 +57,14 @@ export function usePortfolio(): UsePortfolioResult {
             if (msg.payload.state === 'connected' || msg.payload.state === 'fallback') {
               setStatus(msg.payload.state === 'connected' ? 'live' : 'cached');
             } else if (msg.payload.state === 'error') {
-              setStatus('error');
+              // Keep showing cached entries when the service goes offline.
+              setStatus(hasEntriesRef.current ? 'cached' : 'error');
             }
             break;
 
           case 'PORTFOLIO_SNAPSHOT': {
             const incomingEntries: PortfolioEntry[] = msg.payload.entries ?? [];
+            if (incomingEntries.length > 0) hasEntriesRef.current = true;
 
             // An empty frame is not proof that the wallet is empty. The API is
             // expected to send an explicit zero-native entry when an address
@@ -88,6 +93,7 @@ export function usePortfolio(): UsePortfolioResult {
 
           case 'INITIAL_SNAPSHOT': {
             const incomingEntries: PortfolioEntry[] = msg.payload.entries ?? [];
+            if (incomingEntries.length > 0) hasEntriesRef.current = true;
             const initialConnectionState: ConnectionState = msg.payload.connectionState ?? 'connecting';
             const syncedAtByAddress: Record<string, number> = msg.payload.lastSyncedAt ?? {};
             const address = incomingEntries[0]?.address ?? addressesRef.current[0];

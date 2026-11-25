@@ -3,7 +3,7 @@
  * Handles WOTS signing flow: prepare → sign → finalize
  */
 
-import { getApiBase, getApiBypassBase, getProjectId } from '../api/base';
+import { getApiBase, getProjectId } from '../api/base';
 import { TxSignLogger, TxSendLogger } from './TxLogger';
 
 /**
@@ -138,7 +138,7 @@ export interface HierarchicalWitnessBundle {
 export interface FinalizeRequest {
   leaseToken: string;
   signedHex?: string;        // Deprecated: use signedBase64 for better Cloudflare compatibility
-  signedBase64?: string;     // Preferred: base64-encoded transaction (bypasses WAF)
+  signedBase64?: string;     // Preferred: base64-encoded transaction
   transactionHex?: string;   // Optional: the unsigned transaction body
   importId?: string;         // Optional: client-provided import ID for txnimport
 }
@@ -366,9 +366,10 @@ export class TransactionService {
       return HawkTransactionService.finalize(params);
     }
     const startTime = performance.now();
-    // Use bypass URL to avoid Cloudflare WAF blocking large transaction payloads
-    // The bypass subdomain (api2.axia.to) is DNS-only, routing directly to Render
-    const base = await getApiBypassBase();
+    // Finalize through the same API origin as every other request. The old
+    // api2.axia.to "WAF bypass" host was a DNS-only CNAME to a removed Railway
+    // service, so it is no longer a usable submission path.
+    const base = await getApiBase();
     const projectId = await getProjectId();
     
     const url = `${base.replace(/\/$/, '')}/v1/wots-hardened/finalize`;

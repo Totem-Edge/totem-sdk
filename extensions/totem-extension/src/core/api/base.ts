@@ -4,13 +4,6 @@ export async function getApiBase(): Promise<string> {
   return AXIA_BASE || "https://api.axia.to";
 }
 
-export async function getApiBypassBase(): Promise<string> {
-  const { AXIA_BYPASS_BASE } = await chrome.storage.local.getTyped("AXIA_BYPASS_BASE");
-  // Bypass URL for endpoints that trigger Cloudflare WAF (finalize with large payloads)
-  // api2.axia.to is DNS-only (no Cloudflare proxy) so large tx payloads bypass WAF
-  return AXIA_BYPASS_BASE || "https://api2.axia.to";
-}
-
 export async function getProjectId(): Promise<string> {
   const { AXIA_PROJECT_ID } = await chrome.storage.local.getTyped("AXIA_PROJECT_ID");
   // Use totem-shared as default public project

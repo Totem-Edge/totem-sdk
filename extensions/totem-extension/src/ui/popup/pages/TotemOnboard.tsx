@@ -13,6 +13,7 @@ import { isDesignerMode } from '../../../config/constants';
 import { detectHawkPairing, storeHawkInvitation, type HawkInvitation } from '../../../core/providers/hawkDetection';
 import { saveWalletNetworkConfig } from '../../../core/config/selfHosted';
 import { activeChainProviderStore } from '../../../core/config/activeChainProvider';
+import { featureFlags } from '../../../core/features';
 import '../../theme/axia-tokens.css';
 
 type OnboardStep = 'connect' | 'welcome' | 'display-phrase' | 'confirm-phrase' | 'enter-phrase' | 'password' | 'loading';
@@ -57,6 +58,7 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
   const [verificationWords, setVerificationWords] = useState<Record<number, string>>({});
   const [hawkInvitation, setHawkInvitation] = useState<HawkInvitation | null>(null);
+  const [localHawkEnabled, setLocalHawkEnabled] = useState(false);
   const [hawkState, setHawkState] = useState<HawkState>('checking');
   const [hawkBusy, setHawkBusy] = useState(false);
   const [hawkPairingOpened, setHawkPairingOpened] = useState(false);
@@ -147,6 +149,11 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
   }, [mnemonic, isValidMnemonic]);
 
   const runHawkDetection = async () => {
+    if (!featureFlags.isLocalHawkNodeEnabled()) {
+      setHawkState('not-detected');
+      return;
+    }
+
     if (typeof chrome === 'undefined' || !chrome?.storage?.local) {
       setHawkState('not-detected');
       return;
@@ -171,10 +178,26 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
     }
   };
 
-  // First-run detection: offer the local node immediately, but never block
-  // the Axia path while the loopback probe is running.
+  // First-run detection: the Local Hawk option is feature-gated. Keep the
+  // Axia path available immediately while the flag is loaded.
   useEffect(() => {
-    void runHawkDetection();
+    let cancelled = false;
+
+    void (async () => {
+      await featureFlags.initialize();
+      if (cancelled) return;
+
+      const enabled = featureFlags.isLocalHawkNodeEnabled();
+      setLocalHawkEnabled(enabled);
+
+      if (enabled) {
+        await runHawkDetection();
+      } else {
+        setHawkState('not-detected');
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const handleChooseAxia = async () => {
@@ -199,6 +222,7 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
   };
 
   const handleHawkAction = async () => {
+    if (!localHawkEnabled) return;
     setConnectError(null);
 
     if (hawkState === 'paired') {
@@ -231,6 +255,8 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
   };
 
   const handleContinueWithHawk = async () => {
+    if (!localHawkEnabled) return;
+
     if (typeof chrome === 'undefined' || !chrome?.storage?.local) {
       setConnectError('Extension storage is unavailable.');
       return;
@@ -335,6 +361,7 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
         {/* STEP 0: PROVIDER CONNECTION */}
         {step === 'connect' && (
           <ConnectStep
+            localHawkEnabled={localHawkEnabled}
             hawkState={hawkState}
             hawkInvitation={hawkInvitation}
             hawkBusy={hawkBusy}
@@ -427,6 +454,7 @@ export function TotemOnboard({ onDone }: TotemOnboardProps) {
 // ========== STEP COMPONENTS ==========
 
 function ConnectStep({
+  localHawkEnabled,
   hawkState,
   hawkInvitation,
   hawkBusy,
@@ -437,6 +465,7 @@ function ConnectStep({
   onContinueWithHawk,
   onUseAxia,
 }: {
+  localHawkEnabled: boolean;
   hawkState: HawkState;
   hawkInvitation: HawkInvitation | null;
   hawkBusy: boolean;
@@ -450,6 +479,9 @@ function ConnectStep({
   const hawkBusyNow = hawkBusy || hawkState === 'checking';
 
   const hawkStatus = (() => {
+    if (!localHawkEnabled) {
+      return 'Local Hawk Node pairing is coming soon.';
+    }
     if (hawkState === 'checking') {
       return 'Checking for a local Hawk node on 127.0.0.1:7789…';
     }
@@ -469,6 +501,7 @@ function ConnectStep({
   })();
 
   const hawkButtonLabel = (() => {
+    if (!localHawkEnabled) return 'COMING SOON';
     if (hawkState === 'checking') return 'CHECKING…';
     if (hawkState === 'paired') return 'USE PAIRED HAWK NODE';
     if (hawkState === 'detected') return hawkBusy ? 'OPENING…' : 'PAIR LOCAL HAWK';
@@ -507,42 +540,6 @@ function ConnectStep({
       </div>
 
       <Card style={{ width: '100%', padding: 'var(--space-2)', borderColor: 'var(--accent-primary)' }}>
-        <Typography variant="h3" color="accent" uppercase style={{ marginBottom: '4px' }}>
-          LOCAL HAWK NODE
-        </Typography>
-        <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1)', lineHeight: 1.45 }}>
-          Run your own full node and keep chain reads, broadcast and key-use coordination on your own infrastructure.
-        </Typography>
-        <Typography
-          variant="caption"
-          color={hawkState === 'detected' || hawkState === 'paired' ? 'accent' : 'muted'}
-          bold={hawkState === 'detected' || hawkState === 'paired'}
-          style={{ display: 'block', marginBottom: 'var(--space-1-5)', lineHeight: 1.45 }}
-        >
-          {hawkStatus}
-        </Typography>
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onHawkAction}
-          disabled={hawkBusyNow}
-        >
-          {hawkButtonLabel}
-        </Button>
-        {hawkPairingOpened && (
-          <Button
-            variant="secondary"
-            fullWidth
-            onClick={onContinueWithHawk}
-            style={{ marginTop: 'var(--space-1)' }}
-          >
-            I'VE PAIRED — CONTINUE
-          </Button>
-        )}
-      </Card>
-
-      <Card style={{ width: '100%', padding: 'var(--space-2)' }}>
         <Typography variant="h3" color="primary" uppercase style={{ marginBottom: '4px' }}>
           <a
             href="https://axia.to"
@@ -570,7 +567,7 @@ function ConnectStep({
           Use Axia's shared RPC. No local node or download required. You can switch to a local Hawk node later in Settings.
         </Typography>
         <Button
-          variant="secondary"
+          variant="primary"
           size="lg"
           fullWidth
           onClick={onUseAxia}
@@ -578,6 +575,46 @@ function ConnectStep({
         >
           CONNECT VIA AXIA (FREE)
         </Button>
+      </Card>
+
+      <Card style={{
+        width: '100%',
+        padding: 'var(--space-2)',
+        ...(localHawkEnabled ? { borderColor: 'var(--accent-primary)' } : {}),
+      }}>
+        <Typography variant="h3" color={localHawkEnabled ? 'accent' : 'muted'} uppercase style={{ marginBottom: '4px' }}>
+          LOCAL HAWK NODE
+        </Typography>
+        <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1)', lineHeight: 1.45 }}>
+          Run your own full node and keep chain reads, broadcast and key-use coordination on your own infrastructure.
+        </Typography>
+        <Typography
+          variant="caption"
+          color={localHawkEnabled && (hawkState === 'detected' || hawkState === 'paired') ? 'accent' : 'muted'}
+          bold={localHawkEnabled && (hawkState === 'detected' || hawkState === 'paired')}
+          style={{ display: 'block', marginBottom: 'var(--space-1-5)', lineHeight: 1.45 }}
+        >
+          {hawkStatus}
+        </Typography>
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          onClick={onHawkAction}
+          disabled={!localHawkEnabled || hawkBusyNow}
+        >
+          {hawkButtonLabel}
+        </Button>
+        {localHawkEnabled && hawkPairingOpened && (
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={onContinueWithHawk}
+            style={{ marginTop: 'var(--space-1)' }}
+          >
+            I'VE PAIRED — CONTINUE
+          </Button>
+        )}
       </Card>
 
       {error && (

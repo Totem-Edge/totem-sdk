@@ -10,7 +10,7 @@
 
 import type { MinimaTransaction, TransactionBuildResult } from './MinimaTransactionBuilder';
 import type { ScriptDescriptor } from './types/ScriptTypes';
-import type { SpendableCoin, CoinSelectionResult, SendMode } from './CoinSelectionService';
+import type { CoinSelectionResult } from './CoinSelectionService';
 
 export type TransactionType = 
   | 'simple_send'
@@ -70,8 +70,7 @@ export interface TransactionArtifact {
   
   coinSelection: CoinSelectionResult;
   
-  sourceMode: SendMode;
-  sourceAddress?: string;
+  sourceAddress: string;
   walletAddresses: string[];
   
   recipient: string;
@@ -95,9 +94,7 @@ export interface TransactionAssemblyRequest {
   tokenId: string;
   tokenSymbol: string;
   
-  sourceMode: SendMode;
-  sourceAddress?: string;
-  excludedAddresses?: string[];
+  sourceAddress: string;
   
   burn?: string;
   

@@ -83,7 +83,6 @@ export interface TransactionPreviewViewModel {
     missingKeys: string[];
   };
   
-  sourceMode?: 'global' | 'focused';
 }
 
 export interface TransactionPreviewProps {

@@ -24,7 +24,6 @@ describe('Transaction Flow Integration Test (Prepare → Sign → Finalize) - Re
     // getApiBase()/getProjectId() read through the typed-storage bridge.
     (chrome.storage.local as any).getTyped = jest.fn().mockResolvedValue({
       AXIA_BASE: 'https://rpc.axia.to',
-      AXIA_BYPASS_BASE: 'https://api2.axia.to',
       AXIA_PROJECT_ID: 'test-project-id',
     });
   });

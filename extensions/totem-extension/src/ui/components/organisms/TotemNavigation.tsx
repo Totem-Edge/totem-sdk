@@ -7,7 +7,7 @@ import React from 'react';
 import { Typography } from '../atoms';
 import '../../theme/axia-tokens.css';
 
-export type NavTab = 'home' | 'send' | 'receive' | 'activity' | 'settings' | 'token-detail';
+export type NavTab = 'home' | 'send' | 'receive' | 'activity' | 'settings' | 'token-detail' | 'tx-detail';
 
 export interface TotemNavigationProps {
   activeTab: NavTab;

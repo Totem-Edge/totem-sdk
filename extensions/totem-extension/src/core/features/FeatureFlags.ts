@@ -17,6 +17,8 @@ export interface FeatureFlagConfig {
   sdkErrorThreshold: number;
   sdkErrorWindowMs: number;
   enableAutoRollback: boolean;
+  /** First-run Local Hawk Node pairing/connection option. */
+  localHawkNode: boolean;
 }
 
 export interface InitTelemetryEvent {
@@ -32,6 +34,7 @@ const DEFAULT_CONFIG: FeatureFlagConfig = {
   sdkErrorThreshold: 5,
   sdkErrorWindowMs: 60_000,
   enableAutoRollback: true,
+  localHawkNode: false,
 };
 
 const STORAGE_KEY = 'totem_feature_flags';
@@ -107,6 +110,10 @@ class FeatureFlagsManager {
 
   isSDKModeEnabled(): boolean {
     return this.getWalletInitMode() === 'sdk';
+  }
+
+  isLocalHawkNodeEnabled(): boolean {
+    return this.config.localHawkNode === true;
   }
 
   getConfig(): Readonly<FeatureFlagConfig> {
@@ -286,6 +293,7 @@ export function useFeatureFlags() {
   return {
     getWalletInitMode: () => featureFlags.getWalletInitMode(),
     isSDKModeEnabled: () => featureFlags.isSDKModeEnabled(),
+    isLocalHawkNodeEnabled: () => featureFlags.isLocalHawkNodeEnabled(),
     setWalletInitMode: (mode: WalletInitMode) => featureFlags.setWalletInitMode(mode),
     getConfig: () => featureFlags.getConfig(),
     getErrorStats: () => featureFlags.getErrorStats(),

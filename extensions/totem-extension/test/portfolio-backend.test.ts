@@ -3,7 +3,7 @@
  *
  * There is exactly one portfolio source per mode:
  *   - a paired/self-hosted node → node `balance … tokendetails:true`
- *   - Axia mode                → `/v1/wallet/portfolio/:address`
+ *   - Axia mode                → `/v1/portfolio/:address`
  *
  * The old `/v1/wallet/coins` fallback was a UTXO endpoint and silently dropped
  * token metadata. These tests pin the single-route contract.
@@ -89,7 +89,7 @@ describe('walletPortfolioBackend', () => {
     const result = await walletPortfolioBackend.getPortfolio(ADDRESS);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining(`/v1/wallet/portfolio/${ADDRESS}`),
+      expect.stringContaining(`/v1/portfolio/${ADDRESS}`),
       expect.objectContaining({ headers: { 'x-api-key': 'totem-shared' } }),
     );
     expect(result).toEqual(entries);
@@ -104,11 +104,43 @@ describe('walletPortfolioBackend', () => {
     });
 
     await expect(walletPortfolioBackend.getPortfolio(ADDRESS)).rejects.toThrow(
-      /Portfolio API 503.*No active healthy node available/,
+      /Axia API unavailable \(HTTP 503\).*No active healthy node available/,
     );
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('/v1/wallet/portfolio/');
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('/v1/portfolio/');
     expect((global.fetch as jest.Mock).mock.calls[0][0]).not.toContain('/v1/wallet/coins');
+  });
+
+  test('summarises a Cloudflare HTML error page instead of dumping the markup', async () => {
+    (resolveActiveNodeRpc as jest.Mock).mockResolvedValue(null);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: async () => '<!DOCTYPE html><html><head><title>Bad gateway</title></head></html>',
+    });
+
+    let message = '';
+    try {
+      await walletPortfolioBackend.getPortfolio(ADDRESS);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toBe('Axia API unavailable (HTTP 502)');
+    expect(message).not.toContain('<!DOCTYPE');
+  });
+
+  test('includes the Cloudflare tunnel error code when the edge returns one', async () => {
+    (resolveActiveNodeRpc as jest.Mock).mockResolvedValue(null);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 530,
+      text: async () => 'error code: 1033',
+    });
+
+    await expect(walletPortfolioBackend.getPortfolio(ADDRESS)).rejects.toThrow(
+      'Axia API unavailable (HTTP 530, Cloudflare 1033)',
+    );
   });
 });

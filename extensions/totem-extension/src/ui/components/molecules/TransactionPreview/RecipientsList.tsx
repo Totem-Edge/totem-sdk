@@ -16,8 +16,7 @@ interface Recipient {
 
 interface RecipientsListProps {
   recipients: Recipient[];
-  sourceAddress?: string;
-  sourceMode: 'global' | 'focused';
+  sourceAddress: string;
   change?: TokenAmount;
   changeAddress?: string;
 }
@@ -25,7 +24,6 @@ interface RecipientsListProps {
 export function RecipientsList({
   recipients,
   sourceAddress,
-  sourceMode,
   change,
   changeAddress
 }: RecipientsListProps) {
@@ -47,12 +45,7 @@ export function RecipientsList({
             From
           </Typography>
           <Typography variant="body" mono style={{ fontSize: 'var(--text-sm)' }}>
-            {sourceMode === 'global' 
-              ? 'Auto-select (Global)' 
-              : sourceAddress 
-                ? truncateAddress(sourceAddress)
-                : 'Selected Address'
-            }
+            {sourceAddress ? truncateAddress(sourceAddress) : 'Selected Address'}
           </Typography>
         </div>
 

@@ -185,8 +185,44 @@ class PortfolioUnavailableError extends Error {
   }
 }
 
+/**
+ * Turn an API failure into a short, actionable message.
+ *
+ * A non-JSON/HTML body means the request died at the edge (Cloudflare/tunnel)
+ * before it reached the Axia API. Dumping that HTML at the user is noise, so
+ * classify it as a service availability problem instead.
+ */
+function describeApiFailure(status: number, body: string): string {
+  const trimmed = body.trim();
+  const cloudflareCode = /error code:\s*(10\d\d)/i.exec(trimmed)?.[1];
+  const isEdgeErrorPage =
+    /^<!doctype html/i.test(trimmed) ||
+    /^<html[\s>]/i.test(trimmed) ||
+    Boolean(cloudflareCode);
+
+  if (isEdgeErrorPage) {
+    return `Axia API unavailable (HTTP ${status}${cloudflareCode ? `, Cloudflare ${cloudflareCode}` : ''})`;
+  }
+
+  if (status >= 500) {
+    let detail: string | undefined;
+    try {
+      const payload = JSON.parse(trimmed) as { error?: string; detail?: string; message?: string };
+      detail = payload?.error || payload?.detail || payload?.message;
+    } catch {
+      // Not JSON — fall through to the generic message below.
+    }
+    return `Axia API unavailable (HTTP ${status})${detail ? `: ${detail}` : ''}`;
+  }
+
+  return `Portfolio API ${status}${trimmed ? `: ${trimmed.slice(0, 300)}` : ''}`;
+}
+
 async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[]> {
   const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
+  // The duplicate /v1/wallet/portfolio route was removed from the Axia API
+  // (it ran a different RPC than the canonical route and could report stale
+  // confirmed/unconfirmed values). Use the canonical portfolio endpoint.
   const url = `${baseUrl.replace(/\/$/, '')}/v1/portfolio/${encodeURIComponent(address)}`;
 
   let res: Response;
@@ -194,16 +230,14 @@ async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[]> {
     res = await fetch(url, { headers: { 'x-api-key': projectId } });
   } catch (error) {
     throw new PortfolioUnavailableError(
-      `Portfolio API unreachable: ${error instanceof Error ? error.message : String(error)}`,
+      `Axia API unreachable: ${error instanceof Error ? error.message : String(error)}`,
       error,
     );
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new PortfolioUnavailableError(
-      `Portfolio API ${res.status}${body ? `: ${body.slice(0, 300)}` : ''}`,
-    );
+    throw new PortfolioUnavailableError(describeApiFailure(res.status, body));
   }
 
   const payload = await res.json().catch(() => null);

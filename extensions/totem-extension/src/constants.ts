@@ -212,21 +212,94 @@ export const WOTS_ADDRESSES_PER_LEVEL = 64;
 export const WOTS_TOTAL_ADDRESSES = WOTS_ADDRESSES_PER_LEVEL; // 64 addresses per root key
 
 /**
- * Format a token amount that may arrive as base units. When an integer has
- * more digits than the token's decimals, scale it down before display.
+ * Token amounts arrive in two shapes and both must render as the same number.
+ *
+ *  - decimal text already (`"0.2"`), which the node produces when the amount
+ *    carries a scale;
+ *  - raw base units, an integer wider than the token's scale (`990 PORQ` at 35
+ *    decimals arrives as `990` followed by 35 zeros).
+ *
+ * The balance tile scales base units by the token's `decimals`; the activity
+ * and detail views use this same helper so all three agree.
+ */
+export function scaleTokenAmount(
+  value: string | number | null | undefined,
+  decimals: number | undefined
+): string {
+  if (value === null || value === undefined || value === '') return '0';
+  const text = String(value).trim();
+  if (!decimals || decimals <= 0) return text;
+  // Already decimal (or exponential) — nothing to scale.
+  if (/[.eE]/.test(text) || !/^\d+$/.test(text)) return text;
+  // An integer no wider than the scale cannot be base units (they would all be
+  // fractional), so treat it as a whole-token count.
+  if (text.length <= decimals) return text;
+  try {
+    const scale = 10n ** BigInt(decimals);
+    const base = BigInt(text);
+    const whole = base / scale;
+    const fraction = (base % scale)
+      .toString()
+      .padStart(decimals, '0')
+      .replace(/0+$/, '');
+    return fraction ? `${whole}.${fraction}` : whole.toString();
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * Decode an amount from the archive index to display units.
+ *
+ * The node's `MiniNumber` is always written at 44 decimal places, so a coin's
+ * `amount_text` is `unscaled × 10⁻⁴⁴` for *every* asset — including tokens,
+ * whose scaled units are integers. A 35.44 USDT transfer therefore arrives as
+ * `0.000…03544130814` (44 decimals) and reads as base units until it is
+ * divided by the token's own `decimals`.
+ *
+ * Native MINIMA has 44 decimals, so its amounts pass through unchanged — which
+ * is why the same figure can be right in the balance tile and wrong here.
+ */
+export function decodeMinimaAmount(
+  value: string | number | null | undefined,
+  decimals: number
+): string {
+  if (value === null || value === undefined || value === '') return '0';
+  const text = String(value).trim();
+  if (!/^\d+(\.\d+)?$/.test(text)) return text;
+
+  const [whole, fraction = ''] = text.split('.');
+  // A node amount cannot carry more than 44 fractional digits; anything else
+  // is already a display value.
+  if (fraction.length > MINIMA_DECIMALS) return text;
+
+  const unscaled = BigInt((whole || '0') + fraction.padEnd(MINIMA_DECIMALS, '0'));
+  const places = Math.max(0, Math.min(Math.trunc(decimals) || 0, MINIMA_DECIMALS));
+  if (places === 0) return unscaled.toString();
+
+  const scale = BigInt(10) ** BigInt(places);
+  const units = unscaled / scale;
+  const remainder = unscaled % scale;
+  if (remainder === 0n) return units.toString();
+
+  const tail = remainder.toString().padStart(places, '0').replace(/0+$/, '');
+  return tail ? `${units}.${tail}` : units.toString();
+}
+
+/**
+ * Format a token amount that may arrive as base units. Scaling itself lives in
+ * the shared formatter so the balance, activity and detail views cannot drift.
  */
 export function formatTokenAmount(value: string, decimals: number = 4): string {
   if (!value) return '0';
   const normalized = value.trim();
-  if (normalized.includes('.')) return formatAmount(normalized, Math.min(decimals, 8));
-  if (decimals > 0 && /^\d+$/.test(normalized) && normalized.length > decimals) {
-    try {
-      const scale = 10n ** BigInt(decimals);
-      const base = BigInt(normalized);
-      const whole = base / scale;
-      const fraction = (base % scale).toString().padStart(decimals, '0').slice(0, Math.min(decimals, 8)).replace(/0+$/, '');
-      return fraction ? `${whole}.${fraction}` : whole.toString();
-    } catch { /* fall through */ }
+  const cap = Math.min(decimals, 8);
+  const scaled = scaleTokenAmount(normalized, decimals);
+  if (scaled !== normalized) {
+    // Base units were scaled: keep the exact digits, capped for width.
+    const [whole, fraction = ''] = scaled.split('.');
+    const trimmed = fraction.slice(0, cap).replace(/0+$/, '');
+    return trimmed ? `${whole}.${trimmed}` : whole;
   }
-  return formatAmount(normalized, Math.min(decimals, 8));
+  return formatAmount(normalized, cap);
 }

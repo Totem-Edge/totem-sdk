@@ -39,9 +39,10 @@ export interface SendTransactionParams {
   address: string;
   amount: string;
   tokenid?: string;
-  sourceAddress?: string;
-  sendMode?: 'global' | 'focused';
-  excludedAddresses?: string[];
+  /** Address selected in Settings; every send is focused on this address. */
+  sourceAddress: string;
+  /** Prepared transaction id from WOTS_PREPARE_SEND. */
+  preparedId?: string;
   burn?: string; // Optional burn amount in base units for transaction priority
 }
 
@@ -189,19 +190,23 @@ export function useSendTransaction(options?: UseSendTransactionOptions): UseSend
       setStage('prepare');
       console.log('[useSendTransaction] Starting WOTS transaction:', params);
 
-      // Call the orchestrated WOTS_SEND handler
-      const wotsResponse = await chrome.runtime.sendMessage({
-        method: 'WOTS_SEND',
-        params: {
-          to: params.address,
-          amount: params.amount,
-          tokenid: params.tokenid || '0x00',
-          sourceAddress: params.sourceAddress,
-          sendMode: params.sendMode || 'global',
-          excludedAddresses: params.excludedAddresses,
-          burn: params.burn || '0' // Optional burn for priority (defaults to 0)
-        }
-      });
+      // Sign exactly the transaction that was reviewed. If a prepared id is
+      // present, WOTS_SEND_PREPARED skips coin selection and rebuilding.
+      const wotsResponse = params.preparedId
+        ? await chrome.runtime.sendMessage({
+            method: 'WOTS_SEND_PREPARED',
+            params: { prepareId: params.preparedId }
+          })
+        : await chrome.runtime.sendMessage({
+            method: 'WOTS_SEND',
+            params: {
+              to: params.address,
+              amount: params.amount,
+              tokenid: params.tokenid || '0x00',
+              sourceAddress: params.sourceAddress,
+              burn: params.burn || '0'
+            }
+          });
 
       console.log('[useSendTransaction] WOTS_SEND response:', wotsResponse);
 
