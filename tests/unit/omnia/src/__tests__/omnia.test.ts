@@ -2044,9 +2044,72 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
     const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.ceil(WOTS_CAPACITY_TOTAL * 0.95 / 2) };
-    const result = await timeoutHTLC(nearExhausted, htlcId, leaseProvider as any, makeTipProvider(500) as any, aliceSigner);
+    // OMN-091: the refund branch opens only AFTER the timeout block.
+    const result = await timeoutHTLC(nearExhausted, htlcId, leaseProvider as any, makeTipProvider(501) as any, aliceSigner);
     expect(result.error).toBe('CAPACITY_NEAR_EXHAUSTION');
     expect(result.channel.currentSequence).toBe(nearExhausted.currentSequence);
+  });
+});
+
+describe('@totemsdk/omnia — HTLC timeout boundary (OMN-091)', () => {
+  let channel: OmniaChannel;
+  let aliceSigner: ChannelSigner;
+  let leaseProvider: ReturnType<typeof makeMockLeaseProvider>;
+
+  beforeEach(() => {
+    _resetChannelWatermarks();
+    channel = makeTestChannel();
+    aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    leaseProvider = makeMockLeaseProvider();
+  });
+
+  it('refuses a refund at exactly the timeout block and accepts it after', async () => {
+    const { hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const params: AddHTLCParams = {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 500n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    };
+    const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
+
+    await expect(
+      timeoutHTLC(ch1, htlcId, leaseProvider as any, makeTipProvider(500) as any, aliceSigner),
+    ).rejects.toThrow(/has not yet timed out/);
+
+    const refunded = await timeoutHTLC(
+      ch1,
+      htlcId,
+      leaseProvider as any,
+      makeTipProvider(501) as any,
+      aliceSigner,
+    );
+    expect(refunded.channel.pendingHTLCs.find((h: { htlcId: string }) => h.htlcId === htlcId)?.status)
+      .toBe('timed_out');
+  });
+
+  it('allows a claim at the timeout block and refuses it after', async () => {
+    const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const params: AddHTLCParams = {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 500n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    };
+    const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+
+    await expect(
+      fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(501) as any, bobSigner),
+    ).rejects.toThrow(/expired/);
+
+    const claimed = await fulfillHTLC(
+      ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(500) as any, bobSigner,
+    );
+    expect(claimed.channel.pendingHTLCs.find((h: { htlcId: string }) => h.htlcId === htlcId)?.status)
+      .toBe('fulfilled');
   });
 });
 

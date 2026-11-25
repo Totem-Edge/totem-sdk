@@ -480,7 +480,10 @@ describe('relay durability and recovery', () => {
       get: async <T>(key: string) => (values.has(key) ? values.get(key) as T : null),
       set: async <T>(key: string, value: T) => {
         values.set(key, value);
-        if (Array.isArray(value)) snapshots.push(JSON.parse(JSON.stringify(value)));
+        // The journal now also persists the outgoing proposal, whose state
+        // carries bigint amounts. Snapshot with a structured clone rather than
+        // JSON so the fixture does not reject a legitimate journal write.
+        if (Array.isArray(value)) snapshots.push(structuredClone(value));
       },
       remove: async (key: string) => values.delete(key),
       clear: async () => { values.clear(); },

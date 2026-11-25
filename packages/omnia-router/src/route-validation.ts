@@ -7,6 +7,7 @@
  */
 import type {
   ChannelParty,
+  PaymentRequest,
   RouterChannel,
   RoutingHop,
   Route,
@@ -16,6 +17,20 @@ import type {
 export type RouteValidationResult =
   | { ok: true }
   | { ok: false; error: string };
+
+/**
+ * What the route is supposed to achieve. The executor knows the payment it was
+ * asked to make; a route that validates hop-by-hop can still be empty, stop
+ * short of the recipient, or switch assets mid-path (OMN-078).
+ */
+export interface RoutePaymentExpectation {
+  tokenId: string;
+  amount: bigint;
+  /** Payer public key digest; when set, the route must start here. */
+  sender?: string;
+  /** Recipient public key digest; when set, the route must end here. */
+  recipient?: string;
+}
 
 function fail(error: string): RouteValidationResult {
   return { ok: false, error };
@@ -110,6 +125,100 @@ export function validateSwapHop(
   }
 
   return validateChannelSpend(outbound, intermediary, hop.amountOut, hop.tokenOut);
+}
+
+/**
+ * Validate that a route actually delivers the payment it was built for.
+ *
+ * Checks the properties per-hop validation cannot see:
+ *  - the route is not empty;
+ *  - it starts at the payer and ends at the recipient (when known);
+ *  - consecutive hops connect (previous recipient is the next sender);
+ *  - the asset being carried is the requested one at every hop, and a swap hop
+ *    changes it exactly once (`tokenIn` → `tokenOut`);
+ *  - the final hop delivers exactly the requested amount.
+ *
+ * Call this before `validateRoute`, so a structurally valid but wrong route is
+ * rejected before any HTLC is locked.
+ */
+export function validateRouteForPayment(
+  route:       Route,
+  expectation: RoutePaymentExpectation,
+): RouteValidationResult {
+  if (route.hops.length === 0) {
+    return fail('route has no hops');
+  }
+  if (route.tokenIn !== expectation.tokenId) {
+    return fail(`route starts with token ${route.tokenIn}, payment is ${expectation.tokenId}`);
+  }
+  if (expectation.sender !== undefined) {
+    const first = route.hops[0];
+    if (first.from !== expectation.sender) {
+      return fail(`route starts at ${first.from}, not at the payer ${expectation.sender}`);
+    }
+  }
+  if (expectation.recipient !== undefined) {
+    const last = route.hops[route.hops.length - 1];
+    if (last.to !== expectation.recipient) {
+      return fail(`route ends at ${last.to}, not at the recipient ${expectation.recipient}`);
+    }
+  }
+
+  let token = route.tokenIn;
+  let delivered: bigint | undefined;
+
+  for (const [index, hop] of route.hops.entries()) {
+    const previous = index > 0 ? route.hops[index - 1] : undefined;
+    if (previous && previous.to !== hop.from) {
+      return fail(
+        `hop ${index} starts at ${hop.from} but hop ${index - 1} ends at ${previous.to}`,
+      );
+    }
+
+    if ((hop as SwapHop).isSwap) {
+      const swap = hop as SwapHop;
+      if (swap.tokenIn !== token) {
+        return fail(`swap hop ${index} expects ${swap.tokenIn} but the route carries ${token}`);
+      }
+      if (swap.tokenIn === swap.tokenOut) {
+        return fail(`swap hop ${index} does not change the asset`);
+      }
+      if (swap.amountIn <= 0n || swap.amountOut <= 0n) {
+        return fail(`swap hop ${index} has a non-positive amount`);
+      }
+      token = swap.tokenOut;
+      delivered = swap.amountOut;
+    } else {
+      if (hop.tokenId !== token) {
+        return fail(`hop ${index} carries ${hop.tokenId} but the route carries ${token}`);
+      }
+      if (hop.amount <= 0n) {
+        return fail(`hop ${index} has a non-positive amount`);
+      }
+      delivered = hop.amount;
+    }
+  }
+
+  if (route.tokenOut !== token) {
+    return fail(`route declares tokenOut ${route.tokenOut} but ends carrying ${token}`);
+  }
+  if (token === expectation.tokenId && delivered !== expectation.amount) {
+    return fail(
+      `route delivers ${delivered?.toString() ?? 'nothing'} but the payment is `
+      + expectation.amount.toString(),
+    );
+  }
+  return { ok: true };
+}
+
+/** Convenience: bind a payment request to the route that is about to run. */
+export function expectationFromRequest(request: PaymentRequest): RoutePaymentExpectation {
+  return {
+    tokenId: request.tokenId,
+    amount: request.amount,
+    ...(request.sender !== undefined ? { sender: request.sender } : {}),
+    ...(request.recipient !== undefined ? { recipient: request.recipient } : {}),
+  };
 }
 
 /** Validate every hop of a route against live channel state. */

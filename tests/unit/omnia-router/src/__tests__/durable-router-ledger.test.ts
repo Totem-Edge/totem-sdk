@@ -120,7 +120,9 @@ function paymentSetup(): { channels: Map<string, RouterChannel>; lps: Map<string
   addChannel(graph, mkEdge('c3', CAROL, DAVE, 1000n * SCALE));
   const route = findRoute(graph, ALICE, DAVE, 50n * SCALE, TOKEN_A, { maxHops: 8 });
   if (!route) throw new Error('no route found for test');
-  const request = { ...buildPaymentRequest(50n * SCALE, TOKEN_A, 500n), preimage: '0xPREIMAGE' };
+  // OMN-079: three hops need room for a contest window between each pair, not
+  // one block each, so the expiry must clear 2 * (256 + 1).
+  const request = { ...buildPaymentRequest(50n * SCALE, TOKEN_A, 2000n), preimage: '0xPREIMAGE' };
 
   return { channels, lps, due: makeMockOps(), request, route };
 }

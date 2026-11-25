@@ -433,8 +433,16 @@ export async function timeoutHTLC(
 
   const tip = await chainProvider.getTip();
   const currentBlock = BigInt(tip.block);
-  if (currentBlock < htlc.timeoutBlock) {
-    throw new Error(`HTLC ${htlcId} has not yet timed out (block ${currentBlock} < ${htlc.timeoutBlock})`);
+  // OMN-091: the deployed script is
+  //   IF @BLOCK GT timeout THEN RETURN SIGNEDBY(owner) ENDIF RETURN claim
+  // so the refund path only exists after the timeout block, while the claim path
+  // is valid AT it. Refunding at exactly `timeoutBlock` produced a state the
+  // chain rejects, and overlapped the claim branch.
+  if (currentBlock <= htlc.timeoutBlock) {
+    throw new Error(
+      `HTLC ${htlcId} has not yet timed out (block ${currentBlock} <= ${htlc.timeoutBlock}); `
+      + `the refund branch is valid only after block ${htlc.timeoutBlock}`,
+    );
   }
 
   const senderPartyId = channel.parties.find(

@@ -48,6 +48,12 @@ export interface RouterChannel {
   currentSequence: number;
   status: string;
   localSigner?: ChannelSigner;
+  /**
+   * Commitment of the authenticated channel state the mirror is at, when the
+   * caller can supply it (for a real channel: the co-signed state digest). Fee
+   * proofs are only settlement evidence when this is present (OMN-081).
+   */
+  stateCommitment?: { sequence: number; hash: string };
 }
 
 /**
@@ -200,6 +206,16 @@ export interface PaymentRequest {
   /** SHA3-256 hex of preimage */
   hashlock: string;
   /**
+   * Payer public key digest. When present, execution requires the route to
+   * start at this party (OMN-078).
+   */
+  sender?: string;
+  /**
+   * Recipient public key digest. When present, execution requires the route to
+   * end at this party and deliver exactly `amount`.
+   */
+  recipient?: string;
+  /**
    * Known to the payer (returned by buildPaymentRequest).
    * Strip this before sharing the request with intermediaries.
    */
@@ -213,9 +229,16 @@ export interface PaymentRequest {
 // ─── Payment results ──────────────────────────────────────────────────────────
 
 /**
- * A verifiable fee-provenance record for a settled hop (#29): the artifact a
- * pool's `recordPoolFee` earn-proof consumes. Binds channel + HTLC + recipient
- * + amount so a fee record traces to a real fulfilled payment.
+ * A fee-provenance record for a settled hop (#29).
+ *
+ * `evidence` states how strong it is, because the two cases are not
+ * interchangeable:
+ *
+ *  - `state-bound` — the channel exposed its authenticated state commitment, so
+ *    the record is bound to a state transition both parties authorised.
+ *  - `descriptive` — only the descriptive fields were available. The hash proves
+ *    the record was not edited; it does NOT prove the payment happened. Such a
+ *    record must not be credited as earned routing income (OMN-081).
  */
 export interface RouterFeeProof {
   channelId: string;
@@ -224,6 +247,9 @@ export interface RouterFeeProof {
   amount: bigint;
   tokenId: string;
   settledAt: number;
+  evidence: 'state-bound' | 'descriptive';
+  /** Present when `evidence` is `state-bound`. */
+  stateCommitment?: { sequence: number; hash: string };
   proofHash: string;
 }
 

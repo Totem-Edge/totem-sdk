@@ -96,3 +96,5 @@ export { createStorageCoordinationStore, createMemoryCoordinationStore } from '@
 export type { OmniaChannel } from '@totemsdk/omnia';
 export type { ChannelFactory } from '@totemsdk/omnia-factory';
 export type { QuiescedChannel, SplicedChannel } from '@totemsdk/omnia-splice';
+
+export type { SwapForwardAuthorization } from './forwarder.js';

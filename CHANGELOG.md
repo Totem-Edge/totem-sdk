@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — router and relay payment safety (unreleased)
+
+Audit findings OMN-078–084 and OMN-091.
+
+- **Router (OMN-078/079/080/081):** execution is bound to the payment it was
+  asked to make — a non-empty route, payer→recipient endpoints, hop continuity,
+  one asset carried at a time (a swap hop changes it exactly once), and a final
+  hop that delivers exactly the requested amount. An empty route used to
+  validate and reach a successful return without locking anything.
+  Consecutive HTLC timeouts are now separated by the channel contest window
+  (default 256 blocks + 1) instead of one block, and a request whose expiry
+  cannot accommodate that is rejected before any HTLC is locked. Rollback
+  records a lock it cannot release when the channel or lease provider is
+  missing instead of skipping it silently. Fee proofs carry an `evidence`
+  discriminator: `state-bound` when the channel exposed its authenticated state
+  commitment, `descriptive` otherwise, and `verifyRouterFeeProof()` refuses to
+  treat the descriptive form as settlement evidence.
+- **Relay (OMN-082/083/084):** forward admission claims the hashlock atomically
+  (`HtlcLinkJournal.reserve`, implemented as a single serialized
+  read-modify-write), so two concurrent forwards cannot both pass the duplicate
+  check and overwrite each other's journal entry. A cross-token forward requires
+  an authorization that binds both assets, both leg amounts, an expiry and a
+  verifier; comparing amounts across assets is no longer accepted. The exact
+  outgoing proposal and a deterministic message id are journaled before the
+  transport send, and `retransmitPending()` / `recover()` / `markDelivered()`
+  make an undelivered proposal a durable obligation rather than a local lock the
+  peer never saw.
+- **Core HTLC (OMN-091):** the fulfilment and timeout branches met at exactly
+  `timeoutBlock`, so both transitions were eligible there while the deployed
+  script allows the claim at that block and the refund only after it. The SDK
+  now enforces the script's boundary.
+
+### Fixed — splice lineage from the node's txpow command (unreleased)
+
+`@totemsdk/chain-provider` gains `getTransactionOutputs()`, implemented with the
+node's own `txpow txpowid:` command (local and hosted), so a splice successor
+can be proven to have been created by the splice transaction without a new node
+endpoint. Without it the OMN-072 fix would leave splices at `funding_pending`.
+
 ### Fixed — LSP quote authorization and splice successor integrity (unreleased)
 
 Audit findings OMN-064–077 in the Omnia LSP, splice and host packages.

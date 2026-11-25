@@ -72,6 +72,26 @@ export function createDurableHtlcLinkJournal(storage: StorageAdapter): DurableHt
       });
     },
 
+    /**
+     * OMN-082: atomic claim. The check and the write happen inside one
+     * serialized read-modify-write, so two concurrent forwards cannot both win.
+     */
+    reserve(link: HtlcLink): Promise<boolean> {
+      return serialized(async () => {
+        const hashlock = link.hashlock?.toLowerCase();
+        if (!hashlock) {
+          throw new Error('cannot journal an HTLC link without a hashlock');
+        }
+        const all = await readAll();
+        const taken = all.some((existing) =>
+          sameHashlock(existing.hashlock, hashlock)
+          || (existing.inChannelId === link.inChannelId && existing.inHtlcId === link.inHtlcId));
+        if (taken) return false;
+        await writeAll([...all, { ...link, hashlock }]);
+        return true;
+      });
+    },
+
     record(link: HtlcLink): Promise<void> {
       return serialized(async () => {
         const hashlock = link.hashlock?.toLowerCase();

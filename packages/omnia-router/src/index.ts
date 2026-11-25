@@ -40,11 +40,21 @@ export {
 } from './request.js';
 
 export {
+  DEFAULT_CONTEST_DELAY_BLOCKS,
+  assertExpiryFits,
+  hopTimeoutBlock,
+  resolveHopExpiryDelta,
+} from './expiry.js';
+export type { RouteExpiryOptions } from './expiry.js';
+
+export {
+  buildRouterFeeProof,
+  computeRouterFeeProofHash,
+  isStateBoundFeeProof,
+  verifyRouterFeeProof,
   executeMultiHopPayment,
   executeCrossTokenPayment,
   cancelPayment,
-  buildRouterFeeProof,
-  computeRouterFeeProofHash,
   ROUTER_FEE_PROOF_DOMAIN,
 } from './execute.js';
 export type { RouterFeeProof } from './types.js';

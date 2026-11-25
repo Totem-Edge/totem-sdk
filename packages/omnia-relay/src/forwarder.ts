@@ -34,6 +34,20 @@ import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 export interface HtlcLinkJournal {
   get(hashlock: string): Promise<HtlcLink | undefined> | HtlcLink | undefined;
   record(link: HtlcLink): Promise<void> | void;
+  /**
+   * Atomically claim a hashlock for one forward (OMN-082).
+   *
+   * Returns false when the hashlock or the incoming HTLC is already journaled.
+   * A read-then-write duplicate check is not enough: two concurrent forwards can
+   * both pass it before either writes, and the second would overwrite the first
+   * journal entry. Implementations must make the check and the write one step
+   * (the durable journal does it inside its serialized section).
+   *
+   * When a journal does not implement this, the forwarder falls back to the
+   * non-atomic check and says so in the thrown error, because silently accepting
+   * a racy journal would reintroduce the defect.
+   */
+  reserve?(link: HtlcLink): Promise<boolean> | boolean;
   remove(hashlock: string): Promise<void> | void;
   /** Optional durable lookup by the incoming HTLC (replay detection). */
   getByIncoming?(params: {
@@ -67,6 +81,38 @@ export interface MultiHopForwarderOptions {
    * preimage back to the previous hop.
    */
   resolvePreimage?: (hashlock: string) => Promise<string | undefined> | string | undefined;
+  /**
+   * Verifier for cross-token swap authorization (OMN-083). Required to forward
+   * an amount across different assets; comparing numbers alone is not an
+   * economic check.
+   */
+  verifySwapAuthorization?: (
+    authorization: SwapForwardAuthorization,
+  ) => boolean | Promise<boolean>;
+  /** Clock for authorization expiry. Default Date.now. */
+  now?: () => number;
+}
+
+/**
+ * Authorization for forwarding across two different assets (OMN-083).
+ *
+ * The amount on the incoming leg is in `tokenIn`; the outgoing leg is in
+ * `tokenOut`. Without an authenticated quote binding both sides, an intermediary
+ * would be comparing numbers denominated in different tokens.
+ */
+export interface SwapForwardAuthorization {
+  tokenIn: string;
+  tokenOut: string;
+  /** Amount locked on the incoming leg (atomic units of `tokenIn`). */
+  amountIn: bigint;
+  /** Amount to lock on the outgoing leg (atomic units of `tokenOut`). */
+  amountOut: bigint;
+  /** Quoted exchange rate, `amountOut` per `amountIn`, as a decimal string. */
+  rate: string;
+  /** Authorization is invalid at or after this time (epoch ms). */
+  expiresAt: number;
+  /** Provider signature over the quote fields. */
+  signature: string;
 }
 
 export interface ForwardIncomingParams {
@@ -77,6 +123,8 @@ export interface ForwardIncomingParams {
   envelope: string;
   /** Absolute timeout (block) for the outgoing HTLC (envelope may override). */
   timeoutBlock?: bigint;
+  /** Required when the outgoing leg is a different asset than the incoming one. */
+  swapAuthorization?: SwapForwardAuthorization;
 }
 
 export type ForwardIncomingResult =
@@ -109,6 +157,20 @@ export interface HtlcLink {
   preimage?: string;
   /** OMN-006: deterministic nonce so a retried backward send is deduplicated. */
   backwardNonce?: number;
+  /**
+   * OMN-084: the exact outgoing proposal and its deterministic message id,
+   * journaled before the transport send. An unacked delivery is retransmitted by
+   * `retransmitPending()` / `recover()` with the same id, so a peer can
+   * deduplicate rather than double-lock.
+   */
+  outgoing?: {
+    messageId: string;
+    channelId: string;
+    payload: Record<string, unknown>;
+    attempts: number;
+    lastAttemptAt?: number;
+    acked: boolean;
+  };
 }
 
 export interface MultiHopForwarder {
@@ -121,6 +183,13 @@ export interface MultiHopForwarder {
    * the caller to reveal or time out.
    */
   recover(): Promise<HtlcLink[]>;
+  /**
+   * Retransmit journaled outgoing proposals that have not been acknowledged.
+   * Safe to call on a timer; each message keeps its original id.
+   */
+  retransmitPending(): Promise<{ retried: number; failed: number }>;
+  /** Mark a delivery acknowledged (transports that surface acks). */
+  markDelivered(messageId: string): Promise<boolean>;
   links(): ReadonlyMap<string, HtlcLink>;
 }
 
@@ -140,6 +209,74 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       if (hasSelf && hasVia) return channel;
     }
     return undefined;
+  };
+
+  const now = options.now ?? Date.now;
+
+  /**
+   * OMN-083: authenticate a cross-token forward. The quote must bind the exact
+   * assets and both amounts, be unexpired, and carry a signature this forwarder
+   * can verify. Anything less is a rate the intermediary never agreed to.
+   */
+  const assertSwapAuthorized = async (
+    authorization: SwapForwardAuthorization | undefined,
+    expected: { tokenIn: string; tokenOut: string; amountIn: bigint; amountOut: bigint },
+  ): Promise<void> => {
+    if (!authorization) {
+      throw new Error(
+        `cross-token forward ${expected.tokenIn} -> ${expected.tokenOut} requires an authorized swap quote`,
+      );
+    }
+    if (authorization.tokenIn !== expected.tokenIn || authorization.tokenOut !== expected.tokenOut) {
+      throw new Error(
+        `swap authorization covers ${authorization.tokenIn} -> ${authorization.tokenOut}, `
+        + `not ${expected.tokenIn} -> ${expected.tokenOut}`,
+      );
+    }
+    if (authorization.amountIn !== expected.amountIn) {
+      throw new Error(
+        `swap authorization input ${authorization.amountIn.toString()} does not match `
+        + `the locked amount ${expected.amountIn.toString()}`,
+      );
+    }
+    if (authorization.amountOut !== expected.amountOut) {
+      throw new Error(
+        `swap authorization output ${authorization.amountOut.toString()} does not match `
+        + `the proposed amount ${expected.amountOut.toString()}`,
+      );
+    }
+    if (authorization.expiresAt <= now()) {
+      throw new Error('swap authorization has expired');
+    }
+    if (!options.verifySwapAuthorization) {
+      throw new Error('cross-token forwards require a swap authorization verifier');
+    }
+    if (!(await options.verifySwapAuthorization(authorization))) {
+      throw new Error('swap authorization signature is not valid');
+    }
+  };
+
+  /** Send (or resend) a journaled outgoing proposal. */
+  const deliver = async (link: HtlcLink): Promise<void> => {
+    const outgoing = link.outgoing;
+    if (!outgoing) return;
+    const peer = await options.swarm.connectToPeer(link.via, outgoing.channelId);
+    await peer.sendMessage({
+      type: 'STATE_UPDATE',
+      channelId: outgoing.channelId,
+      nonce: Date.now(),
+      payload: outgoing.payload,
+    });
+    const sent: HtlcLink = {
+      ...link,
+      outgoing: {
+        ...outgoing,
+        attempts: outgoing.attempts + 1,
+        lastAttemptAt: now(),
+      },
+    };
+    links.set(sent.hashlock, sent);
+    await options.linkJournal.record(sent);
   };
 
   const forwardIncoming = async (params: ForwardIncomingParams): Promise<ForwardIncomingResult> => {
@@ -213,17 +350,20 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
         `outgoing timeout ${timeoutBlock} must be earlier than incoming timeout ${inHtlc.timeoutBlock}`,
       );
     }
-    if (next.amount > inHtlc.amount) {
+    if (next.amount > inHtlc.amount && inChannel.tokenId === outChannel.tokenId) {
       throw new Error(`outgoing amount ${next.amount} exceeds incoming amount ${inHtlc.amount}`);
     }
-    const duplicate = links.has(params.hashlock)
-      || Boolean(await options.linkJournal.get(params.hashlock))
-      || Boolean(await options.linkJournal.getByIncoming?.({
-        inChannelId: params.inChannelId,
-        inHtlcId: params.inHtlcId,
-      }));
-    if (duplicate) {
-      throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
+
+    // OMN-083: amounts on the two legs are only comparable when the asset is the
+    // same. A cross-token forward needs an authenticated quote binding both
+    // sides — comparing two token amounts as numbers is not an economic check.
+    if (inChannel.tokenId !== outChannel.tokenId) {
+      await assertSwapAuthorized(params.swapAuthorization, {
+        tokenIn: inChannel.tokenId,
+        tokenOut: outChannel.tokenId,
+        amountIn: inHtlc.amount,
+        amountOut: next.amount,
+      });
     }
 
     // CAN-008: journal the association BEFORE signing the outgoing HTLC. If the
@@ -238,7 +378,22 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       via: next.via,
       status: 'intent',
     };
-    await options.linkJournal.record(intent);
+    // OMN-082: claim the hashlock atomically. A read-then-write check lets two
+    // concurrent forwards both pass before either journals, and the loser then
+    // overwrites the winner's entry.
+    if (typeof options.linkJournal.reserve === 'function') {
+      const claimed = await options.linkJournal.reserve(intent);
+      if (!claimed) throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
+    } else {
+      const duplicate = links.has(params.hashlock)
+        || Boolean(await options.linkJournal.get(params.hashlock))
+        || Boolean(await options.linkJournal.getByIncoming?.({
+          inChannelId: params.inChannelId,
+          inHtlcId: params.inHtlcId,
+        }));
+      if (duplicate) throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
+      await options.linkJournal.record(intent);
+    }
 
     const result = await addHTLC(
       outChannel,
@@ -254,25 +409,30 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     );
     options.channels.set(result.channel.channelId, result.channel);
 
+    // OMN-084: journal the exact outgoing proposal and a deterministic message id
+    // BEFORE the transport send, so a send that fails or dies is a durable
+    // delivery obligation rather than a local lock the peer never heard about.
+    const payload = {
+      ...result.partialState,
+      ...(peel.onward ? { forward: { hashlock: params.hashlock, envelope: peel.onward } } : {}),
+    };
     const link: HtlcLink = {
       ...intent,
       outChannelId: result.channel.channelId,
       outHtlcId: result.htlcId,
       status: 'active',
+      outgoing: {
+        messageId: `${result.channel.channelId}:${params.hashlock.toLowerCase()}`,
+        channelId: result.channel.channelId,
+        payload: payload as Record<string, unknown>,
+        attempts: 0,
+        acked: false,
+      },
     };
     links.set(params.hashlock, link);
     await options.linkJournal.record(link);
 
-    const peer = await options.swarm.connectToPeer(next.via, result.channel.channelId);
-    await peer.sendMessage({
-      type: 'STATE_UPDATE',
-      channelId: result.channel.channelId,
-      nonce: Date.now(),
-      payload: {
-        ...result.partialState,
-        ...(peel.onward ? { forward: { hashlock: params.hashlock, envelope: peel.onward } } : {}),
-      },
-    });
+    await deliver(link);
 
     options.onForward?.({
       hashlock: params.hashlock,
@@ -436,8 +596,62 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
 
       unresolved.push(link);
     }
+
+    // OMN-084: a link whose outgoing proposal was never acknowledged is a
+    // delivery obligation, not just a local lock. Retransmit it with its
+    // original message id so a peer can deduplicate.
+    for (const link of unresolved) {
+      if (!link.outgoing || link.outgoing.acked || !link.outHtlcId) continue;
+      try {
+        await deliver(link);
+      } catch {
+        // Still undeliverable; it stays unresolved for the next pass.
+      }
+    }
     return unresolved;
   };
 
-  return { forwardIncoming, revealPreimage, recover, links: () => links };
+  /**
+   * OMN-084: retransmit deliveries the transport never acknowledged. Attempts
+   * keep the original message id, so a peer that already saw the proposal can
+   * deduplicate instead of double-locking.
+   */
+  const retransmitPending = async (): Promise<{ retried: number; failed: number }> => {
+    const journaled: HtlcLink[] = typeof options.linkJournal.list === 'function'
+      ? await options.linkJournal.list()
+      : [...links.values()];
+    let retried = 0;
+    let failed = 0;
+    for (const link of journaled) {
+      if (!link.outgoing || link.outgoing.acked || !link.outHtlcId) continue;
+      try {
+        await deliver(link);
+        retried += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    return { retried, failed };
+  };
+
+  const markDelivered = async (messageId: string): Promise<boolean> => {
+    const journaled: HtlcLink[] = typeof options.linkJournal.list === 'function'
+      ? await options.linkJournal.list()
+      : [...links.values()];
+    const match = journaled.find((link) => link.outgoing?.messageId === messageId);
+    if (!match?.outgoing) return false;
+    const acked: HtlcLink = { ...match, outgoing: { ...match.outgoing, acked: true } };
+    links.set(acked.hashlock, acked);
+    await options.linkJournal.record(acked);
+    return true;
+  };
+
+  return {
+    forwardIncoming,
+    revealPreimage,
+    recover,
+    retransmitPending,
+    markDelivered,
+    links: () => links,
+  };
 }

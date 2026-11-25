@@ -1,5 +1,13 @@
 import { bytesToHex, sha3_256 } from '@totemsdk/core';
-import { validateChannelSpend, validateRoute, validateRoutingHop, swapIntermediary } from './route-validation.js';
+import {
+  expectationFromRequest,
+  validateChannelSpend,
+  validateRoute,
+  validateRouteForPayment,
+  validateRoutingHop,
+  swapIntermediary,
+} from './route-validation.js';
+import { assertExpiryFits, hopTimeoutBlock, resolveHopExpiryDelta, type RouteExpiryOptions } from './expiry.js';
 import { SCALE } from './rates.js';
 import type {
   ChannelOps,
@@ -62,7 +70,19 @@ async function cancelHtlcs(
   for (const { channelId, htlcId } of [...locked].reverse()) {
     const ch = channels.get(channelId);
     const lp = leaseProviders.get(channelId);
-    if (!ch || !lp) continue;
+    if (!ch || !lp) {
+      // OMN-080: without the channel or its lease provider this HTLC cannot be
+      // timed out here, but it is still locked. Reporting a clean rollback would
+      // hide liquidity that the caller must reconcile, so record the obligation.
+      pending.push({
+        channelId,
+        htlcId,
+        reason: !ch
+          ? 'channel state is not loaded; the lock could not be released'
+          : 'no lease provider for this channel; the lock could not be released',
+      });
+      continue;
+    }
     try {
       const res = await ops.timeoutHTLC(ch, htlcId, lp);
       channels.set(channelId, res.channel);
@@ -103,6 +123,7 @@ export async function executeMultiHopPayment(
   route:          Route,
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
+  expiryOptions:  RouteExpiryOptions = {},
 ): Promise<PaymentResult> {
   /** Locks rollback could not release (CAN-015). */
   const pendingRefunds: PendingRefund[] = [];
@@ -128,12 +149,39 @@ export async function executeMultiHopPayment(
     plainHops[i].amount = paymentRequest.amount + downstream;
   }
 
+  // OMN-078: a hop-by-hop check cannot see that the route is empty, stops short
+  // of the recipient, or carries the wrong asset. Bind it to the payment first.
+  const paymentValidation = validateRouteForPayment(route, expectationFromRequest(paymentRequest));
+  if (!paymentValidation.ok) {
+    return failed({
+      success: false,
+      error: `ROUTE_VALIDATION_FAILED: ${paymentValidation.error}`,
+      errorCode: 'ROUTE_VALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
   const routeValidation = validateRoute(channels, route);
   if (!routeValidation.ok) {
     return failed({
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
+  // OMN-079: consecutive hops are separated by the contest window, not one
+  // block, and a request without room for that is rejected before locking.
+  let expiryDelta: bigint;
+  try {
+    expiryDelta = resolveHopExpiryDelta(expiryOptions);
+    assertExpiryFits(paymentRequest.expiryBlock, plainHops.length, expiryDelta);
+  } catch (err) {
+    return failed({
+      success: false,
+      error: `EXPIRY_TOO_SOON: ${err instanceof Error ? err.message : String(err)}`,
+      errorCode: 'EXPIRY_TOO_SOON',
       settledHops: [],
     });
   }
@@ -164,8 +212,20 @@ export async function executeMultiHopPayment(
       });
     }
 
-    // Timeouts decrease toward the recipient so each hop has time to claim.
-    const timeoutBlock = paymentRequest.expiryBlock - BigInt(i);
+    // Timeouts decrease toward the recipient by a full contest window, so an
+    // upstream hop survives a downstream failure long enough to be resolved.
+    let timeoutBlock: bigint;
+    try {
+      timeoutBlock = hopTimeoutBlock(paymentRequest.expiryBlock, i, expiryDelta);
+    } catch (err) {
+      await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
+      return failed({
+        success: false,
+        error: `EXPIRY_TOO_SOON: ${err instanceof Error ? err.message : String(err)}`,
+        errorCode: 'EXPIRY_TOO_SOON',
+        settledHops: [],
+      });
+    }
 
     let addResult: { channel: RouterChannel; htlcId: string; error?: string };
     try {
@@ -242,9 +302,12 @@ export async function executeMultiHopPayment(
 export const ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v1';
 
 /**
- * Build a verifiable fee-provenance record for a settled hop (#29). The pool's
- * `recordPoolFee` earn-proof consumes this — a fee record can be traced to a
- * real fulfilled payment, never a declared string.
+ * Build a fee-provenance record for a settled hop (#29).
+ *
+ * When the channel exposes its authenticated state commitment the record is
+ * bound to that state (`evidence: 'state-bound'`). Otherwise it is marked
+ * `descriptive`: the hash proves the record was not edited, not that the
+ * payment settled, and downstream accounting must not credit it (OMN-081).
  */
 export function buildRouterFeeProof(
   channel: RouterChannel,
@@ -252,6 +315,7 @@ export function buildRouterFeeProof(
   settledAt?: number,
 ): RouterFeeProof {
   const ts = settledAt ?? Date.now();
+  const commitment = channel.stateCommitment;
   const proof: RouterFeeProof = {
     channelId: channel.channelId,
     htlcId: htlc.htlcId,
@@ -259,10 +323,52 @@ export function buildRouterFeeProof(
     amount: htlc.amount,
     tokenId: channel.tokenId,
     settledAt: ts,
+    evidence: commitment ? 'state-bound' : 'descriptive',
+    ...(commitment ? { stateCommitment: { sequence: commitment.sequence, hash: commitment.hash } } : {}),
     proofHash: '',
   };
   proof.proofHash = computeRouterFeeProofHash(proof);
   return proof;
+}
+
+/** True when the proof is bound to an authenticated channel state. */
+export function isStateBoundFeeProof(proof: RouterFeeProof): boolean {
+  return proof.evidence === 'state-bound'
+    && typeof proof.stateCommitment?.hash === 'string'
+    && proof.stateCommitment.hash.length > 0;
+}
+
+/**
+ * Verify a fee proof.
+ *
+ * Recomputation alone only proves the fields were not edited. A proof is
+ * accepted as settlement evidence only when it is state-bound and, if the caller
+ * knows the expected commitment, that commitment matches. Pass an expected
+ * commitment whenever the caller has chain or channel state to compare against.
+ */
+export function verifyRouterFeeProof(
+  proof: RouterFeeProof,
+  expected?: { channelId?: string; stateCommitment?: { sequence: number; hash: string } },
+): { ok: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!isStateBoundFeeProof(proof)) {
+    errors.push('fee proof is descriptive; it does not prove settlement');
+  }
+  if (expected?.channelId !== undefined && proof.channelId !== expected.channelId) {
+    errors.push(`fee proof channel ${proof.channelId} does not match ${expected.channelId}`);
+  }
+  if (expected?.stateCommitment) {
+    if (!proof.stateCommitment) {
+      errors.push('fee proof carries no state commitment');
+    } else if (proof.stateCommitment.hash !== expected.stateCommitment.hash
+      || proof.stateCommitment.sequence !== expected.stateCommitment.sequence) {
+      errors.push('fee proof state commitment does not match the expected channel state');
+    }
+  }
+  if (proof.proofHash !== computeRouterFeeProofHash(proof)) {
+    errors.push('fee proof hash does not match its contents');
+  }
+  return { ok: errors.length === 0, errors };
 }
 
 export function computeRouterFeeProofHash(proof: RouterFeeProof): string {
@@ -333,6 +439,7 @@ export async function executeCrossTokenPayment(
   route:          CrossTokenRoute,
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
+  expiryOptions:  RouteExpiryOptions = {},
 ): Promise<PaymentResult> {
   /** Locks rollback could not release (CAN-015). */
   const pendingRefunds: PendingRefund[] = [];
@@ -343,12 +450,37 @@ export async function executeCrossTokenPayment(
     return failed({ success: false, state: 'failed', terminal: true, error: 'paymentRequest.preimage is required for execution', settledHops: [] });
   }
 
+  const paymentValidation = validateRouteForPayment(route, expectationFromRequest(paymentRequest));
+  if (!paymentValidation.ok) {
+    return failed({
+      success: false,
+      error: `ROUTE_VALIDATION_FAILED: ${paymentValidation.error}`,
+      errorCode: 'ROUTE_VALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
   const routeValidation = validateRoute(channels, route);
   if (!routeValidation.ok) {
     return failed({
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
+  // One HTLC per hop leg: a swap hop locks two, so the room check counts legs.
+  const legCount = route.hops.reduce((count, hop) => count + (isSwapHop(hop) ? 2 : 1), 0);
+  let expiryDelta: bigint;
+  try {
+    expiryDelta = resolveHopExpiryDelta(expiryOptions);
+    assertExpiryFits(paymentRequest.expiryBlock, legCount, expiryDelta);
+  } catch (err) {
+    return failed({
+      success: false,
+      error: `EXPIRY_TOO_SOON: ${err instanceof Error ? err.message : String(err)}`,
+      errorCode: 'EXPIRY_TOO_SOON',
       settledHops: [],
     });
   }
@@ -410,7 +542,7 @@ export async function executeCrossTokenPayment(
   for (const hop of route.hops) {
     if (isSwapHop(hop)) {
       // Inbound channel (sender → intermediary, tokenIn side)
-      const inTimeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const inTimeout = hopTimeoutBlock(paymentRequest.expiryBlock, pos++, expiryDelta);
       try {
         hop.htlcId = await lockHTLC(
           hop.inboundChannelId,
@@ -426,7 +558,7 @@ export async function executeCrossTokenPayment(
       }
 
       // Outbound channel (intermediary → recipient, tokenOut side)
-      const outTimeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const outTimeout = hopTimeoutBlock(paymentRequest.expiryBlock, pos++, expiryDelta);
       const intermediary = swapIntermediary(channels, hop);
       if (!intermediary) {
         await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
@@ -451,7 +583,7 @@ export async function executeCrossTokenPayment(
         return failed({ success: false, error: `Outbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] });
       }
     } else {
-      const timeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const timeout = hopTimeoutBlock(paymentRequest.expiryBlock, pos++, expiryDelta);
       try {
         hop.htlcId = await lockHTLC(
           hop.channelId,
