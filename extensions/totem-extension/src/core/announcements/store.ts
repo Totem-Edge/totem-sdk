@@ -1,3 +1,9 @@
+import {
+  EXTENSION_UPDATE_STORAGE_KEY,
+  UPDATE_ANNOUNCEMENT_ID,
+  getUpdateAnnouncement,
+} from './updateCheck';
+
 export interface Announcement {
   id: number;
   title: string;
@@ -42,10 +48,13 @@ async function setStore(store: AnnouncementStore): Promise<void> {
 }
 
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const store = await getStore();
-  if (!store.showAnnouncements) return [];
-  
-  return store.announcements.filter(a => {
+  const [store, update] = await Promise.all([getStore(), getUpdateAnnouncement()]);
+  // A critical extension update is not Axia news: keep it visible even when
+  // the user has hidden the Axia announcement feed.
+  const source = store.showAnnouncements
+    ? (update ? [update, ...store.announcements] : store.announcements)
+    : (update ? [update] : []);
+  return source.filter(a => {
     const dismissedAt = store.dismissed[a.id];
     if (!dismissedAt) return true;
     return a.updated_at !== dismissedAt;
@@ -85,7 +94,10 @@ export async function archiveAnnouncement(id: number): Promise<void> {
 
 export async function dismissAnnouncement(id: number): Promise<void> {
   const store = await getStore();
-  const announcement = store.announcements.find(a => a.id === id);
+  let announcement = store.announcements.find(a => a.id === id);
+  if (!announcement && id === UPDATE_ANNOUNCEMENT_ID) {
+    announcement = (await getUpdateAnnouncement()) || undefined;
+  }
   if (announcement) {
     store.dismissed[id] = announcement.updated_at;
   }
@@ -105,7 +117,7 @@ export async function setShowAnnouncements(show: boolean): Promise<void> {
 
 export function onAnnouncementStoreChange(callback: () => void): () => void {
   const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-    if (changes[STORAGE_KEY]) {
+    if (changes[STORAGE_KEY] || changes[EXTENSION_UPDATE_STORAGE_KEY]) {
       callback();
     }
   };

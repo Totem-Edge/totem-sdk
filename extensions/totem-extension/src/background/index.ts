@@ -12,6 +12,7 @@ import { initializeBootstrap } from '../core/config/bootstrap';
 import { performStartupRecovery, saveRecoveryStatus } from '../core/recovery/startup';
 import { leaseMonitor } from '../core/monitoring/lease';
 import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
+import { checkForExtensionUpdate, UPDATE_CHECK_INTERVAL_MINUTES } from '../core/announcements/updateCheck';
 import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, configureExtensionWalletRuntime } from '../core/connect/walletRuntime';
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
@@ -1154,6 +1155,12 @@ void ensureStartup();
 // Uses internal idempotency guard to prevent duplicate subscriptions
 startAnnouncementSubscription();
 
+// Populate the update notice cache on every worker start. The check is cached
+// for UPDATE_CHECK_INTERVAL_MINUTES, so this is normally a storage read.
+void checkForExtensionUpdate().catch((error) => {
+  console.warn('[ExtensionUpdate] check failed:', error);
+});
+
 /**
  * Lazily construct the self-hosted WOTS lease provider (RFC-013). Returns
  * `null` when the wallet is in the default Axia lease mode.
@@ -1530,6 +1537,13 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('[ConnectedSites] Store initialized on install');
   chrome.alarms.create('totem-balance-keepalive', { periodInMinutes: 1 });
   console.log('[BalanceKeepalive] Alarm created on install');
+  chrome.alarms.create('totem-extension-update-check', {
+    periodInMinutes: UPDATE_CHECK_INTERVAL_MINUTES,
+    delayInMinutes: 1,
+  });
+  void checkForExtensionUpdate(true).catch((error) => {
+    console.warn('[ExtensionUpdate] check failed:', error);
+  });
 });
 
 chrome.runtime.onSuspend.addListener(() => {
@@ -1547,6 +1561,13 @@ chrome.runtime.onStartup.addListener(async () => {
   // PortfolioStreamManager initializes lazily from chrome.storage.local on demand.
   chrome.alarms.create('totem-balance-keepalive', { periodInMinutes: 1 });
   console.log('[BalanceKeepalive] Alarm created on startup');
+  chrome.alarms.create('totem-extension-update-check', {
+    periodInMinutes: UPDATE_CHECK_INTERVAL_MINUTES,
+    delayInMinutes: 1,
+  });
+  void checkForExtensionUpdate(true).catch((error) => {
+    console.warn('[ExtensionUpdate] check failed:', error);
+  });
 });
 
 // Chrome alarms listener - handles keep-alive for background address generation and balance refresh
@@ -1557,6 +1578,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (portfolioStreamManager.isCurrentlyStreaming()) {
       portfolioStreamManager.forceRefresh().catch((err) => console.warn('[Background] forceRefresh failed:', err));
     }
+  } else if (alarm.name === 'totem-extension-update-check') {
+    await checkForExtensionUpdate(true).catch((error) => {
+      console.warn('[ExtensionUpdate] check failed:', error);
+    });
   }
 });
 

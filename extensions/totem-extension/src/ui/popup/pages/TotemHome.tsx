@@ -13,6 +13,7 @@ import { NavTab } from '../../components/organisms';
 import { usePortfolio } from '../../hooks';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import { AnnouncementBanner } from '../components/AnnouncementBanner';
+import { UPDATE_ANNOUNCEMENT_ID } from '../../../core/announcements/updateCheck';
 import '../../theme/axia-tokens.css';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
@@ -349,7 +350,7 @@ export function TotemHome({ onNavigate, onSelectToken, activeAccountAddress }: T
       <AnnouncementBanner
         announcements={announcements}
         onDismiss={dismissAnnouncement}
-        visible={showAnnouncements}
+        visible={showAnnouncements || announcements.some(a => a.id === UPDATE_ANNOUNCEMENT_ID)}
       />
 
       {/* Token List */}
