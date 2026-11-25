@@ -1,7 +1,7 @@
 {
   "src/core/buildTxnRow.ts": "49d1162e59fd1a4313185fc8197830839673c7523efd7e5f7168879d9434fa7e",
   "src/core/api.ts": "1dc412e281a49d75a0aa67881b99cd1b1321737a9d4901750ecd1cf325fd52a1",
-  "src/pages/Send.tsx": "9cb741c8393419b2da28859fbc4c6272beb98abad4594a1f60b09211da2e6928",
+  "src/pages/Send.tsx": "5e6bcd12fb4579258c84aef41e4e33982a3cd3839738dd9062f20edecf11ca99",
   "../totem-extension/src/core/transaction/service.ts": "11272a8782a274df8fd8d8fd607bccfa4a490ca4867b2e4169298d9d46fad891",
   "../totem-extension/src/core/transaction/MinimaTransactionBuilder.ts": "4d93590d6ba341ec9f27a55e4cd26b1c1bdc1280435da93ce0dbdae360551e8f",
   "../totem-extension/src/core/transaction/useSendTransaction.ts": "4d0c1d2cb3d5548911a18dcf1261561e3befc11a41867a994d5533a915688f65",

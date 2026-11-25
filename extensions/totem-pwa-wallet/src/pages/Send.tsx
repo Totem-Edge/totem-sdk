@@ -1,8 +1,8 @@
 /**
  * Send — full WOTS TxnRow pipeline
  *
- * Steps: form → confirm → watermark sync → fetchCoins → selectCoins →
- *        prepareLease → fetchCoinProofs → buildTxnRowHex → finalizeLease
+ * Steps: form → prepare (watermark, coins, lease, proofs, unsigned build)
+ *        → review exact inputs/outputs/hex → sign those bytes → finalizeLease
  *
  * /finalize expects a complete TxnRow hex (not just signature bytes).
  */
@@ -18,7 +18,26 @@ import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buil
 import { addPendingSend } from '../core/pendingSends';
 import { track } from '../core/observability';
 
-type Step = 'form' | 'confirm' | 'signing' | 'done' | 'error';
+type Step = 'form' | 'preparing' | 'review' | 'signing' | 'done' | 'error';
+
+interface PreparedSend {
+  txId: string;
+  createdAt: number;
+  lease: Awaited<ReturnType<typeof prepareLease>>;
+  selected: ReturnType<typeof selectCoins>['selected'];
+  changeAmount: string;
+  totalInputAmount: string;
+  coinProofsHex: string[];
+  toAddress: string;
+  toAddressHex: string;
+  fromHex: string;
+  toAmount: string;
+  tokenId: string;
+  digestTx: string;
+  unsignedHex: string;
+}
+
+const PREPARED_TTL_MS = 5 * 60_000;
 
 export function Send() {
   const { session, activeAccount, setRoute, pendingSendTokenId, setPendingSendTokenId } = useWallet();
@@ -32,6 +51,7 @@ export function Send() {
   const [statusMsg, setStatusMsg] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
   const [sendFailure, setSendFailure] = useState<{ details?: string; rpcResponse?: string; failureId?: string | null } | null>(null);
+  const [prepared, setPrepared] = useState<PreparedSend | null>(null);
 
   // Preselect the token when the user arrived from its detail page.
   useEffect(() => {
@@ -72,10 +92,14 @@ export function Send() {
     return null;
   }
 
-  async function handleSend() {
+  async function handlePrepare() {
     if (!session || !activeAccount) return;
-    setStep('signing');
+    const validation = validateForm();
+    if (validation) { setError(validation); return; }
+
+    setStep('preparing');
     setError('');
+    setPrepared(null);
 
     try {
       setStatusMsg('Syncing watermark…');
@@ -85,14 +109,12 @@ export function Send() {
       const coins = await fetchCoins(activeAccount.address, session.identityHash);
       if (!coins.length) throw new Error('No spendable coins found for this address.');
 
-      const { selected, changeAmount } = selectCoins(coins, amount, tokenId);
+      const selection = selectCoins(coins, amount, tokenId);
       const fromHex = normalizeAddressToHex(activeAccount.address);
-      const toHex   = normalizeAddressToHex(toAddress);
-
-      setStatusMsg('Requesting signing lease…');
+      const toHex = normalizeAddressToHex(toAddress);
       const genTxId = `pwa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      setTxId(genTxId);
 
+      setStatusMsg('Reserving a one-time WOTS key…');
       const lease = await prepareLease({
         txId: genTxId,
         rootPublicKey: session.rootPublicKey,
@@ -103,60 +125,111 @@ export function Send() {
       setStatusMsg('Fetching coin proofs…');
       const proofs = await fetchCoinProofs(
         lease.leaseToken,
-        selected.map(c => c.coinid),
+        selection.selected.map(c => c.coinid),
         session.identityHash,
       );
       const coinProofHexes = proofs.map(p => p.coinProofHex).filter(Boolean) as string[];
-      if (coinProofHexes.length !== selected.length) {
+      if (coinProofHexes.length !== selection.selected.length) {
         throw new Error('Failed to fetch all CoinProofs. Some coins may be unconfirmed.');
       }
 
-      setStatusMsg('Building and signing transaction…');
-      const treeKey = await WalletManager.getActiveTreeKey();
-      const { txnRowHex } = await buildTxnRowHex({
+      setStatusMsg('Building the exact transaction…');
+      const built = await buildTxnRowHex({
         txId: genTxId,
-        treeKey,
         inputCoinProofsHex: coinProofHexes,
         toAddressHex: toHex,
         toAmount: amount,
         changeAddressHex: fromHex,
-        changeAmount,
+        changeAmount: selection.changeAmount,
         perAddressPublicKey: activeAccount.publicKey,
         l1: lease.l1,
         l2: lease.l2,
+        sign: false,
       });
 
-      // Persist parent-child sig proofs so next sign is fast
+      setPrepared({
+        txId: genTxId,
+        createdAt: Date.now(),
+        lease,
+        selected: selection.selected,
+        changeAmount: selection.changeAmount,
+        totalInputAmount: selection.totalInputAmount,
+        coinProofsHex: coinProofHexes,
+        toAddress,
+        toAddressHex: toHex,
+        fromHex,
+        toAmount: amount,
+        tokenId,
+        digestTx: built.digestTx,
+        unsignedHex: built.txnRowHex,
+      });
+      setStep('review');
+    } catch (e) {
+      track('send.prepare.failed', { identityHash: session.identityHash, tokenId, reason: String(e) });
+      const rich = e as Error & { details?: string; rpcResponse?: string; failureId?: string | null };
+      setSendFailure({ details: rich.details, rpcResponse: rich.rpcResponse, failureId: rich.failureId });
+      setError(String(e));
+      setStep('error');
+    }
+  }
+
+  async function handleConfirmPrepared() {
+    if (!session || !activeAccount || !prepared) return;
+    if (Date.now() - prepared.createdAt > PREPARED_TTL_MS) {
+      setPrepared(null);
+      setError('That prepared transaction expired. Please review it again.');
+      setStep('form');
+      return;
+    }
+
+    setStep('signing');
+    setError('');
+    try {
+      setStatusMsg('Signing the exact reviewed transaction…');
+      const treeKey = await WalletManager.getActiveTreeKey();
+      const signed = await buildTxnRowHex({
+        txId: prepared.txId,
+        treeKey,
+        inputCoinProofsHex: prepared.coinProofsHex,
+        toAddressHex: prepared.toAddressHex,
+        toAmount: prepared.toAmount,
+        changeAddressHex: prepared.fromHex,
+        changeAmount: prepared.changeAmount,
+        perAddressPublicKey: activeAccount.publicKey,
+        l1: prepared.lease.l1,
+        l2: prepared.lease.l2,
+      });
+      if (signed.digestTx.toLowerCase() !== prepared.digestTx.toLowerCase()) {
+        throw new Error('The prepared transaction changed before signing. Nothing was broadcast; please review again.');
+      }
+
       await WalletManager.flushSigCache();
 
       setStatusMsg('Broadcasting transaction…');
-      track('send.initiated', { identityHash: session.identityHash, tokenId });
+      track('send.initiated', { identityHash: session.identityHash, tokenId: prepared.tokenId });
       const finalized = await finalizeLease(
-        { leaseToken: lease.leaseToken, signedHex: txnRowHex },
+        { leaseToken: prepared.lease.leaseToken, signedHex: signed.txnRowHex },
         session.identityHash,
       );
       if (!finalized?.ok) {
         throw new Error(finalized?.error || 'The node did not accept the transaction.');
       }
 
-      // The node's TxPoW id is the real explorer link and the key Home/Activity
-      // use to show the send while the archive index catches up.
-      const broadcastId = finalized.txpowid || finalized.txid || genTxId;
+      const broadcastId = finalized.txpowid || finalized.txid || prepared.txId;
       setTxId(broadcastId);
-
-      const balanceEntry = balances.find((b) => b.tokenid === tokenId);
+      const balanceEntry = balances.find((b) => b.tokenid === prepared.tokenId);
       addPendingSend({
         txpowid: broadcastId,
         address: activeAccount.address,
-        tokenId,
-        amount,
+        tokenId: prepared.tokenId,
+        amount: prepared.toAmount,
         balanceBefore: balanceEntry?.confirmed ?? balanceEntry?.total ?? '0',
       });
 
-      track('send.completed', { identityHash: session.identityHash, tokenId, txpowid: broadcastId });
+      track('send.completed', { identityHash: session.identityHash, tokenId: prepared.tokenId, txpowid: broadcastId });
       setStep('done');
     } catch (e) {
-      track('send.failed', { identityHash: session.identityHash, tokenId, reason: String(e) });
+      track('send.failed', { identityHash: session.identityHash, tokenId: prepared.tokenId, reason: String(e) });
       const rich = e as Error & { details?: string; rpcResponse?: string; failureId?: string | null };
       setSendFailure({ details: rich.details, rpcResponse: rich.rpcResponse, failureId: rich.failureId });
       setError(String(e));
@@ -221,8 +294,21 @@ export function Send() {
             )}
           </details>
         )}
-        <button className="btn btn-secondary btn-full" onClick={() => setStep('form')}>Try Again</button>
+        <button className="btn btn-secondary btn-full" onClick={() => { setPrepared(null); setStep('form'); }}>Try Again</button>
         <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }} onClick={() => setRoute('home')}>Cancel</button>
+      </div>
+    );
+  }
+
+  if (step === 'preparing') {
+    return (
+      <div className="page" style={{ paddingTop: 'var(--space-6)', textAlign: 'center' }}>
+        <span className="spinner" style={{ width: 32, height: 32, marginBottom: 'var(--space-3)' }} />
+        <p style={{ color: 'var(--text-muted)' }}>{statusMsg || 'Preparing the exact transaction…'}</p>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-disabled)', marginTop: 'var(--space-1)' }}>
+          Selecting coins, reserving a one-time WOTS key and building the unsigned transaction.
+          Nothing is signed or broadcast yet.
+        </p>
       </div>
     );
   }
@@ -239,42 +325,87 @@ export function Send() {
     );
   }
 
-  if (step === 'confirm') {
+  if (step === 'review' && prepared) {
+    const inputRows = prepared.selected.map((coin) => (
+      <div key={coin.coinid} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-1)', padding: '6px 0', borderTop: '1px solid var(--border-subtle)' }}>
+        <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 10, overflowWrap: 'anywhere' }}>
+          {coin.coinid.slice(0, 18)}…{coin.coinid.slice(-8)}
+        </span>
+        <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>
+          {coin.amount} {coin.tokenid === '0x00' ? 'MINIMA' : coin.tokenid.slice(0, 8) + '…'}
+        </span>
+      </div>
+    ));
     return (
       <div className="page">
         <div className="page-header">
-          <button className="btn btn-secondary btn-sm" onClick={() => setStep('form')}>←</button>
-          <h2 className="page-title">Confirm Send</h2>
+          <button className="btn btn-secondary btn-sm" onClick={() => { setPrepared(null); setStep('form'); }}>←</button>
+          <h2 className="page-title">Review Exact Transaction</h2>
         </div>
+
         <div className="card" style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-            <span className="label" style={{ marginBottom: 0 }}>Token</span>
-            <span style={{ fontWeight: 'var(--weight-bold)' }}>{tokenLabel(tokenId)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-            <span className="label" style={{ marginBottom: 0 }}>Amount</span>
+            <span className="label" style={{ marginBottom: 0 }}>Send</span>
             <span style={{ fontWeight: 'var(--weight-bold)', color: 'var(--axia-aqua)' }}>
-              {amount} {tokenLabel(tokenId)}
+              {prepared.toAmount} {tokenLabel(prepared.tokenId)}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
             <span className="label" style={{ marginBottom: 0 }}>To</span>
-            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>
-              {toAddress.slice(0, 20)}…
-            </span>
+            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)', textAlign: 'right', overflowWrap: 'anywhere' }}>{prepared.toAddress}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+            <span className="label" style={{ marginBottom: 0 }}>From</span>
+            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)', textAlign: 'right', overflowWrap: 'anywhere' }}>{activeAccount?.address}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+            <span className="label" style={{ marginBottom: 0 }}>Change back</span>
+            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>{prepared.changeAmount} {tokenLabel(prepared.tokenId)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="label" style={{ marginBottom: 0 }}>From</span>
-            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>
-              {activeAccount?.address.slice(0, 20)}…
-            </span>
+            <span className="label" style={{ marginBottom: 0 }}>Total input</span>
+            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 'var(--text-xs)' }}>{prepared.totalInputAmount} {tokenLabel(prepared.tokenId)}</span>
           </div>
         </div>
-        <div className="error-msg" style={{ marginBottom: 'var(--space-3)' }}>
-          ⚠ WOTS signatures are one-time-use. Verify the address carefully.
+
+        <div className="card" style={{ marginBottom: 'var(--space-3)' }}>
+          <p className="label">Inputs ({prepared.selected.length})</p>
+          {inputRows}
         </div>
-        <button className="btn btn-primary btn-full" onClick={handleSend}>Confirm & Sign →</button>
-        <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }} onClick={() => setStep('form')}>Cancel</button>
+
+        <div className="card" style={{ marginBottom: 'var(--space-3)' }}>
+          <p className="label">Outputs</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+            <span style={{ fontSize: 11 }}>Recipient</span>
+            <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 11 }}>{prepared.toAmount} {tokenLabel(prepared.tokenId)}</span>
+          </div>
+          {prepared.changeAmount !== '0' && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: 11 }}>Change</span>
+              <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: 11 }}>{prepared.changeAmount} {tokenLabel(prepared.tokenId)}</span>
+            </div>
+          )}
+        </div>
+
+        <details style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+          <summary style={{ cursor: 'pointer' }}>Exact unsigned transaction and digest</summary>
+          <p style={{ marginTop: 8, overflowWrap: 'anywhere' }}>DIGEST: {prepared.digestTx}</p>
+          <textarea
+            readOnly
+            value={prepared.unsignedHex}
+            onFocus={(e) => e.currentTarget.select()}
+            style={{ width: '100%', height: 120, marginTop: 6, fontFamily: 'var(--font-family-mono)', fontSize: 10 }}
+          />
+        </details>
+
+        <div className="error-msg" style={{ marginBottom: 'var(--space-3)' }}>
+          These are the exact inputs, outputs and digest that will be signed. Only the WOTS
+          signature is added after you confirm, and nothing is broadcast if the rebuilt digest
+          differs from the one shown here. WOTS signatures are one-time-use — verify the
+          recipient and amounts.
+        </div>
+        <button className="btn btn-primary btn-full" onClick={handleConfirmPrepared}>Confirm & Sign →</button>
+        <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }} onClick={() => { setPrepared(null); setStep('form'); }}>Back</button>
       </div>
     );
   }
@@ -338,13 +469,9 @@ export function Send() {
         {error && <div className="error-msg" style={{ marginBottom: 'var(--space-2)' }}>{error}</div>}
         <button
           className="btn btn-primary btn-full"
-          onClick={() => {
-            const e = validateForm();
-            if (e) { setError(e); return; }
-            setStep('confirm');
-          }}
+          onClick={() => { void handlePrepare(); }}
         >
-          Review Transaction →
+          Review Exact Transaction →
         </button>
       </div>
 
