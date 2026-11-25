@@ -1,5 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+
+function checkForUpdate() {
+  if (!('serviceWorker' in navigator)) return;
+  void navigator.serviceWorker
+    .getRegistration()
+    .then((registration) => registration?.update())
+    .catch(() => undefined);
+}
 
 export function UpdateBanner() {
   const {
@@ -8,20 +16,36 @@ export function UpdateBanner() {
   } = useRegisterSW({
     onRegistered(r: ServiceWorkerRegistration | undefined) {
       console.log('[PWA] Service worker registered', r);
-      if (!r) return;
-      // A stale worker is how an old HTML/JS pair asks for a wasm file that the
-      // new deployment no longer ships. Poll so the update banner appears
-      // without a hard refresh.
-      const check = () => { void r.update().catch(() => undefined); };
-      setInterval(check, 15 * 60_000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') check();
-      });
+      // A newly installed app can open straight from the icon. Check
+      // immediately, not only after the visibility listener fires.
+      if (r) void r.update().catch(() => undefined);
     },
     onRegisterError(error: unknown) {
       console.warn('[PWA] Service worker registration error', error);
     },
   });
+
+  useEffect(() => {
+    // Installed PWAs (especially iOS standalone) do not necessarily reload the
+    // page when opened. Check on mount, on resume/focus/pageshow, and periodically
+    // so a deployment is detected on every new load.
+    checkForUpdate();
+    const interval = window.setInterval(checkForUpdate, 15 * 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', checkForUpdate);
+    window.addEventListener('pageshow', checkForUpdate);
+    window.addEventListener('online', checkForUpdate);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', checkForUpdate);
+      window.removeEventListener('pageshow', checkForUpdate);
+      window.removeEventListener('online', checkForUpdate);
+    };
+  }, []);
 
   if (!needRefresh) return null;
 
