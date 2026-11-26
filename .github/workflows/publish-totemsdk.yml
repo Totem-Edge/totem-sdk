@@ -152,11 +152,23 @@ jobs:
         run: npm install
         working-directory: TotemEdgeSDKDocs
 
-      # generate: runs TypeDoc over all SDK source packages in the monorepo,
-      # then build: produces the static Docusaurus site in TotemEdgeSDKDocs/build/
-      - name: Generate API reference and build docs site
-        run: npm run build:deploy
+      # generate: runs TypeDoc over all SDK source packages in the monorepo.
+      # Each TypeDoc process holds a full TS program, so cap the parallelism and
+      # raise the parent heap; four parallel runs OOM the 7 GB runner now that
+      # the manifest has >70 packages.
+      - name: Generate API reference
+        run: npm run generate
         working-directory: TotemEdgeSDKDocs
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          DOCS_TYPEDOC_CONCURRENCY: '2'
+
+      # build: produces the static Docusaurus site in TotemEdgeSDKDocs/build/
+      - name: Build docs site
+        run: npm run build
+        working-directory: TotemEdgeSDKDocs
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
       # Deploy is best-effort: without the Cloudflare secrets configured the
       # release must still go green (npm publish is the point of this workflow).

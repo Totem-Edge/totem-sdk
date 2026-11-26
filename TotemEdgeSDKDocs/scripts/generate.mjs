@@ -269,9 +269,12 @@ for (const stale of ['@totemsdk', '@totem', 'README.md']) {
 console.log('[generate] Cleared.');
 
 // ---------------------------------------------------------------------------
-// 2. Run TypeDoc per-package in parallel batches (CONCURRENCY = 4)
+// 2. Run TypeDoc per-package in parallel batches (default 4, override for CI)
 // ---------------------------------------------------------------------------
-const CONCURRENCY = 4;
+// Each TypeDoc process holds a large TS program; four at once OOMs a 7 GB
+// GitHub runner once the workspace passes ~70 packages. CI sets
+// DOCS_TYPEDOC_CONCURRENCY=2 and a larger heap for the parent.
+const CONCURRENCY = Math.max(1, Number(process.env.DOCS_TYPEDOC_CONCURRENCY ?? 4) || 4);
 
 console.log(`[generate] Running per-package TypeDoc (${PACKAGES.length} packages, concurrency=${CONCURRENCY})...`);
 
@@ -306,9 +309,17 @@ for (let i = 0; i < pkgsToProcess.length; i += CONCURRENCY) {
     const { outDir, args } = typedocArgs(pkg);
     fs.mkdirSync(outDir, { recursive: true });
     const proc = spawn('npx', args, { cwd: ROOT, stdio: 'pipe' });
+    // Drain both pipes. An unconsumed pipe fills (64 KB) and blocks the child
+    // until the kill timer, turning a slow package into a spurious stub.
+    let tail = '';
+    proc.stdout?.on('data', () => {});
+    proc.stderr?.on('data', (chunk) => { tail = (tail + chunk.toString()).slice(-4000); });
     const timer = setTimeout(() => { try { proc.kill('SIGTERM'); } catch {} }, 28000);
     proc.on('close', code => {
       clearTimeout(timer);
+      if (code !== 0 && tail.trim()) {
+        console.log(`\n[generate]   ${pkg.slug}: typedoc exit ${code}: ${tail.split('\n').slice(-3).join(' | ')}`);
+      }
       resolve({ pkg, success: code === 0 });
     });
     proc.on('error', () => { clearTimeout(timer); resolve({ pkg, success: false }); });
