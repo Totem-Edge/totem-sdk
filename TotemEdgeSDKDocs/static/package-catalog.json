@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T06:44:58.051Z",
+  "generatedAt": "2026-11-26T11:52:04.376Z",
   "domains": [
     {
       "id": "cryptographic-foundation",
@@ -18,7 +18,7 @@
         {
           "slug": "totemsdk-kissvm",
           "name": "@totemsdk/kissvm",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-recursive-mast",
@@ -28,7 +28,7 @@
         {
           "slug": "totemsdk-txpow",
           "name": "@totemsdk/txpow",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-wots-lease",
@@ -103,9 +103,14 @@
           "maturity": "rc"
         },
         {
-          "slug": "totemsdk-omnia-vtxo",
-          "name": "@totemsdk/omnia-vtxo",
+          "slug": "totemsdk-vtxo",
+          "name": "@totemsdk/vtxo",
           "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-claim",
+          "name": "@totemsdk/claim",
+          "maturity": "alpha"
         },
         {
           "slug": "totemsdk-se-server",
@@ -128,6 +133,16 @@
           "maturity": "rc"
         },
         {
+          "slug": "totemsdk-omnia-lsp",
+          "name": "@totemsdk/omnia-lsp",
+          "maturity": "alpha"
+        },
+        {
+          "slug": "totemsdk-omnia-lsp-provider",
+          "name": "@totemsdk/omnia-lsp-provider",
+          "maturity": "alpha"
+        },
+        {
           "slug": "totemsdk-omnia-pool",
           "name": "@totemsdk/omnia-pool",
           "maturity": "rc"
@@ -135,7 +150,7 @@
         {
           "slug": "totemsdk-omnia-relay",
           "name": "@totemsdk/omnia-relay",
-          "maturity": "alpha"
+          "maturity": "rc"
         }
       ]
     },
@@ -146,12 +161,12 @@
         {
           "slug": "totemsdk-connect",
           "name": "@totemsdk/connect",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-edge",
           "name": "@totemsdk/edge",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-edge-adapters",
@@ -164,6 +179,11 @@
           "maturity": "rc"
         },
         {
+          "slug": "totemsdk-edge-mesh",
+          "name": "@totemsdk/edge-mesh",
+          "maturity": "beta"
+        },
+        {
           "slug": "totemsdk-edge-ble",
           "name": "@totemsdk/edge-ble",
           "maturity": "rc"
@@ -171,12 +191,12 @@
         {
           "slug": "totemsdk-edge-can",
           "name": "@totemsdk/edge-can",
-          "maturity": "rc"
+          "maturity": "v1"
         },
         {
           "slug": "totemsdk-edge-coap",
           "name": "@totemsdk/edge-coap",
-          "maturity": "rc"
+          "maturity": "v1"
         },
         {
           "slug": "totemsdk-edge-grpc",
@@ -184,8 +204,18 @@
           "maturity": "rc"
         },
         {
+          "slug": "totemsdk-edge-gnss",
+          "name": "@totemsdk/edge-gnss",
+          "maturity": "rc"
+        },
+        {
           "slug": "totemsdk-edge-lorawan",
           "name": "@totemsdk/edge-lorawan",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-edge-mavlink",
+          "name": "@totemsdk/edge-mavlink",
           "maturity": "rc"
         },
         {
@@ -196,17 +226,22 @@
         {
           "slug": "totemsdk-edge-modbus",
           "name": "@totemsdk/edge-modbus",
-          "maturity": "rc"
+          "maturity": "v1"
         },
         {
           "slug": "totemsdk-edge-mqtt",
           "name": "@totemsdk/edge-mqtt",
-          "maturity": "rc"
+          "maturity": "v1"
         },
         {
           "slug": "totemsdk-edge-nfc",
           "name": "@totemsdk/edge-nfc",
-          "maturity": "alpha"
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-ocpp",
+          "name": "@totemsdk/edge-ocpp",
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-edge-opcua",
@@ -236,7 +271,7 @@
         {
           "slug": "totemsdk-server",
           "name": "@totemsdk/server",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-stream-transport",
@@ -246,7 +281,7 @@
         {
           "slug": "totemsdk-wallet-adapter",
           "name": "@totemsdk/wallet-adapter",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-edge-email",
@@ -254,8 +289,8 @@
           "maturity": "rc"
         },
         {
-          "slug": "totemsdk-industrial-action",
-          "name": "@totemsdk/industrial-action",
+          "slug": "totemsdk-act-core",
+          "name": "@totemsdk/act-core",
           "maturity": "rc"
         }
       ]
@@ -272,7 +307,7 @@
         {
           "slug": "totemsdk-authority",
           "name": "@totemsdk/authority",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-governance",
@@ -282,7 +317,7 @@
         {
           "slug": "totemsdk-identity",
           "name": "@totemsdk/identity",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-liquidity-bond",
@@ -292,7 +327,7 @@
         {
           "slug": "totemsdk-manifest",
           "name": "@totemsdk/manifest",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-proof",
@@ -317,7 +352,7 @@
         {
           "slug": "totemsdk-root-identity",
           "name": "@totemsdk/root-identity",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-location-proof",
@@ -345,6 +380,11 @@
       "id": "intelligence",
       "label": "Intelligence",
       "packages": [
+        {
+          "slug": "totemsdk-act-training",
+          "name": "@totemsdk/act-training",
+          "maturity": "rc"
+        },
         {
           "slug": "totemsdk-intelligence",
           "name": "@totemsdk/intelligence",
@@ -376,6 +416,16 @@
           "slug": "totemsdk-storage",
           "name": "@totemsdk/storage",
           "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-replication",
+          "name": "@totemsdk/replication",
+          "maturity": "alpha"
+        },
+        {
+          "slug": "totemsdk-replication-holepunch",
+          "name": "@totemsdk/replication-holepunch",
+          "maturity": "alpha"
         }
       ]
     },
