@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-26
+
+### Fixed
+
+- Warn at startup when the built-in in-memory signing journal is still
+  installed (OMN-108): its watermark does not survive a restart and independent
+  processes do not share it. Pass a durable `signingJournal` for production.
+- The watcher no longer treats any successor coin as channel continuity
+  (OMN-096). It compares the successor's on-chain sequence with the latest
+  signed local state, raises a contestable close when the published state is
+  stale, scans single-flight, and contests the live coin rather than the spent
+  original funding coin.
+
 ## [0.15.2] - 2026-11-25
 
 ### Fixed
