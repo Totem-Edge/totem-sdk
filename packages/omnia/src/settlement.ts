@@ -1,4 +1,4 @@
-import { concatBytes } from '@totemsdk/core';
+import { coinAmountAtoms, concatBytes } from '@totemsdk/core';
 import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
@@ -14,7 +14,15 @@ import type {
   UnilateralCloseFinalizeResult,
 } from './types.js';
 import { ChannelStatusError } from './errors.js';
-import { buildSettlementTx, deserializeTxDraft, serializeTxDraft, omniaDraftToCanonicalMinimaBytes, computeOmniaTxDigest } from './transactions.js';
+import {
+  buildSettlementTx,
+  computeOmniaTxDigest,
+  deserializeTxDraft,
+  omniaDraftToCanonicalMinimaBytes,
+  serializeTxDraft,
+  STATE_COMMITMENT_V2_PORT,
+  STATE_SEQUENCE_PORT,
+} from './transactions.js';
 import { signTxDraft } from './sign.js';
 import { verifyClosePackage } from './close-package.js';
 import { verifyChannelSignature } from './wots.js';
@@ -26,6 +34,19 @@ import {
   serializeOmniaWitness,
   type OmniaWitnessProofs,
 } from './witness.js';
+
+function normalizeHex(value: string): string {
+  return String(value).replace(/^0x/i, '').toLowerCase();
+}
+
+/** Read a state port from a coin as a string. */
+function coinStateValue(coin: { state?: unknown[] }, port: number): string | null {
+  const entry = coin.state
+    ?.map((sv) => sv as { port?: number; value?: unknown })
+    .find((sv) => sv.port === port);
+  if (!entry || entry.value === undefined || entry.value === null) return null;
+  return String(entry.value);
+}
 
 export interface ProposeSettlementOptions {
   /** Explicit signer — falls back to channel.localSigner when not provided. */
@@ -515,6 +536,53 @@ export async function recordUnilateralUpdateCoin(
       );
     }
   }
+  // OMN-100 (audit 3, OMN-098): the contest deadline must derive from *this*
+  // channel's update coin, not merely a coin that sits at the right address.
+  const latest = channel.latestState;
+  if (!latest) throw new Error('Cannot record the update coin without a latest signed state');
+
+  const coinSequence = coinStateValue(coin, STATE_SEQUENCE_PORT);
+  if (coinSequence === null) {
+    throw new Error(`Update output coin ${coinId} has no sequence state`);
+  }
+  if (Number(coinSequence) !== latest.sequence) {
+    throw new Error(
+      `Update output coin ${coinId} carries sequence ${coinSequence}, `
+      + `not the signed state sequence ${latest.sequence}`,
+    );
+  }
+
+  const coinCommitment = coinStateValue(coin, STATE_COMMITMENT_V2_PORT);
+  const expectedCommitment = latest.stateVariables.find(sv => sv.port === STATE_COMMITMENT_V2_PORT);
+  if (coinCommitment === null || !expectedCommitment) {
+    throw new Error(`Update output coin ${coinId} has no state commitment`);
+  }
+  if (normalizeHex(coinCommitment) !== normalizeHex(String(expectedCommitment.value))) {
+    throw new Error(`Update output coin ${coinId} commitment does not match the signed state`);
+  }
+
+  if (coinAmountAtoms(coin) !== channel.totalValue) {
+    throw new Error(
+      `Update output coin ${coinId} carries ${coinAmountAtoms(coin).toString()} atoms, `
+      + `not the channel total ${channel.totalValue.toString()}`,
+    );
+  }
+  if (normalizeHex(coin.tokenid) !== normalizeHex(channel.tokenId)) {
+    throw new Error(`Update output coin ${coinId} carries token ${coin.tokenid}, not ${channel.tokenId}`);
+  }
+
+  // Lineage, when the adapter can serve the transaction body: the update must
+  // spend the live channel coin. Only the transaction proves provenance.
+  const transaction = await chainProvider.getTransaction?.(channel.latestCoinId ?? channel.fundingCoinId);
+  if (transaction && transaction.txpowid) {
+    const spendsPredecessor = transaction.inputs.some(
+      (input) => normalizeHex(input.coinId) === normalizeHex(channel.latestCoinId ?? channel.fundingCoinId),
+    );
+    if (!spendsPredecessor) {
+      throw new Error(`Update output coin ${coinId} was not produced by a transaction spending the channel coin`);
+    }
+  }
+
   const includedAt = coinCreatedBlock(coin);
   if (includedAt === null) {
     throw new Error(`Cannot determine the inclusion height of update output coin ${coinId}`);

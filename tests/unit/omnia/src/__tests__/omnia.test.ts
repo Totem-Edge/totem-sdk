@@ -99,7 +99,7 @@ import { validateChannelStateWithKissvm } from '../kissvm';
 import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, MeterProgram, METER_PAYMENT_PORT, METER_PROGRAM_ID, METER_READING_PORT, METER_UNIT_PRICE_PORT, METER_USAGE_DELTA_PORT, resolveChannelProgram, HTLCPaymentProgram, HTLC_PROGRAM_ID, HTLC_HASHLOCK_PORT, HTLC_LOCKED_AMOUNT_PORT, HTLC_TIMEOUT_BLOCK_PORT, HTLC_CLAIMED_PORT, HTLC_PREIMAGE_PORT, VaultProgram, VAULT_PROGRAM_ID, VAULT_LOCKED_VALUE_PORT, VAULT_RELEASE_SEQUENCE_PORT, VAULT_SWEPT_PORT } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
 import { getStateBigInt, programNumberState, programHexState, programBoolState } from '../state-vars';
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { atomsToAmount, sha3_256, bytesToHex } from '@totemsdk/core';
 import { bindPeerIntegration, sendProgramTransitionStateUpdate } from '../integration';
 import { OmniaPeerImpl } from '../peer';
 import { createInMemoryPair } from '@totemsdk/stream-transport';
@@ -2305,25 +2305,37 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
 
   const UPDATE_COIN = '0x' + 'cc'.repeat(32);
 
-  const makeUnilateralProvider = (fundingAddress: string) => ({
-    ...makeMockChainProvider(),
-    getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })),
-    getCoin: jest.fn(async (id: string) => ({
-      coinId: id,
-      address: fundingAddress,
-      amount: '1000',
-      tokenid: '0x00',
-      spent: false,
-      created: '100',
-    })),
-  });
+  /** OMN-100: the update coin must carry the signed state's sequence/commitment. */
+  const makeUnilateralProvider = (
+    fundingAddress: string,
+    state?: { sequence: number; stateVariables: Array<{ port: number; value: unknown }> },
+  ) => {
+    const commitment = state?.stateVariables.find(sv => sv.port === 102);
+    return {
+      ...makeMockChainProvider(),
+      getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })),
+      getCoin: jest.fn(async (id: string) => ({
+        coinId: id,
+        address: fundingAddress,
+        // Node amounts are decimal MINIMA text; 1000 atoms is 1e-15 MINIMA.
+        amount: atomsToAmount(1000n),
+        tokenid: '0x00',
+        spent: false,
+        created: '100',
+        state: [
+          { port: 101, value: String(state?.sequence ?? 1) },
+          { port: 102, value: commitment ? String(commitment.value) : '0x' + '00'.repeat(32) },
+        ],
+      })),
+    };
+  };
 
   it('broadcasts latest signed update and records contest deadline', async () => {
     const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, signedState);
     const result = await startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
       chainProvider as any,
@@ -2343,7 +2355,7 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, signedState);
 
     await expect(startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
@@ -2357,7 +2369,7 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
       makeTestChannel(),
       { alice: 500n, bob: 500n },
     );
-    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress);
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, signedState);
     const started = await startUnilateralClose(
       { ...updatedChannel, latestState: signedState },
       chainProvider as any,
@@ -2382,9 +2394,49 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
     expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(2);
   });
 
+  it('rejects an update coin that does not carry the signed state sequence (OMN-100)', async () => {
+    const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const stale = { ...signedState, sequence: signedState.sequence + 5 };
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, stale);
+    const started = await startUnilateralClose(
+      { ...updatedChannel, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
+    await expect(recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any))
+      .rejects.toThrow(/carries sequence/);
+  });
+
+  it('rejects an update coin whose commitment differs from the signed state (OMN-100)', async () => {
+    const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const wrong = {
+      ...signedState,
+      stateVariables: signedState.stateVariables.map((sv) =>
+        sv.port === 102 ? { ...sv, value: '0x' + '99'.repeat(32) } : sv),
+    };
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, wrong);
+    const started = await startUnilateralClose(
+      { ...updatedChannel, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
+    await expect(recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any))
+      .rejects.toThrow(/commitment does not match the signed state/);
+  });
+
   it('replaces stale unilateral state with a newer signed state during dispute', async () => {
     const first = await makeCompleteSignedState(makeTestChannel(), { alice: 500n, bob: 500n });
-    const chainProvider = makeUnilateralProvider(first.channel.fundingAddress);
+    const chainProvider = makeUnilateralProvider(first.channel.fundingAddress, first.signedState);
     const started = await startUnilateralClose(
       { ...first.channel, latestState: first.signedState },
       chainProvider as any,
