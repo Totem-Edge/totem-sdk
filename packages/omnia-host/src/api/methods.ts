@@ -4272,13 +4272,37 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     }
 
     const allHopsLocal = parsedRoute.hops.every((hop) => {
-      const channelId = (hop as { channelId?: string }).channelId;
-      return typeof channelId === 'string' && context.channels.has(channelId);
+      const candidate = hop as {
+        channelId?: string;
+        inboundChannelId?: string;
+        outboundChannelId?: string;
+        isSwap?: boolean;
+      };
+      // OMN-103 (audit 3, OMN-101): a swap hop has two sides. `channelId` is the
+      // inbound channel, so checking it alone can call a route local when the
+      // outbound channel belongs to another host.
+      if (candidate.isSwap === true) {
+        return typeof candidate.inboundChannelId === 'string'
+          && context.channels.has(candidate.inboundChannelId)
+          && typeof candidate.outboundChannelId === 'string'
+          && context.channels.has(candidate.outboundChannelId);
+      }
+      return typeof candidate.channelId === 'string' && context.channels.has(candidate.channelId);
     });
     if (!allHopsLocal) {
       if (isCrossToken) {
         throw new Error('Distributed cross-token payments are not supported; all swap hops must be local');
       }
+      // OMN-102 (audit 3, OMN-100): a distributed payment is still a financial
+      // operation. It runs under the same durable journal as local execution, so
+      // the caller must supply an operation id.
+      if (typeof params.operationId !== 'string' || params.operationId.length === 0) {
+        throw new Error(
+          'A distributed multi-hop payment requires an operationId: it locks liquidity and sends a proposal '
+          + 'that must be recoverable after a restart',
+        );
+      }
+      return withOperation(context, params, async () => {
       // Distributed route: this host only controls the first channel. Lock it,
       // hand the routing envelope to the next hop and report the explicit
       // non-terminal state instead of pretending the recipient settled.
@@ -4330,6 +4354,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         htlcId: locked.htlcId,
         route: serializeWireRoute(parsedRoute),
       };
+      });
     }
 
     return withOperation(context, params, async () => {

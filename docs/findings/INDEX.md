@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-26T17:37:44.425Z. 152 findings, 40 open.
+Generated 2026-11-26T18:01:10.824Z. 152 findings, 38 open.
 
 sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 
@@ -109,8 +109,8 @@ sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 | `OMN-099` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Channel activation conflates funding depth with peer acceptance |
 | `OMN-100` | high | sdk-defect | fixed | `@totemsdk/omnia` | Unilateral update coin verification does not bind sequence, commitment, amount or lineage |
 | `OMN-101` | high | sdk-defect | fixed | `@totemsdk/omnia` | A unilateral settlement broadcast is recorded as a completed closure |
-| `OMN-102` | high | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | The distributed multi-hop branch bypasses the durable operation lifecycle |
-| `OMN-103` | high | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | Cross-token locality is decided from the inbound channel only |
+| `OMN-102` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | The distributed multi-hop branch bypasses the durable operation lifecycle |
+| `OMN-103` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | Cross-token locality is decided from the inbound channel only |
 | `OMN-104` | high | sdk-defect | open | `null` | The S4 harness can report S4_PASS without asserting settlement |
 | `OMN-105` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | Automated watcher actions bypass the channel mutation coordinator |
 | `OMN-107` | high | sdk-defect | open | `@totemsdk/vtxo` | Epoch recovery reconstructs history without authenticating it |
