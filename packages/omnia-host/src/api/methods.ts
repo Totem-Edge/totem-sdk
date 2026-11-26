@@ -141,7 +141,9 @@ import type { OperationStore } from '../stores/operations.js';
 import type { ObservationEmitter } from '../observe/emitter.js';
 import { channelTransitionHash, hashTransition } from '../observe/emitter.js';
 
-const vtxoExitDrafts = createMemoryExitDraftStore();
+function vtxoExitDraftStoreFor(context: HostApiContext): import('@totemsdk/vtxo').VtxoExitDraftStore {
+  return context.vtxoExitDrafts ?? (context.vtxoExitDrafts = createMemoryExitDraftStore());
+}
 
 export type OperationStoreLike = Pick<OperationStore, 'get' | 'create' | 'transition' | 'listByStatus'>;
 
@@ -175,6 +177,8 @@ export interface HostApiContext {
    * entitlement. Without it the host refuses to certify an entitlement.
    */
   vtxoExitWitnessVerifier?: import('@totemsdk/vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  /** Per-context exit-draft reservation store; defaults to a fresh memory store. */
+  vtxoExitDrafts?: import('@totemsdk/vtxo').VtxoExitDraftStore;
   /**
    * OMN-049: durable record of consumed WOTS leaves (`addressIndex:l1:l2` →
    * digest hex). Supplied by deployments so prepared-signature submissions can
@@ -2244,11 +2248,18 @@ function registerPreparedPayMethods(
     const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
     if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
     const now = typeof params.now === 'number' ? params.now : undefined;
-    const draft = await createExitDraft(vtxo, vtxoExitDrafts, now);
-    const exiting = markExiting(vtxo, now);
+    // OMN-088: the draft reserves the VTXO; a repeat returns the original draft.
+    const draft = await createExitDraft(vtxo, vtxoExitDraftStoreFor(context), now);
+    const exiting = draft.created ? markExiting(vtxo, now) : vtxo;
     context.vtxos.set(exiting.vtxoId, exiting);
     context.vtxoReceipts.set(draft.receipt.receiptId, draft.receipt);
-    return { success: true, vtxo: jsonSafe(exiting), draft: jsonSafe(draft.draft), receipt: jsonSafe(draft.receipt) };
+    return {
+      success: true,
+      created: draft.created,
+      vtxo: jsonSafe(exiting),
+      draft: jsonSafe(draft.draft),
+      receipt: jsonSafe(draft.receipt),
+    };
   };
   methods.set('totem_omniaInitiateVtxoExit', initiateVtxoExitMethod);
   methods.set('omnia/initiateVtxoExit', initiateVtxoExitMethod);
@@ -2284,6 +2295,7 @@ function registerPreparedPayMethods(
     }
     const exited = markExited(vtxo, {
       txpowId,
+      evidence: { confirmed: true },
       now: typeof params.now === 'number' ? params.now : undefined,
     });
     context.vtxos.set(exited.vtxoId, exited);
@@ -2560,7 +2572,7 @@ function registerPreparedPayMethods(
           context.vtxoReceipts?.set(minted.receipt.receiptId, minted.receipt);
           return { pool: minted.pool, vtxo: { ...minted.vtxo, status: 'provisional' } };
         },
-        createExitDraft: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo) => (await createExitDraft(vtxo, vtxoExitDrafts)).draft,
+        createExitDraft: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo) => (await createExitDraft(vtxo, vtxoExitDraftStoreFor(context))).draft,
         markExiting: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo, now?: number) => markExiting(vtxo, now),
         markExited: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo, txpowId: string, now?: number) => markExited(vtxo, { txpowId, trusted: true, now }),
       },
