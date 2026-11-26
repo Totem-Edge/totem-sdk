@@ -205,3 +205,63 @@ describe('OMN-039 signing intents', () => {
     expect(getSigningJournal()).toBeInstanceOf(MemorySigningJournal);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-108 (audit 3, OMN-106) — the signing boundary must fail closed
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('OMN-108 signing journal fail-closed and serialized admission', () => {
+  afterEach(() => {
+    setSigningJournal(new MemorySigningJournal());
+    _resetChannelWatermarks();
+  });
+
+  it('refuses to sign when the journal cannot be read', async () => {
+    setSigningJournal({
+      list() { throw new Error('disk unavailable'); },
+      record() {},
+    } as unknown as SigningIntentJournal);
+
+    await expect(beginSigningAttempt({
+      channelId: 'ch-unreadable', sequence: 4, payloadHash: 'aa', purpose: 'update',
+    })).rejects.toThrow(/journal for channel ch-unreadable is unavailable/);
+  });
+
+  it('refuses to sign when the intent cannot be recorded', async () => {
+    setSigningJournal({
+      list() { return []; },
+      record() { throw new Error('write failed'); },
+    } as unknown as SigningIntentJournal);
+
+    await expect(beginSigningAttempt({
+      channelId: 'ch-unwritable', sequence: 5, payloadHash: 'aa', purpose: 'update',
+    })).rejects.toThrow(/could not record the intent/);
+  });
+
+  it('admits exactly one of two concurrent payloads for the same sequence', async () => {
+    setSigningJournal(new MemorySigningJournal());
+
+    const results = await Promise.allSettled([
+      beginSigningAttempt({ channelId: 'ch-race', sequence: 7, payloadHash: 'aa', purpose: 'update' }),
+      beginSigningAttempt({ channelId: 'ch-race', sequence: 7, payloadHash: 'bb', purpose: 'update' }),
+    ]);
+
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
+    const rejected = results.filter((result) => result.status === 'rejected');
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(DoubleSignError);
+  });
+
+  it('still admits the same payload concurrently (idempotent retry)', async () => {
+    setSigningJournal(new MemorySigningJournal());
+
+    const results = await Promise.allSettled([
+      beginSigningAttempt({ channelId: 'ch-same', sequence: 9, payloadHash: 'cc', purpose: 'update' }),
+      beginSigningAttempt({ channelId: 'ch-same', sequence: 9, payloadHash: 'cc', purpose: 'update' }),
+    ]);
+
+    expect(results.every((result) => result.status === 'fulfilled')).toBe(true);
+  });
+});

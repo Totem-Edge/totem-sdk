@@ -21,12 +21,23 @@ export interface WatchChainView {
    * a splice also spends it and creates a successor. When this hook is provided
    * a spent coin with a successor is treated as continuity, not closure.
    */
-  getSuccessor?(channel: OmniaChannel): Promise<{ coinId: string } | null>;
+  getSuccessor?(channel: OmniaChannel, coinId: string): Promise<{
+    coinId: string;
+    /**
+     * OMN-096 (audit 3, OMN-094): the successor's on-chain sequence, when the
+     * adapter can read it. A successor whose sequence is *below* the latest
+     * fully signed local state is a stale-state publication — exactly what a
+     * watchtower must contest — not channel continuity.
+     */
+    sequence?: number;
+  } | null>;
 }
 
 export interface WatchFinding {
   kind: 'unilateral-close' | 'htlc-expiring';
   channelId: string;
+  /** The coin the finding is about (the live coin when it was observed spent). */
+  coinId?: string;
   htlcId?: string;
   blocksRemaining?: number;
   detail: string;
@@ -127,16 +138,36 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
         const coin = await options.chain.getCoin(coinId);
         if (coin?.spent && !closed.has(channel.channelId)) {
           const successor = options.chain.getSuccessor
-            ? await options.chain.getSuccessor(channel)
+            ? await options.chain.getSuccessor(channel, coinId)
             : null;
           if (successor) {
-            // A state update or splice spent the coin and produced a successor;
-            // the channel is still live. Track the new coin.
-            trackedCoin.set(channel.channelId, successor.coinId);
+            const localSequence = channel.latestState?.sequence;
+            if (
+              successor.sequence !== undefined
+              && localSequence !== undefined
+              && successor.sequence < localSequence
+            ) {
+              // OMN-096: someone published an older state. That is a dispute to
+              // contest, not continuity — treating it as continuity lets the
+              // stale state settle unchallenged.
+              findings.push({
+                kind: 'unilateral-close',
+                channelId: channel.channelId,
+                coinId,
+                detail:
+                  `stale successor ${successor.coinId} carries sequence ${successor.sequence}, `
+                  + `below the latest signed local sequence ${localSequence}`,
+              });
+            } else {
+              // A state update or splice spent the coin and produced a successor;
+              // the channel is still live. Track the new coin.
+              trackedCoin.set(channel.channelId, successor.coinId);
+            }
           } else {
             findings.push({
               kind: 'unilateral-close',
               channelId: channel.channelId,
+              coinId,
               detail: `funding coin ${coinId} is spent while the channel is active`,
             });
           }
@@ -160,6 +191,7 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
     return findings;
   };
 
+  let inFlight = false;
   const runOnce = async (): Promise<WatchFinding[]> => {
     await loadState();
     const tip = await options.chain.getTip();
@@ -190,10 +222,15 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
     runOnce,
     start(intervalMs = 15_000): void {
       if (timer) return;
-      void runOnce().catch(() => undefined);
-      timer = setInterval(() => {
-        void runOnce().catch(() => undefined);
-      }, intervalMs);
+      const tick = (): void => {
+        // OMN-105 (audit 3, OMN-103): a slow chain call must not overlap the next
+        // scan; two scans on one channel duplicate contests and state writes.
+        if (inFlight) return;
+        inFlight = true;
+        void runOnce().catch(() => undefined).finally(() => { inFlight = false; });
+      };
+      tick();
+      timer = setInterval(tick, intervalMs);
       // Do not keep a short-lived CLI process alive just for the watcher.
       if (typeof timer === 'object' && typeof (timer as { unref?: () => void }).unref === 'function') {
         (timer as { unref: () => void }).unref();

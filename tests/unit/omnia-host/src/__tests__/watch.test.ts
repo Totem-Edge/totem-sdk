@@ -141,3 +141,53 @@ describe('createChannelWatchService', () => {
     expect(attempts).toBe(3);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-096 (audit 3, OMN-094) — a stale successor is a dispute, not continuity
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('stale-state successor detection', () => {
+  const latestState = { sequence: 7 } as never;
+
+  function watchWith(successor: { coinId: string; sequence?: number } | null, channelOver: Partial<OmniaChannel> = {}) {
+    const contested: string[] = [];
+    const service = createChannelWatchService({
+      channels: new Map([['chan-1', channel({ latestState, ...channelOver })]]),
+      chain: {
+        getTip: async () => ({ block: 100 }),
+        getCoin: async () => ({ spent: true, created: 10 }),
+        getSuccessor: async () => successor,
+      },
+      onUnilateralClose: (_ch, finding) => { contested.push(finding.detail); },
+    });
+    return { service, contested };
+  }
+
+  it('contests a successor whose sequence is below the latest signed local state', async () => {
+    const { service, contested } = watchWith({ coinId: 'ancestor', sequence: 5 });
+
+    const findings = await service.runOnce();
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.kind).toBe('unilateral-close');
+    expect(findings[0]!.coinId).toBe('coin-1');
+    expect(findings[0]!.detail).toMatch(/stale successor/);
+    expect(contested).toHaveLength(1);
+  });
+
+  it('treats a successor at or above the local sequence as continuity', async () => {
+    for (const sequence of [7, 8]) {
+      const { service, contested } = watchWith({ coinId: 'live', sequence });
+      const findings = await service.runOnce();
+      expect(findings).toHaveLength(0);
+      expect(contested).toHaveLength(0);
+    }
+  });
+
+  it('keeps the previous continuity behaviour when the adapter cannot report a sequence', async () => {
+    const { service, contested } = watchWith({ coinId: 'live' });
+    const findings = await service.runOnce();
+    expect(findings).toHaveLength(0);
+    expect(contested).toHaveLength(0);
+  });
+});

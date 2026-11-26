@@ -248,6 +248,8 @@ export {
   confirmUpdateBroadcast,
 } from './channel.js';
 
+export { signingJournalIsInMemory } from './guards.js';
+
 export {
   createWalletFundingWitnessBuilder,
   createChainFundingProofProvider,

@@ -205,6 +205,16 @@ export function getSigningJournal(): SigningIntentJournal {
   return _signingJournal;
 }
 
+/**
+ * OMN-108: true while the built-in in-memory journal is installed. The default
+ * exists for tests and single-process tools; a host that signs channel state
+ * must install a durable journal, otherwise the signing watermark is lost on
+ * restart and independent processes do not share it.
+ */
+export function signingJournalIsInMemory(): boolean {
+  return _signingJournal instanceof MemorySigningJournal;
+}
+
 export function isUpdateGuardSealed(channelId: string, sequence: number): boolean {
   return _sealedWatermarks.has(sealKey(channelId, sequence));
 }
@@ -214,6 +224,21 @@ export function isUpdateGuardSealed(channelId: string, sequence: number): boolea
  * WOTS signature exists. Throws `DoubleSignError` when another payload was
  * already signed — or may still have been signed — at that sequence.
  */
+/**
+ * OMN-108 (audit 3): the admission decision is serialized per channel inside
+ * this process. A durable journal must still provide the same guarantee across
+ * processes; the write is a single `record` so a CAS-capable journal can make
+ * it atomic.
+ */
+const signingAdmissionLocks = new Map<string, Promise<unknown>>();
+
+function withSigningAdmissionLock<T>(channelId: string, run: () => Promise<T>): Promise<T> {
+  const prior = signingAdmissionLocks.get(channelId) ?? Promise.resolve();
+  const next = prior.then(run, run);
+  signingAdmissionLocks.set(channelId, next.then(() => undefined, () => undefined));
+  return next;
+}
+
 export async function beginSigningAttempt(intent: {
   channelId: string;
   sequence: number;
@@ -221,30 +246,49 @@ export async function beginSigningAttempt(intent: {
   purpose: string;
   reservationIds?: string[];
 }): Promise<void> {
-  const journal = _signingJournal;
-  let existing: SigningIntent[];
-  try {
-    existing = await journal.list(intent.channelId);
-  } catch {
-    existing = [];
-  }
-  for (const prior of existing) {
-    if (prior.sequence === intent.sequence) {
-      if (prior.payloadHash !== intent.payloadHash && prior.state !== 'abandoned') {
-        throw new DoubleSignError(intent.sequence);
-      }
-    } else if (prior.sequence > intent.sequence && prior.state !== 'abandoned') {
-      throw new SequenceError(prior.sequence, intent.sequence);
+  return withSigningAdmissionLock(intent.channelId, async () => {
+    const journal = _signingJournal;
+
+    let existing: SigningIntent[];
+    try {
+      existing = await journal.list(intent.channelId);
+    } catch (error) {
+      // OMN-108: an unreadable journal is not evidence that nothing was signed.
+      // Failing closed is the only safe reading — otherwise a storage fault
+      // licenses a second signature at a sequence that may already be signed.
+      throw new Error(
+        `signing journal for channel ${intent.channelId} is unavailable; refusing to sign `
+        + `sequence ${intent.sequence}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-  }
-  await journal.record({
-    channelId: intent.channelId,
-    sequence: intent.sequence,
-    payloadHash: intent.payloadHash,
-    purpose: intent.purpose,
-    state: 'pending',
-    recordedAt: Date.now(),
-    ...(intent.reservationIds ? { reservationIds: intent.reservationIds } : {}),
+
+    for (const prior of existing) {
+      if (prior.sequence === intent.sequence) {
+        if (prior.payloadHash !== intent.payloadHash && prior.state !== 'abandoned') {
+          throw new DoubleSignError(intent.sequence);
+        }
+      } else if (prior.sequence > intent.sequence && prior.state !== 'abandoned') {
+        throw new SequenceError(prior.sequence, intent.sequence);
+      }
+    }
+
+    try {
+      await journal.record({
+        channelId: intent.channelId,
+        sequence: intent.sequence,
+        payloadHash: intent.payloadHash,
+        purpose: intent.purpose,
+        state: 'pending',
+        recordedAt: Date.now(),
+        ...(intent.reservationIds ? { reservationIds: intent.reservationIds } : {}),
+      });
+    } catch (error) {
+      // If the intent cannot be recorded, nothing may be signed.
+      throw new Error(
+        `signing journal could not record the intent for channel ${intent.channelId} `
+        + `sequence ${intent.sequence}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   });
 }
 

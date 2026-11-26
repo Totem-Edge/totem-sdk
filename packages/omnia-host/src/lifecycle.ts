@@ -11,7 +11,15 @@ import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
 import type { SpliceExpectation } from './peer-guards.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
-import { createOmniaIntegration, createOmniaSwarm, setSigningJournal, startUnilateralClose, timeoutHTLC } from '@totemsdk/omnia';
+import {
+  createOmniaIntegration,
+  createOmniaSwarm,
+  setSigningJournal,
+  signingJournalIsInMemory,
+  STATE_SEQUENCE_PORT,
+  startUnilateralClose,
+  timeoutHTLC,
+} from '@totemsdk/omnia';
 import { SqliteChannelStore } from './stores/sqlite-store.js';
 import { OperationStore } from './stores/operations.js';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -222,7 +230,16 @@ export function createOmniaHost(
       if (started) return;
       // OMN-039: install the durable signing-intent journal before any state
       // can be signed. Without one the in-memory default is used.
-      if (dependencies.signingJournal) setSigningJournal(dependencies.signingJournal);
+      if (dependencies.signingJournal) {
+        setSigningJournal(dependencies.signingJournal);
+      } else if (signingJournalIsInMemory()) {
+        // OMN-108: without a durable journal the signing watermark dies with the
+        // process and independent hosts do not share it. Refuse to pretend.
+        console.warn(
+          '[omnia-host] no durable signing journal configured: WOTS signing intents are held in '
+          + 'memory only. Set `signingJournal` to a durable store before running a production host.',
+        );
+      }
       if (!channelStore) {
         ownedStore = new SqliteChannelStore(config.dbPath);
         channelStore = ownedStore;
@@ -1166,15 +1183,27 @@ export function createOmniaHost(
               const coin = await chainAdapter!.getCoin(coinId);
               return coin ? { spent: coin.spent, created: coin.created } : null;
             },
-            getSuccessor: async (channel) => {
+            getSuccessor: async (channel, spentCoinId) => {
               const coins = await chainAdapter!.getCoins({
                 address: channel.fundingAddress,
                 tokenId: channel.tokenId,
               });
               const successor = coins.find(
-                (coin) => !coin.spent && coinAmountAtoms(coin) === channel.totalValue,
+                (coin) => !coin.spent
+                  && coin.coinid !== spentCoinId
+                  && coinAmountAtoms(coin) === channel.totalValue,
               );
-              return successor ? { coinId: successor.coinid } : null;
+              if (!successor) return null;
+              // OMN-096: the sequence is what distinguishes an update from a
+              // stale-state publication.
+              const sequence = (successor as { state?: unknown[] }).state
+                ?.map((sv) => sv as { port?: number; value?: unknown })
+                .find((sv) => sv.port === STATE_SEQUENCE_PORT)?.value;
+              const parsed = sequence === undefined ? undefined : Number(sequence);
+              return {
+                coinId: successor.coinid,
+                ...(parsed !== undefined && Number.isFinite(parsed) ? { sequence: parsed } : {}),
+              };
             },
           },
           ...(hostStateStore
@@ -1211,10 +1240,14 @@ export function createOmniaHost(
             if (!channel.latestState?.closePackage) {
               throw new Error('unilateral close detected but no signed close package is available to contest it');
             }
-            if (!channel.fundingCoinId) {
+            // OMN-096: prove the coin that is actually live. After the first
+            // update the original funding coin is spent, so exporting it proves
+            // nothing and the contest is rejected.
+            const proofCoinId = finding.coinId ?? channel.fundingCoinId;
+            if (!proofCoinId) {
               throw new Error('unilateral close detected but the channel has no funding coin to prove');
             }
-            const exported = await chainAdapter.exportCoin(channel.fundingCoinId);
+            const exported = await chainAdapter.exportCoin(proofCoinId);
             if (!exported?.data) {
               throw new Error('unilateral close detected but the funding coin proof is unavailable');
             }
