@@ -34,6 +34,7 @@ export type ObservationPhase =
   | "committed"
   | "broadcast"
   | "confirmed"
+  | "unknown"
   | "closed"
   | "failed"
   | "recovered";

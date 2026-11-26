@@ -36,7 +36,14 @@ import {
   acceptSplice,
   finalizeSplice,
 } from '@totemsdk/omnia-splice';
-import { createPool, mintVtxo, createExitDraft, markExiting, markExited } from '@totemsdk/vtxo';
+import {
+  createPool,
+  mintVtxo,
+  createExitDraft,
+  createMemoryExitDraftStore,
+  markExiting,
+  markExited,
+} from '@totemsdk/vtxo';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {
@@ -131,6 +138,10 @@ export function createOmniaPoolLivePorts(deps: OmniaPoolLivePortsDeps): OmniaPoo
     finalizeSplice: (channel, proposal, acceptance, options) => finalizeSplice(channel, proposal, acceptance, options),
   };
 
+  // OMN-088: exit drafts are reserved against a store so a second draft for the
+  // same VTXO returns the original instead of a competing one.
+  const exitDraftStore = createMemoryExitDraftStore();
+
   const vtxo: VtxoExecutionPort = {
     createPool: async (params) =>
       createPool(
@@ -147,9 +158,11 @@ export function createOmniaPoolLivePorts(deps: OmniaPoolLivePortsDeps): OmniaPoo
       const result = mintVtxo(pool, params, now());
       return { pool: result.pool, vtxo: result.vtxo };
     },
-    createExitDraft: async (v) => (await createExitDraft(v, now())).draft,
+    createExitDraft: async (v) => (await createExitDraft(v, exitDraftStore, now())).draft,
     markExiting: async (v, n) => markExiting(v, n ?? now()),
-    markExited: async (v, txpowId, n) => markExited(v, { txpowId, now: n }),
+    // OMN-089: the pool verifies payout finality before calling this port, so it
+    // declares that trust explicitly rather than passing a bare transaction id.
+    markExited: async (v, txpowId, n) => markExited(v, { txpowId, trusted: true, now: n }),
   };
 
   return { omnia, factory, router, splice, vtxo };
