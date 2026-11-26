@@ -20,9 +20,21 @@
 
 ***
 
+### actualConsumption?
+
+> `optional` **actualConsumption?**: [`ActualConsumptionV1`](ActualConsumptionV1.md)
+
+***
+
 ### decisionIds?
 
 > `optional` **decisionIds?**: `string`[]
+
+***
+
+### dispatchState?
+
+> `optional` **dispatchState?**: [`DispatchState`](../type-aliases/DispatchState.md)
 
 ***
 
@@ -80,6 +92,14 @@ Mandates/decisions that authorized this step.
 
 ***
 
+### settlementId?
+
+> `optional` **settlementId?**: `string`
+
+RFC-022 Amendment A: the settlement that closed this reservation.
+
+***
+
 ### status
 
 > **status**: `"reserved"` \| `"committed"` \| `"aborted"` \| `"unknown"`
@@ -100,6 +120,12 @@ The action string (for transition validation across steps).
 ### stepId
 
 > **stepId**: `string`
+
+***
+
+### terminalOutcome?
+
+> `optional` **terminalOutcome?**: [`TerminalOutcome`](../type-aliases/TerminalOutcome.md)
 
 ***
 

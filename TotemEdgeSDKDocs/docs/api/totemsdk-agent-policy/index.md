@@ -2,8 +2,6 @@
 
 ***
 
-**Maturity: rc**
-
 # @totemsdk/agent-policy
 
 ## Enumerations
@@ -24,12 +22,17 @@
 - [MemoryRunStateStore](classes/MemoryRunStateStore.md)
 - [RateLimitPolicy](classes/RateLimitPolicy.md)
 - [RecipientAllowlistPolicy](classes/RecipientAllowlistPolicy.md)
+- [ReplicatedReceiptStore](classes/ReplicatedReceiptStore.md)
 - [RiskThresholdPolicy](classes/RiskThresholdPolicy.md)
 - [SqliteRunStateStore](classes/SqliteRunStateStore.md)
 - [TimeWindowPolicy](classes/TimeWindowPolicy.md)
 
 ## Interfaces
 
+- [ActualComputeConsumption](interfaces/ActualComputeConsumption.md)
+- [ActualConsumptionV1](interfaces/ActualConsumptionV1.md)
+- [ActualMandateUsage](interfaces/ActualMandateUsage.md)
+- [ActualSpend](interfaces/ActualSpend.md)
 - [AgentIdentity](interfaces/AgentIdentity.md)
 - [AgentPolicy](interfaces/AgentPolicy.md)
 - [AgentPolicyConfig](interfaces/AgentPolicyConfig.md)
@@ -51,7 +54,12 @@
 - [CanonicalAgentAction](interfaces/CanonicalAgentAction.md)
 - [ChannelEffect](interfaces/ChannelEffect.md)
 - [CommitParams](interfaces/CommitParams.md)
+- [ComputeEffect](interfaces/ComputeEffect.md)
+- [ComputeLimits](interfaces/ComputeLimits.md)
 - [DecisionRefEvidence](interfaces/DecisionRefEvidence.md)
+- [DurationEffect](interfaces/DurationEffect.md)
+- [EnergyEffect](interfaces/EnergyEffect.md)
+- [EnvelopeRef](interfaces/EnvelopeRef.md)
 - [GrantBoundAutonomyOptions](interfaces/GrantBoundAutonomyOptions.md)
 - [GrantBoundPolicyOptions](interfaces/GrantBoundPolicyOptions.md)
 - [GrantRequirement](interfaces/GrantRequirement.md)
@@ -61,8 +69,10 @@
 - [OpenRunParams](interfaces/OpenRunParams.md)
 - [OutOfBandReservation](interfaces/OutOfBandReservation.md)
 - [PaymentIntent](interfaces/PaymentIntent.md)
+- [PhysicalEffects](interfaces/PhysicalEffects.md)
 - [PolicyEvalResult](interfaces/PolicyEvalResult.md)
 - [PolicyMiddleware](interfaces/PolicyMiddleware.md)
+- [PowerEffect](interfaces/PowerEffect.md)
 - [PreparedRebalanceOperation](interfaces/PreparedRebalanceOperation.md)
 - [PreparedStep](interfaces/PreparedStep.md)
 - [ProtoAgentIdentity](interfaces/ProtoAgentIdentity.md)
@@ -70,10 +80,12 @@
 - [ProtoAgentReceipt](interfaces/ProtoAgentReceipt.md)
 - [ProtoPaymentIntent](interfaces/ProtoPaymentIntent.md)
 - [ReceiptStore](interfaces/ReceiptStore.md)
+- [ReservedUsageDelta](interfaces/ReservedUsageDelta.md)
 - [RunActionIntent](interfaces/RunActionIntent.md)
 - [RunAuthorization](interfaces/RunAuthorization.md)
 - [RunAuthorizationRejected](interfaces/RunAuthorizationRejected.md)
 - [RunLimits](interfaces/RunLimits.md)
+- [RunMandateUsage](interfaces/RunMandateUsage.md)
 - [RunObligations](interfaces/RunObligations.md)
 - [RunReceiptGraph](interfaces/RunReceiptGraph.md)
 - [RunReservation](interfaces/RunReservation.md)
@@ -82,6 +94,9 @@
 - [RunStateStore](interfaces/RunStateStore.md)
 - [RunStepEvidence](interfaces/RunStepEvidence.md)
 - [RunStepReceipt](interfaces/RunStepReceipt.md)
+- [SettlementInstructionV1](interfaces/SettlementInstructionV1.md)
+- [SettlementReceiptFields](interfaces/SettlementReceiptFields.md)
+- [SpeedEffect](interfaces/SpeedEffect.md)
 - [SqliteRunStateStoreOptions](interfaces/SqliteRunStateStoreOptions.md)
 - [StepAuthorization](interfaces/StepAuthorization.md)
 - [StepAuthorizationInput](interfaces/StepAuthorizationInput.md)
@@ -95,27 +110,35 @@
 
 - [AgentPolicyConfig](type-aliases/AgentPolicyConfig.md)
 - [AutonomyMode](type-aliases/AutonomyMode.md)
+- [DispatchState](type-aliases/DispatchState.md)
 - [InferenceDomain](type-aliases/InferenceDomain.md)
 - [InferenceReceiptLike](type-aliases/InferenceReceiptLike.md)
+- [NonterminalPhase](type-aliases/NonterminalPhase.md)
 - [ProtoAgentIdentity](type-aliases/ProtoAgentIdentity.md)
 - [ProtoAgentProposal](type-aliases/ProtoAgentProposal.md)
 - [ProtoAgentReceipt](type-aliases/ProtoAgentReceipt.md)
 - [ProtoPaymentIntent](type-aliases/ProtoPaymentIntent.md)
 - [ReservationSettlementOutcome](type-aliases/ReservationSettlementOutcome.md)
 - [RunMode](type-aliases/RunMode.md)
+- [SettlementDisposition](type-aliases/SettlementDisposition.md)
+- [TerminalOutcome](type-aliases/TerminalOutcome.md)
 
 ## Functions
 
 - [accumulateAmount](functions/accumulateAmount.md)
+- [assertSettlementInstruction](functions/assertSettlementInstruction.md)
 - [canonicalAgentActionDigest](functions/canonicalAgentActionDigest.md)
 - [checkObligations](functions/checkObligations.md)
 - [checkRunLimits](functions/checkRunLimits.md)
 - [checkTransition](functions/checkTransition.md)
+- [computeSettlementId](functions/computeSettlementId.md)
 - [createAutonomyPolicy](functions/createAutonomyPolicy.md)
 - [defaultActionExtractor](functions/defaultActionExtractor.md)
 - [evaluateGrantRequirement](functions/evaluateGrantRequirement.md)
 - [intentAction](functions/intentAction.md)
 - [isStartEligible](functions/isStartEligible.md)
 - [reduceToCanonicalAction](functions/reduceToCanonicalAction.md)
+- [releasedUsage](functions/releasedUsage.md)
 - [resolveStepField](functions/resolveStepField.md)
 - [summarizeStepSpend](functions/summarizeStepSpend.md)
+- [sumReservedUsage](functions/sumReservedUsage.md)

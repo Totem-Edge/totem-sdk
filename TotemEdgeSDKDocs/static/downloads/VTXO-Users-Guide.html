@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The VTXO User's Guide — a designed, print-ready edition covering bearer claims on Minima, payloads, claim policies, lifecycle, risks, economics, and the Vouchar development gap.">
+<title>The VTXO User's Guide — Designed Edition</title>
+<style>
+:root {
+  --paper: #f5f4ed;
+  --paper-deep: #efeee5;
+  --ink: #1f1d18;
+  --muted: #6b665b;
+  --rule: #d4d1c5;
+  --accent: #1B365D;
+  --serif: Charter, "Source Serif Pro", "Iowan Old Style", "Noto Serif SC", Georgia, serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper-deep); scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper-deep);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.52;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { color: var(--paper); background: var(--accent); }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+strong { font-weight: 500; }
+em { font-style: italic; }
+code { font-family: var(--mono); font-size: 0.88em; font-weight: 400; }
+small { font-size: 0.84em; }
+
+.document {
+  width: min(100%, 210mm);
+  margin: 0 auto;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+}
+
+.cover, .contents, .chapter, .colophon {
+  padding: 24mm 22mm 22mm;
+}
+.cover { min-height: 297mm; display: flex; flex-direction: column; page: cover; }
+.contents { page: contents; min-height: 297mm; }
+.chapter { break-before: page; page-break-before: always; }
+.colophon { break-before: page; page-break-before: always; page: colophon; }
+
+.cover-logotype {
+  margin: 0;
+  color: var(--accent);
+  font-size: 15px;
+  font-style: italic;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.cover-logotype span { padding: 0 0.35em; color: var(--muted); }
+.cover-edition {
+  margin: 5mm 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.cover-title {
+  max-width: 158mm;
+  margin: 31mm 0 7mm;
+  font-size: clamp(48px, 8.2vw, 78px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+.cover-subtitle {
+  max-width: 142mm;
+  margin: 0;
+  color: var(--muted);
+  font-size: 21px;
+  line-height: 1.38;
+}
+.cover-quote {
+  max-width: 142mm;
+  margin: 15mm 0 0;
+  padding: 0 0 0 6mm;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+  font-size: 24px;
+  font-style: italic;
+  line-height: 1.3;
+}
+.cover-bottom { margin-top: auto; }
+.cover-rule { width: 34mm; height: 1px; margin-bottom: 7mm; background: var(--accent); }
+.cover .table-wrap { margin: 0; }
+.cover .source-table { font-size: 11px; }
+.cover .source-table th, .cover .source-table td { padding: 2.2mm 0; }
+.cover .source-table th:first-child { width: 29mm; }
+
+.contents-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8mm; padding-bottom: 6mm; border-bottom: 1px solid var(--ink); }
+.contents-head h1 { margin: 0; font-size: 42px; font-weight: 500; line-height: 1.1; }
+.contents-head p { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11mm; margin: 10mm 0 13mm; }
+.toc-column { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
+.toc-column li { border-bottom: 1px solid var(--rule); }
+.toc-column a { display: grid; grid-template-columns: 10mm 1fr; align-items: baseline; gap: 2mm; padding: 2.3mm 0; color: var(--ink); text-decoration: none; }
+.toc-column a::after { content: attr(data-page); color: var(--muted); grid-column: 2; justify-self: end; margin-top: -1.2em; font-size: 12px; }
+.toc-number { color: var(--accent); font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.toc-title { font-size: 14px; line-height: 1.25; }
+.badge-guide { margin-top: 9mm; padding-top: 7mm; border-top: 1px solid var(--ink); }
+.badge-guide h2 { margin: 0 0 4mm; font-size: 21px; font-weight: 500; }
+.badge-guide .source-table { font-size: 12px; }
+
+.chapter-header { margin-bottom: 10mm; padding-top: 4mm; border-top: 1px solid var(--ink); }
+.section-kicker { margin: 0 0 2mm; color: var(--accent); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; }
+h2 { margin: 0; font-size: 36px; font-weight: 500; line-height: 1.14; letter-spacing: -0.018em; string-set: chapter-title content(); }
+h3 { margin: 9mm 0 3mm; font-size: 21px; font-weight: 500; line-height: 1.22; break-after: avoid; page-break-after: avoid; }
+h3 + p, h3 + ul, h3 + ol, h3 + .table-wrap, h3 + figure { break-before: avoid; page-break-before: avoid; }
+p { margin: 0 0 4.2mm; orphans: 3; widows: 3; }
+.label-line { margin-top: 6mm; margin-bottom: 2mm; color: var(--accent); letter-spacing: 0.03em; }
+.source-quote { margin: 6mm 0; padding: 1mm 0 1mm 6mm; border-left: 2px solid var(--accent); color: var(--ink); font-size: 20px; font-style: italic; line-height: 1.4; }
+.source-list { margin: 2mm 0 5mm; padding-left: 7mm; }
+.source-list li { margin: 0 0 2.2mm; padding-left: 1.5mm; orphans: 2; widows: 2; }
+.source-list li::marker { color: var(--accent); }
+
+.badge {
+  display: inline-block;
+  margin: 0 0.12em;
+  padding: 0.08em 0.42em 0.11em;
+  border: 1px solid var(--accent);
+  color: var(--paper);
+  background: var(--accent);
+  font-family: var(--serif);
+  font-size: 0.72em;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0.035em;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+.badge-designed { color: var(--accent); background: var(--paper); }
+.badge-idea { color: var(--accent); background: var(--paper-deep); }
+.badge-not-yet { color: var(--ink); border-color: var(--muted); background: var(--paper); }
+
+.table-wrap { margin: 5mm 0 7mm; break-inside: avoid; page-break-inside: avoid; }
+.source-table { width: 100%; border-collapse: collapse; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); font-size: 13px; line-height: 1.38; font-variant-numeric: tabular-nums; }
+.source-table thead { display: table-header-group; }
+.source-table th, .source-table td { padding: 2.3mm 2.4mm; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.source-table thead th { color: var(--accent); font-weight: 500; letter-spacing: 0.025em; }
+.source-table tbody th { font-weight: 500; }
+.source-table tr:last-child th, .source-table tr:last-child td { border-bottom: 0; }
+.source-table tr { break-inside: avoid; page-break-inside: avoid; }
+.table-wide { font-size: 11.5px; }
+.table-wide th, .table-wide td { padding: 2mm 2mm; }
+
+.figure { margin: 7mm 0 8mm; break-inside: avoid; page-break-inside: avoid; }
+.figure figcaption, .code-figure figcaption { display: flex; gap: 3mm; align-items: baseline; margin-bottom: 3mm; padding-bottom: 2mm; border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 12px; line-height: 1.3; }
+.figure-number { color: var(--accent); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; white-space: nowrap; }
+
+.layer-stack { width: min(100%, 142mm); margin: 0 auto; }
+.layer-box { display: grid; grid-template-columns: 14mm 1fr; gap: 4mm; align-items: center; padding: 4mm 5mm; border: 1px solid var(--accent); background: var(--paper); }
+.layer-box + .flow-arrow + .layer-box { margin-top: 0; }
+.layer-number { color: var(--accent); font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+.layer-box strong { display: block; color: var(--accent); font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; }
+.layer-box div > span { display: block; margin-top: 1mm; font-size: 14px; }
+.flow-arrow { position: relative; width: 1px; height: 8mm; margin: 0 auto; background: var(--accent); }
+.flow-arrow::after { content: ""; position: absolute; left: -2.1mm; bottom: -0.1mm; width: 0; height: 0; border-left: 2.2mm solid transparent; border-right: 2.2mm solid transparent; border-top: 2.4mm solid var(--accent); }
+
+.lifecycle-map { display: grid; grid-template-columns: 35mm 1fr; column-gap: 9mm; align-items: center; padding: 4mm 0; }
+.mint-route { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 2mm; }
+.active-state { grid-column: 1; grid-row: 2; align-self: center; padding: 4mm 3mm; border: 1px solid var(--accent); color: var(--accent); background: var(--paper-deep); text-align: center; font-size: 18px; font-style: italic; }
+.down-arrow { position: relative; width: 1px; height: 9mm; background: var(--accent); }
+.down-arrow::after { content: ""; position: absolute; left: -2mm; bottom: 0; width: 0; height: 0; border-left: 2mm solid transparent; border-right: 2mm solid transparent; border-top: 2.2mm solid var(--accent); }
+.lifecycle-branches { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: 2.2mm; }
+.lifecycle-branch { display: grid; grid-template-columns: 36mm 7mm 1fr; gap: 2mm; align-items: center; min-height: 8mm; }
+.lifecycle-branch:has(.state:nth-of-type(3)) { grid-template-columns: 36mm 6mm 23mm 6mm 1fr; }
+.operation { color: var(--accent); font-size: 12px; letter-spacing: 0.02em; }
+.arrow { color: var(--accent); text-align: center; }
+.state { display: inline-block; padding: 1.4mm 2.4mm; border: 1px solid var(--ink); background: var(--paper); font-size: 12px; line-height: 1.2; white-space: nowrap; }
+.state.terminal { color: var(--paper); border-color: var(--accent); background: var(--accent); }
+.state.review { border-style: dashed; }
+
+.product-flow { display: grid; gap: 4mm; padding: 4mm 0; }
+.flow-main, .flow-branch { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm; }
+.flow-main { padding-bottom: 4mm; border-bottom: 1px solid var(--rule); }
+.branch-label { width: 43mm; color: var(--muted); font-size: 11px; line-height: 1.25; }
+.flow-separator { color: var(--muted); }
+
+.decision-tree { border-top: 1px solid var(--accent); }
+.decision-root { padding: 4mm 0 4mm 5mm; border-left: 2px solid var(--accent); border-bottom: 1px solid var(--rule); }
+.tree-question { font-weight: 500; }
+.tree-answer, .decision-row, .money-branch { display: grid; grid-template-columns: 1fr 8mm 1.15fr; gap: 3mm; align-items: baseline; margin-top: 3mm; }
+.tree-answer:first-of-type { grid-template-columns: 12mm 8mm 1fr; }
+.tree-no { grid-template-columns: 12mm 1fr; }
+.tree-label { color: var(--accent); font-size: 11px; font-style: italic; letter-spacing: 0.04em; text-transform: lowercase; }
+.tree-result { padding-bottom: 1mm; border-bottom: 1px solid var(--rule); }
+.tree-continuation { color: var(--muted); font-size: 13px; font-style: italic; }
+.decision-branches { margin: 4mm 0 0 5mm; padding: 0 0 0 5mm; border-left: 1px solid var(--rule); }
+.decision-row { margin: 0; padding: 3mm 0; border-bottom: 1px solid var(--rule); }
+.money-row { border-bottom: 0; }
+.money-branches { display: grid; gap: 2.5mm; margin: 2mm 0 0 5mm; padding: 3mm 0 0 5mm; border-top: 1px solid var(--accent); border-left: 1px solid var(--rule); }
+.money-branch { margin: 0; grid-template-columns: 1fr 8mm 1fr; }
+
+.code-figure { margin: 6mm 0 7mm; break-inside: avoid; page-break-inside: avoid; }
+pre { margin: 0; padding: 4mm; overflow: visible; border: 1px solid var(--rule); background: var(--paper-deep); white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; page-break-inside: avoid; }
+pre code { color: var(--ink); font-size: 11px; line-height: 1.48; }
+
+.colophon-header { padding-top: 4mm; border-top: 1px solid var(--ink); }
+.colophon h1 { margin: 0; font-size: 36px; font-weight: 500; line-height: 1.14; }
+.colophon-grid { display: grid; grid-template-columns: 32mm 1fr; gap: 3mm 6mm; margin-top: 12mm; padding-top: 7mm; border-top: 1px solid var(--rule); font-size: 14px; }
+.colophon-grid dt { color: var(--accent); }
+.colophon-grid dd { margin: 0; }
+.colophon-note { max-width: 140mm; margin: 12mm 0 0; padding-left: 6mm; border-left: 2px solid var(--accent); font-size: 18px; font-style: italic; line-height: 1.4; }
+.colophon-mark { margin-top: 24mm; color: var(--accent); font-size: 13px; font-style: italic; letter-spacing: 0.14em; text-transform: uppercase; }
+
+@media screen and (max-width: 720px) {
+  body { font-size: 16px; }
+  .document { border: 0; }
+  .cover, .contents, .chapter, .colophon { padding: 20mm 7mm; }
+  .cover { min-height: 100vh; }
+  .cover-title { margin-top: 22mm; font-size: clamp(42px, 13vw, 66px); }
+  .cover-subtitle, .cover-quote { font-size: 19px; }
+  .contents-head { display: block; }
+  .contents-head p { margin-top: 2mm; }
+  .toc-grid { grid-template-columns: 1fr; gap: 7mm; }
+  h2 { font-size: 30px; }
+  .table-wrap { overflow-x: auto; }
+  .source-table { min-width: 560px; }
+  .lifecycle-map { grid-template-columns: 28mm 1fr; column-gap: 5mm; }
+  .lifecycle-branch { grid-template-columns: 30mm 6mm 1fr; }
+  .lifecycle-branch:has(.state:nth-of-type(3)) { grid-template-columns: 30mm 5mm 21mm 5mm 1fr; }
+  .tree-answer, .decision-row, .money-branch { grid-template-columns: 1fr; gap: 1.5mm; }
+  .tree-answer:first-of-type, .tree-no { grid-template-columns: 1fr; }
+  .tree-answer .arrow, .decision-row .arrow, .money-branch .arrow { display: none; }
+}
+
+@page {
+  size: A4;
+  margin: 18mm 18mm 20mm;
+  @top-left {
+    content: "TOTEM / EDGE";
+    color: #6b665b;
+    font-family: Charter, "Source Serif Pro", "Iowan Old Style", Georgia, serif;
+    font-size: 7.5pt;
+    font-style: italic;
+    letter-spacing: 0.12em;
+  }
+  @top-right {
+    content: string(chapter-title);
+    color: #6b665b;
+    font-family: Charter, "Source Serif Pro", "Iowan Old Style", Georgia, serif;
+    font-size: 7.5pt;
+  }
+  @bottom-left {
+    content: "THE VTXO USER’S GUIDE";
+    color: #6b665b;
+    font-family: Charter, "Source Serif Pro", "Iowan Old Style", Georgia, serif;
+    font-size: 7pt;
+    letter-spacing: 0.08em;
+  }
+  @bottom-right {
+    content: counter(page);
+    color: #1B365D;
+    font-family: Charter, "Source Serif Pro", "Iowan Old Style", Georgia, serif;
+    font-size: 9pt;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@page cover {
+  margin: 18mm;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+@page contents {
+  @top-right { content: "Contents"; }
+}
+
+@page colophon {
+  @top-right { content: "Colophon"; }
+}
+
+@media print {
+  html, body { background: var(--paper); }
+  body { font-size: 10.4pt; line-height: 1.52; }
+  .document { width: auto; margin: 0; border: 0; }
+  .cover, .contents, .chapter, .colophon { min-height: 0; padding: 0; }
+  .cover { height: 259mm; display: flex; }
+  .cover-title { margin-top: 27mm; font-size: 54pt; }
+  .cover-subtitle { font-size: 15pt; }
+  .cover-quote { margin-top: 12mm; font-size: 17pt; }
+  .cover-edition { font-size: 9pt; }
+  .cover-logotype { font-size: 11pt; }
+  .cover .source-table { font-size: 8.5pt; }
+  .contents-head h1, .colophon h1 { font-size: 30pt; }
+  .contents-head p { font-size: 8pt; }
+  .toc-grid { margin: 8mm 0 10mm; gap: 9mm; }
+  .toc-column a { padding: 1.9mm 0; }
+  .toc-column a::after { content: attr(data-page); font-size: 9pt; }
+  .toc-title { font-size: 10pt; }
+  .toc-number { font-size: 8pt; }
+  .badge-guide { margin-top: 7mm; padding-top: 5mm; }
+  .badge-guide h2 { font-size: 15pt; }
+  .badge-guide .source-table { font-size: 9pt; }
+  .chapter-header { margin-bottom: 7mm; padding-top: 3mm; }
+  h2 { font-size: 26pt; }
+  h3 { margin-top: 6.5mm; margin-bottom: 2.5mm; font-size: 14.5pt; }
+  p { margin-bottom: 3.4mm; }
+  .source-quote { font-size: 14pt; }
+  .source-list { margin-bottom: 4mm; }
+  .source-list li { margin-bottom: 1.7mm; }
+  .source-table { font-size: 8.8pt; line-height: 1.34; }
+  .source-table th, .source-table td { padding: 1.7mm 2mm; }
+  .table-wide { font-size: 7.9pt; }
+  .table-wide th, .table-wide td { padding: 1.5mm 1.6mm; }
+  .figure, .code-figure { margin: 5mm 0 6mm; }
+  .figure figcaption, .code-figure figcaption { font-size: 8pt; }
+  .figure-number { font-size: 7pt; }
+  .layer-box { padding: 3mm 4mm; }
+  .layer-box div > span { font-size: 10pt; }
+  .layer-box strong { font-size: 8.5pt; }
+  .layer-number { font-size: 8pt; }
+  .flow-arrow { height: 6mm; }
+  .active-state { font-size: 13pt; padding: 3mm; }
+  .operation { font-size: 8.5pt; }
+  .state { padding: 1mm 1.8mm; font-size: 8.5pt; }
+  .lifecycle-branches { gap: 1.6mm; }
+  .branch-label { font-size: 8pt; }
+  .tree-continuation { font-size: 9pt; }
+  .tree-label { font-size: 8pt; }
+  pre { padding: 3mm; }
+  pre code { font-size: 7.7pt; line-height: 1.42; }
+  .colophon-grid { font-size: 10pt; }
+  .colophon-note { font-size: 13pt; }
+  a { color: var(--ink); text-decoration: none; }
+  .toc-column a { color: var(--ink); }
+}
+</style>
+</head>
+<body>
+<main class="document" data-od-id="document">
+  <section class="cover" id="cover" data-od-id="cover" aria-labelledby="cover-title">
+    <p class="cover-logotype">Totem <span>/</span> Edge</p>
+    <p class="cover-edition">November 2026 · Companion to Vouchar</p>
+    <h1 class="cover-title" id="cover-title">The VTXO<br>User’s Guide</h1>
+    <p class="cover-subtitle">Bearer claims on Minima: what a VTXO can hold, who can claim it, and why it is a new primitive.</p>
+    <blockquote class="cover-quote">A VTXO is not a coin. It is a claim — and the claim is the product.</blockquote>
+    <div class="cover-bottom">
+      <div class="cover-rule" aria-hidden="true"></div>
+      <div class="table-wrap"><table class="source-table" id="cover-metadata" data-od-id="cover-metadata">
+<thead><tr><th scope="col"></th><th scope="col"></th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Audience</strong></th><td>Builders, issuers, product designers, and the merely curious</td></tr>
+<tr><th scope="row"><strong>Companion</strong></th><td>The Vouchar claim app (this repository)</td></tr>
+<tr><th scope="row"><strong>Grounded in</strong></th><td><code>@totemsdk/omnia-vtxo</code> 0.9.x, <code>omnia-pool</code>, <code>liquidity-bond</code>, <code>kissvm</code>, <code>statechain</code> (November 2026)</td></tr>
+<tr><th scope="row"><strong>Status</strong></th><td>Living document. Mechanics and maturity labels reflect the SDK as inspected; product ideas are labelled as ideas.</td></tr>
+</tbody></table></div>
+    </div>
+  </section>
+
+  <section class="contents" id="contents" data-od-id="contents" aria-labelledby="contents-title">
+    <header class="contents-head">
+      <h1 id="contents-title">Contents</h1>
+      <p>Sections 0–19 · Designed edition</p>
+    </header>
+    <nav class="toc-grid" aria-label="Table of contents">
+      <ol class="toc-column" start="0"><li><a href="#section-0-the-60-second-version" data-page="3"><span class="toc-number">00</span><span class="toc-title">The 60-second version</span></a></li><li><a href="#section-1-the-mental-model-four-layers" data-page="4"><span class="toc-number">01</span><span class="toc-title">The mental model: four layers</span></a></li><li><a href="#section-2-vtxo-mechanics-in-60-seconds" data-page="5"><span class="toc-number">02</span><span class="toc-title">VTXO mechanics in 60 seconds</span></a></li><li><a href="#section-3-what-a-vtxo-is-not" data-page="8"><span class="toc-number">03</span><span class="toc-title">What a VTXO is not</span></a></li><li><a href="#section-4-the-claim-policy-catalogue" data-page="9"><span class="toc-number">04</span><span class="toc-title">The claim-policy catalogue</span></a></li><li><a href="#section-5-the-full-payload-catalogue" data-page="12"><span class="toc-number">05</span><span class="toc-title">The full payload catalogue</span></a></li><li><a href="#section-6-the-gallery-12-patterns-not-100-features" data-page="15"><span class="toc-number">06</span><span class="toc-title">The gallery: 12 patterns, not 100 features</span></a></li><li><a href="#section-7-three-designs-in-full" data-page="20"><span class="toc-number">07</span><span class="toc-title">Three designs in full</span></a></li><li><a href="#section-8-the-claim-lifecycle-end-to-end" data-page="22"><span class="toc-number">08</span><span class="toc-title">The claim lifecycle, end to end</span></a></li><li><a href="#section-9-design-patterns-and-anti-patterns" data-page="24"><span class="toc-number">09</span><span class="toc-title">Design patterns and anti-patterns</span></a></li></ol>
+      <ol class="toc-column" start="10"><li><a href="#section-10-failure-modes-and-threat-model" data-page="25"><span class="toc-number">10</span><span class="toc-title">Failure modes and threat model</span></a></li><li><a href="#section-11-economics-and-operations" data-page="26"><span class="toc-number">11</span><span class="toc-title">Economics and operations</span></a></li><li><a href="#section-12-privacy-compliance-and-human-factors" data-page="27"><span class="toc-number">12</span><span class="toc-title">Privacy, compliance, and human factors</span></a></li><li><a href="#section-13-build-map-which-package-for-what" data-page="28"><span class="toc-number">13</span><span class="toc-title">Build map: which package for what</span></a></li><li><a href="#section-14-reality-check-the-maturity-ladder" data-page="29"><span class="toc-number">14</span><span class="toc-title">Reality check: the maturity ladder</span></a></li><li><a href="#section-15-choose-your-primitive" data-page="30"><span class="toc-number">15</span><span class="toc-title">Choose your primitive</span></a></li><li><a href="#section-16-what-this-means-for-the-claim-app-the-development-gap" data-page="31"><span class="toc-number">16</span><span class="toc-title">What this means for the claim app (the development gap)</span></a></li><li><a href="#section-17-open-problems" data-page="34"><span class="toc-number">17</span><span class="toc-title">Open problems</span></a></li><li><a href="#section-18-glossary" data-page="35"><span class="toc-number">18</span><span class="toc-title">Glossary</span></a></li><li><a href="#section-19-further-reading" data-page="36"><span class="toc-number">19</span><span class="toc-title">Further reading</span></a></li></ol>
+    </nav>
+    <section class="badge-guide" aria-labelledby="badge-guide-title">
+      <h2 id="badge-guide-title">How to read the badges</h2>
+      <div class="table-wrap"><table class="source-table" id="badge-legend" data-od-id="badge-legend">
+<thead><tr><th scope="col">Badge</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><span class="badge badge-now">Now</span> <strong>Now</strong></th><td>Supported by the SDK today. MVP caveats still apply — read §14.</td></tr>
+<tr><th scope="row"><span class="badge badge-designed">Designed</span> <strong>Designed</strong></th><td>Typed, specified, or partially implemented in the SDK/repo, but not production-hardened.</td></tr>
+<tr><th scope="row"><span class="badge badge-idea">Idea</span> <strong>Idea</strong></th><td>A product concept. No implementation. Useful, not promised.</td></tr>
+</tbody></table></div>
+    </section>
+  </section>
+
+  <section class="chapter" id="section-0-the-60-second-version" data-section="0" data-od-id="section-0">
+<header class="chapter-header"><p class="section-kicker">Section 0</p><h2 id="section-0-the-60-second-version-title">The 60-second version</h2></header>
+<ul class="source-list"><li>A <strong>VTXO</strong> (virtual transaction output) is a <strong>bearer claim on a pool of on-chain capacity</strong>.</li><li>The pool operator holds the on-chain UTXO. The holder holds a proof in a Merkle commitment tree.</li><li>VTXOs can be <strong>minted, transferred, split, merged, refreshed, and exited</strong> without a live Minima node per operation.</li><li>On top of the bearer value, a VTXO can carry a <strong>claim policy</strong>: who may claim, when, and under what conditions.</li><li>That combination — <strong>bearer value + programmable claim</strong> — is the new primitive.</li><li>Almost every idea in this guide is a composition of two things: <strong>a payload</strong> and <strong>a policy</strong>.</li></ul>
+<p>The rest of the guide is the long version of that sentence.</p>
+</section>
+<section class="chapter" id="section-1-the-mental-model-four-layers" data-section="1" data-od-id="section-1">
+<header class="chapter-header"><p class="section-kicker">Section 1</p><h2 id="section-1-the-mental-model-four-layers-title">The mental model: four layers</h2></header>
+<p>A voucher, a ticket, a grant, an agent budget and a bearer bond are the same object viewed through four independent layers.</p>
+<figure class="figure figure-layers" id="figure-four-layers" data-od-id="figure-four-layers">
+  <figcaption><span class="figure-number">Figure 1</span> The four-layer envelope</figcaption>
+  <div class="layer-stack">
+    <div class="layer-box" data-od-id="layer-transport"><span class="layer-number">01</span><div><strong>Transport</strong><span>email link · QR · NFC · BLE · print</span></div></div>
+    <div class="flow-arrow" aria-hidden="true"></div>
+    <div class="layer-box" data-od-id="layer-claim-policy"><span class="layer-number">02</span><div><strong>Claim policy</strong><span>who / when / under what conditions</span></div></div>
+    <div class="flow-arrow" aria-hidden="true"></div>
+    <div class="layer-box" data-od-id="layer-payload"><span class="layer-number">03</span><div><strong>Payload</strong><span>what is actually being claimed</span></div></div>
+    <div class="flow-arrow" aria-hidden="true"></div>
+    <div class="layer-box" data-od-id="layer-settlement"><span class="layer-number">04</span><div><strong>Settlement</strong><span>how the payload moves</span></div></div>
+  </div>
+</figure>
+<div class="table-wrap"><table class="source-table" id="table-3" data-od-id="table-3">
+<thead><tr><th scope="col">Layer</th><th scope="col">Question it answers</th><th scope="col">Examples</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Payload</strong></th><td>What is being claimed?</td><td>MINIMA, token, NFT, basket, VTXO, statechain UTXO, LP position, proof, manifest, mandate, dataset, encrypted backup</td></tr>
+<tr><th scope="row"><strong>Claim policy</strong></th><td>Who can claim, when, under what conditions?</td><td>Bearer secret, KISSVM script, time lock, vesting, threshold, HTLC, DvP, oracle, delegated, recovery, revocable</td></tr>
+<tr><th scope="row"><strong>Settlement</strong></th><td>How does the payload actually move?</td><td>Treasury payout, direct script spend, VTXO transfer, statechain cooperative claim, Omnia payment, LP withdrawal, proof/manifest delivery, encrypted-data delivery</td></tr>
+<tr><th scope="row"><strong>Transport</strong></th><td>How does the secret reach the claimant?</td><td>Email link, QR, NFC, BLE, printed code, physical object</td></tr>
+</tbody></table></div>
+<p class="label-line"><strong>The important design insight: payload and policy are independent.</strong></p>
+<p>A MINIMA voucher can be a plain bearer gift, a vesting grant, a DvP sale, a guardian-recoverable inheritance, or a budget for an agent. An NFT voucher can be a collectible, a ticket, a membership, a licence, or a for-sale lot. The envelope does not need to know every product; it needs a <strong>payload union</strong> and a <strong>policy union</strong>.</p>
+<p>That is also the design thesis of this guide: build the envelope once, then compose products.</p>
+</section>
+<section class="chapter" id="section-2-vtxo-mechanics-in-60-seconds" data-section="2" data-od-id="section-2">
+<header class="chapter-header"><p class="section-kicker">Section 2</p><h2 id="section-2-vtxo-mechanics-in-60-seconds-title">VTXO mechanics in 60 seconds</h2></header>
+<h3 id="the-pool" data-od-id="the-pool">The pool</h3>
+<p>A <strong>pool</strong> is the on-chain anchor that backs a set of VTXOs. An operator creates it with a fixed capacity. Minting reduces available capacity; exiting returns capacity to the chain.</p>
+<figure class="code-figure" id="code-1" data-od-id="code-1"><figcaption><span class="figure-number">Code 1</span> TypeScript</figcaption><pre><code class="language-ts">import { createPool } from '@totemsdk/omnia-vtxo';
+
+const pool = createPool({
+  operator: 'MxOperatorAddress',
+  tokenId: '0x00',              // native MINIMA
+  totalCapacity: BigInt(1_000_000_000),
+  nonce: 'pool-genesis-v1',
+}, Date.now());
+// pool.poolId = SHA3-256(operator + tokenId + nonce) — deterministic</code></pre></figure>
+<div class="table-wrap"><table class="source-table" id="table-4" data-od-id="table-4">
+<thead><tr><th scope="col">Field</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>poolId</code></th><td>Deterministic hash — never changes</td></tr>
+<tr><th scope="row"><code>operator</code></th><td>Minima address holding the on-chain backing UTXO</td></tr>
+<tr><th scope="row"><code>tokenId</code></th><td>Token this pool holds</td></tr>
+<tr><th scope="row"><code>totalCapacity</code></th><td>Total token units the pool can back</td></tr>
+<tr><th scope="row"><code>availableCapacity</code></th><td>Remaining mintable capacity</td></tr>
+<tr><th scope="row"><code>epoch</code></th><td>Advances on each batch refresh round</td></tr>
+<tr><th scope="row"><code>commitmentRoot</code></th><td>Current Merkle root over all live VTXOs</td></tr>
+</tbody></table></div>
+<h3 id="the-lifecycle" data-od-id="the-lifecycle">The lifecycle</h3>
+<figure class="figure figure-lifecycle" id="figure-vtxo-lifecycle" data-od-id="figure-vtxo-lifecycle">
+  <figcaption><span class="figure-number">Figure 2</span> VTXO lifecycle</figcaption>
+  <div class="lifecycle-map">
+    <div class="mint-route"><span class="operation">mint</span><span class="down-arrow" aria-hidden="true"></span></div>
+    <div class="active-state" data-od-id="vtxo-state-active">active</div>
+    <div class="lifecycle-branches">
+      <div class="lifecycle-branch"><span class="operation">transfer</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">transferred</span></div>
+      <div class="lifecycle-branch"><span class="operation">partial-transfer</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">split <small>(input)</small></span></div>
+      <div class="lifecycle-branch"><span class="operation">split</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">split <small>(input)</small></span></div>
+      <div class="lifecycle-branch"><span class="operation">merge</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">merged <small>(inputs)</small></span></div>
+      <div class="lifecycle-branch"><span class="operation">refresh</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">refreshed <small>(old)</small></span></div>
+      <div class="lifecycle-branch"><span class="operation">exit_initiated</span><span class="arrow" aria-hidden="true">→</span><span class="state">exiting</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">exited</span></div>
+      <div class="lifecycle-branch"><span class="operation">spent</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">spent</span></div>
+    </div>
+  </div>
+</figure>
+<div class="table-wrap"><table class="source-table" id="table-5" data-od-id="table-5">
+<thead><tr><th scope="col">Operation</th><th scope="col">What it does</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Mint</strong> <span class="badge badge-now">Now</span></th><td>Creates a VTXO and reduces pool capacity</td></tr>
+<tr><th scope="row"><strong>Transfer</strong> <span class="badge badge-now">Now</span></th><td>Moves a VTXO to a new owner</td></tr>
+<tr><th scope="row"><strong>Split</strong> <span class="badge badge-now">Now</span></th><td>Divides one VTXO into pieces that sum to the original</td></tr>
+<tr><th scope="row"><strong>Merge</strong> <span class="badge badge-now">Now</span></th><td>Combines VTXOs from the same pool and token</td></tr>
+<tr><th scope="row"><strong>Refresh</strong> <span class="badge badge-now">Now</span></th><td>Re-anchors a VTXO against a new pool epoch</td></tr>
+<tr><th scope="row"><strong>Exit</strong> <span class="badge badge-designed">Designed</span></th><td>Returns value to the chain; the V1 owner-pool covenant provides a unilateral path</td></tr>
+<tr><th scope="row"><strong>Verify</strong> <span class="badge badge-now">Now</span></th><td><code>verifyVtxo</code> checks proof fields; <code>verifyConservation</code> checks inputs = outputs</td></tr>
+</tbody></table></div>
+<p>Terminal states are <code>transferred</code>, <code>split</code>, <code>merged</code>, <code>refreshed</code>, <code>spent</code>, and <code>exited</code>.</p>
+<h3 id="why-not-just-use-a-statechain" data-od-id="why-not-just-use-a-statechain">Why not just use a statechain?</h3>
+<div class="table-wrap"><table class="source-table" id="table-6" data-od-id="table-6">
+<thead><tr><th scope="col"></th><th scope="col">Statechain</th><th scope="col">Omnia VTXO</th></tr></thead>
+<tbody>
+<tr><th scope="row">Ownership transfer</th><td>Blind SE co-signature</td><td>Pure functional, no live signing needed</td></tr>
+<tr><th scope="row">Privacy model</th><td>Blind Mercury SE</td><td>Local commitment root</td></tr>
+<tr><th scope="row">Splitting</th><td>Not supported</td><td>Native</td></tr>
+<tr><th scope="row">Merging</th><td>Not supported</td><td>Native</td></tr>
+<tr><th scope="row">Exit model</th><td>On-chain UTXO handoff</td><td>Pool epoch settlement / per-share exit</td></tr>
+<tr><th scope="row">Best fit</th><td>Privacy UTXO custody</td><td>Merchant receipts, credits, pool liquidity</td></tr>
+</tbody></table></div>
+<p>They are siblings, not replacements. §5 treats both as payloads.</p>
+</section>
+<section class="chapter" id="section-3-what-a-vtxo-is-not" data-section="3" data-od-id="section-3">
+<header class="chapter-header"><p class="section-kicker">Section 3</p><h2 id="section-3-what-a-vtxo-is-not-title">What a VTXO is <em>not</em></h2></header>
+<p>A guide that only sells the idea is not a guide. These are the corrections that matter.</p>
+<div class="table-wrap"><table class="source-table" id="table-7" data-od-id="table-7">
+<thead><tr><th scope="col">Myth</th><th scope="col">Reality</th></tr></thead>
+<tbody>
+<tr><th scope="row">"A VTXO is a coin you own on-chain."</th><td>The <strong>operator</strong> holds the on-chain UTXO. You hold a claim proof. The claim becomes an on-chain entitlement only through an exit path.</td></tr>
+<tr><th scope="row">"A VTXO is just an IOU."</th><td>An IOU names an issuer. A VTXO is a <strong>bearer claim against committed capacity</strong>, verifiable against a Merkle root. The difference is enforceability of the exit, not politeness.</td></tr>
+<tr><th scope="row">"VTXOs are automatically private."</th><td>Bearer links leak. Amounts, timing and redemption are linkable. Batching helps; it is not a mixer.</td></tr>
+<tr><th scope="row">"VTXOs are permissionless bearer cash."</th><td>Not yet. Pooled transfer of arbitrary recipients is deliberately gated (§14). The V1 path is an <strong>owner-state claim coin</strong> with a unilateral exit.</td></tr>
+<tr><th scope="row">"A VTXO expires on-chain."</th><td>As of 0.9.x, <code>expiresAt</code> is <strong>untrusted metadata</strong>: it is not in the leaf, <code>verifyVtxo</code> does not enforce it, and transfer drops it. Product expiry is enforced by the claims service at reservation.</td></tr>
+<tr><th scope="row">"Transfer is final immediately."</th><td>A recipient must wait for the owner-rotation transaction to confirm. Before confirmation, the previous owner can win the race to exit.</td></tr>
+<tr><th scope="row">"Split/merge are free."</th><td>They are cheap, but each mutation is a commitment update and eventually an anchor. Economics matter (§11).</td></tr>
+<tr><th scope="row">"The operator can't cheat."</th><td>The current model has no watchtower and no equivocation detection. Operator trust is reduced, not eliminated, until watchtowers and pool-wide epoch roots ship.</td></tr>
+</tbody></table></div>
+<p><strong>Design rule:</strong> never market a VTXO property that the current covenant does not enforce. The SDK's own docs are explicit about this, and the app's readiness report encodes the same gates.</p>
+</section>
+<section class="chapter" id="section-4-the-claim-policy-catalogue" data-section="4" data-od-id="section-4">
+<header class="chapter-header"><p class="section-kicker">Section 4</p><h2 id="section-4-the-claim-policy-catalogue-title">The claim-policy catalogue</h2></header>
+<p>A VTXO is single-owner by default. Policies let the claim itself be conditional. The SDK evaluates them in <code>verifyClaimPolicy</code> (pure) and <code>verifyVtxoClaim</code> (authoritative: requires signatures over a canonical preimage, verified signer identities, and optionally a chain tip).</p>
+<div class="table-wrap"><table class="source-table" id="table-8" data-od-id="table-8">
+<thead><tr><th scope="col">Policy</th><th scope="col">One-line meaning</th><th scope="col">Status</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>single</code></th><td>One owner, plain bearer</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>threshold</code></th><td>M-of-N owners must sign</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>conditional</code></th><td>HTLC-style: claim with preimage before timeout, otherwise refund</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>dvp</code></th><td>Delivery-versus-payment: claim only when the matching payment settles</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>delegated</code></th><td>A delegate may claim or transfer within scope and time</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>rotation</code></th><td>Operator handover at a block height</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>vesting</code></th><td>Only the vested portion is claimable, floored, over a schedule</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>recovery</code></th><td>Guardians can recover after a block if the owner does not act</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><code>collateral</code></th><td>Counterparty-bound collateral with optional release height</td><td><span class="badge badge-now">Now</span></td></tr>
+</tbody></table></div>
+<h3 id="4-1-single-the-bearer-note" data-od-id="4-1-single-the-bearer-note">4.1 <code>single</code> — the bearer note</h3>
+<p>Fields: <code>owner</code>.</p>
+<p><strong>Feels like:</strong> cash in an envelope. Whoever holds the secret and the owner key can claim.</p>
+<p><strong>Use it for:</strong> gifts, promo drops, merchant credit, refunds, physical redemption.</p>
+<p><strong>Watch:</strong> losing the link loses the value. There is no recovery unless you add one.</p>
+<h3 id="4-2-threshold-shared-custody-without-a-custodian" data-od-id="4-2-threshold-shared-custody-without-a-custodian">4.2 <code>threshold</code> — shared custody without a custodian</h3>
+<p>Fields: <code>threshold</code>, <code>owners[]</code>.</p>
+<p><strong>Feels like:</strong> a joint bank account, or a 2-of-3 safe.</p>
+<p><strong>Use it for:</strong> rent deposits (tenant + landlord + arbiter), DAO treasuries, family savings, escrow without a company.</p>
+<p><strong>Novel instance — <em>The Three-Key Deposit</em> <span class="badge badge-idea">Idea</span>:</strong> tenant, landlord, and a mutually chosen arbiter. Day-to-day release needs two keys; a disputed exit needs the arbiter. The deposit is a bearer claim, not a platform balance.</p>
+<p><strong>Watch:</strong> key loss becomes a governance problem. Pair with <code>recovery</code> or a documented replacement ceremony.</p>
+<h3 id="4-3-conditional-the-hashlock-envelope" data-od-id="4-3-conditional-the-hashlock-envelope">4.3 <code>conditional</code> — the hashlock envelope</h3>
+<p>Fields: <code>owner</code>, <code>refundOwner</code>, <code>hashlock</code>, <code>timeoutBlock</code>; witness path is <code>claim</code> or <code>refund</code>.</p>
+<p><strong>Feels like:</strong> a vending machine that only opens when you know the code — and returns your money if you never do.</p>
+<p><strong>Use it for:</strong> escrow-lite, bounties, delivery-versus-description, lost-property rewards, API pay-per-call.</p>
+<p><strong>Novel instance — <em>The Rain Cheque</em> <span class="badge badge-idea">Idea</span>:</strong> an SLA compensation voucher. An oracle publishes an attestation that the service missed its target; the attestation's preimage unlocks every subscriber's claim. No support ticket, no discretionary credit.</p>
+<p><strong>Watch:</strong> the oracle is now part of the trust model. Say so.</p>
+<h3 id="4-4-dvp-delivery-versus-payment" data-od-id="4-4-dvp-delivery-versus-payment">4.4 <code>dvp</code> — delivery versus payment</h3>
+<p>Fields: <code>owner</code>, <code>counterparty</code>, <code>paymentId</code>, <code>hashlock</code>, <code>timeoutBlock</code>.</p>
+<p><strong>Feels like:</strong> a marketplace escrow that settles atomically.</p>
+<p><strong>Use it for:</strong> NFT sales, ticket resale at face value, OTC swaps, physical goods with a shipping attestation.</p>
+<p><strong>Novel instance — <em>The Self-Selling Artifact</em> <span class="badge badge-idea">Idea</span>:</strong> the voucher is simultaneously the asset, the listing and the escrow. See §7.2.</p>
+<p><strong>Watch:</strong> this is the policy that forces the reservation core to become payment-aware. It is not a UI variant; it is a state-machine change.</p>
+<h3 id="4-5-delegated-permission-without-custody" data-od-id="4-5-delegated-permission-without-custody">4.5 <code>delegated</code> — permission without custody</h3>
+<p>Fields: <code>owner</code>, <code>delegate</code>, <code>scope</code> (<code>claim</code> | <code>transfer</code>), <code>expiresAtBlock</code>, <code>revoked?</code>.</p>
+<p><strong>Feels like:</strong> a company card with a limit, a scope and an expiry.</p>
+<p><strong>Use it for:</strong> agent budgets, contractor allowances, device spending, API keys with value attached.</p>
+<p><strong>Novel instance — <em>The Robot's Warrant</em> <span class="badge badge-idea">Idea</span>:</strong> a manifest + mandate + budget VTXO. The agent can act only within scope, up to budget, until expiry; the owner can revoke; unspent budget returns. See §7.3.</p>
+<p><strong>Watch:</strong> delegation is authorization, not accounting. Usage counters and budget reservation live above the VTXO layer.</p>
+<h3 id="4-6-rotation-planned-handover" data-od-id="4-6-rotation-planned-handover">4.6 <code>rotation</code> — planned handover</h3>
+<p>Fields: <code>fromOperator</code>, <code>toOperator</code>, <code>rotateAtBlock</code>.</p>
+<p><strong>Feels like:</strong> a domain transfer, or a change of bank.</p>
+<p><strong>Use it for:</strong> operator migration, estates, succession, pool acquisitions.</p>
+<p><strong>Watch:</strong> rotation changes who anchors the pool. It does not by itself move value between pools.</p>
+<h3 id="4-7-vesting-the-time-shaped-right" data-od-id="4-7-vesting-the-time-shaped-right">4.7 <code>vesting</code> — the time-shaped right</h3>
+<p>Fields: <code>owner</code>, <code>beneficiary</code>, <code>startBlock</code>, <code>cliffBlock</code>, <code>endBlock</code>, <code>totalAmount?</code>.</p>
+<p><strong>Feels like:</strong> a vesting schedule you can hold in your hand.</p>
+<p><strong>Use it for:</strong> contributor grants, scholarships, salary advances, rent-free periods, warranty rebates.</p>
+<p><strong>Novel instance — <em>The Seed Packet</em> <span class="badge badge-idea">Idea</span>:</strong> a contributor claims monthly; only the vested portion is claimable; the unvested remainder returns to the treasury after <code>reclaimAfter</code>. See §7.1.</p>
+<p><strong>Watch:</strong> vesting math floors, never rounds up. Partial claims break the one-shot <code>reserved → settled</code> model.</p>
+<h3 id="4-8-recovery-the-dead-man-switch" data-od-id="4-8-recovery-the-dead-man-switch">4.8 <code>recovery</code> — the dead-man switch</h3>
+<p>Fields: <code>owner</code>, <code>guardians[]</code>, <code>threshold</code>, <code>recoverAfterBlock</code>.</p>
+<p><strong>Feels like:</strong> a spare key held by people you trust, usable only if you go silent.</p>
+<p><strong>Use it for:</strong> inheritance, wallet recovery, scholarship guardianship, corporate continuity.</p>
+<p><strong>Novel instance — <em>The Inheritance Switch</em> <span class="badge badge-idea">Idea</span>:</strong> an encrypted backup plus a VTXO plus guardians. If the owner does not heartbeat by block <em>N</em>, the guardians can release the claim to the heirs; the claim secret also derives the decryption key for the off-chain payload.</p>
+<p><strong>Watch:</strong> guardians can collude. Choose a threshold and a social process, not just a number.</p>
+<h3 id="4-9-collateral-value-at-risk" data-od-id="4-9-collateral-value-at-risk">4.9 <code>collateral</code> — value at risk</h3>
+<p>Fields: <code>owner</code>, <code>counterparty</code>, <code>releaseAtBlock?</code>.</p>
+<p><strong>Feels like:</strong> margin in an exchange account, but the margin is a bearer claim with a per-share exit.</p>
+<p><strong>Use it for:</strong> trading margin, prediction markets, insurance pools, performance bonds.</p>
+<p><strong>Novel instance — <em>The Prediction Position</em> <span class="badge badge-idea">Idea</span>:</strong> two counterparties lock claims on the same pool; an oracle attests the outcome; the winner claims, the loser's claim expires. Per-share exit lets either side pull collateral if the operator misbehaves.</p>
+<p><strong>Watch:</strong> collateral is only as good as the oracle and the exit path.</p>
+<h3 id="policy-composition" data-od-id="policy-composition">Policy composition</h3>
+<p>Policies are a union, not a stack, in the current SDK. Composition happens at a higher layer: a mandate payload can <em>reference</em> a vesting claim, a threshold can gate a recovery, and a DvP can be wrapped in a vesting schedule by the issuer's service. The guide treats composition as a <strong>product-layer</strong> concern, which is exactly why the claim app needs a policy union rather than a single <code>policy</code> string.</p>
+</section>
+<section class="chapter" id="section-5-the-full-payload-catalogue" data-section="5" data-od-id="section-5">
+<header class="chapter-header"><p class="section-kicker">Section 5</p><h2 id="section-5-the-full-payload-catalogue-title">The full payload catalogue</h2></header>
+<p>This is the long list. It is deliberately generous: the point is not that every row is a product, but that the envelope should not artificially exclude any of them.</p>
+<h3 id="5-1-on-chain-bearer-payloads" data-od-id="5-1-on-chain-bearer-payloads">5.1 On-chain bearer payloads</h3>
+<div class="table-wrap"><table class="source-table table-wide" id="table-9" data-od-id="table-9">
+<thead><tr><th scope="col">Payload</th><th scope="col">What it is</th><th scope="col">SDK / mechanism</th><th scope="col">Status</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Native MINIMA</strong></th><td><code>tokenId 0x00</code></td><td><code>tx-builder</code>, <code>minima-rpc</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Fungible token</strong></th><td>Any token ID, 0–44 decimals; the token itself may have a restrictive script</td><td><code>connect</code>, <code>tx-builder</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>NFT</strong></th><td>Token with total supply <code>1</code>, decimals <code>0</code>, <code>artimage</code> + attributes; <code>signtoken</code> proves authorship</td><td><code>connect</code>, <code>realtime</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Multi-asset basket</strong></th><td>One claim releases several coins/tokens at once</td><td><code>tx-builder</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+<tr><th scope="row"><strong>Stateful coin</strong></th><td>Coin with <code>STATE(port)</code> values: counters, membership, game state, vesting progress</td><td><code>kissvm</code>, <code>recursive-mast</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Time-shaped coin</strong></th><td>Linear release, cliff, deadline, window, rate-limit, decay</td><td><code>kissvm</code> temporal templates</td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Threshold/multisig coin</strong></th><td>M-of-N claim, guardian recovery</td><td><code>kissvm</code>, <code>tx-builder</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>HTLC coin</strong></th><td>Hashlock + timeout; claim or refund</td><td><code>tx-builder</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Oracle-conditioned coin</strong></th><td>Releases only when an oracle commitment is satisfied</td><td><code>kissvm</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+<tr><th scope="row"><strong>MAST/policy-tree coin</strong></th><td>Nested policy branches, delegation, rotation, revocation</td><td><code>recursive-mast</code>, <code>kissvm</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Statechain UTXO</strong></th><td>Any token/NFT transferred off-chain with SE blind signatures; on-chain claim or timelock reclaim</td><td><code>statechain</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Omnia VTXO</strong></th><td>Off-chain cash-like claim on a pool; tokenId + amount + owner + claim policy; split/merge/refresh/exit</td><td><code>omnia-vtxo</code></td><td><span class="badge badge-now">Now</span></td></tr>
+<tr><th scope="row"><strong>Omnia channel/factory share</strong></th><td>Capacity or settlement right in an eltoo channel/factory</td><td><code>omnia</code>, <code>omnia-factory</code>, <code>omnia-splice</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+<tr><th scope="row"><strong>Liquidity position/receipt</strong></th><td>LP capital, fee share, lock terms, withdrawal right</td><td><code>liquidity-bond</code>, <code>omnia-pool</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+<tr><th scope="row"><strong>Collateral/margin bond</strong></th><td>Locked collateral with maturity/exercise/exit rules</td><td><code>kissvm</code>, <code>eefi</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+<tr><th scope="row"><strong>Provider bond certificate</strong></th><td>Bonded-provider claim/reputation record (data-only in v0.1, not escrow)</td><td><code>provider-bond</code></td><td><span class="badge badge-designed">Designed</span></td></tr>
+</tbody></table></div>
+<h3 id="5-2-contractual-and-financial-payloads" data-od-id="5-2-contractual-and-financial-payloads">5.2 Contractual and financial payloads</h3>
+<div class="table-wrap"><table class="source-table" id="table-10" data-od-id="table-10">
+<thead><tr><th scope="col">Payload</th><th scope="col">What the claim transfers</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Revenue share / fee stream</strong></th><td>Right to future fees from a pool, channel, or merchant flow</td></tr>
+<tr><th scope="row"><strong>EEFI capital agreement</strong></th><td>Committed capital with funding/operation/settlement terms</td></tr>
+<tr><th scope="row"><strong>EEFI market quote</strong></th><td>A signed, finite buy/sell quote; claim = exercise or take the quote</td></tr>
+<tr><th scope="row"><strong>EEFI exercise covenant</strong></th><td>Unilateral exercise, liquidation, or maturity redemption right</td></tr>
+<tr><th scope="row"><strong>Risk policy</strong></th><td>Insurance/risk terms with haircuts, collateral ratios, oracle conditions</td></tr>
+<tr><th scope="row"><strong>Option / put / call</strong></th><td>Right to buy/sell at a strike before a deadline</td></tr>
+<tr><th scope="row"><strong>Debt or penalty</strong></th><td>A negative asset: the claim transfers an obligation, not a balance</td></tr>
+<tr><th scope="row"><strong>Return/refund right</strong></th><td>A put on a physical or digital good</td></tr>
+<tr><th scope="row"><strong>Service credits</strong></th><td>Compute, storage, API, AI inference, bandwidth</td></tr>
+<tr><th scope="row"><strong>Physical redemption</strong></th><td>Merch, ticket, coffee, repair, signed-for delivery</td></tr>
+</tbody></table></div>
+<h3 id="5-3-credential-capability-and-data-payloads" data-od-id="5-3-credential-capability-and-data-payloads">5.3 Credential, capability, and data payloads</h3>
+<div class="table-wrap"><table class="source-table" id="table-11" data-od-id="table-11">
+<thead><tr><th scope="col">Payload</th><th scope="col">What the claim transfers</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Signed proof</strong></th><td>Attestation, ownership, capability, revocation, delegation, manifest, identity, custom</td></tr>
+<tr><th scope="row"><strong>Signed manifest</strong></th><td>App, capability, dApp, or edge-service declaration</td></tr>
+<tr><th scope="row"><strong>Authority mandate</strong></th><td>Scoped permission with constraints, usage limits, expiry, revocation</td></tr>
+<tr><th scope="row"><strong>Root identity child</strong></th><td>One of 64 addresses under a root identity; ownership proof</td></tr>
+<tr><th scope="row"><strong>Dataset capability</strong></th><td>Dataset descriptor, checkpoint, replicated log/index access</td></tr>
+<tr><th scope="row"><strong>Encrypted backup</strong></th><td>Ciphertext + decryption capability; the claim secret can derive the key</td></tr>
+<tr><th scope="row"><strong>Location proof</strong></th><td>Proof of presence, movement trail, geofence relation</td></tr>
+<tr><th scope="row"><strong>Spatial proof</strong></th><td>Distance/containment/route relation between objects</td></tr>
+<tr><th scope="row"><strong>Raster proof</strong></th><td>Visual evidence, tile Merkle roots, derived-layer provenance</td></tr>
+<tr><th scope="row"><strong>Governance right</strong></th><td>Vote, delegation, membership weight, proposal execution</td></tr>
+<tr><th scope="row"><strong>WOTS lease</strong></th><td>A key-use reservation/certificate (a claimable right, not usually a bearer asset)</td></tr>
+</tbody></table></div>
+<h3 id="5-4-the-sdk-s-own-documented-use-case-list" data-od-id="5-4-the-sdk-s-own-documented-use-case-list">5.4 The SDK's own documented use-case list</h3>
+<p>From the Meridian VTXO payments example — the canonical "what fits" list:</p>
+<ul class="source-list"><li><strong>Streaming / metered payments</strong> — split a tranche per tick (per second, per API call, per kWh).</li><li><strong>Prepaid transit &amp; event passes</strong> — a bearer ticket; split off a ride/seat; transferable; expiring by pool epoch.</li><li><strong>Loyalty / gift / merchant credit</strong> — off-chain bearer credit redeemable at any pool member; merge points, split to redeem.</li><li><strong>Micropayment aggregation for IoT</strong> — millions of device payments collapse into epoch roots instead of on-chain dust.</li><li><strong>Payroll / allowance</strong> — mint an epoch's claim, split per person; recipients spend or transfer without a bank rail.</li><li><strong>Escrow-lite / condition-gated bearers</strong> — transfer co-signed only when an off-chain condition holds; escrow without a separate UTXO.</li><li><strong>Rollup-style batched settlement</strong> — the pool as a generic batching lane; many transfers, one anchor, per-share exit as the escape hatch.</li><li><strong>Collateral / margin bearers</strong> — hold margin as VTXOs; refresh keeps them current; per-share exit pulls collateral unilaterally.</li><li><strong>Ticket / queueing (NFT-ish)</strong> — a transferable right to a scarce slot; the pool epoch is the freeze point.</li><li><strong>Multi-asset pockets</strong> — one pool per tokenId; a wallet holds a pocket per asset with the same primitives.</li></ul>
+<h3 id="5-5-other-payloads-worth-designing-for" data-od-id="5-5-other-payloads-worth-designing-for">5.5 Other payloads worth designing for</h3>
+<div class="table-wrap"><table class="source-table" id="table-12" data-od-id="table-12">
+<thead><tr><th scope="col">Voucher</th><th scope="col">What it holds</th><th scope="col">Why it's interesting</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Liquidity Share</strong></th><td><code>LiquidityPosition</code> + <code>LiquidityReceipt</code> + fee policy + lock terms</td><td>A claimable income-producing position, not just a token</td></tr>
+<tr><th scope="row"><strong>Statechain Cash</strong></th><td>A private UTXO (any token/NFT) transferred off-chain</td><td>High-value or privacy-sensitive bearer asset; cooperative claim or timelock reclaim</td></tr>
+<tr><th scope="row"><strong>Digital Inheritance</strong></th><td>Encrypted backup + proof + time window</td><td>Claim secret decrypts the data; dead-man switch; on-chain amount + off-chain payload</td></tr>
+<tr><th scope="row"><strong>Proof-of-Attendance</strong></th><td>Location/spatial proof + NFT + manifest</td><td>Claim only at the venue; provenance-rich POAP</td></tr>
+<tr><th scope="row"><strong>Governance Seat</strong></th><td>Vote/delegation + mandate</td><td>Claim to vote or delegate; execution bound to the outcome</td></tr>
+<tr><th scope="row"><strong>Option / Quote</strong></th><td>EEFI market agreement + exercise covenant</td><td>Claim to exercise a call/put at a strike before expiry</td></tr>
+<tr><th scope="row"><strong>Dataset Access</strong></th><td>Replication descriptor + checkpoint + encrypted backup</td><td>Claim a capability to a dataset, not a balance</td></tr>
+<tr><th scope="row"><strong>Provider Bond</strong></th><td>Provider bond certificate/ref</td><td>Claim to become a bonded provider; note this is data-only in v0.1</td></tr>
+<tr><th scope="row"><strong>Transit/Event Pass</strong></th><td>Bearer VTXO ticket</td><td>Split per ride/seat; transferable; expires by epoch</td></tr>
+<tr><th scope="row"><strong>Streaming Salary</strong></th><td>VTXO split per tick or linear release</td><td>Continuous claim, not monthly batch</td></tr>
+<tr><th scope="row"><strong>Collateral/Margin</strong></th><td>Collateral VTXO + exit right</td><td>Per-share unilateral exit; useful for trading and credit</td></tr>
+</tbody></table></div>
+</section>
+<section class="chapter" id="section-6-the-gallery-12-patterns-not-100-features" data-section="6" data-od-id="section-6">
+<header class="chapter-header"><p class="section-kicker">Section 6</p><h2 id="section-6-the-gallery-12-patterns-not-100-features-title">The gallery: 12 patterns, not 100 features</h2></header>
+<p>Every use case in §5 is an instance of one of twelve patterns. Learn the patterns and the product ideas generate themselves.</p>
+<h3 id="pattern-1-prepaid-bearer-credit" data-od-id="pattern-1-prepaid-bearer-credit">Pattern 1 — Prepaid bearer credit</h3>
+<p><strong>What it is:</strong> value is paid forward, held as a bearer claim, and redeemed later at one or more merchants.</p>
+<p><strong>Why a VTXO:</strong> no per-redemption on-chain fee; merge to consolidate; split to redeem exact amounts; recipient needs no account.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Loyalty / gift / merchant credit</strong> <span class="badge badge-now">Now</span> — issue a batch, redeem at any pool member.</li><li><strong>Multi-asset pockets</strong> <span class="badge badge-now">Now</span> — one pocket per token, same primitives.</li><li><strong>The Open Tab</strong> <span class="badge badge-idea">Idea</span> — a bar tab as a VTXO: open with 50, split per round, friends top it up, merge the remainder at close.</li><li><strong>Community Fridge</strong> <span class="badge badge-idea">Idea</span> — sponsors mint small claims; neighbours redeem at participating shops; merchants merge at week's end.</li></ul>
+<p><strong>Design note:</strong> denomination matters. Pre-split into note-like pieces at issuance (a "denomination ladder") to avoid a split storm at redemption.</p>
+<h3 id="pattern-2-metered-and-streaming-value" data-od-id="pattern-2-metered-and-streaming-value">Pattern 2 — Metered and streaming value</h3>
+<p><strong>What it is:</strong> value is released continuously or per unit of consumption.</p>
+<p><strong>Why a VTXO:</strong> native split per tick; the remainder stays pooled and refreshable; no monthly batch.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Streaming / metered payments</strong> <span class="badge badge-now">Now</span> — per second, per call, per kWh.</li><li><strong>Streaming salary</strong> <span class="badge badge-idea">Idea</span> — work streams, pay streams; stop work, stop vesting.</li><li><strong>Energy purse</strong> <span class="badge badge-idea">Idea</span> — tokenised kWh credits split per charging session.</li><li><strong>Pay-per-view / pay-per-word</strong> <span class="badge badge-idea">Idea</span> — unlock a segment with a micro-claim; the rest stays locked.</li></ul>
+<p><strong>Design note:</strong> the meter is a policy problem, not a payment problem. Pair the VTXO with a KISSVM meter or an oracle attestation; otherwise "streaming" is just frequent invoicing.</p>
+<h3 id="pattern-3-batched-settlement-and-rollups" data-od-id="pattern-3-batched-settlement-and-rollups">Pattern 3 — Batched settlement and rollups</h3>
+<p><strong>What it is:</strong> many small transfers collapse into one periodic on-chain anchor.</p>
+<p><strong>Why a VTXO:</strong> the pool <em>is</em> the batching lane; the epoch root is the receipt; per-share exit is the escape hatch.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Micropayment aggregation for IoT</strong> <span class="badge badge-now">Now</span> — device payments become epoch roots, not dust.</li><li><strong>Rollup-style settlement</strong> <span class="badge badge-now">Now</span> — a generic lane for any asset.</li><li><strong>Exchange / merchant withdrawals</strong> <span class="badge badge-idea">Idea</span> — batch customer payouts, anchor once.</li><li><strong>Machine roaming</strong> <span class="badge badge-idea">Idea</span> — a device spends across operators; settlement nets at the epoch.</li></ul>
+<p><strong>Design note:</strong> batching changes the risk profile. The longer the epoch, the more you rely on the operator between anchors. Publish the exit path and the anchor cadence.</p>
+<h3 id="pattern-4-conditional-escrow-escrow-lite" data-od-id="pattern-4-conditional-escrow-escrow-lite">Pattern 4 — Conditional escrow ("escrow-lite")</h3>
+<p><strong>What it is:</strong> the claim unlocks only when an external condition is proven; otherwise it refunds.</p>
+<p><strong>Why a VTXO:</strong> an HTLC-style policy gives escrow semantics without a separate UTXO or a custodian.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Escrow-lite</strong> <span class="badge badge-now">Now</span> — condition-gated bearer.</li><li><strong>Freelance milestones</strong> <span class="badge badge-idea">Idea</span> — deliverable hash unlocks the tranche; timeout refunds the client.</li><li><strong>Lost-dog bounty</strong> <span class="badge badge-idea">Idea</span> — return attestation unlocks; expiry when the dog comes home.</li><li><strong>The Rain Cheque</strong> <span class="badge badge-idea">Idea</span> — oracle-attested SLA failure unlocks compensation automatically.</li></ul>
+<p><strong>Design note:</strong> name the oracle. "Trustless escrow" with an unnamed attestor is marketing, not design.</p>
+<h3 id="pattern-5-delivery-versus-payment" data-od-id="pattern-5-delivery-versus-payment">Pattern 5 — Delivery versus payment</h3>
+<p><strong>What it is:</strong> the asset moves only if the payment moves, atomically.</p>
+<p><strong>Why a VTXO:</strong> the <code>dvp</code> policy binds owner, counterparty, payment ID, hashlock and timeout in one claim.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>NFT / collectible sale</strong> <span class="badge badge-idea">Idea</span> — the link is the listing.</li><li><strong>Ticket resale at face value</strong> <span class="badge badge-idea">Idea</span> — the issuer caps the resale price by policy, killing scalping.</li><li><strong>OTC swap</strong> <span class="badge badge-idea">Idea</span> — two claims cross-settle.</li><li><strong>Physical goods with shipping attestation</strong> <span class="badge badge-idea">Idea</span> — payment releases on proof of dispatch.</li></ul>
+<p><strong>Design note:</strong> DvP is the policy that breaks a one-shot claim model. Build it early; it forces the right abstractions.</p>
+<h3 id="pattern-6-time-shaped-rights" data-od-id="pattern-6-time-shaped-rights">Pattern 6 — Time-shaped rights</h3>
+<p><strong>What it is:</strong> the claim's value is a function of time — vesting, cliff, window, decay.</p>
+<p><strong>Why a VTXO:</strong> <code>vesting</code> is a first-class policy with floored partial claims.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Seed Packet</strong> <span class="badge badge-idea">Idea</span> — contributor grant with cliff and linear vest; unvested returns.</li><li><strong>DAO grant tranches</strong> <span class="badge badge-idea">Idea</span> — milestone + vesting + revocation.</li><li><strong>Rent deposit release</strong> <span class="badge badge-idea">Idea</span> — deposit vests back to the tenant after inspection.</li><li><strong>Warranty rebate</strong> <span class="badge badge-idea">Idea</span> — a no-claim rebate that unlocks after 12 months.</li></ul>
+<p><strong>Design note:</strong> partial claims are the hard part. The reservation core must support repeated claims against one voucher and track claimed-to-date.</p>
+<h3 id="pattern-7-delegated-authority-the-agent-economy" data-od-id="pattern-7-delegated-authority-the-agent-economy">Pattern 7 — Delegated authority (the agent economy)</h3>
+<p><strong>What it is:</strong> the claim transfers permission, with a budget attached.</p>
+<p><strong>Why a VTXO:</strong> <code>delegated</code> scopes claim/transfer, expires at a block, and can be revoked; the budget is a payload.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Robot's Warrant</strong> <span class="badge badge-idea">Idea</span> — manifest + mandate + budget for an AI ops agent.</li><li><strong>Agent budget</strong> <span class="badge badge-idea">Idea</span> — a company card that expires and can be cancelled.</li><li><strong>Bearer API key with value</strong> <span class="badge badge-idea">Idea</span> — the key is the claim; the budget is the blast radius.</li><li><strong>Contractor allowance</strong> <span class="badge badge-idea">Idea</span> — scoped spend for a season.</li></ul>
+<p><strong>Design note:</strong> this is where VTXOs stop being payments and become <strong>authorisation infrastructure</strong>. Usage accounting, revocation and budget reservation live above the chain; the chain enforces the ceiling.</p>
+<h3 id="pattern-8-recoverable-and-inheritable-claims" data-od-id="pattern-8-recoverable-and-inheritable-claims">Pattern 8 — Recoverable and inheritable claims</h3>
+<p><strong>What it is:</strong> a claim that can be recovered by trusted parties if the holder disappears.</p>
+<p><strong>Why a VTXO:</strong> <code>recovery</code> gives guardians a threshold and a block-height trigger.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Digital inheritance</strong> <span class="badge badge-idea">Idea</span> — heartbeat, guardians, encrypted payload.</li><li><strong>Scholarship guardianship</strong> <span class="badge badge-idea">Idea</span> — student + school + sponsor.</li><li><strong>Corporate continuity</strong> <span class="badge badge-idea">Idea</span> — a departing operator's keys are recoverable by a board threshold.</li><li><strong>Wallet recovery</strong> <span class="badge badge-idea">Idea</span> — social recovery for a bearer balance.</li></ul>
+<p><strong>Design note:</strong> recovery is a social protocol wearing a cryptographic hat. Document the ceremony, not just the threshold.</p>
+<h3 id="pattern-9-collateral-and-margin" data-od-id="pattern-9-collateral-and-margin">Pattern 9 — Collateral and margin</h3>
+<p><strong>What it is:</strong> value is locked against a counterparty or an obligation.</p>
+<p><strong>Why a VTXO:</strong> <code>collateral</code> binds owner and counterparty; refresh keeps it current; per-share exit lets the holder pull out.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Prediction position</strong> <span class="badge badge-idea">Idea</span> — winner-takes-the-lock, oracle-resolved.</li><li><strong>Trading margin</strong> <span class="badge badge-idea">Idea</span> — per-share exit, no exchange custody.</li><li><strong>Three-key rent deposit</strong> <span class="badge badge-idea">Idea</span> — tenant/landlord/arbiter threshold.</li><li><strong>Micro-insurance pool</strong> <span class="badge badge-idea">Idea</span> — premiums merge; claims need attestation.</li></ul>
+<p><strong>Design note:</strong> collateral without a credible exit is just a promise. The exit path is the product.</p>
+<h3 id="pattern-10-scarce-slot-rights-tickets-queues-licences" data-od-id="pattern-10-scarce-slot-rights-tickets-queues-licences">Pattern 10 — Scarce-slot rights (tickets, queues, licences)</h3>
+<p><strong>What it is:</strong> a transferable right to a scarce thing: a seat, a slot, a licence, a membership.</p>
+<p><strong>Why a VTXO:</strong> NFT-like uniqueness with cash-like split/transfer; epoch is the freeze point.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Prepaid transit &amp; event passes</strong> <span class="badge badge-now">Now</span> — split per ride/seat; transferable.</li><li><strong>Ticket / queueing</strong> <span class="badge badge-now">Now</span> — a right to a slot, not a JPEG.</li><li><strong>Membership / season pass</strong> <span class="badge badge-idea">Idea</span> — transferable until the freeze block.</li><li><strong>Licence seat</strong> <span class="badge badge-idea">Idea</span> — a software seat that can be lent, not copied.</li></ul>
+<p><strong>Design note:</strong> decide whether the right is <em>unique</em> (NFT payload) or <em>fungible within a class</em> (token payload). The answer changes the settlement path.</p>
+<h3 id="pattern-11-payroll-allowances-and-distribution" data-od-id="pattern-11-payroll-allowances-and-distribution">Pattern 11 — Payroll, allowances and distribution</h3>
+<p><strong>What it is:</strong> one funding event fans out to many recipients.</p>
+<p><strong>Why a VTXO:</strong> mint once, split per person, recipients spend or transfer; unclaimed value rolls forward.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Payroll / allowance</strong> <span class="badge badge-now">Now</span> — an epoch's claim split per person.</li><li><strong>Scholarship stipend</strong> <span class="badge badge-idea">Idea</span> — vesting + guardian recovery.</li><li><strong>Per-diem / travel float</strong> <span class="badge badge-idea">Idea</span> — expires at trip end; unspent returns.</li><li><strong>Referral cascade</strong> <span class="badge badge-idea">Idea</span> — commission splits down a chain of referrers; uncashed hops merge back.</li></ul>
+<p><strong>Design note:</strong> distribution is where expiry and reclaim earn their keep. Unclaimed payouts should return to the next run, not sit dead.</p>
+<h3 id="pattern-12-proof-carrying-physical-redemption" data-od-id="pattern-12-proof-carrying-physical-redemption">Pattern 12 — Proof-carrying physical redemption</h3>
+<p><strong>What it is:</strong> the claim redeems a physical thing, and the claim carries the proof that makes the redemption credible.</p>
+<p><strong>Why a VTXO:</strong> payload can include proofs, manifests and location/raster attestations; policy can require presence.</p>
+<p class="label-line"><strong>Instances</strong></p>
+<ul class="source-list"><li><strong>Proof-of-attendance</strong> <span class="badge badge-idea">Idea</span> — claimable only at the venue.</li><li><strong>Deposit-return cup</strong> <span class="badge badge-idea">Idea</span> — returning the cup produces a proof that releases the deposit.</li><li><strong>Warranty wallet</strong> <span class="badge badge-idea">Idea</span> — proof of purchase + service credit.</li><li><strong>Library of Things</strong> <span class="badge badge-idea">Idea</span> — refundable deposit + rental fee; return proof releases the deposit.</li><li><strong>Open Studio</strong> <span class="badge badge-idea">Idea</span> — a print's NFT + raster + location proof is the certificate of authenticity.</li></ul>
+<p><strong>Design note:</strong> the proof is the product. If the attestation is forgeable, the physical redemption is theatre.</p>
+<h3 id="the-idea-shelf" data-od-id="the-idea-shelf">The idea shelf</h3>
+<p>Quick-fire concepts that did not need a full pattern. All <span class="badge badge-idea">Idea</span> unless noted.</p>
+<div class="table-wrap"><table class="source-table" id="table-13" data-od-id="table-13">
+<thead><tr><th scope="col">Idea</th><th scope="col">One line</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>The Disappearing City Hunt</strong></th><td>200 hidden QR vouchers, a golden ticket, sunset expiry; reclaimed funds finance the next hunt.</td></tr>
+<tr><th scope="row"><strong>Last-Call Jackpot</strong></th><td>A pub-quiz code expires at midnight; the unclaimed pot rolls into next week's bigger jackpot.</td></tr>
+<tr><th scope="row"><strong>Secret Santa That Comes Back</strong></th><td>An emailed bearer gift, regiftable by forwarding; returns to sender if unclaimed.</td></tr>
+<tr><th scope="row"><strong>Group Gift</strong></th><td>Many contributors merge into one claim; the recipient splits it; unclaimed splits back proportionally.</td></tr>
+<tr><th scope="row"><strong>Split-the-Bill</strong></th><td>One table voucher splits by headcount; each diner pays their part.</td></tr>
+<tr><th scope="row"><strong>Tournament Pot</strong></th><td>Entry fees merge; an oracle attests the winner; unclaimed pot rolls over.</td></tr>
+<tr><th scope="row"><strong>Arcade High-Score</strong></th><td>The cabinet prints a claim code; unclaimed scores fund the next prize.</td></tr>
+<tr><th scope="row"><strong>Reusable Wristband</strong></th><td>Split per drink/food, transferable to a friend, leftover refunded at the gate.</td></tr>
+<tr><th scope="row"><strong>Pay-it-forward coffee tab</strong></th><td>A code on a receipt, good for one coffee, expires in 24 hours.</td></tr>
+<tr><th scope="row"><strong>Office snack fund</strong></th><td>Expires Friday 5pm; unclaimed money returns to next week's fund.</td></tr>
+<tr><th scope="row"><strong>The Regift Chain</strong></th><td>Each forward rotates the secret and appends a receipt, producing a provenance chain of gifting.</td></tr>
+<tr><th scope="row"><strong>The Scholarship</strong></th><td>Vesting per term, 2-of-3 release (student, school, sponsor), guardian recovery.</td></tr>
+</tbody></table></div>
+</section>
+<section class="chapter" id="section-7-three-designs-in-full" data-section="7" data-od-id="section-7">
+<header class="chapter-header"><p class="section-kicker">Section 7</p><h2 id="section-7-three-designs-in-full-title">Three designs in full</h2></header>
+<h3 id="7-1-the-seed-packet-a-voucher-that-holds-a-vesting-schedule" data-od-id="7-1-the-seed-packet-a-voucher-that-holds-a-vesting-schedule">7.1 The Seed Packet — a voucher that holds a vesting schedule</h3>
+<p><strong>Payload:</strong> project token or MINIMA held as an Omnia VTXO with a <code>vesting</code> policy (<code>startBlock</code>, <code>cliffBlock</code>, <code>endBlock</code>, <code>totalAmount</code>), or a KISSVM cliff+linear release coin.</p>
+<p><strong>Policy:</strong> <code>vesting</code>, optionally composed with <code>recovery</code> for a disappeared contributor.</p>
+<p><strong>Settlement:</strong> partial VTXO claims per period; the unvested remainder returns to treasury after <code>reclaimAfter</code>.</p>
+<p><strong>Transport:</strong> email link, wallet-gated claim page.</p>
+<p class="label-line"><strong>Flow</strong></p>
+<ol class="source-list"><li>Treasury mints one VTXO per contributor (or one pool piece per cohort).</li><li>The claim page shows a growth ring, not a balance.</li><li>At each period, the contributor claims the newly vested portion.</li><li>If they disappear past the reclaim date, the treasury reclaims the unvested remainder.</li></ol>
+<p><strong>Why it's deep:</strong> the voucher holds a <strong>time-shaped right</strong>, not a lump sum. Claims are partial and repeatable. This breaks the current one-shot <code>reserved → settled</code> model and forces the state machine to become policy-aware. It also removes the need for a vesting dashboard or a custody provider.</p>
+<p><strong>Failure modes:</strong> chain-tip manipulation (mitigated by <code>chainTip</code> in <code>verifyVtxoClaim</code>); rounding disputes (floor and publish the formula); abandoned vesting (reclaim path).</p>
+<h3 id="7-2-the-self-selling-artifact-an-nft-that-sells-itself" data-od-id="7-2-the-self-selling-artifact-an-nft-that-sells-itself">7.2 The Self-Selling Artifact — an NFT that sells itself</h3>
+<p><strong>Payload:</strong> an NFT (token amount 1 + metadata/artimage/attributes) plus a provenance bundle: <code>signtoken</code> authorship, a raster proof of the physical item, a spatial/location proof from the studio, an ownership proof, and a signed manifest.</p>
+<p><strong>Policy:</strong> a <code>dvp</code> claim policy (owner, counterparty, payment ID, hashlock, timeout block) or a conditional HTLC.</p>
+<p><strong>Settlement:</strong> atomic payment-versus-transfer; unsold inventory returns to the artist at timeout.</p>
+<p><strong>Transport:</strong> the link is the listing. A QR on the print, a link in the gallery, an NFC tag on the frame.</p>
+<p class="label-line"><strong>Flow</strong></p>
+<ol class="source-list"><li>Artist mints the NFT and assembles the proof bundle.</li><li>The claim link is published as the listing, with an ask and a deadline.</li><li>A buyer claims by paying the ask; the NFT and proofs transfer atomically.</li><li>If unsold by the deadline, the artist reclaims.</li></ol>
+<p><strong>Why it's deep:</strong> the voucher is simultaneously the <strong>asset</strong>, the <strong>listing</strong>, and the <strong>escrow</strong>. The claim is payment-gated, not just signature-gated. Provenance is part of the payload, not a separate database. This is a marketplace primitive built from a bearer link.</p>
+<p><strong>Failure modes:</strong> stale proof (bind proofs to the claim preimage); payment race (single-use payment ID); resale price manipulation (cap resale by policy if desired).</p>
+<h3 id="7-3-the-robot-s-warrant-a-voucher-that-holds-authority" data-od-id="7-3-the-robot-s-warrant-a-voucher-that-holds-authority">7.3 The Robot's Warrant — a voucher that holds authority</h3>
+<p><strong>Payload:</strong> a signed <code>Manifest</code> (capability), an <code>Authority Mandate</code> (scope, constraints, usage limits, expiry), a budget (VTXO or token amount), and a <code>Proof</code> envelope.</p>
+<p><strong>Policy:</strong> mandate verification plus a <code>delegated</code> claim policy (owner, delegate, scope, <code>expiresAtBlock</code>), or KISSVM mandate/usage-tracking scripts.</p>
+<p><strong>Settlement:</strong> the agent claims the warrant; it can act only within scope, up to budget, until expiry; unspent budget returns.</p>
+<p><strong>Transport:</strong> an API credential, a QR, or an agent-to-agent handoff.</p>
+<p class="label-line"><strong>Flow</strong></p>
+<ol class="source-list"><li>A DAO mints a warrant for an AI ops agent: 5 MINIMA, whitelisted vendors, until block <em>N</em>.</li><li>The agent claims the warrant and operates.</li><li>Usage is metered off-chain; settlement is on-chain.</li><li>The DAO revokes; leftover budget returns.</li></ol>
+<p><strong>Why it's deep:</strong> the voucher holds <strong>permission</strong>, not money. The budget is secondary; the real asset is the authority. Usage tracking, revocation, and scope are first-class. This is the primitive for the agent economy: hire an agent with a company card that expires and can be cancelled.</p>
+<p><strong>Failure modes:</strong> scope creep (encode allowlists in the mandate, not the prompt); revocation lag (short expiry windows); budget overrun (reserve, don't just check).</p>
+</section>
+<section class="chapter" id="section-8-the-claim-lifecycle-end-to-end" data-section="8" data-od-id="section-8">
+<header class="chapter-header"><p class="section-kicker">Section 8</p><h2 id="section-8-the-claim-lifecycle-end-to-end-title">The claim lifecycle, end to end</h2></header>
+<h3 id="8-1-the-product-states-what-vouchar-implements-today" data-od-id="8-1-the-product-states-what-vouchar-implements-today">8.1 The product states (what Vouchar implements today)</h3>
+<figure class="figure figure-product-flow" id="figure-product-lifecycle" data-od-id="figure-product-lifecycle">
+  <figcaption><span class="figure-number">Figure 3</span> Product states and exception paths</figcaption>
+  <div class="product-flow">
+    <div class="flow-main" data-od-id="product-flow-main">
+      <span class="state">created</span><span class="arrow" aria-hidden="true">→</span><span class="state">issued</span><span class="arrow" aria-hidden="true">→</span><span class="state">reserved</span><span class="arrow" aria-hidden="true">→</span><span class="state">settling</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">settled</span>
+    </div>
+    <div class="flow-branch"><span class="branch-label">from issued</span><span class="arrow" aria-hidden="true">↘</span><span class="state">expired</span><span class="arrow" aria-hidden="true">→</span><span class="state">reclaiming</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">reclaimed</span></div>
+    <div class="flow-branch"><span class="branch-label">from issued</span><span class="arrow" aria-hidden="true">↘</span><span class="state terminal">cancelled</span></div>
+    <div class="flow-branch flow-branch-wide"><span class="branch-label">from reserved / settling / expired</span><span class="arrow" aria-hidden="true">→</span><span class="state review">manual_review</span><span class="arrow" aria-hidden="true">→</span><span class="state terminal">settled</span><span class="flow-separator">|</span><span class="state">reclaiming</span><span class="flow-separator">|</span><span class="state terminal">cancelled</span></div>
+  </div>
+</figure>
+<div class="table-wrap"><table class="source-table" id="table-14" data-od-id="table-14">
+<thead><tr><th scope="col">State</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>created</code></th><td>Campaign draft; no vouchers yet</td></tr>
+<tr><th scope="row"><code>issued</code></th><td>Voucher exists, secret committed, claimable until <code>claimDeadline</code></td></tr>
+<tr><th scope="row"><code>reserved</code></th><td>A wallet has bound the claim; settlement is pending</td></tr>
+<tr><th scope="row"><code>settling</code></th><td>Payout is building/signed/broadcast</td></tr>
+<tr><th scope="row"><code>settled</code></th><td>Confirmed at the required depth</td></tr>
+<tr><th scope="row"><code>expired</code></th><td>Claim window closed without a claim</td></tr>
+<tr><th scope="row"><code>reclaiming</code></th><td>Funds returning to the treasury</td></tr>
+<tr><th scope="row"><code>reclaimed</code></th><td>Returned and reconciled</td></tr>
+<tr><th scope="row"><code>manual_review</code></th><td>Exception queue for ambiguous failures</td></tr>
+</tbody></table></div>
+<h3 id="8-2-the-same-lifecycle-with-vtxo-settlement" data-od-id="8-2-the-same-lifecycle-with-vtxo-settlement">8.2 The same lifecycle with VTXO settlement</h3>
+<div class="table-wrap"><table class="source-table" id="table-15" data-od-id="table-15">
+<thead><tr><th scope="col">Product state</th><th scope="col">VTXO-side meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>created</code></th><td>Pool not yet funded; capacity reserved</td></tr>
+<tr><th scope="row"><code>issued</code></th><td>VTXO minted and held by the treasury/operator (or a recipient pool funded)</td></tr>
+<tr><th scope="row"><code>reserved</code></th><td>Claim session bound; VTXO not yet moved</td></tr>
+<tr><th scope="row"><code>settling</code></th><td>Transfer or exit broadcast; owner rotation pending</td></tr>
+<tr><th scope="row"><code>settled</code></th><td>VTXO active with the recipient (or L1 payout confirmed)</td></tr>
+<tr><th scope="row"><code>expired</code></th><td>Claim window closed; VTXO still active at the issuer</td></tr>
+<tr><th scope="row"><code>reclaiming</code></th><td>Exit/merge back into treasury capacity</td></tr>
+<tr><th scope="row"><code>reclaimed</code></th><td>Capacity restored and reconciled</td></tr>
+</tbody></table></div>
+<p><strong>Critical rule:</strong> a VTXO transfer is not final until the owner-rotation transaction confirms. The product state <code>settled</code> must mean "confirmed", not "broadcast".</p>
+<h3 id="8-3-the-eight-steps-of-any-claim" data-od-id="8-3-the-eight-steps-of-any-claim">8.3 The eight steps of any claim</h3>
+<ol class="source-list"><li><strong>Issue</strong> — create the payload, bind the policy, commit the secret hash.</li><li><strong>Fund</strong> — lock the backing (treasury L1, pool capacity, or owner coin).</li><li><strong>Deliver</strong> — send the secret over the chosen transport; never log it, never put it in a query string.</li><li><strong>Open</strong> — the claimant opens the link; the service creates a short-lived session.</li><li><strong>Prove</strong> — the claimant proves wallet ownership (challenge signature).</li><li><strong>Reserve</strong> — atomically bind the voucher to that wallet, once.</li><li><strong>Settle</strong> — move the payload (L1 payout, VTXO transfer, statechain claim, proof delivery).</li><li><strong>Confirm and reconcile</strong> — wait for finality, write the receipt, and make the outcome auditable.</li></ol>
+<p>Steps 4–6 are where most voucher systems fail. They are also where this app is strongest.</p>
+</section>
+<section class="chapter" id="section-9-design-patterns-and-anti-patterns" data-section="9" data-od-id="section-9">
+<header class="chapter-header"><p class="section-kicker">Section 9</p><h2 id="section-9-design-patterns-and-anti-patterns-title">Design patterns and anti-patterns</h2></header>
+<h3 id="do" data-od-id="do">Do</h3>
+<ul class="source-list"><li><strong>Separate payload from policy.</strong> The envelope should not know product names.</li><li><strong>Make expiry a policy decision, not a UI countdown.</strong> Enforce at reservation; label on-chain metadata as untrusted.</li><li><strong>Pre-split at issuance.</strong> A denomination ladder beats a split storm at redemption.</li><li><strong>Treat the claim link as a capability.</strong> One-time, fragment-only, rotatable, revocable.</li><li><strong>Bind the claim to a wallet.</strong> Bearer secret + wallet proof is phishing-resistant and prevents link theft from becoming payout theft.</li><li><strong>Publish the exit path.</strong> If a holder cannot exit, it is custody with extra steps.</li><li><strong>Design the reclaim.</strong> Unclaimed value should roll forward, not evaporate.</li><li><strong>Meter above the chain.</strong> Usage counters belong to the service; the chain enforces ceilings.</li><li><strong>Make receipts portable.</strong> A settlement receipt is also a reputation primitive.</li></ul>
+<h3 id="don-t" data-od-id="don-t">Don't</h3>
+<ul class="source-list"><li><strong>Don't call pooled VTXOs "permissionless bearer cash" yet.</strong> The SDK explicitly reserves that claim until the exit gates pass.</li><li><strong>Don't claim on-chain expiry</strong> when <code>expiresAt</code> is metadata.</li><li><strong>Don't put the secret in analytics, referrers, or server logs.</strong></li><li><strong>Don't reuse a payment ID</strong> in a DvP policy.</li><li><strong>Don't conflate "reserved" with "settled".</strong> The gap is where double-spends live.</li><li><strong>Don't build an oracle-dependent product without naming the oracle.</strong></li><li><strong>Don't assume batching is private.</strong> Aggregation helps; it is not anonymity.</li><li><strong>Don't let a guardian set be the only recovery plan.</strong> Write the social ceremony.</li></ul>
+</section>
+<section class="chapter" id="section-10-failure-modes-and-threat-model" data-section="10" data-od-id="section-10">
+<header class="chapter-header"><p class="section-kicker">Section 10</p><h2 id="section-10-failure-modes-and-threat-model-title">Failure modes and threat model</h2></header>
+<div class="table-wrap"><table class="source-table" id="table-16" data-od-id="table-16">
+<thead><tr><th scope="col">Failure</th><th scope="col">What happens</th><th scope="col">Mitigation</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>Operator disappears</strong></th><td>Pool capacity is stranded; claims may be unenforceable</td><td>Per-share exit, owner-state claim coin, published operator policy, multi-operator pools</td></tr>
+<tr><th scope="row"><strong>Operator equivocation</strong></th><td>Two conflicting roots / receipts</td><td>Pool-wide epoch roots, watchtowers, receipt anchoring (<span class="badge badge-designed">Designed</span>)</td></tr>
+<tr><th scope="row"><strong>Double claim</strong></th><td>Same voucher reserved twice</td><td>Atomic reserve, unique constraints, idempotency keys</td></tr>
+<tr><th scope="row"><strong>Link leakage</strong></th><td>Anyone with the link can attempt a claim</td><td>Wallet binding, short sessions, one-time secrets, rotation on forward</td></tr>
+<tr><th scope="row"><strong>Stale epoch</strong></th><td>A proof verifies against an old root</td><td>Epoch checks in acceptance; reject below the anchored epoch</td></tr>
+<tr><th scope="row"><strong>Replay</strong></th><td>A claim signature is reused in another context</td><td>Canonical preimage binding VTXO, owner, amount, pool, epoch</td></tr>
+<tr><th scope="row"><strong>Chain reorg</strong></th><td>A "confirmed" settlement reverses</td><td>Confirmation depth; reconcile; manual review</td></tr>
+<tr><th scope="row"><strong>Fee spike</strong></th><td>Exit or anchor becomes uneconomic</td><td>Fee budget in the pool policy; batch cadence</td></tr>
+<tr><th scope="row"><strong>Lost key</strong></th><td>Bearer value is lost</td><td><code>recovery</code> policy, guardians, documented ceremony</td></tr>
+<tr><th scope="row"><strong>Guardian collusion</strong></th><td>Recovery steals the claim</td><td>Threshold + time delay + social accountability</td></tr>
+<tr><th scope="row"><strong>Oracle failure</strong></th><td>Conditional/DvP claims mis-settle</td><td>Multiple attestors, dispute window, refund branch</td></tr>
+<tr><th scope="row"><strong>Regulatory expiry</strong></th><td>Unclaimed value is legally abandoned</td><td>Jurisdiction-aware reclaim rules; escheatment process</td></tr>
+</tbody></table></div>
+</section>
+<section class="chapter" id="section-11-economics-and-operations" data-section="11" data-od-id="section-11">
+<header class="chapter-header"><p class="section-kicker">Section 11</p><h2 id="section-11-economics-and-operations-title">Economics and operations</h2></header>
+<ul class="source-list"><li><strong>Anchor cost vs claim value.</strong> Batching only pays when the aggregate fee per claim is below the L1 payout cost. Publish the break-even.</li><li><strong>Pool capacity is a balance sheet.</strong> Minting consumes capacity; refreshing and exiting return it. Operators need a capacity policy, not just a script.</li><li><strong>Exit cost is a promise.</strong> If a unilateral exit costs more than the claim, the exit is decorative. Subsidise or batch exits.</li><li><strong>Denomination ladder.</strong> Issue a mix of note sizes so redemption rarely needs a split.</li><li><strong>Epoch cadence.</strong> Shorter epochs improve finality; longer epochs improve fee efficiency. Pick explicitly.</li><li><strong>Operator selection.</strong> Reputation, bond, uptime, exit history. A provider bond is a claimable record, not a guarantee.</li><li><strong>Watchtower economics.</strong> Someone must monitor disputes. If nobody is paid to watch, nobody watches.</li></ul>
+</section>
+<section class="chapter" id="section-12-privacy-compliance-and-human-factors" data-section="12" data-od-id="section-12">
+<header class="chapter-header"><p class="section-kicker">Section 12</p><h2 id="section-12-privacy-compliance-and-human-factors-title">Privacy, compliance, and human factors</h2></header>
+<p class="label-line"><strong>Privacy</strong></p>
+<ul class="source-list"><li>A bearer link is cash-like for the holder and <em>terrible</em> for the sender if it leaks through email metadata, analytics, or screenshots.</li><li>On-chain, exits and anchors are linkable by amount and timing. Aggregation helps; it is not anonymity.</li><li>The claim service learns who claimed what. Minimise retention; hash what you must keep.</li></ul>
+<p class="label-line"><strong>Compliance</strong></p>
+<ul class="source-list"><li>Stored-value and expiry rules vary by jurisdiction. A product-level expiry is not automatically a legal expiry.</li><li>Decide where KYC happens: at issuance (issuer risk) or redemption (merchant risk). Both are defensible; ambiguity is not.</li><li>Sanctions screening at claim time is cheaper than clawing back settled value.</li><li>Email delivery is personal data. Retention and deletion belong in the product spec.</li></ul>
+<p class="label-line"><strong>Human factors</strong></p>
+<ul class="source-list"><li>People screenshot links. Design for it: wallet binding, one-time use, visible "claimed" state.</li><li>People lose links. Design for it: recovery policy or issuer reissue with audit.</li><li>People forward gifts. Design for it: regift as a first-class action that rotates the secret and appends a receipt.</li><li>People distrust countdowns. Show the <em>policy</em> ("claimable until 31 Dec"), not a fake on-chain timer.</li></ul>
+</section>
+<section class="chapter" id="section-13-build-map-which-package-for-what" data-section="13" data-od-id="section-13">
+<header class="chapter-header"><p class="section-kicker">Section 13</p><h2 id="section-13-build-map-which-package-for-what-title">Build map: which package for what</h2></header>
+<div class="table-wrap"><table class="source-table" id="table-17" data-od-id="table-17">
+<thead><tr><th scope="col">Need</th><th scope="col">Package</th><th scope="col">Role</th></tr></thead>
+<tbody>
+<tr><th scope="row">Pool + VTXO lifecycle</th><td><code>@totemsdk/omnia-vtxo</code></td><td>Spendable balances, claim policies, per-share exit</td></tr>
+<tr><th scope="row">LP accounting</th><td><code>@totemsdk/liquidity-bond</code></td><td>Position, receipt, allocation, fee ledger</td></tr>
+<tr><th scope="row">Capital allocation</th><td><code>@totemsdk/omnia-pool</code></td><td>Deploy, deposit, allocate, NAV, withdraw</td></tr>
+<tr><th scope="row">Channels / factories</th><td><code>@totemsdk/omnia</code>, <code>omnia-factory</code>, <code>omnia-splice</code></td><td>Capacity and settlement backends</td></tr>
+<tr><th scope="row">Scripts and temporal logic</th><td><code>@totemsdk/kissvm</code></td><td>Vesting, meters, thresholds, MAST policies</td></tr>
+<tr><th scope="row">Privacy UTXO transfer</th><td><code>@totemsdk/statechain</code></td><td>Blind SE co-signed ownership</td></tr>
+<tr><th scope="row">Wallet connect</th><td><code>@totemsdk/connect</code></td><td>dApp API, mint/transfer/claim methods</td></tr>
+<tr><th scope="row">Chain reads</th><td><code>@totemsdk/chain-provider</code></td><td>Tip, confirmations, epoch anchoring</td></tr>
+<tr><th scope="row">Proofs and manifests</th><td><code>@totemsdk/proof</code>, <code>manifest</code>, <code>identity</code></td><td>Attestations, capabilities, root identity</td></tr>
+<tr><th scope="row">Governance</th><td><code>@totemsdk/governance</code></td><td>Votes, delegation, membership</td></tr>
+<tr><th scope="row">Risk and markets</th><td><code>@totemsdk/eefi</code></td><td>Capital agreements, quotes, covenants</td></tr>
+<tr><th scope="row">Agent policy</th><td><code>@totemsdk/agent-policy</code></td><td>Budgets, grants, usage reservations</td></tr>
+<tr><th scope="row">Email delivery</th><td><code>@totemsdk/edge-email</code></td><td>Claim-link transport</td></tr>
+</tbody></table></div>
+<p><strong>Rule of thumb:</strong> <code>omnia-vtxo</code> holds value; <code>liquidity-bond</code> holds the ledger of who owns what; <code>omnia-pool</code> decides where capital goes. Do not duplicate the ledger in the VTXO layer.</p>
+</section>
+<section class="chapter" id="section-14-reality-check-the-maturity-ladder" data-section="14" data-od-id="section-14">
+<header class="chapter-header"><p class="section-kicker">Section 14</p><h2 id="section-14-reality-check-the-maturity-ladder-title">Reality check: the maturity ladder</h2></header>
+<p>This is the section to read before writing a pitch deck.</p>
+<div class="table-wrap"><table class="source-table" id="table-18" data-od-id="table-18">
+<thead><tr><th scope="col">Capability</th><th scope="col">Status</th><th scope="col">Notes</th></tr></thead>
+<tbody>
+<tr><th scope="row">Pool creation, mint, transfer, split, merge, refresh</th><td><span class="badge badge-now">Now</span> Now</td><td>Core lifecycle is implemented and tested</td></tr>
+<tr><th scope="row">Conservation and proof verification</th><td><span class="badge badge-now">Now</span> Now</td><td><code>verifyVtxo</code>, <code>verifyConservation</code></td></tr>
+<tr><th scope="row">Claim policies (<code>single</code>, <code>threshold</code>, <code>conditional</code>, <code>dvp</code>, <code>delegated</code>, <code>rotation</code>, <code>vesting</code>, <code>recovery</code>, <code>collateral</code>)</th><td><span class="badge badge-now">Now</span> Now</td><td><code>verifyVtxoClaim</code> requires a caller-supplied signature verifier and rejects future blocks when a chain tip is given</td></tr>
+<tr><th scope="row">Deterministic pool IDs</th><td><span class="badge badge-now">Now</span> Now</td><td><code>SHA3-256(operator + tokenId + nonce)</code></td></tr>
+<tr><th scope="row">Serialization and stores</th><td><span class="badge badge-now">Now</span> Now</td><td>BigInt-safe JSON; in-memory store ships; production adapters are roadmap</td></tr>
+<tr><th scope="row">Arbitrary-recipient pooled transfer</th><td><span class="badge badge-designed">Designed</span> Designed</td><td>V1 uses the owner-state claim coin; <code>transferVtxo()</code> alone is an off-chain ledger move</td></tr>
+<tr><th scope="row">Unilateral exit</th><td><span class="badge badge-designed">Designed</span> Designed</td><td>Owner-pool covenant landed; watchtower and dispute monitoring are roadmap</td></tr>
+<tr><th scope="row">Operator receipts</th><td><span class="badge badge-designed">Designed</span> Designed</td><td>Concept doc flags mock signatures; 0.9.x adds epoch-anchored receipts — verify against release notes</td></tr>
+<tr><th scope="row">Pool-wide epoch roots</th><td><span class="badge badge-designed">Designed</span> Designed</td><td>Concept doc flags single-batch local roots as an MVP limitation</td></tr>
+<tr><th scope="row">Enforceable VTXO expiry</th><td><span class="badge badge-not-yet">Not Yet</span> Not yet</td><td><code>expiresAt</code> is not in the leaf and is dropped on transfer</td></tr>
+<tr><th scope="row">Permissionless bearer cash</th><td><span class="badge badge-not-yet">Not Yet</span> Not yet</td><td>Explicit non-goal until the V1 exit test passes</td></tr>
+<tr><th scope="row">Watchtower / equivocation detection</th><td><span class="badge badge-not-yet">Not Yet</span> Not yet</td><td>Operator trust is reduced, not eliminated</td></tr>
+<tr><th scope="row">Public pooled-yield products</th><td><span class="badge badge-not-yet">Not Yet</span> Not yet</td><td>Requires the exit and watchtower gates</td></tr>
+</tbody></table></div>
+<p><strong>What this means for product language:</strong> say "bearer claim with a designed unilateral exit", not "self-custodial cash". Say "product-level expiry", not "the VTXO expires". Say "operator-supported", not "trustless".</p>
+</section>
+<section class="chapter" id="section-15-choose-your-primitive" data-section="15" data-od-id="section-15">
+<header class="chapter-header"><p class="section-kicker">Section 15</p><h2 id="section-15-choose-your-primitive-title">Choose your primitive</h2></header>
+<p>A decision tree for the next product idea.</p>
+<figure class="figure figure-decision" id="figure-decision-tree" data-od-id="figure-decision-tree">
+  <figcaption><span class="figure-number">Figure 4</span> Choose the payload, then the policy</figcaption>
+  <div class="decision-tree">
+    <div class="decision-root">
+      <div class="tree-question">Is the thing being claimed unique (one of one)?</div>
+      <div class="tree-answer"><span class="tree-label">yes</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">NFT payload <small>(token supply 1 + metadata + provenance)</small></span></div>
+      <div class="tree-answer tree-no"><span class="tree-label">no</span><span class="tree-continuation">continue through the tests below</span></div>
+    </div>
+    <div class="decision-branches">
+      <div class="decision-row"><span class="tree-question">Is it a right to a scarce slot?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">ticket / queue payload <small>(NFT-ish VTXO)</small></span></div>
+      <div class="decision-row"><span class="tree-question">Is it a permission rather than a balance?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">mandate + delegated policy</span></div>
+      <div class="decision-row"><span class="tree-question">Is it a dataset or credential?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">proof / manifest / data payload + on-chain anchor</span></div>
+      <div class="decision-row"><span class="tree-question">Is it a share of a pool?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">liquidity position + receipt</span></div>
+      <div class="decision-row money-row"><span class="tree-question">Is it money?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-continuation">choose the governing condition</span></div>
+      <div class="money-branches">
+        <div class="money-branch"><span class="tree-question">Does it release over time?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">vesting policy</span></div>
+        <div class="money-branch"><span class="tree-question">Does it require a counterparty payment?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">dvp policy</span></div>
+        <div class="money-branch"><span class="tree-question">Does it require an external event?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">conditional + oracle</span></div>
+        <div class="money-branch"><span class="tree-question">Must it be recoverable?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">recovery policy</span></div>
+        <div class="money-branch"><span class="tree-question">Must it be revocable?</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">delegated + revocation</span></div>
+        <div class="money-branch"><span class="tree-label">otherwise</span><span class="arrow" aria-hidden="true">→</span><span class="tree-result">single-owner bearer VTXO</span></div>
+      </div>
+    </div>
+  </div>
+</figure>
+<p>Then ask the three product questions:</p>
+<ol class="source-list"><li><strong>Who can claim?</strong> (bearer, wallet-bound, threshold, delegate)</li><li><strong>When does it end?</strong> (deadline, vesting, expiry, rollover)</li><li><strong>What happens if nobody claims?</strong> (reclaim, roll forward, burn, donate)</li></ol>
+<p>If you cannot answer all three, the product is not specified yet.</p>
+</section>
+<section class="chapter" id="section-16-what-this-means-for-the-claim-app-the-development-gap" data-section="16" data-od-id="section-16">
+<header class="chapter-header"><p class="section-kicker">Section 16</p><h2 id="section-16-what-this-means-for-the-claim-app-the-development-gap-title">What this means for the claim app (the development gap)</h2></header>
+<p>The current app is a strong <strong>fungible-value claim rail</strong>. It models a voucher as one fungible token amount:</p>
+<figure class="code-figure" id="code-2" data-od-id="code-2"><figcaption><span class="figure-number">Code 2</span> TypeScript</figcaption><pre><code class="language-ts">Asset { tokenId, symbol, decimals, amountBaseUnits }</code></pre></figure>
+<p>That is the bottleneck. Everything above is blocked on generalising two types and making the reservation core policy-aware.</p>
+<h3 id="16-1-the-two-unions" data-od-id="16-1-the-two-unions">16.1 The two unions</h3>
+<figure class="code-figure" id="code-3" data-od-id="code-3"><figcaption><span class="figure-number">Code 3</span> TypeScript</figcaption><pre><code class="language-ts">type VoucherPayload =
+  | { kind: 'native'; amount: string }
+  | { kind: 'token'; tokenId: string; amount: string; decimals: number; symbol: string }
+  | { kind: 'nft'; tokenId: string; metadata: NftMetadata }
+  | { kind: 'basket'; items: VoucherPayload[] }
+  | { kind: 'vtxo'; poolId: string; vtxoId: string; tokenId: string; amount: string; claimPolicy: VtxoClaimPolicy }
+  | { kind: 'statechain'; chainId: string; coinId: string; tokenId: string; amount: string }
+  | { kind: 'liquidity-position'; positionId: string; receiptId: string }
+  | { kind: 'proof'; proof: SignedProof }
+  | { kind: 'manifest'; manifest: SignedManifest }
+  | { kind: 'mandate'; mandate: SignedProof; budget: VoucherPayload }
+  | { kind: 'data'; descriptor: DatasetDescriptor; ciphertextRef: string };
+
+type ClaimPolicy =
+  | { kind: 'bearer' }
+  | { kind: 'script'; address: string; script: string }
+  | { kind: 'vesting'; startBlock: number; cliffBlock: number; endBlock: number }
+  | { kind: 'threshold'; owners: string[]; threshold: number }
+  | { kind: 'htlc'; hashlock: string; timeoutBlock: number }
+  | { kind: 'dvp'; paymentId: string; hashlock: string; timeoutBlock: number }
+  | { kind: 'delegated'; delegate: string; scope: 'claim' | 'transfer'; expiresAtBlock: number }
+  | { kind: 'recovery'; guardians: string[]; threshold: number; recoverAfterBlock: number }
+  | { kind: 'revocable'; revoker: string };</code></pre></figure>
+<p>The reservation and settlement core can stay, but it must become <strong>policy-aware</strong>:</p>
+<ul class="source-list"><li><strong>Partial claims</strong> for vesting and streaming: reserve a portion, allow repeated claims, track claimed-to-date.</li><li><strong>Payment-gated claims</strong> for DvP: hold the asset while payment is pending; settle atomically or release.</li><li><strong>Transfer-gated claims</strong> for statechain/VTXO: prevent double-transfer; verify the claim payload.</li><li><strong>Budget and usage reservations</strong> for mandates: reserve budget and usage counters.</li><li><strong>Multi-asset campaigns</strong>: one campaign can issue different payloads per voucher.</li><li><strong>Collection campaigns</strong>: one NFT per voucher.</li><li><strong>Delivery modes</strong>: on-chain payout, VTXO transfer, statechain claim payload, proof/manifest delivery, encrypted-data delivery, physical redemption code.</li><li><strong>Policy-aware expiry and reclaim</strong>: VTXO exit/refund, statechain reclaim, NFT return, mandate revocation, data deletion/rotation.</li><li><strong>Verification</strong>: ownership proof stays, plus proof/mandate/DvP verification, NFT metadata validation, VTXO/statechain verification.</li></ul>
+<h3 id="16-2-the-recommended-first-slice" data-od-id="16-2-the-recommended-first-slice">16.2 The recommended first slice</h3>
+<p>Implement <strong>two payload types</strong> that force the architecture to become policy-aware without destabilising the reservation core:</p>
+<ol class="source-list"><li><strong>NFT + DvP</strong> — unique asset, payment-gated. Forces: payload union, policy union, payment-gated reservation, NFT metadata validation, new delivery mode, new expiry semantics.</li><li><strong>VTXO + vesting</strong> — time-shaped, partial claims. Forces: partial claims, claimed-to-date accounting, chain-tip awareness, policy-aware reclaim.</li></ol>
+<p>Together they exercise nearly every new abstraction: payload union, policy union, partial claims, delivery modes, and policy-aware expiry/reclaim.</p>
+<h3 id="16-3-the-gap-itemised" data-od-id="16-3-the-gap-itemised">16.3 The gap, itemised</h3>
+<div class="table-wrap"><table class="source-table table-wide" id="table-19" data-od-id="table-19">
+<thead><tr><th scope="col">Area</th><th scope="col">Today</th><th scope="col">Needed</th><th scope="col">First consumer</th></tr></thead>
+<tbody>
+<tr><th scope="row">Domain type</th><td>Single <code>Asset</code></td><td><code>VoucherPayload</code> union</td><td>NFT, VTXO</td></tr>
+<tr><th scope="row">Policy</th><td>Implicit bearer</td><td><code>ClaimPolicy</code> union</td><td>Vesting, DvP</td></tr>
+<tr><th scope="row">Voucher lifecycle</th><td>One-shot <code>reserved → settled</code></td><td>Repeatable/partial claims</td><td>Vesting</td></tr>
+<tr><th scope="row">Reservation</th><td>Amount + wallet</td><td>Amount + policy context + usage</td><td>Mandate, DvP</td></tr>
+<tr><th scope="row">Settlement</th><td>L1 treasury payout</td><td>Pluggable delivery modes</td><td>VTXO, statechain, proof</td></tr>
+<tr><th scope="row">Expiry</th><td><code>claimDeadline</code> + <code>reclaimAfter</code></td><td>Policy-aware expiry/reclaim</td><td>Vesting, DvP</td></tr>
+<tr><th scope="row">Verification</th><td>Wallet ownership proof</td><td>Payload + policy + proof verification</td><td>NFT, DvP, mandate</td></tr>
+<tr><th scope="row">Campaign model</th><td>One asset per campaign</td><td>Per-voucher payloads, collections</td><td>Multi-asset, NFTs</td></tr>
+<tr><th scope="row">UI</th><td>Amount + claim button</td><td>Payload-aware claim page (growth ring, DvP checkout, proof viewer)</td><td>All</td></tr>
+<tr><th scope="row">Tests</th><td>Unit + adversarial + live flow</td><td>Policy matrices, partial-claim invariants, DvP races</td><td>All</td></tr>
+</tbody></table></div>
+<h3 id="16-4-definition-of-done-for-the-first-slice" data-od-id="16-4-definition-of-done-for-the-first-slice">16.4 Definition of done for the first slice</h3>
+<ul class="source-list"><li>A campaign can issue an NFT with a DvP ask and a deadline.</li><li>A buyer can claim by paying; the NFT and proof bundle transfer atomically; an unsold item reclaims.</li><li>A campaign can issue a vesting VTXO; a contributor can claim repeatedly; the vested amount floors correctly; the remainder reclaims.</li><li>The reservation core remains the single source of truth for "who owns what, until when".</li><li>No new state is introduced that the reconciliation job cannot explain.</li><li>The readiness report no longer lists expiry and dynamic-exit blockers for the modes we claim to support.</li></ul>
+</section>
+<section class="chapter" id="section-17-open-problems" data-section="17" data-od-id="section-17">
+<header class="chapter-header"><p class="section-kicker">Section 17</p><h2 id="section-17-open-problems-title">Open problems</h2></header>
+<p>An honest guide ends with questions, not certainties.</p>
+<ol class="source-list"><li><strong>Enforceable expiry.</strong> How do we bind expiry into the leaf and carry it across transfer without a new covenant per product?</li><li><strong>Cross-pool clearing.</strong> Can claims from different pools net against each other without a trusted clearer?</li><li><strong>Privacy for bearer links.</strong> Can a claim be proven without revealing the link's provenance to the operator?</li><li><strong>Delegation without custody.</strong> How does an agent prove it stayed in scope without handing the owner its entire transcript?</li><li><strong>A standard envelope.</strong> Should there be a portable <code>VtxoEnvelope</code> schema (payload + policy + proof + transport) so wallets can render any claim?</li><li><strong>Wallet UX for partial claims.</strong> What does "you have 3.2 of 10 vested" look like across wallets?</li><li><strong>Watchtower incentives.</strong> Who pays, who watches, and what happens when nobody does?</li><li><strong>Dispute resolution.</strong> When two proofs conflict, who is the court?</li><li><strong>Regulatory expiry.</strong> How do reclaim rules map to escheatment in each jurisdiction?</li><li><strong>Reputation from settlement.</strong> Can receipts become a portable, privacy-preserving credit signal?</li></ol>
+</section>
+<section class="chapter" id="section-18-glossary" data-section="18" data-od-id="section-18">
+<header class="chapter-header"><p class="section-kicker">Section 18</p><h2 id="section-18-glossary-title">Glossary</h2></header>
+<div class="table-wrap"><table class="source-table" id="table-20" data-od-id="table-20">
+<thead><tr><th scope="col">Term</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><th scope="row"><strong>VTXO</strong></th><td>Virtual transaction output: a bearer claim on pooled on-chain capacity</td></tr>
+<tr><th scope="row"><strong>Pool</strong></th><td>The on-chain anchor backing a set of VTXOs</td></tr>
+<tr><th scope="row"><strong>Operator</strong></th><td>The party holding the pool's on-chain UTXO and co-signing mutations</td></tr>
+<tr><th scope="row"><strong>Epoch</strong></th><td>A batch round; refresh re-anchors claims to a new root</td></tr>
+<tr><th scope="row"><strong>Commitment root</strong></th><td>Merkle root over live VTXOs in a pool</td></tr>
+<tr><th scope="row"><strong>Exit</strong></th><td>Returning a claim's value to the chain</td></tr>
+<tr><th scope="row"><strong>Per-share exit</strong></th><td>An exit limited to one holder's committed share</td></tr>
+<tr><th scope="row"><strong>Claim policy</strong></th><td>The rule set deciding who may claim, when, and under what conditions</td></tr>
+<tr><th scope="row"><strong>Payload</strong></th><td>The thing being claimed</td></tr>
+<tr><th scope="row"><strong>DvP</strong></th><td>Delivery versus payment</td></tr>
+<tr><th scope="row"><strong>HTLC</strong></th><td>Hash time-locked contract</td></tr>
+<tr><th scope="row"><strong>MAST</strong></th><td>Merkleised abstract syntax tree of spending conditions</td></tr>
+<tr><th scope="row"><strong>Statechain</strong></th><td>Off-chain UTXO ownership via blind co-signatures</td></tr>
+<tr><th scope="row"><strong>EEFI</strong></th><td>Encrypted executable financial instrument family in the SDK</td></tr>
+<tr><th scope="row"><strong>Mandate</strong></th><td>A scoped, expiring, revocable permission</td></tr>
+<tr><th scope="row"><strong>Manifest</strong></th><td>A signed declaration of an app, capability, or service</td></tr>
+</tbody></table></div>
+</section>
+<section class="chapter" id="section-19-further-reading" data-section="19" data-od-id="section-19">
+<header class="chapter-header"><p class="section-kicker">Section 19</p><h2 id="section-19-further-reading-title">Further reading</h2></header>
+<p>Inside the Totem SDK:</p>
+<ul class="source-list"><li><code>packages/omnia-vtxo/README.md</code> — lifecycle, API, caveats.</li><li><code>packages/omnia-vtxo/src/claim-policy.ts</code> — the authoritative policy union and evaluator.</li><li><code>docs/VTXO_OWNERSHIP_AND_TRANSFERABILITY.md</code> — why arbitrary-recipient transfer is an owner-state covenant, and what <code>expiresAt</code> really means.</li><li><code>docs/examples/meridian-vtxo-payments.md</code> — LP capital → VTXO payments → withdrawal, plus the canonical use-case list.</li><li><code>docs/VTXO_HARDENING_AND_MULTIPARTY_TEST_PLAN.md</code> — what "hardened" has to mean.</li><li><code>docs/rfc/RFC-038-VTXO-OPERATOR-PROTOCOL.md</code> — operator protocol.</li><li><code>docs/temporal-framework-design.md</code> — vesting, meters, and time-shaped scripts.</li><li><code>docs/building-eefi-with-totem-edge.md</code> — capital agreements, quotes, covenants.</li><li><code>TotemEdgeSDKDocs/docs/concepts/omnia-vtxo.md</code> — the public concept page.</li></ul>
+<p>Inside this repository:</p>
+<ul class="source-list"><li><code>README.md</code> — what Vouchar does today and what is gated.</li><li><code>SPEC.md</code> — the service contract.</li><li><code>packages/claim-domain/src/types.ts</code> — the current <code>Asset</code> bottleneck.</li><li><code>packages/claim-domain/src/state-machine.ts</code> — the reservation core to generalise.</li><li><code>packages/sdk-adapter/src/vtxo.ts</code> — VTXO modes and the readiness report.</li></ul>
+<p><em>The link is the envelope. The payload can be almost any Minima/Totem asset or right. The claim policy encodes the deal. Build the envelope once.</em></p>
+</section>
+
+  <section class="colophon" id="colophon" data-od-id="colophon" aria-labelledby="colophon-title">
+    <header class="colophon-header">
+      <p class="section-kicker">Edition note</p>
+      <h1 id="colophon-title">Colophon</h1>
+    </header>
+    <dl class="colophon-grid">
+      <dt>Source</dt><dd><code>source/VTXO-USERS-GUIDE.md</code></dd>
+      <dt>Generated</dt><dd>25 November 2026</dd>
+      <dt>Edition</dt><dd>November 2026 · Companion to Vouchar</dd>
+      <dt>Format</dt><dd>Self-contained HTML · A4 print stylesheet · no external assets</dd>
+    </dl>
+    <p class="colophon-note">Living document. Mechanics and maturity labels reflect the SDK as inspected; product ideas are labelled as ideas.</p>
+    <p class="colophon-mark">Totem / Edge</p>
+  </section>
+</main>
+</body>
+</html>

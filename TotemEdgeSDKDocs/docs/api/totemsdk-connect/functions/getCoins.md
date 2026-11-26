@@ -20,6 +20,12 @@
 
 `string`
 
+#### allTokens?
+
+`boolean`
+
+Return coins for every token held by the wallet.
+
 #### minAmount?
 
 `string`

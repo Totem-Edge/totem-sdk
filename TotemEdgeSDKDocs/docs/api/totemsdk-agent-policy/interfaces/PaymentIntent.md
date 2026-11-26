@@ -15,7 +15,8 @@ Agents produce intents; they do not execute them.
 
 > `optional` **amount?**: `string`
 
-Amount in the token's native unit (string to preserve precision).
+Amount in the token's base unit (atom integer string). Chain/RPC surfaces
+use decimal MINIMA text; convert before building an intent.
 
 ***
 

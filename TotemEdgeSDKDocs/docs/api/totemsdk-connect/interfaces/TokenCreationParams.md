@@ -13,7 +13,9 @@
 > `optional` **burn?**: `string`
 
 Amount of MINIMA to burn with the minting transaction (display units, e.g.
-"0.1"). Matches Minima's `tokencreate burn:`.
+"0.1"). This is separate from `totalSupply`: it affects coin selection and
+change, is omitted from transaction outputs, and is destroyed by Minima's
+inputs-minus-outputs burn rule. It never increases token supply.
 
 ***
 
@@ -55,8 +57,9 @@ Optional token script (defaults to `RETURN TRUE`).
 > `optional` **signtoken?**: `string`
 
 Public key to sign the token creation with (Minima's `signtoken:`), proving
-authorship. The signature over the token coin id is added to the token
-metadata. NOTE: not yet implemented by the wallet handler.
+authorship. The signature over the token-create output coin ID is added to
+the token metadata (`signtype`/`signedby`/`signature`). Implemented by the
+wallet: it spends a dedicated WOTS leaf, never the transaction leaf.
 
 ***
 

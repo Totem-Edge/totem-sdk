@@ -76,6 +76,24 @@
 
 ***
 
+### getMandateUsage()
+
+> **getMandateUsage**(`reservationId`): `Promise`\<[`RunMandateUsage`](../interfaces/RunMandateUsage.md)[]\>
+
+Per-mandate reserved/actual rows for ledger assertions and reconciliation.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`RunMandateUsage`](../interfaces/RunMandateUsage.md)[]\>
+
+***
+
 ### getRun()
 
 > **getRun**(`runId`): `Promise`\<[`RunStateSnapshot`](../interfaces/RunStateSnapshot.md) \| `undefined`\>
@@ -172,3 +190,47 @@ restores spending capacity.
 #### Returns
 
 `Promise`\<[`OutOfBandReservation`](../interfaces/OutOfBandReservation.md)[]\>
+
+***
+
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved lease before expiry.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### settleActual()
+
+> **settleActual**(`instruction`): `Promise`\<[`RunStepReceipt`](../interfaces/RunStepReceipt.md)\>
+
+RFC-022 Amendment A: settle by verified dispatch, outcome and actual use.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](../interfaces/SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`RunStepReceipt`](../interfaces/RunStepReceipt.md)\>

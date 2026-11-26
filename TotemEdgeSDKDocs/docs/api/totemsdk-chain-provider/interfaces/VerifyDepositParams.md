@@ -12,6 +12,14 @@ never a declared string on a record.
 
 ## Properties
 
+### chainTip?
+
+> `optional` **chainTip?**: `number`
+
+Authoritative chain tip, required with `minConfirmations`.
+
+***
+
 ### claimedAmount?
 
 > `optional` **claimedAmount?**: `string`
@@ -25,6 +33,15 @@ Claimed funding amount (decimal string); coin.amount must be >= this.
 > **coinId**: `string`
 
 Coin spendable as the funding source.
+
+***
+
+### minConfirmations?
+
+> `optional` **minConfirmations?**: `number`
+
+OMN-054: required confirmation depth. Needs `chainTip` to compute
+`tip - created + 1`; when depth cannot be established the check fails.
 
 ***
 

@@ -8,6 +8,14 @@
 
 ## Properties
 
+### compute?
+
+> `optional` **compute?**: [`ComputeLimits`](ComputeLimits.md)
+
+RFC-077 §8 compute ceilings.
+
+***
+
 ### maxDurationMs?
 
 > `optional` **maxDurationMs?**: `number`
@@ -91,3 +99,47 @@ Cap on gross spend across a single step.
 #### tokenId
 
 > **tokenId**: `string`
+
+***
+
+### physical?
+
+> `optional` **physical?**: `object`
+
+RFC-023 physical ceilings (per step / per run).
+
+#### allowedEnvelopes?
+
+> `optional` **allowedEnvelopes?**: `string`[]
+
+#### maxDurationSeconds?
+
+> `optional` **maxDurationSeconds?**: `object`
+
+##### maxDurationSeconds.seconds
+
+> **seconds**: `string`
+
+#### maxEnergy?
+
+> `optional` **maxEnergy?**: `object`
+
+##### maxEnergy.wattHours
+
+> **wattHours**: `string`
+
+#### maxSpeed?
+
+> `optional` **maxSpeed?**: `object`
+
+##### maxSpeed.metresPerSecond
+
+> **metresPerSecond**: `string`
+
+#### maxStepPower?
+
+> `optional` **maxStepPower?**: `object`
+
+##### maxStepPower.watts
+
+> **watts**: `string`

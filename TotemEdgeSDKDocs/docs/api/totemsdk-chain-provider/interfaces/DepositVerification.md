@@ -26,6 +26,14 @@ The coin as observed on-chain.
 
 ***
 
+### confirmations?
+
+> `optional` **confirmations?**: `number`
+
+Observed confirmation depth when it could be computed (OMN-054).
+
+***
+
 ### confirmed
 
 > **confirmed**: `boolean`

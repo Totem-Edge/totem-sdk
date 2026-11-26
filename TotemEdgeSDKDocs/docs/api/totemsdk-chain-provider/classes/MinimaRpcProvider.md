@@ -25,7 +25,7 @@ the base provider's `getCoin` for the live path.
 
 ##### client
 
-`MinimaRpcClient`
+[`MinimaRpcClient`](../interfaces/MinimaRpcClient.md)
 
 #### Returns
 
@@ -82,6 +82,53 @@ Deterministic deposit address the LP funds the pool/channel from.
 #### Implementation of
 
 [`DepositVerifier`](../interfaces/DepositVerifier.md).[`depositAddressFor`](../interfaces/DepositVerifier.md#depositaddressfor)
+
+***
+
+### exportCoin()
+
+> **exportCoin**(`coinId`): `Promise`\<`ExportedCoin` \| `null`\>
+
+Serialized coin proof (Minima `coinexport`) for a specific coin id. Required
+to assemble the funding input proof. Never expose this over a remote control
+plane; it is caller-side material.
+
+#### Parameters
+
+##### coinId
+
+`string`
+
+#### Returns
+
+`Promise`\<`ExportedCoin` \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`exportCoin`](../interfaces/ChainStateProvider.md#exportcoin)
+
+***
+
+### getAddressInfo()
+
+> **getAddressInfo**(`address`): `Promise`\<`AddressInfo` \| `null`\>
+
+Ownership material for an address (public key + address script). Required to
+build a funding witness for a coin the caller owns.
+
+#### Parameters
+
+##### address
+
+`string`
+
+#### Returns
+
+`Promise`\<`AddressInfo` \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getAddressInfo`](../interfaces/ChainStateProvider.md#getaddressinfo)
 
 ***
 
@@ -231,6 +278,33 @@ MMR root at tip — the anchor peers verify offline proofs against.
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getTokensByCreator`](../interfaces/ChainStateProvider.md#gettokensbycreator)
+
+***
+
+### getTransaction()
+
+> **getTransaction**(`txpowid`): `Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+Full transaction body by TxPoW id (OMN-074), via the node's `txpow` command.
+
+`txpow txpowid:<id>` returns the whole TxPoW including the transaction body,
+which is what proves a coin was created by an expected transaction. Returns
+null when the node does not know the id or the response has no body, so the
+caller fails closed rather than trusting an unattributed coin.
+
+#### Parameters
+
+##### txpowid
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getTransaction`](../interfaces/ChainStateProvider.md#gettransaction)
 
 ***
 

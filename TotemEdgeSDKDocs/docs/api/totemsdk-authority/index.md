@@ -2,8 +2,6 @@
 
 ***
 
-**Maturity: v1**
-
 # @totemsdk/authority
 
 ## Interfaces

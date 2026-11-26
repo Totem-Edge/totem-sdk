@@ -170,6 +170,29 @@
 
 ***
 
+### getTransaction()
+
+> **getTransaction**(`txpowid`): `Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+Transaction body (OMN-074): use whichever side implements the lookup. A
+provider without it is skipped, not treated as authoritative absence.
+
+#### Parameters
+
+##### txpowid
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getTransaction`](../interfaces/ChainStateProvider.md#gettransaction)
+
+***
+
 ### searchTokens()
 
 > **searchTokens**(`query`): `Promise`\<[`TokenInfo`](../interfaces/TokenInfo.md)[]\>

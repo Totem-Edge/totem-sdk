@@ -2,8 +2,6 @@
 
 ***
 
-**Maturity: v1**
-
 # @totemsdk/connect
 
 ## Classes
@@ -34,6 +32,7 @@
 - [OmniaChannelSummary](interfaces/OmniaChannelSummary.md)
 - [OmniaClientPort](interfaces/OmniaClientPort.md)
 - [OmniaPendingHtlc](interfaces/OmniaPendingHtlc.md)
+- [OmniaSupportProbe](interfaces/OmniaSupportProbe.md)
 - [PaymentRequestPort](interfaces/PaymentRequestPort.md)
 - [PublishCapabilityResult](interfaces/PublishCapabilityResult.md)
 - [ReceiptStorePort](interfaces/ReceiptStorePort.md)
@@ -66,6 +65,7 @@
 - [TotemBroadcastTxPoWRequest](interfaces/TotemBroadcastTxPoWRequest.md)
 - [TotemBroadcastTxPoWResponse](interfaces/TotemBroadcastTxPoWResponse.md)
 - [TotemCapabilities](interfaces/TotemCapabilities.md)
+- [TotemCoinTokenMetadata](interfaces/TotemCoinTokenMetadata.md)
 - [TotemConnectRequest](interfaces/TotemConnectRequest.md)
 - [TotemConnectResponse](interfaces/TotemConnectResponse.md)
 - [TotemCreatePaymentRequestRequest](interfaces/TotemCreatePaymentRequestRequest.md)
@@ -228,6 +228,7 @@
 - [createPaymentRequest](functions/createPaymentRequest.md)
 - [createToken](functions/createToken.md)
 - [createWalletRuntime](functions/createWalletRuntime.md)
+- [deriveOmniaCapabilities](functions/deriveOmniaCapabilities.md)
 - [diffWalletCapabilityManifests](functions/diffWalletCapabilityManifests.md)
 - [fetchAxiaWalletCapabilities](functions/fetchAxiaWalletCapabilities.md)
 - [getAccounts](functions/getAccounts.md)

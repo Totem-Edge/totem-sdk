@@ -266,3 +266,47 @@ classified `unknown` and their budget is HELD until explicit reconciliation.
 #### Returns
 
 `Promise`\<[`OutOfBandReservation`](OutOfBandReservation.md)[]\>
+
+***
+
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved grant lease before expiry.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### settleActual()
+
+> **settleActual**(`instruction`): `Promise`\<[`StepReceipt`](StepReceipt.md)\>
+
+RFC-022 Amendment A: settle a grant reservation by verified actual use.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`StepReceipt`](StepReceipt.md)\>

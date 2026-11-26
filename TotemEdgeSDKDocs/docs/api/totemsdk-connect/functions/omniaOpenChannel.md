@@ -24,11 +24,27 @@
 
 `string`
 
+#### remoteAddressIndex?
+
+`number`
+
 #### remoteAmount
 
 `string`
 
 #### remotePartyId
+
+`string`
+
+#### remotePublicKeyDigest
+
+`string`
+
+#### remoteSettlementAddress?
+
+`string`
+
+#### remoteTransportPubkey?
 
 `string`
 

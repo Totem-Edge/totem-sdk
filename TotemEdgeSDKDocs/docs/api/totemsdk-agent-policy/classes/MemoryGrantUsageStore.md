@@ -350,3 +350,55 @@ classified `unknown` and their budget is HELD until explicit reconciliation.
 #### Implementation of
 
 [`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`recoverReservations`](../interfaces/GrantUsageStore.md#recoverreservations)
+
+***
+
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved grant lease before expiry.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number` = `...`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`renewReservation`](../interfaces/GrantUsageStore.md#renewreservation)
+
+***
+
+### settleActual()
+
+> **settleActual**(`instruction`): `Promise`\<[`StepReceipt`](../interfaces/StepReceipt.md)\>
+
+RFC-022 Amendment A: settle a grant reservation by verified actual use.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](../interfaces/SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`StepReceipt`](../interfaces/StepReceipt.md)\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`settleActual`](../interfaces/GrantUsageStore.md#settleactual)

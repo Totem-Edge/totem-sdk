@@ -22,6 +22,12 @@
 
 > `optional` **address?**: `string`
 
+#### allTokens?
+
+> `optional` **allTokens?**: `boolean`
+
+Return coins for every token held by the wallet.
+
 #### minAmount?
 
 > `optional` **minAmount?**: `string`
@@ -51,3 +57,5 @@ Filter by spent status (UTXO inspection).
 #### tokenId?
 
 > `optional` **tokenId?**: `string`
+
+Specific token to query. Use `'*'` (or `allTokens`) for every token.

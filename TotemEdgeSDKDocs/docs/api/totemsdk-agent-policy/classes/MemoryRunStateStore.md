@@ -120,6 +120,28 @@
 
 ***
 
+### getMandateUsage()
+
+> **getMandateUsage**(`reservationId`): `Promise`\<[`RunMandateUsage`](../interfaces/RunMandateUsage.md)[]\>
+
+Per-mandate reserved/actual usage rows for ledger assertions.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`RunMandateUsage`](../interfaces/RunMandateUsage.md)[]\>
+
+#### Implementation of
+
+[`RunStateStore`](../interfaces/RunStateStore.md).[`getMandateUsage`](../interfaces/RunStateStore.md#getmandateusage)
+
+***
+
 ### getReceipt()
 
 > **getReceipt**(`reservationId`): `Promise`\<[`RunStepReceipt`](../interfaces/RunStepReceipt.md) \| `undefined`\>
@@ -263,6 +285,38 @@ HELD, never restored by expiry. Returns every unsettled reservation.
 
 ***
 
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved lease before expiry. This is a trusted
+coordinator operation; a renewal never extends an already-expired
+reservation or an absolute policy ceiling.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number` = `...`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+[`RunStateStore`](../interfaces/RunStateStore.md).[`renewReservation`](../interfaces/RunStateStore.md#renewreservation)
+
+***
+
 ### reserveStep()
 
 > **reserveStep**(`reservation`): `Promise`\<`void`\>
@@ -280,3 +334,27 @@ HELD, never restored by expiry. Returns every unsettled reservation.
 #### Implementation of
 
 [`RunStateStore`](../interfaces/RunStateStore.md).[`reserveStep`](../interfaces/RunStateStore.md#reservestep)
+
+***
+
+### settleReservation()
+
+> **settleReservation**(`instruction`): `Promise`\<[`RunStepReceipt`](../interfaces/RunStepReceipt.md)\>
+
+RFC-022 Amendment A: settle by verified dispatch, terminal outcome and
+actual consumption. Idempotent by `settlementId`; conflicting settlement
+of an already-closed reservation fails closed.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](../interfaces/SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`RunStepReceipt`](../interfaces/RunStepReceipt.md)\>
+
+#### Implementation of
+
+[`RunStateStore`](../interfaces/RunStateStore.md).[`settleReservation`](../interfaces/RunStateStore.md#settlereservation)

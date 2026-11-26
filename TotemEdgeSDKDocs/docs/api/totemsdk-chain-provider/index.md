@@ -2,8 +2,6 @@
 
 ***
 
-**Maturity: rc**
-
 # @totemsdk/chain-provider
 
 ## Classes
@@ -19,6 +17,7 @@
 - [ChainProviderConfig](interfaces/ChainProviderConfig.md)
 - [ChainStateProvider](interfaces/ChainStateProvider.md)
 - [ChainTip](interfaces/ChainTip.md)
+- [ChainTransaction](interfaces/ChainTransaction.md)
 - [Coin](interfaces/Coin.md)
 - [CoinsQuery](interfaces/CoinsQuery.md)
 - [DepositAddressOptions](interfaces/DepositAddressOptions.md)
@@ -27,6 +26,7 @@
 - [HostedProviderConfig](interfaces/HostedProviderConfig.md)
 - [HostedRelayConfig](interfaces/HostedRelayConfig.md)
 - [LookupClientLike](interfaces/LookupClientLike.md)
+- [MinimaRpcClient](interfaces/MinimaRpcClient.md)
 - [MmrChunkProof](interfaces/MmrChunkProof.md)
 - [MMRProof](interfaces/MMRProof.md)
 - [ParsedMinimaRpcUrl](interfaces/ParsedMinimaRpcUrl.md)
@@ -46,6 +46,7 @@
 ## Functions
 
 - [assertConsentedNodeUrl](functions/assertConsentedNodeUrl.md)
+- [createMinimaRpcClient](functions/createMinimaRpcClient.md)
 - [depositAddressFor](functions/depositAddressFor.md)
 - [isSelfHosted](functions/isSelfHosted.md)
 - [parseMinimaRpcUrl](functions/parseMinimaRpcUrl.md)

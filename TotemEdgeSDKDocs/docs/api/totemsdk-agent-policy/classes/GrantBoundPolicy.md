@@ -93,3 +93,47 @@ Evaluate and reserve a step atomically:
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved grant lease before expiry.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### settleActual()
+
+> **settleActual**(`instruction`): `Promise`\<[`StepReceipt`](../interfaces/StepReceipt.md)\>
+
+RFC-022 Amendment A: settle by verified dispatch, outcome and actual use.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](../interfaces/SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`StepReceipt`](../interfaces/StepReceipt.md)\>

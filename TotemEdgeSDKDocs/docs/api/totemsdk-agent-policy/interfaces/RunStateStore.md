@@ -84,6 +84,24 @@
 
 ***
 
+### getMandateUsage()
+
+> **getMandateUsage**(`reservationId`): `Promise`\<[`RunMandateUsage`](RunMandateUsage.md)[]\>
+
+Per-mandate reserved/actual usage rows for ledger assertions.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`RunMandateUsage`](RunMandateUsage.md)[]\>
+
+***
+
 ### getReceipt()
 
 > **getReceipt**(`reservationId`): `Promise`\<[`RunStepReceipt`](RunStepReceipt.md) \| `undefined`\>
@@ -203,6 +221,34 @@ HELD, never restored by expiry. Returns every unsettled reservation.
 
 ***
 
+### renewReservation()
+
+> **renewReservation**(`reservationId`, `extendsTo`, `now?`): `Promise`\<`void`\>
+
+Extend a still-reserved lease before expiry. This is a trusted
+coordinator operation; a renewal never extends an already-expired
+reservation or an absolute policy ceiling.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### extendsTo
+
+`number`
+
+##### now?
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### reserveStep()
 
 > **reserveStep**(`reservation`): `Promise`\<`void`\>
@@ -216,3 +262,23 @@ HELD, never restored by expiry. Returns every unsettled reservation.
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### settleReservation()
+
+> **settleReservation**(`instruction`): `Promise`\<[`RunStepReceipt`](RunStepReceipt.md)\>
+
+RFC-022 Amendment A: settle by verified dispatch, terminal outcome and
+actual consumption. Idempotent by `settlementId`; conflicting settlement
+of an already-closed reservation fails closed.
+
+#### Parameters
+
+##### instruction
+
+[`SettlementInstructionV1`](SettlementInstructionV1.md)
+
+#### Returns
+
+`Promise`\<[`RunStepReceipt`](RunStepReceipt.md)\>

@@ -31,6 +31,18 @@ are per-profile; a broader mandate is never needed.
 
 `number`
 
+#### durationByResource?
+
+`Record`\<`string`, `string`\>
+
+RFC-023: aggregate wall-clock duration per resource (seconds).
+
+#### energyByResource?
+
+`Record`\<`string`, `string`\>
+
+RFC-023: aggregate energy per resource (watt-hours).
+
 #### feesByToken
 
 `Record`\<`string`, `string`\>

@@ -120,7 +120,13 @@ Get MMR proof for a coin via Minima `coinproof` RPC command.
 
 > **getTip**(): `Promise`\<[`ChainTip`](../interfaces/ChainTip.md)\>
 
-Get chain tip via Minima `status` RPC — parses response.chain.
+Get the chain tip.
+
+The old implementation posted the raw `status` command to
+`/v1/wallet/rpc`, which the current Axia API rejects with HTTP 400
+(that route accepts only `txpow_getHistory`/`minima_coins` JSON-RPC).
+The public portfolio route already returns the live `chainTip`; use it
+with the burn address so no wallet-specific data is required.
 
 #### Returns
 
@@ -171,6 +177,34 @@ Get token info via Minima `tokens tokenid:X` RPC command.
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getTokensByCreator`](../interfaces/ChainStateProvider.md#gettokensbycreator)
+
+***
+
+### getTransaction()
+
+> **getTransaction**(`txpowid`): `Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+Full transaction body by TxPoW id (OMN-074).
+
+Axia proxies Minima commands through `/v1/wallet/rpc` (the same route
+`coinproof` and `tokens` use). If the hosted build does not expose `txpow`
+on that route, this returns null and callers must fail closed; the
+address-scoped `txpow_getHistory` route is not sufficient to prove that a
+specific coin was created by a specific transaction.
+
+#### Parameters
+
+##### txpowid
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ChainTransaction`](../interfaces/ChainTransaction.md) \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getTransaction`](../interfaces/ChainStateProvider.md#gettransaction)
 
 ***
 

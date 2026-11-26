@@ -24,6 +24,45 @@
 
 ***
 
+### exportCoin()?
+
+> `optional` **exportCoin**(`coinId`): `Promise`\<`ExportedCoin` \| `null`\>
+
+Serialized coin proof (Minima `coinexport`) for a specific coin id. Required
+to assemble the funding input proof. Never expose this over a remote control
+plane; it is caller-side material.
+
+#### Parameters
+
+##### coinId
+
+`string`
+
+#### Returns
+
+`Promise`\<`ExportedCoin` \| `null`\>
+
+***
+
+### getAddressInfo()?
+
+> `optional` **getAddressInfo**(`address`): `Promise`\<`AddressInfo` \| `null`\>
+
+Ownership material for an address (public key + address script). Required to
+build a funding witness for a coin the caller owns.
+
+#### Parameters
+
+##### address
+
+`string`
+
+#### Returns
+
+`Promise`\<`AddressInfo` \| `null`\>
+
+***
+
 ### getCoin()
 
 > **getCoin**(`coinId`): `Promise`\<[`Coin`](Coin.md) \| `null`\>
@@ -125,6 +164,31 @@ protocol default. Used to mine transactions to the current network target.
 #### Returns
 
 `Promise`\<[`TokenInfo`](TokenInfo.md)[]\>
+
+***
+
+### getTransaction()?
+
+> `optional` **getTransaction**(`txpowid`): `Promise`\<[`ChainTransaction`](ChainTransaction.md) \| `null`\>
+
+Full transaction body by TxPoW id (OMN-074). Used to prove that a coin was
+created by an expected transaction — for example that a splice successor is
+an output of the splice that named it.
+
+Optional: a provider that cannot serve transaction bodies leaves this
+undefined, and callers that need provenance must fail closed rather than
+assume the coin is legitimate. `MinimaRpcProvider` (any Minima/hawk node,
+via the `txpow` command) and `HostedProvider` (Axia) implement it.
+
+#### Parameters
+
+##### txpowid
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ChainTransaction`](ChainTransaction.md) \| `null`\>
 
 ***
 
