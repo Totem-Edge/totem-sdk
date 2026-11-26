@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T10:52:46.641Z",
+  "generatedAt": "2026-11-26T16:17:28.051Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -1207,6 +1207,372 @@
         "audit": "Omnia SDK audit — 25 November 2026",
         "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
         "verification": "code-confirmed"
+      }
+    },
+    {
+      "id": "OMN-096",
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "title": "The watchtower treats a stale-state successor as channel continuity",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0",
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-094 (omnia-host/src/watch.ts:118-145)",
+      "summary": "The watch service treated any unspent successor coin at the funding address as channel continuity. It did not compare the successor's sequence or state commitment with the latest signed local state, which is exactly the case a watchtower must contest. The contest callback also proved the original funding coin rather than the live successor.",
+      "impact": "A counterparty publishing an older signed state can settle it unchallenged: the watcher never reports a close, and even if it did, the proof would be for a spent coin. This is the failure mode that makes eltoo watchtowers necessary.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 23-chaos-recovery",
+        "expected": "A successor whose sequence is below the latest signed local state raises a contestable finding and contests the live coin.",
+        "actual": "Any successor was treated as continuity, and proofs were taken from channel.fundingCoinId.",
+        "evidence": [
+          "watch.ts:129-135 (successor => continuity)",
+          "lifecycle.ts:1166 (exportCoin(channel.fundingCoinId))"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Read the successor sequence from its state (port 101), compare with latestState.sequence, raise a contestable close when behind, and prove the live coin in the contest path.",
+        "constraints": [
+          "Do not contest normal updates (sequence >= local).",
+          "Keep behaviour unchanged when the adapter cannot report a sequence."
+        ],
+        "acceptance": [
+          "A stale successor produces a unilateral-close finding naming the live coin.",
+          "The contest path proves the observed live coin.",
+          "Scans do not overlap."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/watch.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-094"
+      }
+    },
+    {
+      "id": "OMN-097",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "critical",
+      "title": "No consensus-enforced channel domain: identical parties and delay share a script",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-splice",
+        "@totemsdk/omnia-host"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0",
+        "@totemsdk/omnia-splice": "0.4.0",
+        "@totemsdk/omnia-host": "0.16.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-095 (omnia/src/script.ts:43-92, omnia/src/transactions.ts:400-458)",
+      "summary": "The eltoo funding script is derived from the two public keys and the contest delay, with no unique channel identifier. The update input floats via COINID_ELTOO, and the covenant does not check that the successor's channel identity matches the coin being spent. Multiple channels between the same parties therefore share a script address, and the signed state commitment is not bound by the script.",
+      "impact": "A signed artifact may be executable in a sibling channel domain. The audit did not demonstrate a replay, but the isolation invariant is absent from the covenant, which is the only place it can be enforced.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "Every continuation is bound to an immutable channel domain identifier enforced by the script.",
+        "actual": "The script pins only settlement (port 100) and sequence (port 101).",
+        "evidence": [
+          "script.ts:77-79 (STATE(100)/STATE(101) only)",
+          "transactions.ts COINID_ELTOO floating input"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Add an immutable channel domain id to the funding script or a dedicated state port that every continuation must preserve; add a regression test on Hawk and the Java node.",
+        "constraints": [
+          "Changing the funding script is a wire change: version it.",
+          "Do not rely on an off-chain commitment alone."
+        ],
+        "acceptance": [
+          "A signed update from channel A is rejected against channel B with identical parties and delay.",
+          "Hawk and Java agree on the rejection."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-095"
+      }
+    },
+    {
+      "id": "OMN-098",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "critical",
+      "title": "A channel is funded before either party holds a unilateral exit package",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0",
+        "@totemsdk/omnia-host": "0.16.0",
+        "@totemsdk/omnia-lsp-provider": "0.2.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-096 (omnia/src/channel.ts:167-198, channel.ts:234-325, settlement.ts:417-433)",
+      "summary": "The opening builder creates the channel with latestState null and sequence 0, then funding is broadcast. startUnilateralClose requires a signed state carrying a valid close package, so during the opening window the funding coin exists on chain with no independent recovery path.",
+      "impact": "If the counterparty disappears or refuses to co-sign the first state, the capital is stranded behind cooperation. Provider-funded LSP channels carry this exposure for the provider.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "Funding broadcast requires an initial, fully signed state with a verified close package.",
+        "actual": "latestState is null at funding; the close package arrives only after a cooperative update.",
+        "evidence": [
+          "channel.ts:186-188 (latestState: null, currentSequence: 0)",
+          "settlement.ts:426-431 (close package required to close)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Make a signed sequence-0 state with a verified close package a precondition of the funding broadcast, and persist it before broadcasting.",
+        "constraints": [
+          "Do not weaken the close-package verification.",
+          "Keep the proposal flow usable: the initial state can travel with the proposal."
+        ],
+        "acceptance": [
+          "A funding broadcast without a persisted close package is refused.",
+          "A restart after funding can always start a unilateral close."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-096"
+      }
+    },
+    {
+      "id": "OMN-106",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "critical",
+      "title": "VTXO epoch admission has a check-then-sign race",
+      "packages": [
+        "@totemsdk/vtxo"
+      ],
+      "versions": {
+        "@totemsdk/vtxo": "0.10.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-104 (vtxo/src/epoch-authority.ts:111-153)",
+      "summary": "append() verifies the receipt, loads state, checks spent inputs, signs the epoch commitment and appends. The checks and the signing are separated by awaits with no reservation, so two concurrent appends can both pass the spent-input check and sign conflicting spends or roots.",
+      "impact": "The epoch authority is the durable single-spend guard for receipts; admitting two conflicting transitions makes it ineffective.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/vtxo test",
+        "expected": "Inputs and the epoch transition are reserved atomically before a signature is produced.",
+        "actual": "Checks and signing are separate steps.",
+        "evidence": [
+          "epoch-authority.ts:111-153 (append)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Reserve inputs and the epoch transition with a revision-checked durable transaction before signing; conflicting requests fail before the signature.",
+        "constraints": [
+          "Do not sign before the reservation commits.",
+          "Keep the journal append idempotent per receipt id."
+        ],
+        "acceptance": [
+          "Two concurrent receipts spending the same input admit one.",
+          "No signature exists for a rejected transition."
+        ],
+        "tests": [
+          "tests/unit/vtxo/src/__tests__/vtxo.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-104"
+      }
+    },
+    {
+      "id": "OMN-108",
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "title": "Signing admission reads an unreadable journal as \"no history\"",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-host"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0",
+        "@totemsdk/omnia-host": "0.16.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-106 (omnia/src/guards.ts:217-249)",
+      "summary": "beginSigningAttempt caught every journal read error and continued with an empty history, then recorded the intent and allowed signing. The journal also defaulted to an in-memory implementation, so durability existed only if the host installed one. Read, conflict check and write were separate operations.",
+      "impact": "A storage fault licenses a second WOTS signature at a sequence that may already be signed — leaf reuse. This undermines OMN-039.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "An unavailable journal refuses the signature; admission is serialised; the host refuses to run on an in-memory journal without warning.",
+        "actual": "Read errors were swallowed and admission was unsynchronised.",
+        "evidence": [
+          "guards.ts:224-230 (catch => existing = [])",
+          "guards.ts:193 (memory default)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Fail closed on read and write errors, serialise admission per channel, expose whether the journal is in-memory and warn at host startup.",
+        "constraints": [
+          "Do not weaken double-sign detection.",
+          "Keep retries of the same payload idempotent."
+        ],
+        "acceptance": [
+          "An unreadable journal refuses signing.",
+          "Concurrent different payloads at one sequence admit one.",
+          "A host warns when only the memory journal is installed."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/signing-intent.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-106; The audit is right that OMN-039 was incompletely closed: the durable journal was opt-in."
+      }
+    },
+    {
+      "id": "OMN-110",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "critical",
+      "title": "A liquidity position can become active without funding evidence",
+      "packages": [
+        "@totemsdk/liquidity-bond",
+        "@totemsdk/omnia-pool"
+      ],
+      "versions": {
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/omnia-pool": "0.7.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-108 (liquidity-bond/src/position.ts:11-63)",
+      "summary": "createLiquidityPosition sets status to committed when funding exists and active when it does not, and falls back to the self-declared commitment amount when funding is not chain-confirmed. The exported activation helper rejects non-confirmed funding but permits absent funding. depositToPool verifies on chain; the underlying functions do not.",
+      "impact": "A position with no backing can be active, allocatable and withdrawable through a path that bypasses depositToPool.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/liquidity-bond test",
+        "expected": "No position becomes active, allocatable or withdrawable without authoritative funding evidence.",
+        "actual": "status: funding ? committed : active.",
+        "evidence": [
+          "position.ts:20-27",
+          "liquidity-bond/src/registry.ts:168-183"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Require chain-confirmed funding for active/allocatable status at the position and registry layer, not only in depositToPool.",
+        "constraints": [
+          "Do not break the deposit path.",
+          "Keep unfunded records representable as non-active."
+        ],
+        "acceptance": [
+          "An unfunded position cannot be listed as withdrawable.",
+          "The amount always comes from verified funding."
+        ],
+        "tests": [
+          "tests/unit/liquidity-bond/src/__tests__/"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/liquidity-bond test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-108"
+      }
+    },
+    {
+      "id": "OMN-111",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "critical",
+      "title": "One accepted commitment can create multiple liquidity positions",
+      "packages": [
+        "@totemsdk/omnia-pool",
+        "@totemsdk/liquidity-bond"
+      ],
+      "versions": {
+        "@totemsdk/omnia-pool": "0.7.0",
+        "@totemsdk/liquidity-bond": "0.4.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-109 (omnia-pool/src/deposit.ts:152-183, liquidity-bond/src/position.ts:9-46)",
+      "summary": "createPositionFromCommitment mints a new position id on every call and does not check the registry for an existing position derived from the same commitment. The registry prevents one funding coin backing several commitments, but not one commitment backing several positions.",
+      "impact": "Recorded liabilities can exceed real backing capital by a multiple of the number of retries.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "A commitment produces exactly one position; a retry returns the existing one.",
+        "actual": "Each call creates a new position id.",
+        "evidence": [
+          "deposit.ts:152-183",
+          "position.ts:9-46"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Make commitmentId a unique key for position creation and return the existing position on retry.",
+        "constraints": [
+          "Do not allow two positions per commitment.",
+          "Keep partial withdrawal receipts separate from positions."
+        ],
+        "acceptance": [
+          "Replaying an accepted deposit returns the original position.",
+          "The registry rejects a second position for one commitment."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-109"
       }
     },
     {
@@ -5684,6 +6050,1231 @@
       }
     },
     {
+      "id": "OMN-099",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Channel activation conflates funding depth with peer acceptance",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-097 (omnia-host/src/api/methods.ts:1351-1368, 1380-1414, 2814-2838)",
+      "summary": "The read path promotes funding_pending and opening channels to active on funding depth alone, while resubmitChannelProposal promotes on acknowledgement without rechecking depth. Each condition is necessary but neither is sufficient.",
+      "impact": "A channel can be advertised active with no counterparty record, or with an unconfirmed funding coin. Routing and payment then act on a channel that cannot settle.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Activation requires funding depth, an authenticated acknowledgement, and a persisted initial exit package.",
+        "actual": "Activation depends on whichever condition the caller last observed.",
+        "evidence": [
+          "methods.ts:2814-2838 (read-path promotion on depth)",
+          "methods.ts:1380-1414 (resubmit promotes on ACK)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Introduce one activation gate that requires all conditions and is the only path to active.",
+        "constraints": [
+          "Keep pending states readable and recoverable.",
+          "Do not make the ACK authoritative for on-chain state."
+        ],
+        "acceptance": [
+          "A funded channel with no ACK is not active.",
+          "An ACK without depth is not active.",
+          "Activation is idempotent."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-097"
+      }
+    },
+    {
+      "id": "OMN-100",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Unilateral update coin verification does not bind sequence, commitment, amount or lineage",
+      "packages": [
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-098 (omnia/src/settlement.ts:490-532)",
+      "summary": "recordUnilateralUpdateCoin verifies the coin exists, is unspent, sits at the expected address and reaches a confirmation depth, then uses its creation height for the contest deadline. It does not check the coin's sequence, state commitment, amount/token or the transaction that produced it.",
+      "impact": "A coin that merely looks right can set the contest deadline, so a dispute can be timed against an unrelated coin. Same class as the splice successor finding; it needs one shared lineage verifier.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "The update coin is bound to the expected sequence, commitment, amount, token and creating transaction.",
+        "actual": "Only spent/address/depth are checked.",
+        "evidence": [
+          "settlement.ts:505 (spent check)",
+          "no sequence/commitment comparison in the function"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Use the shared channel-lineage verifier (transaction body + predecessor consumption + successor state) before accepting the contest deadline.",
+        "constraints": [
+          "Do not duplicate lineage logic per package.",
+          "Fail closed when the chain cannot return the transaction."
+        ],
+        "acceptance": [
+          "A coin with the wrong sequence or commitment is rejected.",
+          "The deadline derives only from a verified successor."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-098"
+      }
+    },
+    {
+      "id": "OMN-101",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "A unilateral settlement broadcast is recorded as a completed closure",
+      "packages": [
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-099 (omnia/src/settlement.ts:589-622)",
+      "summary": "finalizeUnilateralClose broadcasts the settlement transaction and immediately calls markChannelClosed. Nothing verifies inclusion in the canonical chain, so an accepted-but-unconfirmed transaction yields a closed channel.",
+      "impact": "The application reports closure and may stop watching while the transaction is absent or reorged, leaving funds in a state nobody monitors.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "Broadcast, confirmation and final closure are distinct states; closure requires chain evidence.",
+        "actual": "markChannelClosed follows the broadcast directly.",
+        "evidence": [
+          "settlement.ts:612 (markChannelClosed after broadcast)",
+          "settlement.ts:695 (markChannelClosed)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Split the lifecycle into closing_unilateral → settlement_broadcast → settlement_confirmed → closed, with an injected chain verifier for the final transition.",
+        "constraints": [
+          "Do not mark closed without confirmation.",
+          "Keep the broadcast id recoverable."
+        ],
+        "acceptance": [
+          "An unconfirmed settlement is not closed.",
+          "A reorg reopens monitoring.",
+          "Closure requires verified inclusion."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-099"
+      }
+    },
+    {
+      "id": "OMN-102",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The distributed multi-hop branch bypasses the durable operation lifecycle",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-router"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0",
+        "@totemsdk/omnia-router": "0.6.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-100 (omnia-host/src/api/methods.ts:4085-4146)",
+      "summary": "The distributed payment branch creates an HTLC, persists the channel and sends the message, returning before the withOperation wrapper used by the local branch. It reports first-hop-accepted after sending without an explicit acknowledgement.",
+      "impact": "Distributed payments lack the operation journal, idempotency and unknown-outcome handling added for local execution, and can report acceptance the peer never gave.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Every payment path uses the same durable execution lifecycle.",
+        "actual": "The distributed branch returns outside withOperation.",
+        "evidence": [
+          "methods.ts:4085-4146 (early return before withOperation)",
+          "withOperation at methods.ts:506"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Route the distributed branch through withOperation with an operation id, persist the signed proposal, wait for acknowledgement and record refund obligations.",
+        "constraints": [
+          "Do not require a local channel for the distributed path.",
+          "Reuse the relay delivery journal for retransmission."
+        ],
+        "acceptance": [
+          "A retried distributed payment is idempotent.",
+          "Acceptance is reported only after acknowledgement.",
+          "Undelivered proposals are recoverable."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-100"
+      }
+    },
+    {
+      "id": "OMN-103",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Cross-token locality is decided from the inbound channel only",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia-router"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0",
+        "@totemsdk/omnia-router": "0.6.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-101 (omnia-host/src/api/methods.ts:4077-4092)",
+      "summary": "The host decides whether every hop is local from each hop's channelId. A swap hop carries inboundChannelId and outboundChannelId; the lease map handles both, but the locality check does not verify that the outbound side is local. The reporter corrected the earlier claim that swap hops lack channelId.",
+      "impact": "A route in which both channels are local can be classified distributed and rejected by the unsupported-distributed-swap guard.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Locality covers both sides of a swap hop.",
+        "actual": "Only the inbound side is considered.",
+        "evidence": [
+          "methods.ts:4077-4092"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Check inboundChannelId and outboundChannelId for swap hops when deciding locality.",
+        "constraints": [
+          "Do not treat a partial swap as local.",
+          "Keep the lease map construction unchanged."
+        ],
+        "acceptance": [
+          "A fully local cross-token route executes.",
+          "A route with a remote outbound side is classified distributed."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-101"
+      }
+    },
+    {
+      "id": "OMN-104",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The S4 harness can report S4_PASS without asserting settlement",
+      "packages": [
+        null
+      ],
+      "versions": {},
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-102 (scripts/omnia-s4-cross.mjs:207-246)",
+      "summary": "The harness logs the settlement and close responses and then constructs a result with pass: true. It does not assert that settlement and closure succeeded or that the expected payout outputs exist on chain, so an RPC response containing a logical failure can reach S4_PASS.",
+      "impact": "The automatic pass indicator cannot be relied on as evidence. The documented on-chain outputs from the 25 November run stand; the harness result alone does not prove them.",
+      "repro": {
+        "command": "pnpm exec node scripts/omnia-s4-cross.mjs --help",
+        "expected": "PASS requires balance conservation, expected recipient balances, matching peer sequences and confirmed closure.",
+        "actual": "pass: true is constructed after logging.",
+        "evidence": [
+          "omnia-s4-cross.mjs:236 (pass: true)",
+          "omnia-s4-cross.mjs:239 (console.log S4_PASS)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Assert the final invariants before printing S4_PASS: conservation, recipient balances, sequences, settlement outputs, predecessor consumption and closure on both hosts.",
+        "constraints": [
+          "Do not weaken existing assertions.",
+          "Keep the harness usable without live infrastructure (skip, not pass)."
+        ],
+        "acceptance": [
+          "A logical failure in any step yields a non-zero exit.",
+          "S4_PASS implies every asserted invariant held."
+        ],
+        "tests": [
+          null
+        ],
+        "verification": [
+          "pnpm --filter undefined test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-102"
+      }
+    },
+    {
+      "id": "OMN-105",
+      "kind": "sdk-defect",
+      "status": "in-progress",
+      "severity": "high",
+      "title": "Automated watcher actions bypass the channel mutation coordinator",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-103 (omnia-host/src/watch.ts:163-205, lifecycle.ts:1194-1289)",
+      "summary": "The watch service executes settlement and HTLC timeout actions and writes the resulting channel state without acquiring the shared per-channel lock used by RPC and peer-message handlers. Its interval has no in-flight guard.",
+      "impact": "A watcher action can interleave with an operator or peer-driven mutation on the same channel, producing concurrent state writes.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Watcher actions take the same channel lock and reload state after acquiring it; scans are single-flight.",
+        "actual": "Scans were unsynchronised and the action path did not take the lock.",
+        "evidence": [
+          "watch.ts start() setInterval without guard",
+          "lifecycle.ts onUnilateralClose"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Route watcher actions through the channel coordinator, reload authoritative state, and single-flight scans.",
+        "constraints": [
+          "Do not deadlock with RPC callers.",
+          "Leave findings unprocessed on lock contention so the next pass retries."
+        ],
+        "acceptance": [
+          "A watcher action cannot run concurrently with an RPC mutation of the same channel.",
+          "Scans never overlap."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-103; Scan single-flight landed with OMN-096; the action-path lock remains open."
+      }
+    },
+    {
+      "id": "OMN-107",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Epoch recovery reconstructs history without authenticating it",
+      "packages": [
+        "@totemsdk/vtxo"
+      ],
+      "versions": {
+        "@totemsdk/vtxo": "0.10.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-105 (vtxo/src/epoch-authority.ts:64-83)",
+      "summary": "Recovery rebuilds spent inputs and the current root from journal entries by taking the highest epoch. It does not verify each epoch signature, reject conflicting roots at one epoch, enforce transition ordering or detect repeated input consumption.",
+      "impact": "Structural recovery is relied on as financial recovery; a corrupted journal can restore a root the operator never signed.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/vtxo test",
+        "expected": "Replay verifies signatures, monotonic epochs, unique inputs and agreement with the anchored epoch.",
+        "actual": "Recovery trusts the highest recorded epoch.",
+        "evidence": [
+          "epoch-authority.ts:64-83 (recovery)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Authenticated deterministic replay with monotonic validation and reconciliation against the externally anchored epoch.",
+        "constraints": [
+          "Fail closed on a signature that does not verify.",
+          "Reject conflicting roots at the same epoch."
+        ],
+        "acceptance": [
+          "A tampered journal entry cannot restore state.",
+          "Recovery matches the anchored epoch."
+        ],
+        "tests": [
+          "tests/unit/vtxo/src/__tests__/vtxo.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-105"
+      }
+    },
+    {
+      "id": "OMN-109",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "An interrupted signer response can release the signing guard",
+      "packages": [
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-107 (omnia/src/sign.ts:323-354)",
+      "summary": "The signing guard is sealed only after the signer returns. If an external signer produces a signature but the response is lost, the failure path abandons the attempt and releases the guard even though a signature may exist.",
+      "impact": "Remote and asynchronous signers can be asked to sign twice at one sequence after a timeout.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "An uncertain signing outcome stays locked until reconciled.",
+        "actual": "A thrown or timed-out signer is treated as \"no signature\".",
+        "evidence": [
+          "sign.ts:323-354"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Distinguish a definite signer refusal from an unknown outcome; keep the guard sealed for the latter and require reconciliation.",
+        "constraints": [
+          "Do not treat a transport timeout as a refusal.",
+          "Keep a definite pre-sign refusal retryable."
+        ],
+        "acceptance": [
+          "A timed-out signer leaves the attempt sealed.",
+          "Reconciliation can commit or abandon it explicitly."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-107"
+      }
+    },
+    {
+      "id": "OMN-112",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Allocation verification ignores reserved and risk-adjusted capital",
+      "packages": [
+        "@totemsdk/liquidity-bond",
+        "@totemsdk/omnia-pool"
+      ],
+      "versions": {
+        "@totemsdk/liquidity-bond": "0.4.0",
+        "@totemsdk/omnia-pool": "0.7.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-110 (liquidity-bond/src/allocation.ts:34-47)",
+      "summary": "Available liquidity is computed as amount minus allocatedAmount. Reserved capital and the effective (risk-adjusted) amount are ignored, and allocatePositionCapital executes the channel or factory operation before checking whether the position is now overallocated.",
+      "impact": "Capital can be committed beyond what the position can actually support; the check reports the overcommitment after execution.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/liquidity-bond test",
+        "expected": "Availability subtracts allocated and reserved, and is capped by effective value before execution.",
+        "actual": "Only allocatedAmount is subtracted, after execution.",
+        "evidence": [
+          "allocation.ts:34-47",
+          "omnia-pool/src/allocate.ts:83-192"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Compute headroom from effective minus allocated minus reserved before executing, and refuse the operation when it would overcommit.",
+        "constraints": [
+          "Do not add a post-hoc check in place of a pre-execution one.",
+          "Preserve existing allocation bookkeeping."
+        ],
+        "acceptance": [
+          "An allocation exceeding risk-adjusted headroom is refused before any channel operation.",
+          "Reserved capital reduces availability."
+        ],
+        "tests": [
+          "tests/unit/liquidity-bond/src/__tests__/"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/liquidity-bond test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-110"
+      }
+    },
+    {
+      "id": "OMN-113",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The recorded allocation amount is not bound to the executed operation",
+      "packages": [
+        "@totemsdk/omnia-pool"
+      ],
+      "versions": {
+        "@totemsdk/omnia-pool": "0.7.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-111 (omnia-pool/src/allocate.ts:87-156)",
+      "summary": "The registry amount comes from params.amount while the channel, factory or VTXO operation receives separate target parameters. Nothing verifies that the executed operation deployed the same amount, asset and ownership allocation.",
+      "impact": "The registry can record an allocation that differs from what was actually deployed.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "Execution parameters are derived from the authorized allocation.",
+        "actual": "Accounting amount and execution target are independent inputs.",
+        "evidence": [
+          "allocate.ts:87-156"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Derive the execution target from the allocation record; verify the resulting deployment before registering it.",
+        "constraints": [
+          "One source of truth for the amount.",
+          "Do not trust caller-supplied target amounts."
+        ],
+        "acceptance": [
+          "A mismatched execution target is refused.",
+          "The recorded amount equals the deployed amount."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-111"
+      }
+    },
+    {
+      "id": "OMN-114",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "An allocation can be released without proof of capital recovery",
+      "packages": [
+        "@totemsdk/omnia-pool"
+      ],
+      "versions": {
+        "@totemsdk/omnia-pool": "0.7.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-112 (omnia-pool/src/allocate.ts:198-229)",
+      "summary": "releaseAllocation marks the allocation released and restores available liquidity by accounting only. It does not verify that the channel settled, the factory allocation was recovered or obligations were discharged.",
+      "impact": "Released accounting is treated as recovered capital, so liquidity can be redeployed while the funds are still committed.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "Release requires evidence of recovery; the registry distinguishes releasing, pending settlement and recovered.",
+        "actual": "Release is an accounting operation.",
+        "evidence": [
+          "allocate.ts:198-229"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Add a settlement-evidence gate to release and a pending-settlement state that does not count as available.",
+        "constraints": [
+          "Do not count pending settlement as available liquidity.",
+          "Keep the release recoverable after a restart."
+        ],
+        "acceptance": [
+          "A release without recovered capital is refused or parked.",
+          "Availability only increases after verified recovery."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-112"
+      }
+    },
+    {
+      "id": "OMN-115",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Factory persistence permits a stale record to overwrite a newer one",
+      "packages": [
+        "@totemsdk/omnia-factory"
+      ],
+      "versions": {
+        "@totemsdk/omnia-factory": "0.9.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-113 (omnia-factory/src/durable-factory-store.ts:83-88)",
+      "summary": "saveFactory replaces the whole record without comparing the incoming sequence with the stored sequence. The storage CAS protects the write, not the semantic ordering of factory state.",
+      "impact": "A delayed writer can roll a factory back to an older allocation or sequence.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-factory test",
+        "expected": "Writes are rejected when the incoming sequence is below the stored sequence.",
+        "actual": "Whole-record replace.",
+        "evidence": [
+          "durable-factory-store.ts:83-88"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Enforce monotonic sequence at the store boundary and fail the write on regression.",
+        "constraints": [
+          "Do not require callers to pre-check the sequence.",
+          "Keep recovery able to read older records."
+        ],
+        "acceptance": [
+          "A stale save is rejected.",
+          "Concurrent writers converge on the highest sequence."
+        ],
+        "tests": [
+          "tests/unit/omnia-factory/src/__tests__/factory.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-factory test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-113"
+      }
+    },
+    {
+      "id": "OMN-116",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Splice acceptance can regress a finalized record",
+      "packages": [
+        "@totemsdk/omnia-splice"
+      ],
+      "versions": {
+        "@totemsdk/omnia-splice": "0.4.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-114 (omnia-splice/src/durable-splice-store.ts:122-145)",
+      "summary": "saveAcceptance sets the record status to accepted without checking the current status, so a delayed or replayed acceptance can overwrite a record already marked finalized.",
+      "impact": "Recovery can re-enter the finalize path for an already-finalized splice.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-splice test",
+        "expected": "Splice records follow a monotonic state machine and acceptances are immutable once bound.",
+        "actual": "saveAcceptance writes accepted unconditionally.",
+        "evidence": [
+          "durable-splice-store.ts:122-145"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Add a monotonic transition table and reject acceptance once finalized.",
+        "constraints": [
+          "Keep pending→accepted→finalized ordering.",
+          "Do not accept a different acceptance for the same splice."
+        ],
+        "acceptance": [
+          "A replayed acceptance cannot regress finalized.",
+          "A conflicting acceptance is rejected."
+        ],
+        "tests": [
+          "tests/unit/omnia-splice/src/__tests__/omnia-splice.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-splice test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-114"
+      }
+    },
+    {
+      "id": "OMN-117",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "VTXO split outputs can receive duplicate identifiers",
+      "packages": [
+        "@totemsdk/vtxo"
+      ],
+      "versions": {
+        "@totemsdk/vtxo": "0.10.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-115 (vtxo/src/split.ts:24-53)",
+      "summary": "splitVtxo checks that the amount and nonce arrays have equal length but not that output ids are unique. Splitting into equal amounts with identical nonces produces identical ids, and the proof map is keyed by id.",
+      "impact": "Output records can overwrite each other or become ambiguous.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/vtxo test",
+        "expected": "Every split output identifier is unique within the batch.",
+        "actual": "Uniqueness is not enforced.",
+        "evidence": [
+          "split.ts:24-53"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Reject duplicate output ids in split (the invariant OMN-046 applied to refresh).",
+        "constraints": [
+          "Apply the same invariant to every VTXO transformation.",
+          "Do not silently rename outputs."
+        ],
+        "acceptance": [
+          "A split with duplicate ids is refused.",
+          "Merge/refresh/split share the uniqueness guard."
+        ],
+        "tests": [
+          "tests/unit/vtxo/src/__tests__/vtxo.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-115"
+      }
+    },
+    {
+      "id": "OMN-118",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "VTXO conservation verification accepts duplicate and negative records",
+      "packages": [
+        "@totemsdk/vtxo"
+      ],
+      "versions": {
+        "@totemsdk/vtxo": "0.10.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-116 (vtxo/src/verify.ts:241-293)",
+      "summary": "verifyConservation checks pool ids, token ids and aggregate amounts. It does not reject duplicate inputs, duplicate outputs or individually negative records.",
+      "impact": "A crafted input set can pass conservation while double-counting or negating amounts.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/vtxo test",
+        "expected": "Duplicate ids and negative amounts are rejected centrally.",
+        "actual": "Only aggregates are compared.",
+        "evidence": [
+          "verify.ts:241-293"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Add duplicate-id and non-negative checks to the shared verifier.",
+        "constraints": [
+          "Keep the strict/lte modes.",
+          "Do not rely on per-caller guards."
+        ],
+        "acceptance": [
+          "Duplicate inputs or outputs fail.",
+          "A negative amount fails."
+        ],
+        "tests": [
+          "tests/unit/vtxo/src/__tests__/vtxo.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/vtxo test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-116"
+      }
+    },
+    {
+      "id": "OMN-119",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "A malformed routing envelope is interpreted as a final destination",
+      "packages": [
+        "@totemsdk/omnia-router"
+      ],
+      "versions": {
+        "@totemsdk/omnia-router": "0.6.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-117 (omnia-router/src/forward.ts:75-94)",
+      "summary": "decode catches JSON parse failures and returns kind final, treating malformed input as an instruction that this node is the recipient.",
+      "impact": "A corrupted or hostile envelope can turn an intermediary into the recipient of a payment it did not earn.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-router test",
+        "expected": "Malformed input produces an invalid-envelope error.",
+        "actual": "Parse failure becomes final.",
+        "evidence": [
+          "forward.ts:75-94"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Return a distinct invalid-envelope result and make callers refuse it.",
+        "constraints": [
+          "Keep a genuinely final hop working.",
+          "Do not let the resolver fulfil on an invalid envelope."
+        ],
+        "acceptance": [
+          "Malformed input is rejected.",
+          "A final hop still settles."
+        ],
+        "tests": [
+          "tests/unit/omnia-router/src/__tests__/router.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-router test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-117"
+      }
+    },
+    {
+      "id": "OMN-120",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Routing advertisements include channels that are not active",
+      "packages": [
+        "@totemsdk/omnia-relay"
+      ],
+      "versions": {
+        "@totemsdk/omnia-relay": "0.11.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-118 (omnia-relay/src/routing.ts:58-89)",
+      "summary": "The routing graph excludes only closed channels, so opening, funding-pending, disputing and closing channels appear as usable edges.",
+      "impact": "Routes can be computed through channels that cannot carry a payment.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-relay test",
+        "expected": "Only active, verified, unencumbered channels are advertised.",
+        "actual": "Everything except closed.",
+        "evidence": [
+          "routing.ts:58-89"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Require an active status allow-list plus funding verification.",
+        "constraints": [
+          "Do not advertise a channel before activation.",
+          "Keep peers able to learn the channel exists without routing it."
+        ],
+        "acceptance": [
+          "Non-active channels are not routable.",
+          "A closing channel is withdrawn promptly."
+        ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-relay test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-118"
+      }
+    },
+    {
+      "id": "OMN-121",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The signing policy is skipped when a request carries no amount",
+      "packages": [
+        "@totemsdk/omnia-host",
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/omnia-host": "0.16.0",
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-119 (omnia-host/src/signer-port.ts:153-168, omnia/src/sign.ts:277-288)",
+      "summary": "The policy signer applies its maximum-amount check only when request.context.amount is supplied. signState constructs chain-signing requests without an amount, so a configured spending limit does not apply to them.",
+      "impact": "A spending policy can be bypassed by a signing path that omits the amount.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Policy inputs derive from the canonical transaction and the channel transition.",
+        "actual": "Amount is optional caller metadata.",
+        "evidence": [
+          "signer-port.ts:153-168",
+          "sign.ts:277-288"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Derive the amount from the transaction being signed and refuse when it cannot be determined.",
+        "constraints": [
+          "Do not make the limit optional.",
+          "Keep non-financial signing paths working."
+        ],
+        "acceptance": [
+          "A request without a derivable amount is refused under a spending policy.",
+          "The limit uses the canonical amount."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-119"
+      }
+    },
+    {
+      "id": "OMN-122",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The Axia lease adapter does not defensively validate remote indices",
+      "packages": [
+        "@totemsdk/wots-lease"
+      ],
+      "versions": {
+        "@totemsdk/wots-lease": "1.0.3"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-120 (wots-lease/src/omnia-axia.ts:117-158)",
+      "summary": "The adapter defaults missing returned indices to zero and checks the watermark with the supplied logical tree id, without establishing a local atomic reservation over the cryptographic key domain before returning the lease.",
+      "impact": "An incomplete or conflicting remote response can be used as a lease, risking WOTS leaf reuse if the remote guarantee does not hold.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/wots-lease test",
+        "expected": "Incomplete or conflicting lease responses are rejected locally.",
+        "actual": "Missing indices default to zero.",
+        "evidence": [
+          "omnia-axia.ts:117-158"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Reject responses missing any index, verify they advance the local watermark, and record a local reservation.",
+        "constraints": [
+          "Fail closed on a partial lease.",
+          "Keep the remote contract as documented."
+        ],
+        "acceptance": [
+          "A response without indices fails.",
+          "A conflicting lease fails.",
+          "A local reservation exists before use."
+        ],
+        "tests": [
+          "tests/unit/wots-lease/src/__tests__/"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/wots-lease test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-120"
+      }
+    },
+    {
+      "id": "OMN-123",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Journal recovery can race an in-progress append",
+      "packages": [
+        "@totemsdk/storage"
+      ],
+      "versions": {
+        "@totemsdk/storage": "0.2.3"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-121 (storage/src/journal.ts:250-287, 325-350)",
+      "summary": "The journal advances its head before writing the entry, so recovery can read the missing entry as an interrupted append and roll the head backwards while another writer is mid-append. No lock spans recovery and an independent writer.",
+      "impact": "Concurrent recovery and append can lose or duplicate journal entries that other packages rely on for crash safety.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/storage test",
+        "expected": "Append and recovery are mutually exclusive.",
+        "actual": "Recovery can roll the head back under a live writer.",
+        "evidence": [
+          "journal.ts:250-287 (head advance)",
+          "journal.ts:325-350 (recovery)"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Take an exclusive lock across recovery and appends, and only truncate entries proven abandoned.",
+        "constraints": [
+          "Do not lose a committed entry.",
+          "Keep single-writer performance."
+        ],
+        "acceptance": [
+          "Recovery during a paused append converges.",
+          "A cross-process regression test covers the race."
+        ],
+        "tests": [
+          "tests/unit/storage/src/__tests__/"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/storage test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-121"
+      }
+    },
+    {
+      "id": "OMN-124",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Confirmation depth is computed differently across packages",
+      "packages": [
+        "@totemsdk/chain-provider",
+        "@totemsdk/omnia"
+      ],
+      "versions": {
+        "@totemsdk/chain-provider": "0.5.0",
+        "@totemsdk/omnia": "4.0.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-122 (chain-provider/src/verify-deposit.ts:52-85, omnia/src/chain-truth.ts:29-37)",
+      "summary": "Omnia computes depth as tip minus creation height; the deposit verifier computes tip minus creation height plus one, and also treats a positive MMR entry as confirmation. Two packages can disagree about the same coin reaching a threshold.",
+      "impact": "The same coin can be confirmed for one purpose and unconfirmed for another, so activation and deposit gates disagree.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/chain-provider test",
+        "expected": "One shared confirmation definition.",
+        "actual": "Two definitions with a one-block offset.",
+        "evidence": [
+          "verify-deposit.ts:52-85",
+          "chain-truth.ts:29-37"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Export one confirmation helper from chain-provider and use it everywhere.",
+        "constraints": [
+          "Keep the conservative definition.",
+          "Do not change activation semantics silently."
+        ],
+        "acceptance": [
+          "All packages agree at the boundary block.",
+          "Boundary tests cover tip == created and tip == created + n."
+        ],
+        "tests": [
+          "tests/unit/chain-provider/src/__tests__/chain-provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/chain-provider test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-122"
+      }
+    },
+    {
+      "id": "OMN-125",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Fee earn-proofs can be appended more than once",
+      "packages": [
+        "@totemsdk/omnia-pool",
+        "@totemsdk/liquidity-bond"
+      ],
+      "versions": {
+        "@totemsdk/omnia-pool": "0.7.0",
+        "@totemsdk/liquidity-bond": "0.4.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-123 (omnia-pool/src/fees.ts:41-77, liquidity-bond/src/registry.ts:98-106)",
+      "summary": "recordPoolFee verifies earn-proof evidence and appends a fee record; the registry appends without enforcing uniqueness of the evidence. The payout side has replay controls, the earning side does not.",
+      "impact": "Repeated submission of the same valid evidence inflates recorded earned fees.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "Evidence is consumed exactly once.",
+        "actual": "Append-only with no evidence key.",
+        "evidence": [
+          "fees.ts:41-77",
+          "registry.ts:98-106"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Key fee records by evidence digest and reject a duplicate.",
+        "constraints": [
+          "Do not change the fee record shape without versioning.",
+          "Keep legitimate multiple fees per hop distinct."
+        ],
+        "acceptance": [
+          "The same evidence twice records one fee.",
+          "Distinct evidence still records."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-123"
+      }
+    },
+    {
+      "id": "OMN-126",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "The TxPoW work verifier fails open when parsing fails",
+      "packages": [
+        "@totemsdk/txpow"
+      ],
+      "versions": {
+        "@totemsdk/txpow": "1.1.1"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-124 (txpow/src/verify.ts:234-265)",
+      "summary": "When the parser cannot establish the TxPoW structure, verifyTxPoWWork hashes the raw bytes as a proxy identifier and evaluates it against a floor difficulty, so the result can be valid for input that is not a TxPoW.",
+      "impact": "Any admission or relay path that relies on this result can accept a malformed payload.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/txpow test",
+        "expected": "A structural parse failure returns valid: false on the authoritative path.",
+        "actual": "A fallback hash can satisfy the floor.",
+        "evidence": [
+          "txpow/src/verify.ts:234-265"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Return invalid on parse failure; keep any lenient behaviour behind an explicit opt-in.",
+        "constraints": [
+          "Do not let a fallback produce validity.",
+          "Keep diagnostics available."
+        ],
+        "acceptance": [
+          "Malformed input is invalid.",
+          "A well-formed TxPoW still verifies."
+        ],
+        "tests": [
+          "tests/unit/txpow/src/__tests__/"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/txpow test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-124"
+      }
+    },
+    {
+      "id": "OMN-127",
+      "kind": "sdk-defect",
+      "status": "open",
+      "severity": "high",
+      "title": "Virtual-channel planning accepts the same participant twice",
+      "packages": [
+        "@totemsdk/omnia-factory"
+      ],
+      "versions": {
+        "@totemsdk/omnia-factory": "0.9.0"
+      },
+      "source": "Omnia adversarial audit — 26 November 2026, reporter finding OMN-125 (omnia-factory/src/virtual.ts:114-168)",
+      "summary": "buildVirtualChannelOpen checks that both supplied participants exist but not that they differ. Identical ids make both allocation deductions target one key, so one assignment overwrites the other.",
+      "impact": "A malformed plan can produce a commitment with a self-referential allocation.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-factory test",
+        "expected": "The planner rejects duplicate participants before producing a commitment.",
+        "actual": "Distinctness is not checked.",
+        "evidence": [
+          "virtual.ts:114-168"
+        ]
+      },
+      "fix": {
+        "where": [],
+        "approach": "Reject identical party ids before any allocation mutation or signing.",
+        "constraints": [
+          "Keep the downstream script guard as defence in depth.",
+          "Do not produce a commitment on a rejected plan."
+        ],
+        "acceptance": [
+          "Identical participants are rejected.",
+          "A valid pair still plans."
+        ],
+        "tests": [
+          "tests/unit/omnia-factory/src/__tests__/factory.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-factory test"
+        ]
+      },
+      "origin": {
+        "audit": "Omnia adversarial audit — 26 November 2026",
+        "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
+        "verification": "code-confirmed",
+        "note": "reporter id OMN-125"
+      }
+    },
+    {
       "id": "CAN-005",
       "kind": "sdk-defect",
       "status": "open",
@@ -7054,7 +8645,7 @@
       "kind": "sdk-gap",
       "status": "open",
       "severity": "medium",
-      "title": "43 publishable packages declare no test:integration gate",
+      "title": "44 publishable packages declare no test:integration gate",
       "packages": [
         "@totemsdk/agent-policy",
         "@totemsdk/authority",
@@ -7078,7 +8669,6 @@
         "@totemsdk/omnia-lsp-provider",
         "@totemsdk/omnia-pool",
         "@totemsdk/omnia-router",
-        "@totemsdk/omnia-vtxo",
         "@totemsdk/p2p-hub",
         "@totemsdk/pear",
         "@totemsdk/provider-bond",
@@ -7098,7 +8688,9 @@
         "@totemsdk/wots-lease",
         "@totemsdk/entity",
         "@totemsdk/eefi",
-        "@totemsdk/replication"
+        "@totemsdk/replication",
+        "@totemsdk/vtxo",
+        "@totemsdk/claim"
       ],
       "source": "/Users/peter.cheek/Downloads/CRYSTAL_LABS/TOTEM/totem-sdk/scripts/workspace-gates.config.json",
       "summary": "The maturity gate requires test:integration for RC packages, but these declare none and carry no reasoned notApplicable exemption. They are invisible to `verify-workspace --integration`.",
@@ -7106,7 +8698,7 @@
       "repro": {
         "command": "node scripts/verify-workspace.mjs --integration",
         "expected": "Every RC package either declares test:integration or a reasoned exemption.",
-        "actual": "Missing: @totemsdk/agent-policy (rc), @totemsdk/authority (rc), @totemsdk/chain-provider (rc), @totemsdk/connect (rc), @totemsdk/decision (beta), @totemsdk/edge (rc), @totemsdk/governance (rc), @totemsdk/identity (rc), @totemsdk/intelligence (beta), @totemsdk/kissvm (rc), @totemsdk/liquidity-bond (rc), @totemsdk/lookup-client (rc), @totemsdk/lookup-node (rc), @totemsdk/lookup-protocol (rc), @totemsdk/manifest (rc), @totemsdk/mcp-server (rc), @totemsdk/omnia-factory (rc), @totemsdk/omnia-host (rc), @totemsdk/omnia-lsp (alpha), @totemsdk/omnia-lsp-provider (alpha), @totemsdk/omnia-pool (rc), @totemsdk/omnia-router (rc), @totemsdk/omnia-vtxo (rc), @totemsdk/p2p-hub (alpha), @totemsdk/pear (rc), @totemsdk/provider-bond (rc), @totemsdk/minima-rpc (rc), @totemsdk/pubsub-transport (rc), @totemsdk/qvac (beta), @totemsdk/realtime (rc), @totemsdk/recursive-mast (rc), @totemsdk/root-identity (rc), @totemsdk/se-server (rc), @totemsdk/server (rc), @totemsdk/storage (rc), @totemsdk/stream-transport (rc), @totemsdk/tx-builder (rc), @totemsdk/txpow (rc), @totemsdk/wallet-adapter (rc), @totemsdk/wots-lease (rc), @totemsdk/entity (alpha), @totemsdk/eefi (rc), @totemsdk/replication (alpha)"
+        "actual": "Missing: @totemsdk/agent-policy (rc), @totemsdk/authority (rc), @totemsdk/chain-provider (rc), @totemsdk/connect (rc), @totemsdk/decision (beta), @totemsdk/edge (rc), @totemsdk/governance (rc), @totemsdk/identity (rc), @totemsdk/intelligence (beta), @totemsdk/kissvm (rc), @totemsdk/liquidity-bond (rc), @totemsdk/lookup-client (rc), @totemsdk/lookup-node (rc), @totemsdk/lookup-protocol (rc), @totemsdk/manifest (rc), @totemsdk/mcp-server (rc), @totemsdk/omnia-factory (rc), @totemsdk/omnia-host (rc), @totemsdk/omnia-lsp (alpha), @totemsdk/omnia-lsp-provider (alpha), @totemsdk/omnia-pool (rc), @totemsdk/omnia-router (rc), @totemsdk/p2p-hub (alpha), @totemsdk/pear (rc), @totemsdk/provider-bond (rc), @totemsdk/minima-rpc (rc), @totemsdk/pubsub-transport (rc), @totemsdk/qvac (beta), @totemsdk/realtime (rc), @totemsdk/recursive-mast (rc), @totemsdk/root-identity (rc), @totemsdk/se-server (rc), @totemsdk/server (rc), @totemsdk/storage (rc), @totemsdk/stream-transport (rc), @totemsdk/tx-builder (rc), @totemsdk/txpow (rc), @totemsdk/wallet-adapter (rc), @totemsdk/wots-lease (rc), @totemsdk/entity (alpha), @totemsdk/eefi (rc), @totemsdk/replication (alpha), @totemsdk/vtxo (rc), @totemsdk/claim (alpha)"
       },
       "fix": {
         "where": [
