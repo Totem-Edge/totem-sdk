@@ -48,7 +48,7 @@ async function build() {
       { partyId: 'b', publicKeyDigest: B, addressIndex: 1 },
     ]),
     '@totemsdk/omnia-factory': factory.buildFactoryScript([party('a', A, 1000n), party('b', B, 500n)]),
-    '@totemsdk/omnia-vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: A, holders: [B], exitBlock: 1000 }),
+    '@totemsdk/vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: A, holders: [B], exitBlock: 1000 }),
   };
 }
 

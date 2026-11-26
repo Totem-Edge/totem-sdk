@@ -28,7 +28,7 @@ module.exports = {
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
     '^@totemsdk/tx-builder$': '<rootDir>/../tx-builder/src/index.ts',
     '^@totemsdk/omnia$': '<rootDir>/../omnia/src/index.ts',
-    '^@totemsdk/omnia-vtxo$': '<rootDir>/../omnia-vtxo/src/index.ts',
+    '^@totemsdk/vtxo$': '<rootDir>/../vtxo/src/index.ts',
     '^@totemsdk/omnia-router$': '<rootDir>/../omnia-router/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/../wots-lease/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',

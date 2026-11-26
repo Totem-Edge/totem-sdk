@@ -1,5 +1,6 @@
 import { concat, writeMiniNumber } from '@totemsdk/core';
 import type { SignedChannelState } from './types.js';
+import { assertBroadcastProofs as assertTxBroadcastProofs, serializeDraftWitness } from '@totemsdk/tx-builder';
 
 export interface OmniaWitnessProofs {
   /** Serialized Minima CoinProof bytes, one per spending input. */
@@ -18,20 +19,11 @@ function serializeProofList(items: Uint8Array[]): Uint8Array[] {
 }
 
 export function serializeOmniaWitness(options: OmniaWitnessOptions): Uint8Array {
-  return concat(
-    ...serializeProofList(options.signatures),
-    ...serializeProofList(options.coinProofs),
-    ...serializeProofList(options.scriptProofs),
-  );
+  return serializeDraftWitness(options);
 }
 
 export function assertBroadcastProofs(proofs?: Partial<OmniaWitnessProofs>): asserts proofs is OmniaWitnessProofs {
-  if (!proofs?.coinProofs?.length) {
-    throw new Error('Missing serialized Minima coin proofs for Omnia broadcast');
-  }
-  if (!proofs.scriptProofs) {
-    throw new Error('Missing serialized Minima script proofs for Omnia broadcast');
-  }
+  assertTxBroadcastProofs(proofs);
 }
 
 /**

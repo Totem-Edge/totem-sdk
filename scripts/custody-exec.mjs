@@ -21,7 +21,7 @@
  * (real `TreeKey` signatures, Rust/WASM vs TS) and `custody-signature-parity.mjs`
  * (TS vs Rust verifier parity).
  *
- * Requires built dist of: @totemsdk/omnia-vtxo, @totemsdk/omnia-factory, @totemsdk/kissvm.
+ * Requires built dist of: @totemsdk/vtxo, @totemsdk/omnia-factory, @totemsdk/kissvm.
  * Usage: node scripts/custody-exec.mjs   (after `npm run build`)
  */
 import './lib/init-core-wasm.mjs';

@@ -1,7 +1,7 @@
 # Example: Meridian Pay — LP capital → VTXO payments → withdrawal
 
 A worked, **runnable** end-to-end across `@totemsdk/liquidity-bond`,
-`@totemsdk/omnia-pool`, and `@totemsdk/omnia-vtxo`. The executable version lives
+`@totemsdk/omnia-pool`, and `@totemsdk/vtxo`. The executable version lives
 at `packages/sdk-tests/test/scenarios/meridian-payments.scenario.test.ts`.
 
 ## The business
@@ -20,7 +20,7 @@ liquidity behind that promise for a share of routing fees.
 |---|---|---|---|
 | `@totemsdk/liquidity-bond` | The **receipt / ledger** | "Acme owns 25M of pool X" — position, receipt, allocation, fee and withdrawal records | No (data only) |
 | `@totemsdk/omnia-pool` | The **fund manager** | The decisions: deploy, deposit, allocate, fees/NAV, rebalance, approved withdrawal | No (drives targets) |
-| `@totemsdk/omnia-vtxo` | The **spendable balances** | The on-chain pool UTXO + the VTXOs users spend, and the per-share exit | Yes (on-chain script) |
+| `@totemsdk/vtxo` | The **spendable balances** | The on-chain pool UTXO + the VTXOs users spend, and the per-share exit | Yes (on-chain script) |
 
 They stack — `liquidity-bond` is the record layer, `omnia-pool` allocates capital
 across execution backends (channels, factories, routers, splices, **VTXO pools**),

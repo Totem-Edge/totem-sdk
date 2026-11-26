@@ -41,7 +41,7 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 
 | System | Covers | Example packages |
 |--------|--------|------------------|
-| **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `omnia-vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
+| **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
 | **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `location-proof`, `spatial-proof`, `raster-proof`, `identity`, `manifest`, `connect` |
 | **Policy** | Decisions, delegation, governance, agent seams | `recursive-mast`, `authority`, `governance`, `agent-policy` |
 | **Action** | Bounded operational execution on devices | `edge`, `act-core`, `edge-ocpp/governed`, `edge-mavlink/governed`, `edge-adapters` |
@@ -86,7 +86,7 @@ The five systems sit on a shared foundation. Each package is independently usabl
 ┌──────────────────────────────────────────────────────────────┐
 │                 SETTLEMENT SYSTEM                              │
 │  omnia  omnia-router  omnia-splice  omnia-factory             │
-│  omnia-vtxo  omnia-host  statechain  se-server                │
+│  vtxo        omnia-host  statechain  se-server                │
 │  tx-builder  txpow  liquidity-bond  provider-bond             │
 │  Eltoo channels. Multi-hop routing. Statechains.              │
 │  HTLC / vault / treasury / membership / asset programs.       │
@@ -147,7 +147,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/omnia-router`](packages/omnia-router) | Multi-hop payments and cross-token swaps across the channel network |
 | [`@totemsdk/omnia-splice`](packages/omnia-splice) | Resize channels without closing them — splice-in and splice-out |
 | [`@totemsdk/omnia-factory`](packages/omnia-factory) | Scale payment channels — N-of-N funded factory channels with virtual channel support |
-| [`@totemsdk/omnia-vtxo`](packages/omnia-vtxo) | VTXO management for Omnia channels — Merkle-verified exit proofs |
+| [`@totemsdk/vtxo`](packages/vtxo) | VTXO claim layer — cash-like off-chain balances backed by a shared pool |
 | [`@totemsdk/omnia-pool`](packages/omnia-pool) | Generic Omnia liquidity pool orchestration — deposit, allocate, fee, NAV, and withdraw across the Omnia execution family |
 | [`@totemsdk/omnia-relay`](packages/omnia-relay) | Wallet-side Omnia client — composes the relay transport, routing and the single-party factory/splice halves without a package cycle |
 | [`@totemsdk/statechain`](packages/statechain) | Off-chain UTXO ownership transfer using the Mercury protocol with blind SE co-signatures |
@@ -254,7 +254,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **76 packages across 9 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **77 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -565,7 +565,7 @@ docs/                       # SDK documentation
 | [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 76 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 77 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

@@ -2,6 +2,15 @@ import { MINIMA_DECIMALS, atomsToAmount, sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
 import type { OmniaChannel, OmniaTxDraft, StateValue, TxOutputDraft, HTLCRecord, SignedChannelState } from './types.js';
 import { COINID_ELTOO } from './script.js';
+import {
+  computeDraftDigest,
+  computeDraftJsonDigest,
+  deserializeDraft,
+  draftOutputCoinIds,
+  draftToCanonicalMinimaBytes,
+  draftToMinimaBytes,
+  serializeDraft,
+} from '@totemsdk/tx-builder';
 
 // ── @totemsdk/tx-builder compatible types ───────────────────────────────────
 // Mirror of EnhancedBuildParams / EnhancedCoinInput / EnhancedCoinOutput from
@@ -520,21 +529,15 @@ function bigintReviver(_key: string, value: unknown): unknown {
 }
 
 export function serializeTxDraft(draft: OmniaTxDraft): string {
-  return Buffer.from(JSON.stringify(draft, bigintReplacer), 'utf8').toString('hex');
+  return serializeDraft(draft);
 }
 
 export function deserializeTxDraft(hex: string): OmniaTxDraft {
-  return JSON.parse(Buffer.from(hex, 'hex').toString('utf8'), bigintReviver) as OmniaTxDraft;
+  return deserializeDraft(hex) as OmniaTxDraft;
 }
 
 export function computeTxDraftDigest(draft: OmniaTxDraft): Uint8Array {
-  const bytes = new TextEncoder().encode(JSON.stringify({
-    type: draft.type,
-    inputs: draft.inputs,
-    outputs: draft.outputs,
-    stateVariables: draft.stateVariables,
-  }, bigintReplacer));
-  return sha3_256(bytes);
+  return computeDraftJsonDigest(draft);
 }
 
 /** Legacy/test-only JSON draft digest. Production signatures must use computeOmniaTxDigest(). */
@@ -646,82 +649,19 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
  * ```
  */
 export function omniaDraftToMinimaBytes(draft: OmniaTxDraft): Uint8Array {
-  return omniaDraftToCanonicalMinimaBytes(draft);
+  return draftToMinimaBytes(draft);
 }
 
 export function minimaOutputCoinIdsForDraft(draft: OmniaTxDraft): string[] {
-  if (draft.inputs.length === 0) return draft.outputs.map(() => COINID_OUTPUT);
-  const baseCoinId = draft.inputs[0].coinId;
-  if (baseCoinId.toLowerCase() === COINID_ELTOO.toLowerCase()) {
-    return draft.outputs.map(() => COINID_OUTPUT);
-  }
-
-  return draft.outputs.map((_, index) => bytesToHexLocal(sha3_256(concatBytesLocal([
-    writeMiniDataLocal(hexToBytesLocal(baseCoinId)),
-    writeMiniNumberLocal(BigInt(index)),
-  ]))));
-}
-
-function serializeCoinForMinima(opts: {
-  coinId: string;
-  address: string;
-  amount: bigint;
-  tokenId: string;
-  storeState: boolean;
-  stateVariables: StateValue[];
-  mmrEntry?: bigint;
-}): Uint8Array {
-  const parts = [
-    writeHashToStreamLocal(opts.coinId),
-    writeHashToStreamLocal(opts.address),
-    // Coin amounts are integer atoms: Java reads `MiniNumber(unscaled, scale)`
-    // as unscaled x 10^-scale, so scale 44 turns 2e43 back into 0.2 MINIMA.
-    writeMiniNumberLocal(opts.amount, MINIMA_DECIMALS),
-    writeHashToStreamLocal(opts.tokenId),
-    writeMiniByteLocal(opts.storeState),
-    writeMMREntryNumberLocal(opts.mmrEntry ?? 0n),
-    writeMiniByteLocal(false),
-    writeMiniNumberLocal(0n),
-    writeMiniNumberLocal(BigInt(opts.stateVariables.length)),
-    ...opts.stateVariables.map(writeStateValueLocal),
-    writeMiniByteLocal(false),
-  ];
-  return concatBytesLocal(parts);
+  return draftOutputCoinIds(draft);
 }
 
 export function omniaDraftToCanonicalMinimaBytes(draft: OmniaTxDraft): Uint8Array {
-  const outputCoinIds = minimaOutputCoinIdsForDraft(draft);
-  const inputBytes = draft.inputs.map(input => serializeCoinForMinima({
-    coinId: input.coinId,
-    address: input.address,
-    amount: input.amount,
-    tokenId: input.tokenId,
-    storeState: input.storeState ?? false,
-    stateVariables: input.stateVariables ?? [],
-    mmrEntry: input.mmrEntry,
-  }));
-  const outputBytes = draft.outputs.map((output, index) => serializeCoinForMinima({
-    coinId: outputCoinIds[index],
-    address: output.address,
-    amount: output.amount,
-    tokenId: output.tokenId,
-    storeState: output.storeState,
-    stateVariables: output.storeState ? (output.stateVariables ?? draft.stateVariables) : [],
-  }));
-
-  return concatBytesLocal([
-    writeMiniNumberLocal(BigInt(inputBytes.length)),
-    ...inputBytes,
-    writeMiniNumberLocal(BigInt(outputBytes.length)),
-    ...outputBytes,
-    writeMiniNumberLocal(BigInt((draft.stateVariables ?? []).length)),
-    ...(draft.stateVariables ?? []).map(writeStateValueLocal),
-    writeHashToStreamLocal('0x00'),
-  ]);
+  return draftToCanonicalMinimaBytes(draft);
 }
 
 export function computeOmniaTxDigest(draft: OmniaTxDraft): Uint8Array {
-  return sha3_256(omniaDraftToCanonicalMinimaBytes(draft));
+  return computeDraftDigest(draft);
 }
 
 /**

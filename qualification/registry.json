@@ -299,12 +299,12 @@
       },
       "limitations": []
     },
-    "@totemsdk/omnia-vtxo": {
+    "@totemsdk/vtxo": {
       "version": "0.8.1",
       "owner": "Totem SDK maintainers",
       "profiles": {
         "unit": {
-          "suite": "packages/omnia-vtxo:test"
+          "suite": "packages/vtxo:test"
         }
       },
       "limitations": []

@@ -335,8 +335,8 @@ describe('omnia-pool', () => {
   });
 
   it('allocates to a vtxo target using a port', async () => {
-    const vtxo = { vtxoId: 'v-1' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxo;
-    const pool = { poolId: 'vtxo-pool-1' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxoPool;
+    const vtxo = { vtxoId: 'v-1' } as unknown as import('@totemsdk/vtxo').OmniaVtxo;
+    const pool = { poolId: 'vtxo-pool-1' } as unknown as import('@totemsdk/vtxo').OmniaVtxoPool;
     const port: VtxoExecutionPort = {
       createPool: jest.fn(),
       mintVtxo: jest.fn().mockResolvedValue({ pool, vtxo }),
@@ -536,7 +536,7 @@ describe('omnia-pool', () => {
   });
 
   it('rebalances capital to a vtxo target as vtxo-backing', async () => {
-    const vtxoPool = { poolId: 'vtxo-pool-2' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxoPool;
+    const vtxoPool = { poolId: 'vtxo-pool-2' } as unknown as import('@totemsdk/vtxo').OmniaVtxoPool;
     const port: VtxoExecutionPort = {
       createPool: jest.fn(),
       mintVtxo: jest.fn().mockResolvedValue({ pool: vtxoPool, vtxo: { vtxoId: 'v-2' } }),

@@ -56,7 +56,7 @@ The Omnia Payment Network is implemented across seven packages, each solving one
 | `@totemsdk/omnia-router` | Multi-hop payment pathfinding | The SWIFT routing network |
 | `@totemsdk/omnia-factory` | N-of-N group channels | A cooperative bank for a fleet of devices |
 | `@totemsdk/omnia-splice` | Channel resizing without closing | Topping up or withdrawing from an account without closing it |
-| `@totemsdk/omnia-vtxo` | Virtual UTXO accounting | A bearer note inside a shared liquidity pool |
+| `@totemsdk/vtxo` | Virtual UTXO accounting | A bearer note inside a shared liquidity pool |
 | `@totemsdk/statechain` | Off-chain ownership transfer | A prepaid gift card that can be regifted |
 | `@totemsdk/se-server` | Statechain Entity infrastructure | A notary that witnesses transfers without seeing the details |
 
@@ -999,7 +999,7 @@ The sensor is the infrastructure. The network is the bank. The devices are the e
 | `acceptSplice(proposal)` | Co-sign a splice proposal |
 | `finalizeSplice(proposal, signatures)` | Broadcast splice transaction |
 
-### `@totemsdk/omnia-vtxo` — Virtual UTXOs
+### `@totemsdk/vtxo` — Virtual UTXOs
 
 | Function | Purpose |
 |----------|---------|

@@ -113,9 +113,9 @@ export interface OmniaHostDependencies {
   /** Test/dev: allow a local-only pay without a peer co-signature (OMN-024). */
   allowLocalOnlyPay?: boolean;
   /** OMN-042: trusted chain verifier for VTXO exit transactions. */
-  vtxoExitVerifier?: import('@totemsdk/omnia-vtxo').VtxoExitVerifier;
+  vtxoExitVerifier?: import('@totemsdk/vtxo').VtxoExitVerifier;
   /** OMN-025: verifier for an exit entitlement's witness. */
-  vtxoExitWitnessVerifier?: import('@totemsdk/omnia-vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  vtxoExitWitnessVerifier?: import('@totemsdk/vtxo').VerifyExitEntitlementOptions['verifyWitness'];
   /** OMN-043: live execution ports for pool capital allocation. */
   allocationContext?: import('@totemsdk/omnia-pool').OmniaPoolAllocationContext;
   /**

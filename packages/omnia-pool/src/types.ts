@@ -38,7 +38,7 @@ import type {
   MintVtxoParams,
   OmniaVtxo,
   OmniaVtxoPool,
-} from '@totemsdk/omnia-vtxo';
+} from '@totemsdk/vtxo';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';

@@ -5,7 +5,7 @@
  *   create pool -> mint -> co-sign/verify receipt -> partial transfer ->
  *   co-sign/verify receipt -> refresh -> exit draft -> exited
  *
- * Uses the real `@totemsdk/omnia-vtxo` primitives with a real unified TreeKey
+ * Uses the real `@totemsdk/vtxo` primitives with a real unified TreeKey
  * operator signature and an in-memory lease provider. No node, chain, or cloud
  * host is required.
  *

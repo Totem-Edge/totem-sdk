@@ -357,7 +357,7 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/omnia` | 9 | 223 |
 | `@totemsdk/omnia-host` | 13 | 62 |
 | `@totemsdk/stream-transport` | 2 | 20 |
-| `@totemsdk/omnia-vtxo` | 17 | 187 |
+| `@totemsdk/vtxo` | 17 | 187 |
 | `@totemsdk/omnia-splice` | 3 | 75 |
 | `@totemsdk/omnia-router` | 5 | 79 |
 | `@totemsdk/omnia-pool` | 4 | 40 |

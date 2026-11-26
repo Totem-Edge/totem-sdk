@@ -4,7 +4,7 @@
  *
  *   - `@totemsdk/liquidity-bond` — the position/receipt/allocation/fee ledger (data only)
  *   - `@totemsdk/omnia-pool`     — the LP capital pool (deploy → deposit → allocate → fees → withdraw)
- *   - `@totemsdk/omnia-vtxo`     — the spendable VTXO balances + per-share exit
+ *   - `@totemsdk/vtxo`     — the spendable VTXO balances + per-share exit
  *
  * The on-chain chain-provider legs (funding confirmation, PoW broadcast, MMR
  * proofs) are mocked (this is a unit-level integration scenario); everything the
@@ -29,11 +29,12 @@ import {
   mintVtxo,
   transferVtxo,
   createExitDraft,
+  createMemoryExitDraftStore,
   markExiting,
   markExited,
   type OmniaVtxo,
   type OmniaVtxoPool,
-} from '@totemsdk/omnia-vtxo';
+} from '@totemsdk/vtxo';
 
 const NOW = 1_700_000_000_000;
 const TOKEN = '0x00';
@@ -45,7 +46,10 @@ const MERCHANT = 'MxMERCHANT';  // merchant
 // Funding-truth verifier (stands in for the live chain-provider).
 const passFundingVerifier = { verifyDeposit: async () => ({ valid: true }) };
 
-// Live VTXO port — delegates to the real omnia-vtxo functions.
+// Live VTXO port — delegates to the real vtxo functions.
+// OMN-088: exit drafts reserve the VTXO against this store.
+const exitDraftStore = createMemoryExitDraftStore();
+
 const vtxoPort: VtxoExecutionPort = {
   async createPool(p) {
     return createPool(
@@ -57,17 +61,19 @@ const vtxoPort: VtxoExecutionPort = {
     return mintVtxo(pool, params, NOW);
   },
   async createExitDraft(vtxo) {
-    return createExitDraft(vtxo, NOW).draft;
+    // OMN-088: drafts reserve the VTXO; a repeat returns the original draft.
+    return (await createExitDraft(vtxo, exitDraftStore, NOW)).draft;
   },
   async markExiting(vtxo, now) {
     return markExiting(vtxo, now ?? NOW);
   },
   async markExited(vtxo, txpowId, now) {
-    return markExited(vtxo, { txpowId, now: now ?? NOW });
+    // OMN-089: the scenario is a simulation; declare the trust explicitly.
+    return markExited(vtxo, { txpowId, trusted: true, now: now ?? NOW });
   },
 };
 
-describe('scenario: Meridian Pay (liquidity-bond + omnia-pool + omnia-vtxo)', () => {
+describe('scenario: Meridian Pay (liquidity-bond + omnia-pool + vtxo)', () => {
   it('runs LP funding → VTXO pool → spend → fee → withdrawal', async () => {
     let registry = createEmptyLiquidityBondRegistryState();
 
@@ -102,7 +108,7 @@ describe('scenario: Meridian Pay (liquidity-bond + omnia-pool + omnia-vtxo)', ()
     expect(dep.position.amount).toBe(100000n);
     expect(dep.receipt.ownerAddress).toBe(ACME);
 
-    // ── 2. Meridian allocates Acme's capital into a VTXO payment pool (omnia-vtxo)
+    // ── 2. Meridian allocates Acme's capital into a VTXO payment pool (vtxo)
     const vtxoPool = createPool(
       { operator: MERIDIAN, tokenId: TOKEN, totalCapacity: 1_000_000n, nonce: 'meridian-vtxo-1' },
       NOW,
@@ -123,7 +129,7 @@ describe('scenario: Meridian Pay (liquidity-bond + omnia-pool + omnia-vtxo)', ()
     expect(vtxo.owner).toBe(SHOPPER);
     expect(vtxo.amount).toBe(25000n);
 
-    // ── 3. The shopper pays the merchant with the VTXO (omnia-vtxo, off-chain)
+    // ── 3. The shopper pays the merchant with the VTXO (vtxo, off-chain)
     const payment = transferVtxo(vtxo, { recipient: MERCHANT, amount: 5000n, nonce: 'pay-1' }, NOW);
     expect(payment.output.owner).toBe(MERCHANT);
     expect(payment.output.amount).toBe(5000n);

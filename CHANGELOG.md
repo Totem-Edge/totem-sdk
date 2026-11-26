@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — `@totemsdk/claim`
+
+- New `@totemsdk/claim` package: payload-agnostic `ClaimEnvelope`, the
+  `ClaimPolicy` union (`single`, `threshold`, `conditional`, `dvp`, `delegated`,
+  `rotation`, `vesting`, `recovery`, `collateral`), `evaluateClaim`,
+  `computeVestingSchedule` and the canonical envelope hash.
+- `@totemsdk/vtxo` (formerly `@totemsdk/omnia-vtxo`) re-exports the generic
+  policy types for compatibility; VTXO binding and the canonical VTXO preimage
+  remain in the VTXO package.
+
+### Changed — VTXO package rename and dependency split
+
+- `@totemsdk/omnia-vtxo` is renamed to **`@totemsdk/vtxo`**. This is a pre-release
+  breaking rename; no alias package is published.
+- Transaction-draft, witness and digest primitives moved from `@totemsdk/omnia`
+  into `@totemsdk/tx-builder`. `@totemsdk/vtxo` now depends on `tx-builder`
+  directly and no longer depends on the eltoo channel package, `agent-policy`,
+  `kissvm`, `lookup-protocol` or `stream-transport`.
+- First-party consumers (`omnia-host`, `omnia-pool`) and the SDK docs site use
+  the new package name. Historical RFCs and audit records are unchanged.
+- Protocol domain separators were renamed from `totemsdk/omnia-vtxo/...` to
+  `totemsdk/vtxo/...`, and the operator storage namespace from `omnia-vtxo:<poolId>`
+  to `vtxo:<poolId>`. This is a pre-release break: VTXO ids, receipts, commitments
+  and persisted operator state from 0.9.x are not compatible with 0.10.0.
+
 ### Added — PWA stateful sends (unreleased)
 
 `totem-pwa-wallet` can now store state variables on a send's recipient output

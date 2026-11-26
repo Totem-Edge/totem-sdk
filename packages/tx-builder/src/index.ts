@@ -5,6 +5,7 @@ export * from './enhanced-types.js';
 export * from './wasm-bridge.js';
 export * from './fund-tx.js';
 export * from './witness.js';
+export * from './draft.js';
 export * from './serialize.js';
 export * from './build.js';
 export * from './htlc.js';

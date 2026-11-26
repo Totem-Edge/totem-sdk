@@ -503,7 +503,7 @@ A vending machine in a basement. No internet connectivity. BLE for customer inte
 **The stack:**
 - `edge-ble` — protocol adapter, transport port bridged to BLE peripheral
 - `@totemsdk/edge` — runtime with `payment` and `proof` ports
-- `@totemsdk/omnia-vtxo` — VTXO pool for offline payments
+- `@totemsdk/vtxo` — VTXO pool for offline payments
 - `@totemsdk/edge-mqtt` — offline queue for delayed settlement
 
 Customer approaches. Wallet discovers machine via BLE. Customer selects a €2 snack. Wallet presents a €5 VTXO. Machine verifies the Merkle proof, splits it: €2 to machine, €3 change. Machine dispenses. Total time: <1 second. No network connectivity required. At end of day, the delivery driver's phone provides connectivity. The queue drains. The day's VTXOs are merged and exited on-chain.

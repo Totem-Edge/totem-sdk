@@ -7,7 +7,7 @@ versions; do not rely on `0.x` caret resolution or the `latest` tag.
 npm install --save-exact \
   @totemsdk/omnia-host@0.13.1 \
   @totemsdk/omnia-relay@0.6.0 \
-  @totemsdk/omnia-vtxo@0.8.1 \
+  @totemsdk/vtxo@0.8.1 \
   @totemsdk/minima-rpc@0.5.0 \
   @totemsdk/core@1.4.1 \
   @totemsdk/wots-lease@1.0.2
