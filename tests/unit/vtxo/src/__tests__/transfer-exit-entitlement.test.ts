@@ -5,7 +5,7 @@
  */
 
 import { wotsAddressData } from '@totemsdk/core';
-import { deserializeTxDraft } from '@totemsdk/omnia';
+import { deserializeDraft } from '@totemsdk/tx-builder';
 import { createPool } from '../pool';
 import { mintVtxo } from '../vtxo';
 import { transferVtxo, transferVtxoWithEntitlement } from '../transfer';
@@ -170,7 +170,7 @@ describe('OMN-003 — transfer exit entitlement', () => {
     expect(verifyVtxoExitEntitlement(result.exitEntitlement, vtxo, { requireWitness: false }).valid).toBe(false);
 
     // The rebuilt exit transaction pays the recipient, not the sender.
-    const draft = deserializeTxDraft(result.exitEntitlement.txHex);
+    const draft = deserializeDraft(result.exitEntitlement.txHex);
     expect(draft.outputs[0].address).toBe(wotsAddressData('bob'));
     expect(draft.outputs[0].amount).toBe(3_000n);
     expect(draft.inputs[0].coinId).toBe(FUNDING_COIN);

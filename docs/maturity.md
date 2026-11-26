@@ -66,7 +66,7 @@ Total: **77** publishable packages + **6** excluded entries = **83** workspace e
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
-| `@totemsdk/tx-builder` | 0.3.5 | rc | 2 | `packages/tx-builder` |
+| `@totemsdk/tx-builder` | 0.4.0 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/vtxo` | 0.10.0 | rc | 2 | `packages/vtxo` |
 | `@totemsdk/claim` | 0.1.0 | alpha | 2 | `packages/claim` |
