@@ -16,6 +16,7 @@ export { finalizeSplice, type FinalizeSpliceOptions } from './finalize.js';
 export {
   observeSpliceSuccessor,
   recoverInterruptedSplices,
+  SpliceSuccessorLineageError,
   type SpliceChainObserver,
   type SpliceSuccessorOptions,
   type ObservedSuccessor,

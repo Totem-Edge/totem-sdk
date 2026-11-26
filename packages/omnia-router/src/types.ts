@@ -48,6 +48,13 @@ export interface RouterChannel {
   currentSequence: number;
   status: string;
   localSigner?: ChannelSigner;
+  /**
+   * Eltoo contest window embedded in the funding script (OMN-081). The router
+   * derives the per-hop HTLC expiry spread from this: an intermediary needs the
+   * full contest period plus a recovery margin between its incoming and
+   * outgoing deadlines. Defaults to 256 for channels opened by this SDK.
+   */
+  contestDelayBlocks?: number;
 }
 
 /**
@@ -88,7 +95,17 @@ export interface ChannelOps {
     htlcId: string,
     preimage: string,
     leaseProvider: LeaseProvider,
-  ): Promise<{ channel: RouterChannel; error?: string }>;
+  ): Promise<{
+    channel: RouterChannel;
+    error?: string;
+    /**
+     * OMN-083: the authenticated state pair the fulfilment produced. When an
+     * implementation can supply it, the router emits an authenticated fee proof;
+     * otherwise the proof is marked unauthenticated.
+     */
+    previousState?: RouterSignedState;
+    nextState?: RouterSignedState;
+  }>;
 
   timeoutHTLC(
     channel: RouterChannel,
@@ -217,6 +234,28 @@ export interface PaymentRequest {
  * pool's `recordPoolFee` earn-proof consumes. Binds channel + HTLC + recipient
  * + amount so a fee record traces to a real fulfilled payment.
  */
+/**
+ * A channel state the router can reason about without depending on `omnia`
+ * (OMN-083). Only the fields the fee proof binds are modelled.
+ */
+export interface RouterSignedState {
+  sequence: number;
+  balances: Record<string, bigint>;
+  pendingHTLCs?: Array<{
+    htlcId: string;
+    amount: bigint;
+    recipientPublicKeyDigest?: string;
+    status?: string;
+  }>;
+  stateVariables?: Array<{ port: number; value: unknown }>;
+  signatures?: Record<string, unknown>;
+}
+
+export interface RouterStateTransition {
+  previous: RouterSignedState;
+  next: RouterSignedState;
+}
+
 export interface RouterFeeProof {
   channelId: string;
   htlcId: string;
@@ -224,6 +263,19 @@ export interface RouterFeeProof {
   amount: bigint;
   tokenId: string;
   settledAt: number;
+  /**
+   * OMN-083: true only when the proof was derived from an authenticated
+   * predecessor→successor transition. A hash over descriptive fields is not
+   * settlement evidence, so `false` proofs must not be treated as income.
+   */
+  authenticated: boolean;
+  /** Fee the intermediary retained on this hop, when both legs are known. */
+  feeAmount?: bigint;
+  previousSequence?: number;
+  sequence?: number;
+  previousStateCommitmentV2?: string;
+  stateCommitmentV2?: string;
+  balanceDelta?: bigint;
   proofHash: string;
 }
 

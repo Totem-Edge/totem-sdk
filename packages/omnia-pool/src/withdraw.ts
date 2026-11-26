@@ -8,6 +8,7 @@ import {
   consumeLiquidityReceipt,
   createWithdrawalIntent,
   attachWithdrawalIntent,
+  issueLiquidityReceipt,
   registerLiquidityPosition,
   markLiquidityPositionQuiescing,
   verifyWithdrawalAllowed,
@@ -222,6 +223,20 @@ async function verifyPayoutFinality(params: ExecutePoolPayoutParams): Promise<vo
  * it is verified *before* any execution side effect; only verified evidence may
  * mark the intent settled, decrement LP capital and consume the receipt.
  */
+/**
+ * Execute a payout for an approved withdrawal intent.
+ * For VTXO-backed positions this creates an exit draft; for channel-backed
+ * positions it requests a settlement payload. Pure-record positions return the
+ * intent only and expect the caller to handle settlement externally.
+ *
+ * RFC-048 §3.3: a prepared draft is not a payout. When `settlement` is supplied
+ * it is verified *before* any execution side effect; only verified evidence may
+ * mark the intent settled, decrement LP capital and consume the receipt.
+ *
+ * OMN-090: the caller's position and intent are treated as a *claim*. The
+ * authoritative records are loaded from the registry, compared, and used for
+ * every downstream decision and for the signed transition.
+ */
 export async function executePoolPayout(
   params: ExecutePoolPayoutParams,
   registry: LiquidityBondRegistryState,
@@ -232,37 +247,66 @@ export async function executePoolPayout(
   execution?: unknown;
   signedTransition?: import('@totemsdk/liquidity-bond').RegistrySignedTransition;
 }> {
-  if (params.intent.status !== 'approved') {
+  // ── OMN-090: resolve authoritative state before anything else ─────────────
+  const authoritativePosition = registry.positions[params.position.positionId];
+  if (!authoritativePosition) {
+    throw new Error(`position ${params.position.positionId} is not in the registry`);
+  }
+  const authoritativeIntent = (registry.withdrawals[authoritativePosition.positionId] ?? [])
+    .find((entry) => entry.withdrawalId === params.intent.withdrawalId);
+  if (!authoritativeIntent) {
+    throw new Error(
+      `withdrawal ${params.intent.withdrawalId} is not recorded against position ${authoritativePosition.positionId}`,
+    );
+  }
+  if (authoritativeIntent.status !== 'approved') {
     throw new Error('withdrawal intent must be approved before payout');
   }
 
+  // The caller may not substitute its own numbers for the registry's.
+  const mismatches: string[] = [];
+  if (params.position.amount !== authoritativePosition.amount) mismatches.push('position.amount');
+  if (params.position.poolId !== authoritativePosition.poolId) mismatches.push('position.poolId');
+  if (params.intent.amount !== authoritativeIntent.amount) mismatches.push('intent.amount');
+  if (params.intent.positionId !== authoritativeIntent.positionId) mismatches.push('intent.positionId');
+  if (mismatches.length > 0) {
+    throw new Error(
+      `payout inputs disagree with the registry (${mismatches.join(', ')}); `
+      + 'reload the position and intent before paying out',
+    );
+  }
+
+  const position = authoritativePosition;
+  const intent = authoritativeIntent;
+  const paid: ExecutePoolPayoutParams = { ...params, position, intent };
+
   // Verify finality first: a forged or unverifiable settlement must not reach
   // any channel/VTXO side effect, let alone the accounting mutation below.
-  if (params.settlement) {
-    await verifyPayoutFinality(params);
+  if (paid.settlement) {
+    await verifyPayoutFinality(paid);
   }
 
   let execution: unknown;
-  if (params.position.vtxoPoolId && params.ctx?.vtxo) {
+  if (position.vtxoPoolId && paid.ctx?.vtxo) {
     // In a real implementation the VTXO would be identified from the
     // position metadata; here we require the caller to supply a vtxo via metadata.
-    const vtxo = params.position.metadata?.withdrawalVtxo as never;
+    const vtxo = position.metadata?.withdrawalVtxo as never;
     if (!vtxo) {
       throw new Error('vtxo-backed withdrawal requires a withdrawalVtxo in position metadata');
     }
-    const draft = await params.ctx.vtxo.createExitDraft(vtxo);
+    const draft = await paid.ctx.vtxo.createExitDraft(vtxo);
     execution = draft;
-  } else if (params.position.omniaChannelId && params.ctx?.omnia) {
+  } else if (position.omniaChannelId && paid.ctx?.omnia) {
     // Omnia settlement requires the live channel object; we materialize it from
     // the position's omniaChannelId via ctx.loadChannel (or an attached snapshot).
-    const channel = await resolveChannelForPayout(params);
+    const channel = await resolveChannelForPayout(paid);
     if (!channel) {
       throw new Error('channel-backed withdrawal requires ctx.loadChannel or a withdrawalChannel in position metadata');
     }
     // Reconcile the LP's on-channel balance against the payout before settling (#22).
-    reconcileChannelBalance(channel, params.position.lpAddress, params.intent.amount);
-    const settlement = await params.ctx.omnia.proposeSettlement(channel);
-    if (params.ctx.saveChannelSnapshot) await params.ctx.saveChannelSnapshot(channel);
+    reconcileChannelBalance(channel, position.lpAddress, intent.amount);
+    const settlement = await paid.ctx.omnia.proposeSettlement(channel);
+    if (paid.ctx.saveChannelSnapshot) await paid.ctx.saveChannelSnapshot(channel);
     execution = settlement;
   }
 
@@ -270,59 +314,120 @@ export async function executePoolPayout(
   // completed payout. Without verifiable finality evidence, do NOT consume the
   // receipt, decrement LP capital, or mark the intent settled — return the
   // prepared execution and leave the position and registry unchanged.
-  if (!params.settlement) {
-    return {
-      intent: params.intent,
-      position: params.position,
-      registry,
-      execution,
-    };
+  if (!paid.settlement) {
+    return { intent, position, registry, execution };
   }
 
   // Mark position withdrawn for the requested amount and close the intent.
   const settledIntent: WithdrawalIntent = {
-    ...params.intent,
+    ...intent,
     status: 'settled-externally',
-    metadata: { ...(params.intent.metadata ?? {}), settlement: params.settlement },
+    metadata: { ...(intent.metadata ?? {}), settlement: paid.settlement },
   };
 
-  const withdrawnAmount = params.intent.amount;
-  const remaining = params.position.amount - withdrawnAmount;
+  // ── OMN-091: reconcile the residual position, never reset it ─────────────
+  const withdrawnAmount = intent.amount;
+  const priorAmount = position.amount;
+  if (withdrawnAmount > priorAmount) {
+    throw new Error(
+      `withdrawal ${withdrawnAmount.toString()} exceeds position ${priorAmount.toString()}`,
+    );
+  }
+  const remaining = priorAmount - withdrawnAmount;
+
+  const priorAllocated = position.allocatedAmount ?? 0n;
+  const priorReserved = position.reservedAmount ?? 0n;
+  const priorAvailable = position.availableAmount
+    ?? (priorAmount > priorAllocated + priorReserved ? priorAmount - priorAllocated - priorReserved : 0n);
+  const priorEffective = position.effectiveAmount ?? priorAmount;
+
+  if (withdrawnAmount > priorAvailable) {
+    // Allocated and reserved capital cannot be withdrawn without unwinding it
+    // first. Refusing is safer than silently freeing it.
+    throw new Error(
+      `withdrawal ${withdrawnAmount.toString()} exceeds available liquidity `
+      + `${priorAvailable.toString()} (allocated ${priorAllocated.toString()}, reserved ${priorReserved.toString()})`,
+    );
+  }
+
+  const remainingAvailable = priorAvailable - withdrawnAmount;
+  const remainingEffective = priorAmount === 0n
+    ? 0n
+    : priorEffective - (withdrawnAmount * priorEffective) / priorAmount;
+  if (remainingAllocatedInvalid(priorAllocated, priorReserved, remainingAvailable, remainingEffective)) {
+    throw new Error(
+      'payout would leave allocations exceeding the remaining effective value; unwind the allocation first',
+    );
+  }
+
   const updatedPosition: LiquidityPosition = {
-    ...params.position,
+    ...position,
     status: remaining > 0n ? 'active' : 'withdrawn',
-    amount: remaining > 0n ? remaining : 0n,
-    effectiveAmount: remaining > 0n ? remaining : 0n,
-    availableAmount: remaining > 0n ? remaining : 0n,
-    allocatedAmount: 0n,
-    reservedAmount: 0n,
+    amount: remaining,
+    effectiveAmount: remainingEffective,
+    availableAmount: remainingAvailable,
+    allocatedAmount: priorAllocated,
+    reservedAmount: priorReserved,
     updatedAt: Date.now(),
   };
 
   const withdrawals = { ...registry.withdrawals };
-  const list = (withdrawals[params.position.positionId] ?? []).map((w) =>
+  const list = (withdrawals[position.positionId] ?? []).map((w) =>
     w.withdrawalId === settledIntent.withdrawalId ? settledIntent : w,
   );
-  withdrawals[params.position.positionId] = list;
+  withdrawals[position.positionId] = list;
 
   let nextRegistry: LiquidityBondRegistryState = { ...registry, withdrawals };
-  nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
 
-  // Atomic receipt consumption (#23): the receipt is single-spent in the same
-  // transition that settles the withdrawal — a replayed receipt can never
-  // double-withdraw.
-  const receipt = nextRegistry.receipts[params.position.receiptId ?? ''];
-  if (receipt) {
+  // ── OMN-092: a receipt-backed payout must consume its receipt ────────────
+  if (position.receiptId !== undefined) {
+    const receipt = nextRegistry.receipts[position.receiptId];
+    if (!receipt) {
+      throw new Error(
+        `position ${position.positionId} names receipt ${position.receiptId}, which is missing from the registry`,
+      );
+    }
     const consumed = consumeLiquidityReceipt(receipt, settledIntent.withdrawalId);
-    nextRegistry = { ...nextRegistry, receipts: { ...nextRegistry.receipts, [consumed.receiptId]: consumed } };
+    nextRegistry = {
+      ...nextRegistry,
+      receipts: { ...nextRegistry.receipts, [consumed.receiptId]: consumed },
+    };
+
+    if (remaining > 0n) {
+      // A partial withdrawal leaves a claim behind; it needs its own receipt.
+      const successor = issueLiquidityReceipt({
+        position: updatedPosition,
+        poolId: updatedPosition.poolId,
+        ownerAddress: receipt.ownerAddress,
+        ...(receipt.ownerIdentityId !== undefined ? { ownerIdentityId: receipt.ownerIdentityId } : {}),
+        ...(receipt.expiresAt !== undefined ? { expiresAt: receipt.expiresAt } : {}),
+        ...(receipt.proofRef !== undefined ? { proofRef: receipt.proofRef } : {}),
+        metadata: {
+          ...(receipt.metadata ?? {}),
+          predecessorReceiptId: receipt.receiptId,
+          withdrawalId: settledIntent.withdrawalId,
+        },
+      });
+      nextRegistry = {
+        ...nextRegistry,
+        receipts: { ...nextRegistry.receipts, [successor.receiptId]: successor },
+      };
+      updatedPosition.receiptId = successor.receiptId;
+    } else {
+      delete (updatedPosition as { receiptId?: string }).receiptId;
+    }
   }
 
-  const signedTransition = await maybeSignTransition(params.rooting, nextRegistry, {
+  nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
+
+  const signedTransition = await maybeSignTransition(paid.rooting, nextRegistry, {
     type: 'payout',
-    poolId: params.pool.poolId,
-    positionId: params.position.positionId,
-    withdrawalId: params.intent.withdrawalId,
+    poolId: paid.pool.poolId,
+    positionId: position.positionId,
+    withdrawalId: intent.withdrawalId,
     amount: withdrawnAmount,
+    // OMN-090: bind the transition to the registry revision it consumed.
+    metadata: { registryRevision: String(registry.updatedAt ?? 0) },
   });
 
   return {
@@ -332,4 +437,18 @@ export async function executePoolPayout(
     execution,
     signedTransition,
   };
+}
+
+/**
+ * Guard for OMN-091: allocated + reserved capital must remain covered by the
+ * residual position. Returns true when the reconciliation would overstate it.
+ */
+function remainingAllocatedInvalid(
+  allocated: bigint,
+  reserved: bigint,
+  available: bigint,
+  effective: bigint,
+): boolean {
+  if (allocated < 0n || reserved < 0n || available < 0n) return true;
+  return allocated + reserved + available > effective;
 }

@@ -1,8 +1,8 @@
 # Canary findings
 
-Generated 2026-11-21T19:33:33.346Z. 88 findings, 12 open.
+Generated 2026-11-26T10:52:46.641Z. 120 findings, 14 open.
 
-sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
+sdk-defect: 111 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 
 | id | severity | kind | status | packages | title |
 |---|---|---|---|---|---|
@@ -22,6 +22,9 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-053` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice` | The splice finalizer constructed a noncanonical witness without spending proofs |
 | `OMN-058` | critical | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory unilateral exits enforce the original funding shares, not the latest signed factory state |
 | `OMN-061` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The default co-signer could authorize HTLC fulfilment without a preimage |
+| `OMN-066` | critical | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider`, `@totemsdk/omnia-lsp` | An LSP open quote is executed without verifying its signature, terms or policy |
+| `OMN-067` | critical | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider` | Admission validates the consumer contribution only, then the host swaps the two sides |
+| `OMN-074` → `CAN-012` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice` | A splice successor is identified by address, token and amount only, not by lineage from the splice |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
 | `CAN-002` | high | sdk-defect | fixed | `@totemsdk/proof`, `@totemsdk/manifest` | Manifest proofs are not bound to the manifest they attest |
 | `CAN-004` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Non-custodial channel open races the chain: the acceptor validates the funding coin before it can be mined |
@@ -70,13 +73,41 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-062` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | VTXO on-chain spending helpers broadcast without required proofs |
 | `OMN-063` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host` | Funding activation did not consistently wait for chain confirmations |
 | `OMN-064` | high | sdk-defect | fixed | `@totemsdk/kissvm` | KISSVM CHECKSIG ignores its documented data and signature arguments |
+| `OMN-068` | high | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider` | LSP quotes are issued against advertised capacity with no durable reservation |
+| `OMN-069` | high | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider` | Manifest freshness is decided with a caller-supplied clock |
+| `OMN-070` | high | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider` | Host adapter reports success for an undefined, malformed or error-only response |
+| `OMN-071` | high | sdk-defect | fixed | `@totemsdk/omnia-lsp` | Quote validation establishes shape, not authenticity |
+| `OMN-072` | high | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider`, `@totemsdk/omnia-lsp` | LSP fee admission and fee calculation ignore the flat fee and the provider's contribution |
+| `OMN-075` | high | sdk-defect | fixed | `@totemsdk/omnia-splice` | The pending splice journal does not record its expected successor |
+| `OMN-076` | high | sdk-defect | fixed | `@totemsdk/omnia-splice`, `@totemsdk/omnia-host` | The splice journal is cleared before the successor channel is persisted |
+| `OMN-077` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Operation replay verification loses its receiver and throws instead of returning the committed result |
+| `OMN-078` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | An observability failure can strand a committed operation or misreport it as failed |
+| `OMN-079` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | An operation whose financial side effect is unknown is classified as a retryable failure |
+| `OMN-080` | high | sdk-defect | fixed | `@totemsdk/omnia-router` | Route validation checks each hop and never the path |
+| `OMN-081` | high | sdk-defect | fixed | `@totemsdk/omnia-router` | Consecutive HTLC deadlines differ by one block in multi-hop and cross-token execution |
+| `OMN-082` → `CAN-015` | high | sdk-defect | fixed | `@totemsdk/omnia-router` | Rollback silently drops a locked HTLC when its channel or lease provider is missing |
+| `OMN-083` | high | sdk-defect | fixed | `@totemsdk/omnia-router`, `@totemsdk/omnia-pool` | Router fee proofs hash descriptive fields and are not settlement evidence |
+| `OMN-084` → `CAN-016` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | Forwarding admission is a check-then-write across awaits, not an atomic reservation |
+| `OMN-085` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | Forwarding compares amounts across assets without an exchange-rate authorization |
+| `OMN-086` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | An outgoing forward is journaled as active before the peer has received or acknowledged it |
+| `OMN-087` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | Exit entitlement verification checks that a pool epoch exists, not that it publishes this root |
+| `OMN-088` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo` | createExitDraft returns a receipt without consuming it |
+| `OMN-089` | high | sdk-defect | fixed | `@totemsdk/omnia-vtxo`, `@totemsdk/omnia-host` | markExited accepts any non-empty transaction id as proof of exit |
+| `OMN-090` | high | sdk-defect | fixed | `@totemsdk/omnia-pool` | Pool payout trusts caller-supplied position and intent instead of the registry |
+| `OMN-091` | high | sdk-defect | fixed | `@totemsdk/omnia-pool` | A partial withdrawal resets the remaining liquidity to fully available and unimpaired |
+| `OMN-092` | high | sdk-defect | fixed | `@totemsdk/omnia-pool` | Liquidity receipt consumption is skipped when the receipt is missing |
+| `OMN-093` | high | sdk-defect | fixed | `@totemsdk/omnia` | Fulfilment and timeout are both eligible at the exact timeout block |
+| `OMN-094` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-pool` | HTLC fulfilment receipts are not bound to the authenticated transition that paid them |
+| `OMN-095` | high | sdk-gap | fixed | `@totemsdk/omnia-factory` | A factory participant's latest off-chain allocation is not unilaterally enforceable |
 | `CAN-005` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The initiator discards the peer ERROR frame, so a rejected open reports only acknowledged=false |
-| `CAN-012` | medium | sdk-defect | in-progress | `@totemsdk/omnia-splice` | Splice successor selection matches on address, token and amount only |
-| `CAN-015` | medium | sdk-defect | in-progress | `@totemsdk/omnia-router` | Router rollback cannot release HTLCs early and reports failure as if liquidity were returned |
-| `CAN-016` | medium | sdk-defect | in-progress | `@totemsdk/omnia-relay` | Relay link journal is not atomic and duplicate detection races the write |
+| `CAN-012` | medium | sdk-defect | fixed | `@totemsdk/omnia-splice` | Splice successor selection matches on address, token and amount only |
+| `CAN-015` | medium | sdk-defect | fixed | `@totemsdk/omnia-router` | Router rollback cannot release HTLCs early and reports failure as if liquidity were returned |
+| `CAN-016` | medium | sdk-defect | fixed | `@totemsdk/omnia-relay` | Relay link journal is not atomic and duplicate detection races the write |
 | `CAN-017` | medium | sdk-defect | in-progress | `@totemsdk/omnia`, `@totemsdk/tx-builder` | Funding change goes to the first input owner, and the builder accepts negative output amounts |
 | `CAN-021` | medium | sdk-defect | open | `@totemsdk/omnia-host` | Watchtower starts but only observes; it never contests, fulfils or refunds |
 | `CAN-022` | medium | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-router`, `@totemsdk/omnia-relay` | Prepared operations bypass the channel lock; refunds are not surfaced by the host; journal is not cross-process safe |
+| `CAN-026` | medium | canary-coverage | open | `@totemsdk/omnia-lsp`, `@totemsdk/omnia-lsp-provider` | No scenario exercises omnia-lsp or omnia-lsp-provider |
+| `CAN-027` | medium | canary-coverage | open | `@totemsdk/omnia-vtxo` | omnia-vtxo has no dedicated lifecycle scenario |
 | `OMN-009` | medium | sdk-defect | open | `@totemsdk/omnia-vtxo` | EpochAuthority.append is check-then-act across an await |
 | `OMN-011` | medium | sdk-gap | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-relay` | Channel graphs advertise every channel that is not closed |
 | `OMN-012` | medium | sdk-gap | open | `@totemsdk/omnia-relay`, `@totemsdk/omnia-host` | createMultiHopForwarder is exported but never instantiated by the host |
@@ -91,7 +122,8 @@ sdk-defect: 82 · environment-blocked: 1 · sdk-gap: 5
 | `OMN-057` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/wots-lease` | Channel capacity warnings ignore the host shared physical WOTS tree |
 | `OMN-060` | medium | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory funding omitted the participant-root commitment its script pins |
 | `OMN-065` | medium | sdk-defect | fixed | `@totemsdk/kissvm`, `@totemsdk/core-wasm` | Rust/WASM CHECKSIG cannot verify a tree signature (the on-chain form) |
-| `sdk-gap:integration-gates` | medium | sdk-gap | open | `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/chain-provider`, `@totemsdk/connect`, `@totemsdk/decision`, `@totemsdk/edge`, `@totemsdk/governance`, `@totemsdk/identity`, `@totemsdk/intelligence`, `@totemsdk/kissvm`, `@totemsdk/liquidity-bond`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`, `@totemsdk/lookup-protocol`, `@totemsdk/manifest`, `@totemsdk/mcp-server`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host`, `@totemsdk/omnia-pool`, `@totemsdk/omnia-router`, `@totemsdk/omnia-vtxo`, `@totemsdk/p2p-hub`, `@totemsdk/pear`, `@totemsdk/provider-bond`, `@totemsdk/minima-rpc`, `@totemsdk/pubsub-transport`, `@totemsdk/qvac`, `@totemsdk/realtime`, `@totemsdk/recursive-mast`, `@totemsdk/root-identity`, `@totemsdk/se-server`, `@totemsdk/server`, `@totemsdk/storage`, `@totemsdk/stream-transport`, `@totemsdk/tx-builder`, `@totemsdk/txpow`, `@totemsdk/wallet-adapter`, `@totemsdk/wots-lease`, `@totemsdk/entity`, `@totemsdk/eefi`, `@totemsdk/replication` | 41 publishable packages declare no test:integration gate |
+| `OMN-073` | medium | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider`, `@totemsdk/omnia-lsp` | Decimal parsing in the LSP truncates precision and mis-signs negative input |
+| `sdk-gap:integration-gates` | medium | sdk-gap | open | `@totemsdk/agent-policy`, `@totemsdk/authority`, `@totemsdk/chain-provider`, `@totemsdk/connect`, `@totemsdk/decision`, `@totemsdk/edge`, `@totemsdk/governance`, `@totemsdk/identity`, `@totemsdk/intelligence`, `@totemsdk/kissvm`, `@totemsdk/liquidity-bond`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`, `@totemsdk/lookup-protocol`, `@totemsdk/manifest`, `@totemsdk/mcp-server`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-host`, `@totemsdk/omnia-lsp`, `@totemsdk/omnia-lsp-provider`, `@totemsdk/omnia-pool`, `@totemsdk/omnia-router`, `@totemsdk/omnia-vtxo`, `@totemsdk/p2p-hub`, `@totemsdk/pear`, `@totemsdk/provider-bond`, `@totemsdk/minima-rpc`, `@totemsdk/pubsub-transport`, `@totemsdk/qvac`, `@totemsdk/realtime`, `@totemsdk/recursive-mast`, `@totemsdk/root-identity`, `@totemsdk/se-server`, `@totemsdk/server`, `@totemsdk/storage`, `@totemsdk/stream-transport`, `@totemsdk/tx-builder`, `@totemsdk/txpow`, `@totemsdk/wallet-adapter`, `@totemsdk/wots-lease`, `@totemsdk/entity`, `@totemsdk/eefi`, `@totemsdk/replication` | 43 publishable packages declare no test:integration gate |
 | `CAN-003` | low | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/lookup-node` | Two unit suites exceed Jest's 5s default timeout under load |
 | `OMN-018` | low | sdk-gap | open | `@totemsdk/omnia-host` | Auto-approval has no mandatory bound (hardening, not a defect) |
 

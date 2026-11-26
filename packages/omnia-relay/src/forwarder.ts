@@ -18,7 +18,8 @@
  */
 
 import { addHTLC, fulfillHTLC } from '@totemsdk/omnia';
-import type { OmniaChannel, ChannelSigner, OmniaSwarm } from '@totemsdk/omnia';
+import { bytesToHex, sha3_256 } from '@totemsdk/core';
+import type { OmniaChannel, ChannelSigner, OmniaMessage, OmniaSwarm } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import {
   createCleartextRoutingCodec,
@@ -31,9 +32,26 @@ import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
  * association before sending the outgoing state update, so a restart can
  * reconcile a pending outgoing lock instead of losing it.
  */
+/**
+ * Outcome of an atomic forward reservation (OMN-084).
+ *
+ * `ok: false` means another forward already owns this hashlock or this incoming
+ * HTLC. The existing link is returned so the caller can reconcile rather than
+ * creating a second outgoing obligation.
+ */
+export type ForwardReservation =
+  | { ok: true; link: HtlcLink }
+  | { ok: false; reason: 'hashlock' | 'incoming'; existing: HtlcLink };
+
 export interface HtlcLinkJournal {
   get(hashlock: string): Promise<HtlcLink | undefined> | HtlcLink | undefined;
   record(link: HtlcLink): Promise<void> | void;
+  /**
+   * Atomically check uniqueness and write the intent. A journal that offers
+   * this makes forwarding admission atomic; without it the forwarder falls back
+   * to check-then-record, which races under concurrency.
+   */
+  reserve?(link: HtlcLink): Promise<ForwardReservation> | ForwardReservation;
   remove(hashlock: string): Promise<void> | void;
   /** Optional durable lookup by the incoming HTLC (replay detection). */
   getByIncoming?(params: {
@@ -42,6 +60,28 @@ export interface HtlcLinkJournal {
   }): Promise<HtlcLink | undefined> | HtlcLink | undefined;
   /** Optional recovery listing of every unresolved link. */
   list?(): Promise<HtlcLink[]> | HtlcLink[];
+}
+
+/**
+ * Reserve a forward atomically when the journal supports it, and fall back to
+ * the legacy check-then-record when it does not. The fallback is deliberately
+ * not presented as atomic.
+ */
+async function reserveForward(
+  journal: HtlcLinkJournal,
+  intent: HtlcLink,
+): Promise<ForwardReservation> {
+  if (journal.reserve) return journal.reserve(intent);
+
+  const byHashlock = await journal.get(intent.hashlock);
+  if (byHashlock) return { ok: false, reason: 'hashlock', existing: byHashlock };
+  const byIncoming = await journal.getByIncoming?.({
+    inChannelId: intent.inChannelId,
+    inHtlcId: intent.inHtlcId,
+  });
+  if (byIncoming) return { ok: false, reason: 'incoming', existing: byIncoming };
+  await journal.record(intent);
+  return { ok: true, link: intent };
 }
 
 export interface MultiHopForwarderOptions {
@@ -67,6 +107,55 @@ export interface MultiHopForwarderOptions {
    * preimage back to the previous hop.
    */
   resolvePreimage?: (hashlock: string) => Promise<string | undefined> | string | undefined;
+  /**
+   * OMN-085: verify a cross-token swap quote signature. Required for any
+   * cross-asset forward; without it, cross-token forwarding is refused.
+   */
+  verifySwapQuote?: (quote: RelaySwapQuote, payload: string) => Promise<boolean> | boolean;
+  /** Clock injection for quote expiry. Defaults to Date.now(). */
+  now?: () => number;
+}
+
+/**
+ * An authenticated cross-token swap quote (OMN-085).
+ *
+ * Comparing amounts across different assets is not an economic check: 100 of
+ * token A and 100 of token B are unrelated. A cross-asset forward therefore
+ * needs an explicit, signed deal — the exact assets and amounts, an expiry, and
+ * a signature the intermediary can verify.
+ */
+export interface RelaySwapQuote {
+  tokenIn: string;
+  tokenOut: string;
+  /** Amount of `tokenIn` the intermediary takes in. */
+  amountIn: bigint;
+  /** Amount of `tokenOut` it pays out. */
+  amountOut: bigint;
+  /** Unix epoch ms after which the quote is void. */
+  expiresAt: number;
+  /** Tolerated slippage against the quoted rate, in basis points. */
+  maxSlippageBps?: number;
+  /** Party that issued the quote (identity, not necessarily the peer). */
+  quotedBy?: string;
+  /** Serialized signature over the canonical quote payload. */
+  signature: string;
+}
+
+export const RELAY_SWAP_QUOTE_DOMAIN = 'totemsdk/omnia-relay/swap-quote/v1';
+
+/** Canonical string a quote signature covers. */
+export function relaySwapQuotePayload(quote: RelaySwapQuote): string {
+  const fields = [
+    RELAY_SWAP_QUOTE_DOMAIN,
+    quote.tokenIn.toLowerCase(),
+    quote.tokenOut.toLowerCase(),
+    quote.amountIn.toString(),
+    quote.amountOut.toString(),
+    String(quote.expiresAt),
+    String(quote.maxSlippageBps ?? 0),
+    quote.quotedBy ?? '',
+  ];
+  return fields.join('|');
 }
 
 export interface ForwardIncomingParams {
@@ -77,6 +166,11 @@ export interface ForwardIncomingParams {
   envelope: string;
   /** Absolute timeout (block) for the outgoing HTLC (envelope may override). */
   timeoutBlock?: bigint;
+  /**
+   * OMN-085: required when the incoming and outgoing channels carry different
+   * assets. Verified against the forwarded amounts before anything is locked.
+   */
+  swapQuote?: RelaySwapQuote;
 }
 
 export type ForwardIncomingResult =
@@ -104,11 +198,50 @@ export interface HtlcLink {
    * HTLC; `backward-sent` once the preimage update has been sent. A link is not
    * removed while `preimage-revealed` — recovery must retry the backward send.
    */
-  status?: 'intent' | 'active' | 'preimage-revealed' | 'backward-sent';
+  status?: 'intent' | 'pending-delivery' | 'active' | 'preimage-revealed' | 'backward-sent';
+  /**
+   * OMN-086: deterministic id of the signed outgoing proposal. Stable across
+   * retransmissions, so a peer can deduplicate the same delivery attempt.
+   */
+  messageId?: string;
+  /**
+   * OMN-086: the exact signed proposal, journaled before the send. Kept until
+   * the transport accepts it, so a crash cannot lose the delivery obligation.
+   */
+  pendingMessage?: ForwardMessage;
+  /** When the transport accepted the proposal. */
+  deliveredAt?: number;
+  /** When the counterparty acknowledged the proposal, if the transport reports it. */
+  acknowledgedAt?: number;
+  /** OMN-085: digest of the swap quote that authorized a cross-token forward. */
+  swapQuoteDigest?: string;
   /** OMN-006: preimage owed to the previous hop, journaled before fulfil. */
   preimage?: string;
   /** OMN-006: deterministic nonce so a retried backward send is deduplicated. */
   backwardNonce?: number;
+}
+
+/** The signed state update the forwarder delivers to the next hop. */
+export type ForwardMessage = OmniaMessage;
+
+/**
+ * OMN-086: deterministic message id for a forward. Depends only on the link
+ * identity, so a retransmission after a restart produces the same id.
+ */
+export function computeForwardMessageId(link: {
+  hashlock: string;
+  outChannelId: string;
+  outHtlcId: string;
+  messageNonce: number;
+}): string {
+  const input = [
+    'totemsdk/omnia-relay/forward-message/v1',
+    link.hashlock.toLowerCase(),
+    link.outChannelId,
+    link.outHtlcId,
+    String(link.messageNonce),
+  ].join('|');
+  return bytesToHex(sha3_256(new TextEncoder().encode(input))).toLowerCase();
 }
 
 export interface MultiHopForwarder {
@@ -121,6 +254,14 @@ export interface MultiHopForwarder {
    * the caller to reveal or time out.
    */
   recover(): Promise<HtlcLink[]>;
+  /**
+   * OMN-086: re-deliver proposals that were signed and journaled but whose send
+   * did not complete. Reuses the journaled message and message id — it never
+   * re-signs, so the counterparty sees the same proposal.
+   */
+  retransmitPending(): Promise<Array<{ hashlock: string; delivered: boolean; error?: string }>>;
+  /** OMN-086: record the counterparty's acknowledgement of a delivered proposal. */
+  acknowledge(hashlock: string, messageId?: string): Promise<void>;
   links(): ReadonlyMap<string, HtlcLink>;
 }
 
@@ -213,22 +354,58 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
         `outgoing timeout ${timeoutBlock} must be earlier than incoming timeout ${inHtlc.timeoutBlock}`,
       );
     }
-    if (next.amount > inHtlc.amount) {
-      throw new Error(`outgoing amount ${next.amount} exceeds incoming amount ${inHtlc.amount}`);
+    // OMN-085: amount comparison is only meaningful within one asset.
+    const sameAsset = inChannel.tokenId.toLowerCase() === outChannel.tokenId.toLowerCase();
+    let swapQuoteDigest: string | undefined;
+    if (sameAsset) {
+      if (next.amount > inHtlc.amount) {
+        throw new Error(`outgoing amount ${next.amount} exceeds incoming amount ${inHtlc.amount}`);
+      }
+    } else {
+      const quote = params.swapQuote;
+      if (!quote) {
+        throw new Error(
+          `cross-token forward from ${inChannel.tokenId} to ${outChannel.tokenId} requires an authenticated swap quote`,
+        );
+      }
+      if (quote.tokenIn.toLowerCase() !== inChannel.tokenId.toLowerCase()
+        || quote.tokenOut.toLowerCase() !== outChannel.tokenId.toLowerCase()) {
+        throw new Error(
+          `swap quote covers ${quote.tokenIn}->${quote.tokenOut}, not ${inChannel.tokenId}->${outChannel.tokenId}`,
+        );
+      }
+      if (quote.amountIn !== inHtlc.amount) {
+        throw new Error(`swap quote takes in ${quote.amountIn}, but the incoming HTLC carries ${inHtlc.amount}`);
+      }
+      if (quote.amountOut !== next.amount) {
+        throw new Error(`swap quote pays out ${quote.amountOut}, but the forward is ${next.amount}`);
+      }
+      const nowMs = (options.now ?? Date.now)();
+      if (quote.expiresAt <= nowMs) {
+        throw new Error(`swap quote expired at ${quote.expiresAt} (now ${nowMs})`);
+      }
+      if (!options.verifySwapQuote) {
+        throw new Error('cross-token forwarding requires a swap-quote verifier; refusing an unverified rate');
+      }
+      const payload = relaySwapQuotePayload(quote);
+      let verified = false;
+      try {
+        verified = await options.verifySwapQuote(quote, payload);
+      } catch (error) {
+        throw new Error(`swap quote could not be verified: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      if (verified !== true) {
+        throw new Error('swap quote signature does not verify');
+      }
+      swapQuoteDigest = bytesToHex(sha3_256(new TextEncoder().encode(payload))).toLowerCase();
     }
-    const duplicate = links.has(params.hashlock)
-      || Boolean(await options.linkJournal.get(params.hashlock))
-      || Boolean(await options.linkJournal.getByIncoming?.({
-        inChannelId: params.inChannelId,
-        inHtlcId: params.inHtlcId,
-      }));
-    if (duplicate) {
-      throw new Error(`duplicate forward for hashlock ${params.hashlock}`);
-    }
-
     // CAN-008: journal the association BEFORE signing the outgoing HTLC. If the
     // process dies between the signature and the id, recovery still knows which
     // incoming payment this outgoing obligation belongs to.
+    //
+    // OMN-084 (CAN-016): the reservation is one atomic check-and-write. The
+    // previous duplicate check read three times and then wrote separately, so
+    // two concurrent forwards for one hashlock could both pass admission.
     const intent: HtlcLink = {
       hashlock: params.hashlock,
       inChannelId: params.inChannelId,
@@ -237,8 +414,17 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
       outHtlcId: '',
       via: next.via,
       status: 'intent',
+      ...(swapQuoteDigest !== undefined ? { swapQuoteDigest } : {}),
     };
-    await options.linkJournal.record(intent);
+    if (links.has(params.hashlock)) {
+      throw new Error(`duplicate forward for hashlock ${params.hashlock} (already forwarded)`);
+    }
+    const reservation = await reserveForward(options.linkJournal, intent);
+    if (!reservation.ok) {
+      throw new Error(
+        `duplicate forward for hashlock ${params.hashlock} (${reservation.reason})`,
+      );
+    }
 
     const result = await addHTLC(
       outChannel,
@@ -254,25 +440,52 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     );
     options.channels.set(result.channel.channelId, result.channel);
 
-    const link: HtlcLink = {
-      ...intent,
-      outChannelId: result.channel.channelId,
-      outHtlcId: result.htlcId,
-      status: 'active',
-    };
-    links.set(params.hashlock, link);
-    await options.linkJournal.record(link);
-
-    const peer = await options.swarm.connectToPeer(next.via, result.channel.channelId);
-    await peer.sendMessage({
+    const messageNonce = Date.now();
+    const message: ForwardMessage = {
       type: 'STATE_UPDATE',
       channelId: result.channel.channelId,
-      nonce: Date.now(),
+      nonce: messageNonce,
       payload: {
         ...result.partialState,
         ...(peel.onward ? { forward: { hashlock: params.hashlock, envelope: peel.onward } } : {}),
       },
+    };
+    const messageId = computeForwardMessageId({
+      hashlock: params.hashlock,
+      outChannelId: result.channel.channelId,
+      outHtlcId: result.htlcId,
+      messageNonce,
     });
+
+    // OMN-086: journal the exact signed proposal *before* the send. The link is
+    // only `active` once the transport accepted it; a crash or a failed send
+    // leaves `pending-delivery` with the message intact, so recovery can
+    // retransmit the same proposal instead of re-signing a new one.
+    const pending: HtlcLink = {
+      ...intent,
+      outChannelId: result.channel.channelId,
+      outHtlcId: result.htlcId,
+      status: 'pending-delivery',
+      messageId,
+      pendingMessage: message,
+    };
+    links.set(params.hashlock, pending);
+    await options.linkJournal.record(pending);
+
+    try {
+      const peer = await options.swarm.connectToPeer(next.via, result.channel.channelId);
+      await peer.sendMessage(message);
+    } catch (error) {
+      throw new Error(
+        `outgoing proposal for hashlock ${params.hashlock} was signed but not delivered: `
+        + `${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    const active: HtlcLink = { ...pending, status: 'active', deliveredAt: Date.now() };
+    delete active.pendingMessage;
+    links.set(params.hashlock, active);
+    await options.linkJournal.record(active);
 
     options.onForward?.({
       hashlock: params.hashlock,
@@ -439,5 +652,52 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     return unresolved;
   };
 
-  return { forwardIncoming, revealPreimage, recover, links: () => links };
+  return {
+    forwardIncoming,
+    revealPreimage,
+    recover,
+    /**
+     * OMN-086: re-deliver proposals that were signed and journaled but never
+     * accepted by the transport. Reuses the journaled message and id — it never
+     * re-signs.
+     */
+    async retransmitPending() {
+      const results: Array<{ hashlock: string; delivered: boolean; error?: string }> = [];
+      const journaled = options.linkJournal.list
+        ? await options.linkJournal.list()
+        : Array.from(links.values());
+
+      for (const link of journaled) {
+        if (link.status !== 'pending-delivery' || !link.pendingMessage) continue;
+        try {
+          const peer = await options.swarm.connectToPeer(link.via, link.outChannelId);
+          await peer.sendMessage(link.pendingMessage);
+          const active: HtlcLink = { ...link, status: 'active', deliveredAt: Date.now() };
+          delete active.pendingMessage;
+          links.set(link.hashlock, active);
+          await options.linkJournal.record(active);
+          results.push({ hashlock: link.hashlock, delivered: true });
+        } catch (error) {
+          results.push({
+            hashlock: link.hashlock,
+            delivered: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      return results;
+    },
+    /** OMN-086: record the counterparty's acknowledgement of a delivered proposal. */
+    async acknowledge(hashlock, messageId) {
+      const existing = links.get(hashlock) ?? await options.linkJournal.get(hashlock);
+      if (!existing) throw new Error(`no link for hashlock ${hashlock}`);
+      if (messageId !== undefined && existing.messageId !== undefined && existing.messageId !== messageId) {
+        throw new Error(`message ${messageId} does not match the proposal journaled for ${hashlock}`);
+      }
+      const acknowledged: HtlcLink = { ...existing, acknowledgedAt: Date.now() };
+      links.set(hashlock, acknowledged);
+      await options.linkJournal.record(acknowledged);
+    },
+    links: () => links,
+  };
 }

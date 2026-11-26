@@ -1,1 +1,0 @@
-../../../../packages/omnia-vtxo/src/types.ts

@@ -49,6 +49,18 @@ function activeObserver(fundingAddress: string, amount: bigint) {
       created: '1',
     }],
     getTip: async () => ({ block: 100 }),
+    // OMN-074: the successor must be an output of the splice that spends the
+    // predecessor. Real adapters answer this with the node's `txpow` command.
+    getTransaction: async (txpowid: string) => ({
+      txpowid,
+      inputs: [{ coinId: FUNDING_COIN_ID }],
+      outputs: [{
+        coinId: '0x' + '77'.repeat(32),
+        address: fundingAddress,
+        amount: String(amount),
+        tokenId: '0x00',
+      }],
+    }),
   };
 }
 
@@ -648,6 +660,159 @@ describe('finalizeSplice', () => {
     return { ch, q, proposal, acceptance, aliceLp, bobLp, MINE_OPTS };
   }
 
+  it('activates only a successor that the splice transaction created (OMN-074)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const successorId = '0x' + '77'.repeat(32);
+    const spliced = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: {
+        getCoins: async () => [{
+          coinid: successorId,
+          amount: proposal.params.newTotalValue,
+          address: q.fundingAddress,
+          tokenid: '0x00',
+          spent: false,
+          created: '1',
+        }],
+        getTip: async () => ({ block: 100 }),
+        getTransaction: async (txpowid: string) => ({
+          txpowid,
+          inputs: [{ coinId: q.fundingCoinId }],
+          outputs: [{ coinId: successorId, address: q.fundingAddress, amount: '1500', tokenId: '0x00' }],
+        }),
+      },
+    });
+    expect(spliced.status).toBe('active');
+  });
+
+  it('rejects a successor whose creating transaction does not spend the predecessor (OMN-074)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const successorId = '0x' + '77'.repeat(32);
+    await expect(finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: {
+        getCoins: async () => [{
+          coinid: successorId,
+          amount: proposal.params.newTotalValue,
+          address: q.fundingAddress,
+          tokenid: '0x00',
+          spent: false,
+          created: '1',
+        }],
+        getTip: async () => ({ block: 100 }),
+        getTransaction: async (txpowid: string) => ({
+          txpowid,
+          inputs: [{ coinId: '0x' + '99'.repeat(32) }],
+          outputs: [{ coinId: successorId, address: q.fundingAddress, amount: '1500', tokenId: '0x00' }],
+        }),
+      },
+    })).rejects.toThrow(/does not spend predecessor/);
+  });
+
+  it('rejects a successor that is not an output of the splice transaction (OMN-074)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    await expect(finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: {
+        getCoins: async () => [{
+          coinid: '0x' + '77'.repeat(32),
+          amount: proposal.params.newTotalValue,
+          address: q.fundingAddress,
+          tokenid: '0x00',
+          spent: false,
+          created: '1',
+        }],
+        getTip: async () => ({ block: 100 }),
+        getTransaction: async (txpowid: string) => ({
+          txpowid,
+          inputs: [{ coinId: q.fundingCoinId }],
+          outputs: [{ coinId: '0x' + '88'.repeat(32), address: q.fundingAddress, amount: '1500', tokenId: '0x00' }],
+        }),
+      },
+    })).rejects.toThrow(/is not an output of splice transaction/);
+  });
+
+  it('fails closed when the chain adapter cannot look up transactions (OMN-074)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    await expect(finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      chainProvider: {
+        getCoins: async () => [{
+          coinid: '0x' + '77'.repeat(32),
+          amount: proposal.params.newTotalValue,
+          address: q.fundingAddress,
+          tokenid: '0x00',
+          spent: false,
+          created: '1',
+        }],
+        getTip: async () => ({ block: 100 }),
+      },
+    })).rejects.toThrow(/cannot look up transactions/);
+  });
+
+  it('writes the expected successor into the pending journal (OMN-075)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const saved: Array<{ expected?: { address: string; tokenId: string; amount: string } }> = [];
+    await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      broadcast: async () => ({ txpowid: 'ab'.repeat(32) }),
+      pendingSpliceStore: {
+        save: async (record) => { saved.push(JSON.parse(JSON.stringify(record))); },
+        clear: async () => undefined,
+        list: () => [],
+      },
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    });
+
+    expect(saved.length).toBeGreaterThan(0);
+    for (const record of saved) {
+      expect(record.expected).toEqual({
+        address: q.fundingAddress,
+        tokenId: '0x00',
+        amount: proposal.params.newTotalValue.toString(),
+      });
+    }
+  });
+
+  it('persists the successor before clearing the journal (OMN-076)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const order: string[] = [];
+    const spliced = await finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      broadcast: async () => ({ txpowid: 'cd'.repeat(32) }),
+      pendingSpliceStore: {
+        save: async () => { order.push('save'); },
+        clear: async () => { order.push('clear'); },
+        list: () => [],
+      },
+      persistSuccessor: async (channel) => { order.push(`persist:${channel.status}`); },
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    });
+
+    expect(spliced.status).toBe('active');
+    expect(order).toContain('persist:active');
+    expect(order.indexOf('persist:active')).toBeLessThan(order.indexOf('clear'));
+  });
+
+  it('keeps the journal when successor persistence fails (OMN-076)', async () => {
+    const { q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
+    const order: string[] = [];
+    await expect(finalizeSplice(q, proposal, acceptance, {
+      ...MINE_OPTS,
+      broadcast: async () => ({ txpowid: 'ef'.repeat(32) }),
+      pendingSpliceStore: {
+        save: async () => { order.push('save'); },
+        clear: async () => { order.push('clear'); },
+        list: () => [],
+      },
+      persistSuccessor: async () => { throw new Error('disk full'); },
+      chainProvider: activeObserver(q.fundingAddress, proposal.params.newTotalValue),
+    })).rejects.toThrow('disk full');
+
+    expect(order).toContain('save');
+    expect(order).not.toContain('clear');
+  });
+
   it('splice-in: SplicedChannel status active, correct totalValue, next sequence', async () => {
     const { ch, q, proposal, acceptance, MINE_OPTS } = await fullSpliceIn(500n);
     const spliced = await finalizeSplice(q, proposal, acceptance, {
@@ -676,6 +841,11 @@ describe('finalizeSplice', () => {
       chainProvider: {
         getCoins: async () => [successor],
         getTip: async () => ({ block: 10 }),
+        getTransaction: async (txpowid: string) => ({
+          txpowid,
+          inputs: [{ coinId: FUNDING_COIN_ID }],
+          outputs: [{ coinId: successor.coinid, address: successor.address, amount: '1500', tokenId: '0x00' }],
+        }),
       },
       confirmations: 2,
       successorTimeoutMs: 0,
@@ -696,6 +866,11 @@ describe('finalizeSplice', () => {
       chainProvider: {
         getCoins: async () => [{ ...successor, created: '10' }],
         getTip: async () => ({ block: 10 }),
+        getTransaction: async (txpowid: string) => ({
+          txpowid,
+          inputs: [{ coinId: FUNDING_COIN_ID }],
+          outputs: [{ coinId: successor.coinid, address: successor.address, amount: '1500', tokenId: '0x00' }],
+        }),
       },
       confirmations: 3,
       successorTimeoutMs: 0,

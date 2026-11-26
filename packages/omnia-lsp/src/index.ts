@@ -20,16 +20,48 @@ export type {
 
 export {
   OMNIA_LSP_OPEN_QUOTE_VERSION,
+  OMNIA_LSP_OPEN_TERMS_VERSION,
+  OMNIA_LSP_OPEN_QUOTE_SIGNING_DOMAIN,
   validateOpenQuote,
   assertValidOpenQuote,
   quoteIsFresh,
   quoteMatchesManifest,
+  buildOpenTerms,
+  openTermsHash,
+  openQuoteTerms,
+  openQuoteTermsHash,
+  openQuoteSigningPayload,
+  verifyOpenQuote,
 } from './quote.js';
 export type {
   OmniaLspOpenQuote,
+  OmniaLspOpenTerms,
+  OpenQuoteSigningPayload,
   QuoteValidationOptions,
   QuoteValidationResult,
+  VerifyOpenQuoteOptions,
+  VerifyOpenQuoteResult,
 } from './quote.js';
+
+export {
+  LSP_DECIMAL_SCALE,
+  parseDecimalUnits,
+  formatDecimalUnits,
+  applyBpsUnits,
+} from './decimal.js';
+export type { DecimalParseResult } from './decimal.js';
+
+export {
+  computeOpenFees,
+  DEFAULT_FEE_BASIS,
+  LEGACY_FEE_BASIS,
+} from './fees.js';
+export type {
+  FeeScheduleResult,
+  OmniaLspFeeBasis,
+  OmniaLspFeeInput,
+  OmniaLspFeeSchedule,
+} from './fees.js';
 
 export { rankProviders } from './ranking.js';
 export type {

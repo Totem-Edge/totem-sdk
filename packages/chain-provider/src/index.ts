@@ -1,5 +1,6 @@
 export type {
   ChainStateProvider,
+  ChainTransaction,
   CoinsQuery,
   Coin,
   MMRProof,

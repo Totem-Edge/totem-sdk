@@ -568,6 +568,19 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/claim:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/connect:
     dependencies:
       '@totemsdk/agent-policy':
@@ -1475,9 +1488,6 @@ importers:
       '@totemsdk/omnia-splice':
         specifier: workspace:^
         version: link:../omnia-splice
-      '@totemsdk/omnia-vtxo':
-        specifier: workspace:^
-        version: link:../omnia-vtxo
       '@totemsdk/p2p-hub':
         specifier: workspace:^
         version: link:../p2p-hub
@@ -1487,6 +1497,9 @@ importers:
       '@totemsdk/tx-builder':
         specifier: workspace:^
         version: link:../tx-builder
+      '@totemsdk/vtxo':
+        specifier: workspace:^
+        version: link:../vtxo
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
@@ -1508,6 +1521,10 @@ importers:
         version: 5.9.3
 
   packages/omnia-lsp:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -1558,15 +1575,15 @@ importers:
       '@totemsdk/omnia-splice':
         specifier: workspace:^
         version: link:../omnia-splice
-      '@totemsdk/omnia-vtxo':
-        specifier: workspace:^
-        version: link:../omnia-vtxo
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
       '@totemsdk/tx-builder':
         specifier: workspace:^
         version: link:../tx-builder
+      '@totemsdk/vtxo':
+        specifier: workspace:^
+        version: link:../vtxo
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
@@ -1670,37 +1687,6 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-
-  packages/omnia-vtxo:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: workspace:^
-        version: link:../chain-provider
-      '@totemsdk/core':
-        specifier: workspace:^
-        version: link:../core
-      '@totemsdk/omnia':
-        specifier: workspace:^
-        version: link:../omnia
-      '@totemsdk/storage':
-        specifier: workspace:^
-        version: link:../storage
-      '@totemsdk/txpow':
-        specifier: workspace:^
-        version: link:../txpow
-      '@totemsdk/wots-lease':
-        specifier: workspace:^
-        version: link:../wots-lease
-    devDependencies:
-      '@totemsdk/kissvm':
-        specifier: workspace:^
-        version: link:../kissvm
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
@@ -2352,6 +2338,40 @@ importers:
       ts-jest:
         specifier: ^29.0.0
         version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/vtxo:
+    dependencies:
+      '@totemsdk/chain-provider':
+        specifier: workspace:^
+        version: link:../chain-provider
+      '@totemsdk/claim':
+        specifier: workspace:^
+        version: link:../claim
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
+      '@totemsdk/tx-builder':
+        specifier: workspace:^
+        version: link:../tx-builder
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
+    devDependencies:
+      '@totemsdk/kissvm':
+        specifier: workspace:^
+        version: link:../kissvm
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
       typescript:
         specifier: 5.9.3
         version: 5.9.3

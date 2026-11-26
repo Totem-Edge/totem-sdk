@@ -104,6 +104,17 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       created: '1',
     }]);
     const getTip = jest.fn(async () => ({ block: 100 }));
+    // OMN-074: the successor must be an output of the splice transaction.
+    const getTransaction = jest.fn(async (txpowid: string) => ({
+      txpowid,
+      inputs: [{ coinId: channel.fundingCoinId }],
+      outputs: [{
+        coinId: '0x' + '77'.repeat(32),
+        address: channel.fundingAddress,
+        amount: '1500',
+        tokenId: '0x00',
+      }],
+    }));
     const getCoin = jest.fn(async (coinId: string) => ({
       coinid: coinId,
       amount: '500',
@@ -125,7 +136,7 @@ describe('omnia prepareSpliceIn / submitSplice', () => {
       },
       signer: alice.signer,
       leaseProvider: alice.leaseProvider,
-      chainProvider: { broadcastTxPoW, getCoins, getCoin, getTip },
+      chainProvider: { broadcastTxPoW, getCoins, getCoin, getTip, getTransaction },
       localParticipant: { partyId: 'alice', publicKeyDigest: alice.publicKeyDigest, addressIndex: 0 },
       custodyMode: 'self',
       swarm: { connectToPeer: jest.fn(async () => peer) },

@@ -57,6 +57,7 @@ import {
   type OmniaVtxo,
   type OmniaVtxoPool,
   type VtxoOperatorReceipt,
+  type VtxoExitDraftStore,
   transitionPoolMembers,
 } from '@totemsdk/vtxo';
 import {
@@ -138,7 +139,7 @@ import type { RoutingProvider } from '../router/routing-provider.js';
 import { CoinSelectionService, type CoinFetcher, type SpendableCoin } from '@totemsdk/tx-builder';
 import { OperationConflictError } from '../stores/operations.js';
 import type { OperationStore } from '../stores/operations.js';
-import type { ObservationEmitter } from '../observe/emitter.js';
+import type { EmitObservationInput, ObservationEmitter } from '../observe/emitter.js';
 import { channelTransitionHash, hashTransition } from '../observe/emitter.js';
 
 function vtxoExitDraftStoreFor(context: HostApiContext): import('@totemsdk/vtxo').VtxoExitDraftStore {
@@ -146,6 +147,20 @@ function vtxoExitDraftStoreFor(context: HostApiContext): import('@totemsdk/vtxo'
 }
 
 export type OperationStoreLike = Pick<OperationStore, 'get' | 'create' | 'transition' | 'listByStatus'>;
+
+/**
+ * Raised when an operation failed *after* a side effect that the SDK cannot
+ * undo or observe: a signature released, a transaction broadcast, a peer
+ * messaged. Retrying such an operation may repeat the side effect, so
+ * `withOperation` records the outcome as `unknown` and refuses retries until it
+ * is reconciled (OMN-079).
+ */
+export class AmbiguousOperationError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message);
+    this.name = 'AmbiguousOperationError';
+  }
+}
 
 export interface HostApiContext {
   channels: Map<string, OmniaChannel>;
@@ -518,10 +533,13 @@ async function withOperation<T>(
   if (!context.operations) throw new Error('Operation store is not configured');
   const id = operationId(params);
   const existing = context.operations.get(id);
-  const verifier = (context.operations as OperationStoreLike & {
+  // OMN-077: call the verifier *on* the store. OperationStore.verifyRequest reads
+  // `this.get()`, so extracting it into a local drops the receiver and throws on
+  // every retry of an existing operation — turning idempotent replay into an error.
+  const store = context.operations as OperationStoreLike & {
     verifyRequest?: (operationId: string, request: unknown) => boolean;
-  }).verifyRequest;
-  if (existing && verifier && !verifier(id, params)) {
+  };
+  if (existing && store.verifyRequest && !store.verifyRequest(id, params)) {
     throw new OperationConflictError(
       'operation-conflict', id, existing.status,
       `Operation ${id} request does not match the original request`,
@@ -536,40 +554,75 @@ async function withOperation<T>(
     }
     return existing.result as T;
   }
+  if (existing?.status === 'unknown') {
+    // OMN-079: an ambiguous outcome must be reconciled, never replayed.
+    throw new OperationConflictError(
+      'operation-unknown', id, existing.status,
+      `Operation ${id} has an unknown outcome; reconcile it against the chain or the peer before retrying`,
+    );
+  }
   if (existing && !['pending', 'failed'].includes(existing.status)) {
     throw new OperationConflictError(
       'operation-in-progress', id, existing.status,
       `Operation ${id} is already ${existing.status}`,
     );
   }
+  /**
+   * OMN-078: observability is not allowed to drive the financial lifecycle.
+   * A rejecting observer used to strand an operation in `executing` (the emit
+   * sat outside the try) or turn a committed operation into a bogus
+   * executing->failed transition. Delivery failures are now contained here.
+   */
+  const safeEmit = async (event: EmitObservationInput): Promise<void> => {
+    if (!context.observe) return;
+    try {
+      await context.observe.emit(event);
+    } catch {
+      // The authoritative state transition already happened; a dropped
+      // observation is a telemetry loss, not a financial failure.
+    }
+  };
+
   if (!existing) {
     context.operations.create(id, params);
-    await context.observe?.emit({
+    await safeEmit({
       domain: 'operation', kind: 'operation.created', phase: 'proposed',
       entity: { type: 'operation', id }, operationId: id,
       data: { request: params },
     });
   }
   context.operations.transition(id, existing?.status === 'failed' ? 'failed' : 'pending', 'executing');
-  await context.observe?.emit({
+  await safeEmit({
     domain: 'operation', kind: 'operation.executing', phase: 'executing',
     entity: { type: 'operation', id }, operationId: id,
   });
   try {
     const result = await run();
     context.operations.transition(id, 'executing', 'committed', { result });
-    await context.observe?.emit({
+    await safeEmit({
       domain: 'operation', kind: 'operation.committed', phase: 'committed',
       entity: { type: 'operation', id }, operationId: id,
       data: { result },
     });
     return result;
   } catch (error) {
-    context.operations.transition(id, 'executing', 'failed', { error: error instanceof Error ? error.message : String(error) });
-    await context.observe?.emit({
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof AmbiguousOperationError) {
+      // OMN-079: the side effect may have happened. Record `unknown` so a retry
+      // is refused until reconciliation decides.
+      context.operations.transition(id, 'executing', 'unknown', { error: message });
+      await safeEmit({
+        domain: 'operation', kind: 'operation.unknown', phase: 'unknown',
+        entity: { type: 'operation', id }, operationId: id,
+        data: { error: message },
+      });
+      throw error;
+    }
+    context.operations.transition(id, 'executing', 'failed', { error: message });
+    await safeEmit({
       domain: 'operation', kind: 'operation.failed', phase: 'failed',
       entity: { type: 'operation', id }, operationId: id,
-      data: { error: error instanceof Error ? error.message : String(error) },
+      data: { error: message },
     });
     throw error;
   }
@@ -602,8 +655,19 @@ async function persistProgramUpdate(
   context.channels.set(channelId, result.channel);
   const remoteParty = channel.parties.find((party) => party.partyId !== context.localParticipant.partyId);
   if (context.swarm && remoteParty) {
-    const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId, remoteParty.transportPubkey);
-    await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
+    try {
+      const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId, remoteParty.transportPubkey);
+      await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
+    } catch (error) {
+      // OMN-079: the state is signed and stored locally, but the peer may or may
+      // not have applied it. Retrying could sign a second update at the same
+      // sequence, so this is an unknown outcome, not a plain failure.
+      throw new AmbiguousOperationError(
+        `state update for channel ${channelId} was signed and stored but could not be delivered: `
+        + `${error instanceof Error ? error.message : String(error)}`,
+        error,
+      );
+    }
   }
   return {
     success: true,
@@ -683,6 +747,39 @@ export function requestPeerReply(
     timer = setTimeout(() => finish(null), timeoutMs);
     void peer.sendMessage(msg).catch(() => { /* resent on reconnect/fallback */ });
   });
+}
+
+/**
+ * Resolve an operation whose outcome is `unknown` (OMN-079).
+ *
+ * Reconciliation is the caller's job because only it can consult the chain, the
+ * peer or the wallet. This function records the verdict so the operation stops
+ * blocking retries — either as committed (with the recovered result) or as
+ * failed (retryable again).
+ */
+export function reconcileOperation(
+  context: Pick<HostApiContext, 'operations'>,
+  operationId: string,
+  resolution:
+    | { status: 'committed'; result: unknown }
+    | { status: 'failed'; error: string },
+): void {
+  if (!context.operations) throw new Error('Operation store is not configured');
+  const existing = context.operations.get(operationId);
+  if (!existing) throw new Error(`Unknown operation ${operationId}`);
+  if (existing.status !== 'unknown') {
+    throw new Error(
+      `Operation ${operationId} is '${existing.status}', not 'unknown'; nothing to reconcile`,
+    );
+  }
+  context.operations.transition(
+    operationId,
+    'unknown',
+    resolution.status,
+    resolution.status === 'committed'
+      ? { result: resolution.result }
+      : { error: resolution.error },
+  );
 }
 
 export interface PreparedPayEntry {
@@ -1683,7 +1780,19 @@ function registerPreparedPayMethods(
         return value.map((entry, index) => hexBytes(entry, `${name}[${index}]`));
       };
       const spliced = await finalizeSplice(quiescedChannel, proposal, entry.acceptance, {
-        broadcast: (txHex) => context.chainProvider!.broadcastTxPoW!(txHex),
+        broadcast: async (txHex) => {
+          try {
+            return await context.chainProvider!.broadcastTxPoW!(txHex);
+          } catch (error) {
+            // OMN-079: a throwing broadcast does not prove the transaction was
+            // rejected — the node may have accepted it before the connection
+            // dropped. Callers must reconcile, not retry blindly.
+            throw new AmbiguousOperationError(
+              `splice broadcast failed after submission: ${error instanceof Error ? error.message : String(error)}`,
+              error,
+            );
+          }
+        },
         // CAN-011: without on-chain observation a splice cannot be active.
         chainProvider: context.chainProvider,
         coinProofs: proofList(params.coinProofsHex, 'coinProofsHex'),
@@ -2293,6 +2402,7 @@ function registerPreparedPayMethods(
     if ((evidence.confirmations ?? 0) < requiredDepth) {
       throw new Error(`VTXO exit ${txpowId} has ${evidence.confirmations ?? 0} confirmations, need ${requiredDepth}`);
     }
+    // OMN-089: the depth check above is the evidence; state it explicitly.
     const exited = markExited(vtxo, {
       txpowId,
       evidence: { confirmed: true },
@@ -2749,6 +2859,19 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   const observeMethods = (map: Map<string, JsonRpcHandler>): Map<string, JsonRpcHandler> => {
     const emitter = context.observe;
     if (!emitter) return map;
+    /**
+     * OMN-078: these are fire-and-forget command traces. Awaiting them would put
+     * telemetry in the financial path; leaving the promise unhandled (the
+     * previous `void emitter.emit(...)`) crashed the host process when the
+     * observer rejected. Swallow delivery failures explicitly.
+     */
+    const emitQuietly = (event: EmitObservationInput): void => {
+      try {
+        void Promise.resolve(emitter.emit(event)).catch(() => undefined);
+      } catch {
+        // A synchronous throw from the observer is equally non-fatal.
+      }
+    };
     const observed = new Map<string, JsonRpcHandler>();
     const isQuiet = (name: string): boolean =>
       name.startsWith('totem_omniaGet') || name === 'totem_omniaWhoami' ||
@@ -2759,7 +2882,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         const startedAt = Date.now();
         const raw = paramsObject(params);
         const opId = typeof raw.operationId === 'string' ? raw.operationId : undefined;
-        void emitter.emit({
+        emitQuietly({
           domain: 'command', kind: 'command.invoked', phase: 'observed',
           entity: { type: 'command', id: name },
           ...(opId ? { operationId: opId } : {}),
@@ -2767,7 +2890,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         });
         try {
           const result = await handler(params);
-          void emitter.emit({
+          emitQuietly({
             domain: 'command', kind: 'command.completed', phase: 'committed',
             entity: { type: 'command', id: name },
             ...(opId ? { operationId: opId } : {}),
@@ -2775,7 +2898,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
           });
           return result;
         } catch (error) {
-          void emitter.emit({
+          emitQuietly({
             domain: 'command', kind: 'command.failed', phase: 'failed',
             entity: { type: 'command', id: name },
             ...(opId ? { operationId: opId } : {}),
@@ -4056,6 +4179,19 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     if (!parsedRoute) throw new Error('No route found');
     const isCrossToken = parsedRoute.hops.some((hop) => 'isSwap' in hop && hop.isSwap === true);
 
+    // OMN-080: bind the route to who is paying and who must be paid, so a route
+    // that is internally valid but ends at the wrong party is refused rather
+    // than executed. `toPartyId` is optional on a caller-supplied route.
+    const recipientPublicKeyDigest = (() => {
+      if (typeof params.toPartyId !== 'string') return undefined;
+      const lastHop = parsedRoute.hops[parsedRoute.hops.length - 1];
+      if (!lastHop) return undefined;
+      const channel = context.channels.get(lastHop.channelId) as unknown as {
+        parties?: Array<{ partyId: string; publicKeyDigest: string }>;
+      } | undefined;
+      return channel?.parties?.find((party) => party.partyId === params.toPartyId)?.publicKeyDigest;
+    })();
+
     const parsedRequest: PaymentRequest = {
       hashlock: requiredString(params, 'hashlock'),
       amount,
@@ -4073,14 +4209,25 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         leaseProvider as WotsLeaseProvider,
         context.signer,
       ),
-      fulfillHTLC: (channel, htlcId, preimage, leaseProvider) => fulfillHTLC(
-        channel as OmniaChannel,
-        htlcId,
-        preimage,
-        leaseProvider as WotsLeaseProvider,
-        context.chainProvider,
-        context.signer,
-      ),
+      fulfillHTLC: async (channel, htlcId, preimage, leaseProvider) => {
+        // OMN-083: capture the authenticated state pair so the router can emit a
+        // fee proof bound to the settlement (not a hash of descriptive fields).
+        const previousState = (channel as OmniaChannel).latestState ?? undefined;
+        const result = await fulfillHTLC(
+          channel as OmniaChannel,
+          htlcId,
+          preimage,
+          leaseProvider as WotsLeaseProvider,
+          context.chainProvider,
+          context.signer,
+        );
+        return {
+          channel: result.channel,
+          ...(result.error !== undefined ? { error: result.error } : {}),
+          ...(previousState ? { previousState: previousState as never } : {}),
+          ...(result.partialState ? { nextState: result.partialState as never } : {}),
+        };
+      },
       timeoutHTLC: (channel, htlcId, leaseProvider) => timeoutHTLC(
         channel as OmniaChannel,
         htlcId,
@@ -4166,6 +4313,9 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
             parsedRoute as CrossTokenRoute,
             parsedRequest,
             leaseProviders,
+            // OMN-081: derive HTLC deadlines from each channel's contest window
+            // (eltoo default 256) instead of one block apart.
+            { recoveryMarginBlocks: 1, defaultContestDelayBlocks: 256 },
           )
         : await executeMultiHopPayment(
             ops,
@@ -4173,6 +4323,11 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
             parsedRoute as Route,
             parsedRequest,
             leaseProviders,
+            {
+              payer: from,
+              ...(recipientPublicKeyDigest ? { recipient: recipientPublicKeyDigest } : {}),
+            },
+            { recoveryMarginBlocks: 1, defaultContestDelayBlocks: 256 },
           );
       if (!result.success) {
         // OMN-006: a failed multi-hop call must not discard the router's

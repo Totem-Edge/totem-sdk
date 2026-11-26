@@ -72,12 +72,27 @@ export interface FinalizeSpliceOptions {
   chainProvider?: SpliceChainObserver;
   /** Confirmations required before activation. Default 1. */
   confirmations?: number;
+  /**
+   * Require proof that the successor is an output of this splice transaction
+   * before the channel is reported active (OMN-074). Default true: without that
+   * binding, any coin with a matching address, token and amount would activate
+   * the channel. Set false only when provenance is established elsewhere.
+   */
+  requireSuccessorLineage?: boolean;
   /** Successor observation timeout. Default 30s. */
   successorTimeoutMs?: number;
   /** Observation poll interval. Default 1s. */
   successorPollMs?: number;
   /** Durable journal written before broadcast, cleared after confirmation. */
   pendingSpliceStore?: PendingSpliceStore;
+  /**
+   * Persist the successor channel before the recovery journal is cleared
+   * (OMN-076). The host owns the channel store, so it supplies this hook;
+   * `finalizeSplice` calls it after the successor is constructed and before
+   * `pendingSpliceStore.clear`, so a crash in between leaves a recoverable
+   * journal entry rather than an on-chain successor with no local record.
+   */
+  persistSuccessor?: (channel: SplicedChannel) => Promise<void> | void;
   /** Serialized Minima CoinProof for every spending input (OMN-053). */
   coinProofs?: Uint8Array[];
   /** Serialized Minima ScriptProof for every spending input (OMN-053). */
@@ -310,6 +325,14 @@ export async function finalizeSplice(
         txHex,
         txpowId: spliceFundingTxId,
         broadcastAt: Date.now(),
+        // OMN-075: name the successor this splice must produce. Recovery prefers
+        // this over the caller's global observation parameters, so two
+        // interrupted splices can never be reconciled against each other.
+        expected: {
+          address: (channel as unknown as OmniaChannel).fundingAddress,
+          tokenId: (channel as unknown as OmniaChannel).tokenId,
+          amount: proposal.params.newTotalValue.toString(),
+        },
       };
       await options.pendingSpliceStore?.save(record);
       const result = await options.broadcast(txHex);
@@ -361,6 +384,11 @@ export async function finalizeSplice(
       confirmations: options.confirmations ?? 1,
       timeoutMs: options.successorTimeoutMs ?? 30_000,
       pollIntervalMs: options.successorPollMs ?? 1_000,
+      // OMN-074: the successor must be an output of this splice and the splice
+      // must consume the predecessor funding coin.
+      spliceTxId: spliceFundingTxId,
+      predecessorCoinId: (channel as unknown as OmniaChannel).fundingCoinId,
+      requireLineage: options.requireSuccessorLineage ?? true,
     });
     if (observed) {
       spliceFundingCoinId = observed.coinId;
@@ -368,10 +396,6 @@ export async function finalizeSplice(
     } else {
       successorStatus = 'funding_pending';
     }
-  }
-
-  if (successorStatus === 'active') {
-    await options?.pendingSpliceStore?.clear(proposal.spliceId);
   }
 
   const splicedChannel: SplicedChannel = {
@@ -401,9 +425,22 @@ export async function finalizeSplice(
     updatedAt: Date.now(),
   };
 
+  // OMN-076: persist the successor, retire the predecessor, then complete the
+  // journal entry — in that order. Clearing the journal first left a crash
+  // window where the successor was on chain, the predecessor was still local,
+  // and no recovery record existed. With `persistSuccessor` supplied by the
+  // caller (the host owns the channel store), that window is closed.
+  if (options?.persistSuccessor) {
+    await options.persistSuccessor(splicedChannel);
+  }
+
   // Mark the old (quiesced) channel as spliced — it is now invalidated.
   // Any further operations on `channel` should be rejected by status checks.
   (channel as unknown as OmniaChannel).status = 'spliced';
+
+  if (successorStatus === 'active') {
+    await options?.pendingSpliceStore?.clear(proposal.spliceId);
+  }
 
   return splicedChannel;
 }

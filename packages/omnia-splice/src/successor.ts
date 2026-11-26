@@ -29,6 +29,29 @@ export interface SpliceChainObserver {
     mmrentry?: string;
   }>>;
   getTip(): Promise<{ block: number }>;
+  /**
+   * Full transaction body by TxPoW id (OMN-074).
+   *
+   * Optional only so adapters can be upgraded independently. When it is present,
+   * successor observation proves the coin is an output of the splice that named
+   * it; when it is absent and lineage is required, observation fails closed.
+   */
+  getTransaction?(txpowid: string): Promise<{
+    txpowid: string;
+    inputs: Array<{ coinId: string; address?: string; amount?: string; tokenId?: string }>;
+    outputs: Array<{ coinId?: string; address: string; amount: string; tokenId?: string }>;
+  } | null>;
+}
+
+/**
+ * Raised when a successor coin cannot be tied to the splice transaction that is
+ * supposed to have created it (OMN-074).
+ */
+export class SpliceSuccessorLineageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SpliceSuccessorLineageError';
+  }
 }
 
 export interface SpliceSuccessorOptions {
@@ -48,10 +71,25 @@ export interface SpliceSuccessorOptions {
   now?: () => number;
   /** Injected sleep (tests). */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * The splice transaction this successor must belong to (OMN-074). Supplying
+   * it turns lineage verification on by default.
+   */
+  spliceTxId?: string;
+  /** Coin the splice must consume — normally the channel's funding coin. */
+  predecessorCoinId?: string;
+  /**
+   * Require proof that the successor is an output of `spliceTxId`. Defaults to
+   * true when `spliceTxId` is supplied. Set false only for a caller that has
+   * established provenance some other way.
+   */
+  requireLineage?: boolean;
 }
 
 export interface ObservedSuccessor {
   coinId: string;
+  /** True when the coin was proven to be an output of the splice transaction. */
+  lineageVerified: boolean;
   confirmations: number;
   confirmed: boolean;
   coin: {
@@ -64,6 +102,71 @@ export interface ObservedSuccessor {
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+function sameCoinId(a: string, b: string): boolean {
+  return a.replace(/^0x/i, '').toLowerCase() === b.replace(/^0x/i, '').toLowerCase();
+}
+
+function sameText(a: string | undefined, b: string | undefined): boolean {
+  return (a ?? '').replace(/^0x/i, '').toLowerCase() === (b ?? '').replace(/^0x/i, '').toLowerCase();
+}
+
+/**
+ * Prove that `coinId` is an output of `spliceTxId` (OMN-074).
+ *
+ * Address/token/amount matching cannot distinguish "the splice created this
+ * coin" from "some other transaction paid a matching coin to the same address".
+ * The only trustworthy binding is the transaction body: it must be visible, it
+ * must spend the predecessor, and the successor must appear among its outputs.
+ */
+async function assertSuccessorLineage(
+  chain: SpliceChainObserver,
+  coinId: string,
+  options: SpliceSuccessorOptions,
+): Promise<void> {
+  const required = options.requireLineage ?? options.spliceTxId !== undefined;
+  if (!required) return;
+  if (!options.spliceTxId) {
+    throw new SpliceSuccessorLineageError(
+      'successor lineage is required but no splice transaction id was supplied',
+    );
+  }
+  if (!chain.getTransaction) {
+    throw new SpliceSuccessorLineageError(
+      'chain adapter cannot look up transactions; splice successor lineage cannot be proven',
+    );
+  }
+  const transaction = await chain.getTransaction(options.spliceTxId);
+  if (!transaction) {
+    throw new SpliceSuccessorLineageError(
+      `splice transaction ${options.spliceTxId} is not visible on chain`,
+    );
+  }
+  if (options.predecessorCoinId
+    && !transaction.inputs.some((input) => sameCoinId(input.coinId, options.predecessorCoinId!))) {
+    throw new SpliceSuccessorLineageError(
+      `splice transaction ${options.spliceTxId} does not spend predecessor ${options.predecessorCoinId}`,
+    );
+  }
+
+  const matchedByCoinId = transaction.outputs.some(
+    (output) => output.coinId !== undefined && sameCoinId(output.coinId, coinId),
+  );
+  if (matchedByCoinId) return;
+
+  // Nodes that omit output coin ids: accept exactly one output that pays the
+  // successor address, token and amount. More than one is ambiguous.
+  const matches = transaction.outputs.filter((output) =>
+    sameText(output.address, options.address)
+    && sameText(output.tokenId, options.tokenId)
+    && coinAmountAtoms({ amount: output.amount }) === options.amount,
+  );
+  if (matches.length !== 1) {
+    throw new SpliceSuccessorLineageError(
+      `successor ${coinId} is not an output of splice transaction ${options.spliceTxId}`,
+    );
+  }
+}
 
 /**
  * Find the successor coin at the channel address, excluding the spent old
@@ -107,7 +210,8 @@ export async function observeSpliceSuccessor(
       const created = candidate.created !== undefined ? Number(candidate.created) : NaN;
       const confirmations = Number.isFinite(created) && created > 0 ? Math.max(0, tip.block - created + 1) : 0;
       if (confirmations >= required) {
-        return { coinId: candidate.coinid, confirmations, confirmed: true, coin: candidate };
+        await assertSuccessorLineage(chain, candidate.coinid, options);
+        return { coinId: candidate.coinid, confirmations, confirmed: true, lineageVerified: true, coin: candidate };
       }
       // Found but not deep enough; keep polling until the deadline.
     }
@@ -117,7 +221,13 @@ export async function observeSpliceSuccessor(
         const tip = await chain.getTip();
         const created = candidate.created !== undefined ? Number(candidate.created) : NaN;
         const confirmations = Number.isFinite(created) && created > 0 ? Math.max(0, tip.block - created + 1) : 0;
-        return { coinId: candidate.coinid, confirmations, confirmed: confirmations >= required, coin: candidate };
+        return {
+          coinId: candidate.coinid,
+          confirmations,
+          confirmed: confirmations >= required,
+          lineageVerified: false,
+          coin: candidate,
+        };
       }
       return null;
     }
@@ -158,6 +268,8 @@ export interface SpliceRecoveryResult {
   coinId?: string;
   rebroadcast: boolean;
   error?: string;
+  /** True when the successor was proven to be an output of the recorded splice. */
+  lineageVerified?: boolean;
 }
 
 /**
@@ -191,6 +303,11 @@ export async function recoverInterruptedSplices(
             }
           : {}),
         timeoutMs: observe.timeoutMs ?? 0,
+        spliceTxId: record.txpowId,
+        // Verify automatically when the adapter can, and always when the caller
+        // asked for it (OMN-074). Recovery of an already-broadcast splice is the
+        // last chance to bind the successor to its transaction.
+        requireLineage: observe.requireLineage ?? typeof chain.getTransaction === 'function',
       };
       const observed = await observeSpliceSuccessor(chain, options);
       if (observed) {
@@ -212,6 +329,7 @@ export async function recoverInterruptedSplices(
           spliceId: record.spliceId,
           status: 'active',
           coinId: observed.coinId,
+          lineageVerified: observed.lineageVerified,
           rebroadcast: false,
         });
         continue;
@@ -232,7 +350,7 @@ export async function recoverInterruptedSplices(
         results.push({
           spliceId: record.spliceId,
           status: 'funding_pending',
-          ...(observed ? { coinId: observed.coinId } : {}),
+          ...(observed ? { coinId: observed.coinId, lineageVerified: observed.lineageVerified } : {}),
           rebroadcast: true,
         });
       }

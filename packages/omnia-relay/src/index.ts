@@ -31,7 +31,12 @@ export { createOmniaRelayClient, fulfillMultiHop } from './client.js';
 export type { OmniaRelayClientOptions } from './client.js';
 
 // Multi-hop HTLC forwarder (RFC-035 B4, intermediary role).
-export { createMultiHopForwarder } from './forwarder.js';
+export {
+  createMultiHopForwarder,
+  computeForwardMessageId,
+  relaySwapQuotePayload,
+  RELAY_SWAP_QUOTE_DOMAIN,
+} from './forwarder.js';
 export type {
   MultiHopForwarder,
   MultiHopForwarderOptions,
@@ -40,6 +45,9 @@ export type {
   RevealPreimageResult,
   HtlcLink,
   HtlcLinkJournal,
+  ForwardReservation,
+  ForwardMessage,
+  RelaySwapQuote,
 } from './forwarder.js';
 export { createDurableHtlcLinkJournal } from './link-journal.js';
 export type { DurableHtlcLinkJournal } from './link-journal.js';

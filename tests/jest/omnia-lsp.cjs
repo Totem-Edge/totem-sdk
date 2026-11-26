@@ -15,6 +15,8 @@ module.exports = {
   },
   modulePathIgnorePatterns: ['<rootDir>/packages/.*/dist/'],
   moduleNameMapper: {
+    // omnia-lsp hashes canonical terms, so it depends on core's canonical hasher.
+    '^@totemsdk/core$': '<rootDir>/packages/core/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

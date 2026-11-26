@@ -107,3 +107,56 @@ describe('createOmniaHostProviderHost', () => {
     expect(close).toHaveBeenCalledWith(expect.objectContaining({ channelId: 'c1' }));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-070 — a host response must carry explicit, operation-specific evidence
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('host operation results are not assumed to be successes', () => {
+  test('an undefined open response is a failure', async () => {
+    const host = createOmniaHostProviderHost({
+      methods: new Map([['totem_omniaOpenChannel', async () => undefined]]),
+    });
+    const result = await host.openChannel({ quote });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('HOST_PROTOCOL_ERROR');
+  });
+
+  test('an empty object is not a successful open', async () => {
+    const host = createOmniaHostProviderHost({
+      methods: new Map([['totem_omniaOpenChannel', async () => ({})]]),
+    });
+    const result = await host.openChannel({ quote });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('HOST_OPEN_FAILED');
+  });
+
+  test('success without a channelId is a protocol error', async () => {
+    const host = createOmniaHostProviderHost({
+      methods: new Map([['totem_omniaOpenChannel', async () => ({ success: true })]]),
+    });
+    const result = await host.openChannel({ quote });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('HOST_PROTOCOL_ERROR');
+    expect(result.error).toMatch(/without a channelId/);
+  });
+
+  test('an error-only response keeps its message and is a failure', async () => {
+    const host = createOmniaHostProviderHost({
+      methods: new Map([['totem_omniaOpenChannel', async () => ({ error: 'funding coin is spent' })]]),
+    });
+    const result = await host.openChannel({ quote });
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('funding coin is spent');
+    expect(result.errorCode).toBe('HOST_OPEN_FAILED');
+  });
+
+  test('a malformed close response is a failure', async () => {
+    const host = createOmniaHostProviderHost({
+      methods: new Map([['totem_omniaCloseChannel', async () => ({})]]),
+    });
+    const result = await host.closeChannel!('c1');
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('HOST_CLOSE_FAILED');
+  });
+});

@@ -11,6 +11,13 @@ import {
   executeCrossTokenPayment,
   cancelPayment,
   buildPaymentRequest,
+  validateRoute,
+  PendingRefundError,
+  planRouteExpiry,
+  hopTimeout,
+  buildAuthenticatedRouterFeeProof,
+  buildRouterFeeProof,
+  verifyRouterFeeProof,
 } from '../index';
 import type {
   RouterChannel,
@@ -1062,5 +1069,287 @@ describe('route revalidation before execution', () => {
     expect(result.success).toBe(false);
     expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
     expect(calls).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-080 / OMN-082 — the route must be the payment, and rollback must not lie
+// ─────────────────────────────────────────────────────────────────────────────
+
+function mkRoute(hops: Array<{ id: string; from: string; to: string; amount: bigint; tokenId?: string; htlcId?: string }>) {
+  return {
+    hops: hops.map((h) => ({
+      channelId: h.id,
+      from: h.from,
+      to: h.to,
+      amount: h.amount,
+      tokenId: h.tokenId ?? TOKEN_A,
+      ...(h.htlcId ? { htlcId: h.htlcId } : {}),
+    })),
+    totalFees: 0n,
+    tokenIn: TOKEN_A,
+    tokenOut: TOKEN_A,
+    estimatedBlocks: 2,
+  };
+}
+
+describe('OMN-080 route validation is bound to the payment', () => {
+  const channels = new Map<string, RouterChannel>([
+    ['ch-1', mkChannel('ch-1', ALICE, BOB)],
+    ['ch-2', mkChannel('ch-2', BOB, CAROL)],
+  ]);
+
+  test('an empty route is refused instead of succeeding with nothing settled', () => {
+    const result = validateRoute(channels, mkRoute([]));
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toMatch(/no hops/);
+  });
+
+  test('disconnected hops are refused', () => {
+    const result = validateRoute(channels, mkRoute([
+      { id: 'ch-1', from: ALICE, to: BOB, amount: 100n },
+      { id: 'ch-2', from: ALICE, to: CAROL, amount: 100n },
+    ]));
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toMatch(/disconnected/);
+  });
+
+  test('a route that does not end at the recipient is refused', () => {
+    const result = validateRoute(
+      channels,
+      mkRoute([{ id: 'ch-1', from: ALICE, to: BOB, amount: 100n }]),
+      { recipient: CAROL },
+    );
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toMatch(/recipient/);
+  });
+
+  test('a route that delivers the wrong amount is refused', () => {
+    const result = validateRoute(
+      channels,
+      mkRoute([{ id: 'ch-1', from: ALICE, to: BOB, amount: 100n }]),
+      { amount: 250n },
+    );
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toMatch(/delivers/);
+  });
+
+  test('a consistent route still passes', () => {
+    const result = validateRoute(
+      channels,
+      mkRoute([
+        { id: 'ch-1', from: ALICE, to: BOB, amount: 100n },
+        { id: 'ch-2', from: BOB, to: CAROL, amount: 100n },
+      ]),
+      { payer: ALICE, recipient: CAROL, amount: 100n, tokenId: TOKEN_A },
+    );
+    expect(result).toEqual({ ok: true });
+  });
+});
+
+describe('OMN-082 rollback never reports a stranded lock as released', () => {
+  test('a lock whose channel is gone is surfaced as a pending refund', async () => {
+    const route = mkRoute([
+      { id: 'ch-gone', from: ALICE, to: BOB, amount: 100n, htlcId: 'htlc-1' },
+    ]);
+    const ops = { timeoutHTLC: jest.fn() } as unknown as ChannelOps;
+
+    const error = await cancelPayment(ops, new Map(), route, new Map()).catch((reason) => reason);
+    expect(error).toBeInstanceOf(PendingRefundError);
+    expect(error.pendingRefunds).toEqual([
+      expect.objectContaining({ channelId: 'ch-gone', htlcId: 'htlc-1' }),
+    ]);
+    expect(error.pendingRefunds[0].reason).toMatch(/no longer in the routing view/);
+    expect(ops.timeoutHTLC).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-081 — HTLC deadlines are spaced by the channel's contest window
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('OMN-081 expiry spread derives from the contest window', () => {
+  const HOP1 = 'pk-hop1';
+  const HOP2 = 'pk-hop2';
+
+  function route3() {
+    return mkRoute([
+      { id: 'c1', from: ALICE, to: HOP1, amount: 100n },
+      { id: 'c2', from: HOP1, to: HOP2, amount: 100n },
+      { id: 'c3', from: HOP2, to: CAROL, amount: 100n },
+    ]);
+  }
+
+  function channelsWithDelay(delay?: number) {
+    const make = (id: string, from: string, to: string) => {
+      const channel = mkChannel(id, from, to);
+      return delay === undefined ? channel : { ...channel, contestDelayBlocks: delay };
+    };
+    return new Map<string, RouterChannel>([
+      ['c1', make('c1', ALICE, HOP1)],
+      ['c2', make('c2', HOP1, HOP2)],
+      ['c3', make('c3', HOP2, CAROL)],
+    ]);
+  }
+
+  test('delta is the largest contest delay plus the recovery margin', () => {
+    const plan = planRouteExpiry(channelsWithDelay(256), route3(), 10_000n, 3, { recoveryMarginBlocks: 1 });
+    expect(plan.ok).toBe(true);
+    if (plan.ok) {
+      expect(plan.plan.contestDelayBlocks).toBe(256n);
+      expect(plan.plan.delta).toBe(257n);
+      expect(plan.plan.earliest).toBe(10_000n - 2n * 257n);
+    }
+  });
+
+  test('a route whose window cannot fit the spread is refused before locking', async () => {
+    const channels = channelsWithDelay(256);
+    const ops = makeMockOps();
+    const add = jest.spyOn(ops, 'addHTLC');
+    const lps = new Map<string, LeaseProvider>([['c1', MOCK_LP], ['c2', MOCK_LP], ['c3', MOCK_LP]]);
+
+    const result = await executeMultiHopPayment(
+      ops,
+      channels,
+      route3(),
+      buildPaymentRequest(100n * SCALE, TOKEN_A, 100n),
+      lps,
+      undefined,
+      { recoveryMarginBlocks: 1, defaultContestDelayBlocks: 256 },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('EXPIRY_PLAN_FAILED');
+    expect(result.error).toMatch(/cannot fit 3 locks/);
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  test('the executor spaces consecutive locks by the derived delta', async () => {
+    const channels = channelsWithDelay(64);
+    const ops = makeMockOps();
+    const lps = new Map<string, LeaseProvider>([['c1', MOCK_LP], ['c2', MOCK_LP], ['c3', MOCK_LP]]);
+
+    const result = await executeMultiHopPayment(
+      ops,
+      channels,
+      route3(),
+      buildPaymentRequest(100n * SCALE, TOKEN_A, 10_000n),
+      lps,
+      undefined,
+      { recoveryMarginBlocks: 1 },
+    );
+
+    expect(result.success).toBe(true);
+    const timeouts = ['c1', 'c2', 'c3'].map((id) => channels.get(id)!.pendingHTLCs[0]!.timeoutBlock);
+    expect(timeouts[0]! - timeouts[1]!).toBe(65n);
+    expect(timeouts[1]! - timeouts[2]!).toBe(65n);
+    expect(timeouts[2]).toBe(10_000n - 2n * 65n);
+  });
+
+  test('the override can raise the delta but never lower it below the contest window', () => {
+    const low = planRouteExpiry(channelsWithDelay(256), route3(), 10_000n, 3, { minHopExpiryDelta: 10n });
+    expect(low.ok && low.plan.delta).toBe(257n);
+
+    const high = planRouteExpiry(channelsWithDelay(256), route3(), 10_000n, 3, { minHopExpiryDelta: 400n });
+    expect(high.ok && high.plan.delta).toBe(400n);
+  });
+
+  test('a channel with no declared contest window is refused when the policy requires one', () => {
+    const plan = planRouteExpiry(channelsWithDelay(undefined), route3(), 10_000n, 3, {
+      requireContestDelay: true,
+    });
+    expect(plan.ok).toBe(false);
+    expect(!plan.ok && plan.error).toMatch(/does not declare contestDelayBlocks/);
+  });
+
+  test('hopTimeout decreases toward the recipient', () => {
+    expect(hopTimeout(1_000n, 10n, 0)).toBe(1_000n);
+    expect(hopTimeout(1_000n, 10n, 2)).toBe(980n);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-083 — fee proofs are settlement evidence, not descriptive hashes
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('OMN-083 authenticated fee proofs', () => {
+  const channel = () => mkChannel('c-fee', ALICE, BOB);
+  const htlc = {
+    htlcId: 'h-fee',
+    amount: 100n,
+    hashlock: '0x' + '11'.repeat(32),
+    timeoutBlock: 1000n,
+    direction: 'offered' as const,
+    status: 'fulfilled' as const,
+    htlcAddress: '0xhtlc',
+    senderPublicKeyDigest: ALICE,
+    recipientPublicKeyDigest: BOB,
+  };
+
+  const previous = () => ({
+    sequence: 1,
+    balances: { A: 500n, B: 500n },
+    pendingHTLCs: [{ htlcId: 'h-fee', amount: 100n, recipientPublicKeyDigest: BOB, status: 'pending' }],
+    stateVariables: [{ port: 102, value: 'aa'.repeat(32) }],
+    signatures: { A: 'sig-a', B: 'sig-b' },
+  });
+
+  const next = () => ({
+    sequence: 2,
+    balances: { A: 500n, B: 600n },
+    pendingHTLCs: [],
+    stateVariables: [{ port: 102, value: 'bb'.repeat(32) }],
+    signatures: { A: 'sig-a2', B: 'sig-b2' },
+  });
+
+  test('binds both commitments, the balance delta and the fee', () => {
+    const proof = buildAuthenticatedRouterFeeProof(
+      channel(),
+      htlc,
+      { previous: previous(), next: next() },
+      { feeAmount: 10n, settledAt: 5 },
+    );
+
+    expect(proof.authenticated).toBe(true);
+    expect(proof.previousStateCommitmentV2).toBe('aa'.repeat(32));
+    expect(proof.stateCommitmentV2).toBe('bb'.repeat(32));
+    expect(proof.previousSequence).toBe(1);
+    expect(proof.sequence).toBe(2);
+    expect(proof.balanceDelta).toBe(100n);
+    expect(proof.feeAmount).toBe(10n);
+  });
+
+  test('verifies only against the states it was derived from', () => {
+    const proof = buildAuthenticatedRouterFeeProof(channel(), htlc, { previous: previous(), next: next() });
+    expect(verifyRouterFeeProof(channel(), { previous: previous(), next: next() }, proof)).toBe(true);
+
+    const other = next();
+    other.stateVariables = [{ port: 102, value: 'cc'.repeat(32) }];
+    expect(verifyRouterFeeProof(channel(), { previous: previous(), next: other }, proof)).toBe(false);
+  });
+
+  test('refuses to build a proof whose transition does not move the amount', () => {
+    const flat = next();
+    flat.balances = { A: 500n, B: 500n };
+    expect(() => buildAuthenticatedRouterFeeProof(channel(), htlc, { previous: previous(), next: flat }))
+      .toThrow(/not the HTLC amount/);
+  });
+
+  test('refuses a successor that still carries the HTLC', () => {
+    const stillPending = next();
+    stillPending.pendingHTLCs = [{ htlcId: 'h-fee', amount: 100n }];
+    expect(() => buildAuthenticatedRouterFeeProof(channel(), htlc, { previous: previous(), next: stillPending }))
+      .toThrow(/still carries/);
+  });
+
+  test('a descriptive proof is explicitly not settlement evidence', () => {
+    const legacy = buildRouterFeeProof(channel(), htlc, 7);
+    expect(legacy.authenticated).toBe(false);
+    expect(verifyRouterFeeProof(channel(), { previous: previous(), next: next() }, legacy)).toBe(false);
+  });
+
+  test('tampering with the fee changes the hash', () => {
+    const proof = buildAuthenticatedRouterFeeProof(channel(), htlc, { previous: previous(), next: next() }, { feeAmount: 10n });
+    expect(verifyRouterFeeProof(channel(), { previous: previous(), next: next() }, { ...proof, feeAmount: 999n })).toBe(false);
   });
 });

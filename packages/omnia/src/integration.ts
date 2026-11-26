@@ -406,10 +406,14 @@ async function _handleChannelProposal(
     _sendAck(peer, channel.channelId, msg.nonce);
     config.onChannelAccepted?.(channel, peer);
   } catch (err) {
-    console.error(
-      '[omnia-integration] channel proposal rejected:',
-      err instanceof Error ? (err.stack ?? err.message) : String(err),
-    );
+    // Diagnostics are opt-in: a library must not write to stderr for every
+    // rejected proposal, and an untrusted peer can spam this path.
+    if (process.env.OMNIA_DEBUG) {
+      console.error(
+        '[omnia-integration] channel proposal rejected:',
+        err instanceof Error ? (err.stack ?? err.message) : String(err),
+      );
+    }
     _sendError(
       peer,
       msg.channelId,

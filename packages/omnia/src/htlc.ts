@@ -34,6 +34,22 @@ async function signStateGuarded(
 export const HTLC_FEE_PROOF_DOMAIN = 'totemsdk/omnia/htlc-fulfillment/v1';
 
 /**
+ * Canonical HTLC transition boundary (OMN-093).
+ *
+ * The deployed program validates a refund when `currentBlock >= timeoutBlock`
+ * (`program.ts`, `validateTransition` → `'htlc timeout block not reached'`).
+ * At the exact timeout block, therefore, only the **refund** path is valid and
+ * a fulfil must already be refused. This predicate is the single place that
+ * decision is made.
+ */
+export function htlcTransitionEligibility(
+  htlc: Pick<HTLCRecord, 'timeoutBlock'>,
+  currentBlock: bigint,
+): 'claim' | 'refund' {
+  return currentBlock >= htlc.timeoutBlock ? 'refund' : 'claim';
+}
+
+/**
  * A verifiable fee-provenance record for a fulfilled HTLC (#27): the exact
  * artifact a pool's `recordPoolFee` earn-proof consumes. It binds the channel,
  * the HTLC, the recipient, and the amount so a fee record can be traced to a
@@ -46,43 +62,82 @@ export interface HtlcFulfillmentReceipt {
   amount: bigint;
   tokenId: string;
   fulfilledAt: number;
+  /** Sequence of the authenticated successor state. */
   sequence: number;
+  /** Sequence of the authenticated predecessor state (OMN-094). */
+  previousSequence: number;
   /** Port-102 commitment of the signed state that fulfils the HTLC. */
   stateCommitmentV2: string;
+  /** Port-102 commitment of the state the HTLC was pending in (OMN-094). */
+  previousStateCommitmentV2: string;
+  /** Exact amount the transition moved to the recipient (OMN-094). */
+  balanceDelta: bigint;
   receiptHash: string;
 }
 
+/** The authenticated transition a receipt describes. */
+export interface HtlcFulfillmentTransition {
+  /** State the HTLC was still pending in. */
+  previous: SignedChannelState;
+  /** State that fulfils it. */
+  next: SignedChannelState;
+}
+
+function commitmentOf(state: SignedChannelState, label: string): string {
+  const commitment = state.stateVariables.find(v => v.port === STATE_COMMITMENT_V2_PORT);
+  if (!commitment) throw new Error(`${label} is missing the port-102 commitment`);
+  return String(commitment.value).replace(/^0x/i, '').toLowerCase();
+}
+
 /**
- * Build a fee-provenance receipt bound to a **signed** state.
+ * Build a fee-provenance receipt bound to an **authenticated transition**.
  *
- * A receipt is only meaningful if it can be traced to a state the recipient
- * actually signed. The commitment is included in the hash and
- * `verifyHtlcFulfillmentReceipt` re-derives everything from that state and
- * verifies the recipient's signature — a bare self-hash is not evidence.
+ * OMN-094: the receipt no longer reads the amount from the channel's historical
+ * record. It derives it from the balance delta between the predecessor and
+ * successor states, carries both commitments, and refuses to build when the
+ * states do not describe the fulfilment being claimed.
  */
 export function buildHtlcFulfillmentReceipt(
   channel: OmniaChannel,
-  state: SignedChannelState,
+  transition: HtlcFulfillmentTransition,
   htlcId: string,
   fulfilledAt?: number,
 ): HtlcFulfillmentReceipt {
-  const htlc = channel.pendingHTLCs.find(h => h.htlcId === htlcId && h.status === 'fulfilled');
-  if (!htlc) throw new Error(`HTLC ${htlcId} is not fulfilled on the channel`);
-  if (state.pendingHTLCs.some(h => h.htlcId === htlcId)) {
+  const { previous, next } = transition;
+  if (next.sequence <= previous.sequence) {
+    throw new Error('Signed successor state does not follow the predecessor');
+  }
+
+  const pending = previous.pendingHTLCs.find(h => h.htlcId === htlcId);
+  if (!pending) {
+    throw new Error(`HTLC ${htlcId} is not pending in the predecessor state`);
+  }
+  if (next.pendingHTLCs.some(h => h.htlcId === htlcId)) {
     throw new Error(`Signed state still carries HTLC ${htlcId} as pending`);
   }
-  const commitment = state.stateVariables.find(v => v.port === STATE_COMMITMENT_V2_PORT);
-  if (!commitment) throw new Error('Signed state is missing the port-102 commitment');
+
+  const recipient = channel.parties.find(p => p.publicKeyDigest === pending.recipientPublicKeyDigest);
+  if (!recipient) throw new Error('HTLC recipient is not a channel party');
+
+  const balanceDelta = (next.balances[recipient.partyId] ?? 0n) - (previous.balances[recipient.partyId] ?? 0n);
+  if (balanceDelta !== pending.amount) {
+    throw new Error(
+      `Signed states move ${balanceDelta.toString()} to the recipient, not the HTLC amount ${pending.amount.toString()}`,
+    );
+  }
 
   const receipt: HtlcFulfillmentReceipt = {
     channelId: channel.channelId,
     htlcId,
-    recipientPublicKeyDigest: htlc.recipientPublicKeyDigest,
-    amount: htlc.amount,
+    recipientPublicKeyDigest: pending.recipientPublicKeyDigest,
+    amount: pending.amount,
     tokenId: channel.tokenId,
     fulfilledAt: fulfilledAt ?? Date.now(),
-    sequence: state.sequence,
-    stateCommitmentV2: String(commitment.value).replace(/^0x/i, '').toLowerCase(),
+    sequence: next.sequence,
+    previousSequence: previous.sequence,
+    stateCommitmentV2: commitmentOf(next, 'Signed state'),
+    previousStateCommitmentV2: commitmentOf(previous, 'Predecessor state'),
+    balanceDelta,
     receiptHash: '',
   };
   receipt.receiptHash = computeHtlcFulfillmentReceiptHash(receipt);
@@ -97,27 +152,45 @@ export function computeHtlcFulfillmentReceiptHash(receipt: HtlcFulfillmentReceip
 }
 
 /**
- * Verify a receipt against the signed state it claims to describe. Returns false
- * on any mismatch, missing recipient signature or invalid signature.
+ * Verify a receipt against the authenticated states it claims to describe.
+ *
+ * Requires: the receipt to rebuild exactly from the two states, the recipient's
+ * signature on the successor, and every signature present on the predecessor to
+ * be valid for its party.
  */
 export function verifyHtlcFulfillmentReceipt(
   channel: OmniaChannel,
-  state: SignedChannelState,
+  transition: HtlcFulfillmentTransition,
   receipt: HtlcFulfillmentReceipt,
 ): boolean {
   try {
     if (receipt.channelId !== channel.channelId) return false;
-    if (receipt.sequence !== state.sequence) return false;
-    const rebuilt = buildHtlcFulfillmentReceipt(channel, state, receipt.htlcId, receipt.fulfilledAt);
+    if (receipt.sequence !== transition.next.sequence) return false;
+    if (receipt.previousSequence !== transition.previous.sequence) return false;
+
+    const rebuilt = buildHtlcFulfillmentReceipt(channel, transition, receipt.htlcId, receipt.fulfilledAt);
     if (rebuilt.receiptHash !== receipt.receiptHash) return false;
     if (rebuilt.receiptHash !== computeHtlcFulfillmentReceiptHash(receipt)) return false;
     if (rebuilt.amount !== receipt.amount) return false;
+    if (rebuilt.balanceDelta !== receipt.balanceDelta) return false;
     if (rebuilt.recipientPublicKeyDigest !== receipt.recipientPublicKeyDigest) return false;
     if (rebuilt.tokenId !== receipt.tokenId) return false;
+    if (rebuilt.stateCommitmentV2 !== receipt.stateCommitmentV2) return false;
+    if (rebuilt.previousStateCommitmentV2 !== receipt.previousStateCommitmentV2) return false;
 
-    const party = channel.parties.find(p => p.publicKeyDigest === receipt.recipientPublicKeyDigest);
-    if (!party || !state.signatures[party.partyId]) return false;
-    return verifyStateSignature(channel, state, party.partyId, party.publicKeyDigest);
+    const recipient = channel.parties.find(p => p.publicKeyDigest === receipt.recipientPublicKeyDigest);
+    if (!recipient || !transition.next.signatures[recipient.partyId]) return false;
+    if (!verifyStateSignature(channel, transition.next, recipient.partyId, recipient.publicKeyDigest)) {
+      return false;
+    }
+
+    for (const partyId of Object.keys(transition.previous.signatures)) {
+      const party = channel.parties.find(p => p.partyId === partyId);
+      if (!party) return false;
+      if (!verifyStateSignature(channel, transition.previous, partyId, party.publicKeyDigest)) return false;
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -310,10 +383,10 @@ export async function fulfillHTLC(
   }
   const normalizedPreimage = '0x' + preimage.replace(/^0x/i, '').toLowerCase();
 
-  // The on-chain claim branch is valid at or before the timeout; after it, only
-  // the refund path exists. Refuse to co-sign a fulfil that the chain would reject.
+  // OMN-093: the refund path owns the exact timeout block, so a fulfil is
+  // refused from `timeoutBlock` onwards. This matches the deployed program.
   const tip = await chainProvider.getTip();
-  if (BigInt(tip.block) > htlc.timeoutBlock) {
+  if (htlcTransitionEligibility(htlc, BigInt(tip.block)) === 'refund') {
     throw new Error(
       `HTLC ${htlcId} expired at block ${htlc.timeoutBlock} (current ${tip.block}); fulfil is no longer valid`,
     );
@@ -433,7 +506,7 @@ export async function timeoutHTLC(
 
   const tip = await chainProvider.getTip();
   const currentBlock = BigInt(tip.block);
-  if (currentBlock < htlc.timeoutBlock) {
+  if (htlcTransitionEligibility(htlc, currentBlock) === 'claim') {
     throw new Error(`HTLC ${htlcId} has not yet timed out (block ${currentBlock} < ${htlc.timeoutBlock})`);
   }
 

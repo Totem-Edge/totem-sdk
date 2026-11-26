@@ -20,13 +20,23 @@ export {
   createOmniaLspProvider,
 } from './provider.js';
 export type {
+  OmniaLspConsumerIdentity,
   OmniaLspHostCloseResult,
   OmniaLspHostOpenInput,
   OmniaLspHostOpenResult,
+  OmniaLspOpenQuoteOptions,
   OmniaLspProvider,
   OmniaLspProviderConfig,
   OmniaLspProviderHost,
 } from './provider.js';
+
+export { createMemoryQuoteLedger } from './ledger.js';
+export type {
+  ConsumeReservationResult,
+  OmniaLspQuoteLedger,
+  OmniaLspQuoteReservation,
+  QuoteReservationState,
+} from './ledger.js';
 export { createOmniaHostProviderHost } from './host.js';
 export type {
   CreateOmniaHostProviderHostOptions,

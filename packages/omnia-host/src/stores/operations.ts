@@ -16,11 +16,11 @@ export interface OperationRecord {
 
 
 export class OperationConflictError extends Error {
-  readonly code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing';
+  readonly code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing' | 'operation-unknown';
   readonly operationId: string;
   readonly status: OperationStatus;
   constructor(
-    code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing',
+    code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing' | 'operation-unknown',
     operationId: string,
     status: OperationStatus,
     message: string,

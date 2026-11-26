@@ -267,9 +267,10 @@ export {
   timeoutHTLC,
   buildHtlcFulfillmentReceipt,
   computeHtlcFulfillmentReceiptHash,
+  htlcTransitionEligibility,
   HTLC_FEE_PROOF_DOMAIN,
 } from './htlc.js';
-export type { HtlcFulfillmentReceipt } from './htlc.js';
+export type { HtlcFulfillmentReceipt, HtlcFulfillmentTransition } from './htlc.js';
 
 export {
   buildRegistryRootTransition,

@@ -43,6 +43,14 @@ interface HostCloseResponse {
   errorCode?: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function text(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
 /**
  * Adapt an `omnia-host` method registry (`createHostMethods(context)`) to the
  * LSP provider host port.
@@ -101,12 +109,35 @@ export function createOmniaHostProviderHost(
           operationId: `${prefix}-open-${quote.quoteId}`,
         })) as HostOpenResponse;
 
+        // OMN-070: require explicit, operation-specific evidence. An undefined,
+        // non-object, `{}` or error-only response is a failure, and success
+        // without a channelId is not a successful open.
+        if (!isRecord(result)) {
+          return {
+            success: false,
+            error: `${openMethod} returned no structured result`,
+            errorCode: 'HOST_PROTOCOL_ERROR',
+          };
+        }
+        const channelId = text(result.channelId);
+        if (result.success !== true) {
+          return {
+            success: false,
+            error: text(result.error) ?? `${openMethod} reported failure`,
+            errorCode: text(result.errorCode) ?? 'HOST_OPEN_FAILED',
+          };
+        }
+        if (!channelId) {
+          return {
+            success: false,
+            error: `${openMethod} reported success without a channelId`,
+            errorCode: 'HOST_PROTOCOL_ERROR',
+          };
+        }
         return {
-          success: result?.success !== false,
-          ...(result?.channelId ? { channelId: result.channelId } : {}),
-          ...(result?.fundingTxId ? { fundingTxId: result.fundingTxId } : {}),
-          ...(result?.error ? { error: result.error } : {}),
-          ...(result?.errorCode ? { errorCode: result.errorCode } : {}),
+          success: true,
+          channelId,
+          ...(text(result.fundingTxId) ? { fundingTxId: text(result.fundingTxId)! } : {}),
         };
       } catch (error) {
         return {
@@ -132,11 +163,19 @@ export function createOmniaHostProviderHost(
           channelId,
           operationId: `${prefix}-close-${channelId}`,
         })) as HostCloseResponse;
-        return {
-          success: result?.success !== false,
-          ...(result?.error ? { error: result.error } : {}),
-          ...(result?.errorCode ? { errorCode: result.errorCode } : {}),
-        };
+        // OMN-070: an undefined or malformed close response is not a success.
+        if (!isRecord(result) || result.success !== true) {
+          return {
+            success: false,
+            error: isRecord(result) && text(result.error)
+              ? text(result.error)!
+              : `${closeMethod} did not confirm the close`,
+            errorCode: isRecord(result) && text(result.errorCode)
+              ? text(result.errorCode)!
+              : 'HOST_CLOSE_FAILED',
+          };
+        }
+        return { success: true };
       } catch (error) {
         return {
           success: false,

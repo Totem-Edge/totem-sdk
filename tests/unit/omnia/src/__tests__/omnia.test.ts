@@ -41,7 +41,14 @@ import {
   confirmUpdateBroadcast,
   _resetChannelWatermarks,
 } from '../channel';
-import { addHTLC, fulfillHTLC, timeoutHTLC, buildHtlcFulfillmentReceipt, verifyHtlcFulfillmentReceipt } from '../htlc';
+import {
+  addHTLC,
+  fulfillHTLC,
+  timeoutHTLC,
+  buildHtlcFulfillmentReceipt,
+  verifyHtlcFulfillmentReceipt,
+  htlcTransitionEligibility,
+} from '../htlc';
 import { executeIntent } from '../intent';
 import {
   proposeSettlement,
@@ -1929,19 +1936,106 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
   it('fulfilment receipt is bound to a signed state', async () => {
     const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
     const bobSigner = makeMockSigner('bob', BOB_PKD);
-    const { channel: ch1, htlcId } = await addHTLC(channel, {
+    const added = await addHTLC(channel, {
       amount: 100n,
       hashlock: hash,
       timeoutBlock: 1000n,
       direction: 'offered',
       counterpartPublicKeyDigest: BOB_PKD,
     }, leaseProvider as any, aliceSigner);
+    const ch1 = added.channel;
+    const htlcId = added.htlcId;
     const { channel: ch2, partialState } = await fulfillHTLC(ch1, htlcId, preimage, leaseProvider as any, makeTipProvider(0) as any, bobSigner);
 
-    const state = partialState as any;
-    const receipt = buildHtlcFulfillmentReceipt(ch2, state, htlcId, 1234);
-    expect(verifyHtlcFulfillmentReceipt(ch2, state, receipt)).toBe(true);
-    expect(verifyHtlcFulfillmentReceipt(ch2, state, { ...receipt, amount: 999n })).toBe(false);
+    const transition = { previous: added.partialState as any, next: partialState as any };
+    const receipt = buildHtlcFulfillmentReceipt(ch2, transition, htlcId, 1234);
+    expect(verifyHtlcFulfillmentReceipt(ch2, transition, receipt)).toBe(true);
+    expect(verifyHtlcFulfillmentReceipt(ch2, transition, { ...receipt, amount: 999n })).toBe(false);
+  });
+
+  // ── OMN-093: one canonical boundary ────────────────────────────────────────
+  it('OMN-093: refuses a fulfil at exactly the timeout block', async () => {
+    const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const added = await addHTLC(channel, {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner);
+
+    await expect(fulfillHTLC(
+      added.channel,
+      added.htlcId,
+      preimage,
+      leaseProvider as any,
+      makeTipProvider(1000) as any,
+      makeMockSigner('bob', BOB_PKD),
+    )).rejects.toThrow(/expired/);
+  });
+
+  it('OMN-093: the refund path owns the exact timeout block', async () => {
+    const { channel: ch1, htlcId } = await addHTLC(channel, {
+      amount: 100n,
+      hashlock: 'aabbcc00'.repeat(8),
+      timeoutBlock: 500n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner);
+
+    const { channel: ch2 } = await timeoutHTLC(ch1, htlcId, leaseProvider as any, makeTipProvider(500) as any, aliceSigner);
+    expect(ch2.pendingHTLCs[0].status).toBe('timed_out');
+  });
+
+  it('OMN-093: one exported predicate decides the boundary', () => {
+    const htlc = { timeoutBlock: 1000n } as any;
+    expect(htlcTransitionEligibility(htlc, 999n)).toBe('claim');
+    expect(htlcTransitionEligibility(htlc, 1000n)).toBe('refund');
+    expect(htlcTransitionEligibility(htlc, 1001n)).toBe('refund');
+  });
+
+  // ── OMN-094: receipts bind the authenticated transition ────────────────────
+  async function fulfilledTransition() {
+    const { preimage, hash } = require('@totemsdk/core').HTLCHelper.generateSecret();
+    const added = await addHTLC(channel, {
+      amount: 100n,
+      hashlock: hash,
+      timeoutBlock: 1000n,
+      direction: 'offered',
+      counterpartPublicKeyDigest: BOB_PKD,
+    }, leaseProvider as any, aliceSigner);
+    const { channel: ch2, partialState } = await fulfillHTLC(
+      added.channel,
+      added.htlcId,
+      preimage,
+      leaseProvider as any,
+      makeTipProvider(0) as any,
+      makeMockSigner('bob', BOB_PKD),
+    );
+    return { channel: ch2, htlcId: added.htlcId, transition: { previous: added.partialState as any, next: partialState as any } };
+  }
+
+  it('OMN-094: refuses a receipt whose states do not move the HTLC amount', async () => {
+    const { channel: ch2, htlcId, transition } = await fulfilledTransition();
+    const noDelta = { ...transition, next: { ...transition.next, balances: { ...transition.previous.balances } } };
+    expect(() => buildHtlcFulfillmentReceipt(ch2, noDelta, htlcId)).toThrow(/not the HTLC amount/);
+  });
+
+  it('OMN-094: the receipt binds both state commitments', async () => {
+    const { channel: ch2, htlcId, transition } = await fulfilledTransition();
+    const receipt = buildHtlcFulfillmentReceipt(ch2, transition, htlcId, 99);
+    expect(verifyHtlcFulfillmentReceipt(ch2, transition, receipt)).toBe(true);
+    expect(verifyHtlcFulfillmentReceipt(ch2, transition, {
+      ...receipt,
+      previousStateCommitmentV2: '0'.repeat(64),
+    })).toBe(false);
+  });
+
+  it('OMN-094: a predecessor that never held the HTLC is rejected', async () => {
+    const { channel: ch2, htlcId, transition } = await fulfilledTransition();
+    const wrongPrevious = { ...transition, previous: { ...transition.previous, pendingHTLCs: [] } };
+    expect(() => buildHtlcFulfillmentReceipt(ch2, wrongPrevious, htlcId))
+      .toThrow(/not pending in the predecessor/);
   });
 
   it('timeoutHTLC: reclaims amount to sender when block >= timeoutBlock', async () => {

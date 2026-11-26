@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-lsp-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reference Omnia Liquidity Service Provider — policy, signed quotes and host adapter",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
