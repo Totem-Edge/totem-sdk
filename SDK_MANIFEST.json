@@ -1849,7 +1849,7 @@
         "@totemsdk/liquidity-bond": "^0.4.0",
         "@totemsdk/manifest": "^2.2.0",
         "@totemsdk/minima-rpc": "^0.5.1",
-        "@totemsdk/omnia": "^4.0.0",
+        "@totemsdk/omnia": "^4.0.1",
         "@totemsdk/omnia-factory": "^0.9.0",
         "@totemsdk/omnia-pool": "^0.7.0",
         "@totemsdk/omnia-router": "^0.6.0",
