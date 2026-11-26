@@ -297,6 +297,7 @@ export {
   signSettlementRequest,
   startUnilateralClose,
   finalizeUnilateralClose,
+  confirmUnilateralSettlement,
   replaceUnilateralCloseState,
   buildDisputePayload,
   markChannelClosing,

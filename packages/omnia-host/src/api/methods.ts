@@ -1469,6 +1469,9 @@ function registerPreparedPayMethods(
           error: ackError,
         };
       }
+      // OMN-099: record the acknowledgement so activation can require it.
+      const accepted: OmniaChannel = { ...channel, peerAcceptedAt: Date.now(), updatedAt: Date.now() };
+      context.channels.set(channel.channelId, { ...accepted, localSigner: context.signer });
       return { success: true, channelId: channel.channelId, fundingTxId, acknowledged };
     });
   };
@@ -1512,9 +1515,28 @@ function registerPreparedPayMethods(
         error: typeof payload.error === 'string' ? payload.error : 'counterparty did not acknowledge the channel proposal',
       };
     }
-    const active = activateChannel(channel);
-    context.channels.set(channelId, { ...active, localSigner: context.signer });
-    return { success: true, channelId, acknowledged: true, status: active.status };
+    // OMN-099: record the acknowledgement, then require funding depth before the
+    // channel becomes active — the ACK alone does not prove the coin exists.
+    const accepted: OmniaChannel = {
+      ...channel,
+      peerAcceptedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    let activated = accepted;
+    if (context.chainProvider) {
+      try {
+        const coin = await context.chainProvider.getCoin(accepted.fundingCoinId);
+        const tip = await context.chainProvider.getTip();
+        const depth = confirmationsAt(coin, tip.block);
+        if (coin && !coin.spent && depth !== null && depth >= 1) {
+          activated = activateChannel(accepted);
+        }
+      } catch {
+        // Leave it funding_pending; the read path retries.
+      }
+    }
+    context.channels.set(channelId, { ...activated, localSigner: context.signer });
+    return { success: true, channelId, acknowledged: true, status: activated.status };
   };
   methods.set('totem_omniaResubmitChannelProposal', resubmitChannelProposal);
   methods.set('omnia/resubmitChannelProposal', resubmitChannelProposal);
@@ -2958,7 +2980,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     // `funding_pending`, the initiator in `opening` while the funding tx is
     // still shallow). Re-check on read so both sides become active once the
     // funding coin is buried enough.
-    if ((channel.status === 'funding_pending' || channel.status === 'opening') && context.chainProvider) {
+    // OMN-099: depth alone is not activation. A channel is only usable once the
+    // counterparty has accepted the opening *and* the funding coin is buried.
+    const peerAccepted = channel.peerAcceptedAt !== undefined || channel.status === 'opening';
+    if (channel.status === 'funding_pending' && !peerAccepted) {
+      // Still waiting on the peer; report the pending state without promoting.
+    } else if ((channel.status === 'funding_pending' || channel.status === 'opening') && context.chainProvider) {
       try {
         const coin = await context.chainProvider.getCoin(channel.fundingCoinId);
         const tip = await context.chainProvider.getTip();

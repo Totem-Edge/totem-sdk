@@ -677,17 +677,68 @@ export async function finalizeUnilateralClose(
     txpowId: settlementTxpowId,
   };
 
-  const updatedChannel = markChannelClosed({
+  // OMN-101 (audit 3, OMN-099): a broadcast is not a closure. Record the
+  // settlement transaction and leave the channel closing until the chain
+  // confirms it; `confirmUnilateralSettlement` performs the final transition.
+  const broadcastChannel: OmniaChannel = {
     ...channel,
+    status: 'closing_unilateral',
     unilateralClose: {
       ...closeState,
       status: 'settlement_broadcast',
       settlementTxpowId,
     },
     updatedAt: Date.now(),
-  });
+  };
 
-  return { channel: updatedChannel, settlementPayload };
+  return { channel: broadcastChannel, settlementPayload };
+}
+
+/**
+ * OMN-101: final transition of a unilateral close.
+ *
+ * Requires the broadcast settlement transaction to be visible on chain and deep
+ * enough. A broadcast that never confirms — or is reorged — leaves the channel
+ * in `closing_unilateral` and keeps monitoring alive.
+ */
+export async function confirmUnilateralSettlement(
+  channel: OmniaChannel,
+  chainProvider: ChainStateProvider,
+  minConfirmations: number = 1,
+): Promise<OmniaChannel> {
+  const closeState = channel.unilateralClose;
+  if (!closeState) throw new Error('Cannot confirm settlement: no unilateral close in progress');
+  if (closeState.status !== 'settlement_broadcast' || !closeState.settlementTxpowId) {
+    throw new Error('Cannot confirm settlement: no settlement transaction has been broadcast');
+  }
+  if (!chainProvider.getTransaction) {
+    throw new Error('Cannot confirm settlement: the chain adapter cannot look up transactions');
+  }
+  const transaction = await chainProvider.getTransaction(closeState.settlementTxpowId);
+  if (!transaction) {
+    throw new Error(`Settlement transaction ${closeState.settlementTxpowId} is not visible on chain`);
+  }
+  if (minConfirmations > 0) {
+    if (transaction.block === undefined) {
+      throw new Error('Cannot confirm settlement: the node reports no block for the transaction');
+    }
+    const tip = await chainProvider.getTip();
+    const confirmations = tip.block - transaction.block + 1;
+    if (confirmations < minConfirmations) {
+      throw new Error(
+        `Settlement ${closeState.settlementTxpowId} has ${confirmations} confirmation(s); ${minConfirmations} required`,
+      );
+    }
+  }
+
+  return markChannelClosed({
+    ...channel,
+    unilateralClose: {
+      ...closeState,
+      status: 'settlement_confirmed',
+    },
+    updatedAt: Date.now(),
+  });
 }
 
 /**

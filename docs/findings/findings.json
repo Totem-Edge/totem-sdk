@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T16:17:28.051Z",
+  "generatedAt": "2026-11-26T17:37:44.425Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -6052,7 +6052,7 @@
     {
       "id": "OMN-099",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Channel activation conflates funding depth with peer acceptance",
       "packages": [
@@ -6086,7 +6086,7 @@
           "Activation is idempotent."
         ],
         "tests": [
-          "tests/unit/omnia-host/src/__tests__/lifecycle.test.ts"
+          "tests/unit/omnia-host/src/__tests__/methods.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia-host test"
@@ -6102,7 +6102,7 @@
     {
       "id": "OMN-100",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "Unilateral update coin verification does not bind sequence, commitment, amount or lineage",
       "packages": [
@@ -6151,7 +6151,7 @@
     {
       "id": "OMN-101",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "high",
       "title": "A unilateral settlement broadcast is recorded as a completed closure",
       "packages": [

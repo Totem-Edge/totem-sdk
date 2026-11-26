@@ -133,7 +133,7 @@ export interface UnilateralCloseState {
   settlementTxHex: string;
   contestStartBlock: number;
   contestDeadlineBlock: number;
-  status: 'update_broadcast' | 'settlement_broadcast';
+  status: 'update_broadcast' | 'settlement_broadcast' | 'settlement_confirmed';
   updateTxpowId?: string;
   /** Coin id of the broadcast update output (the contest clock starts at its block). */
   updateCoinId?: string;
@@ -198,6 +198,12 @@ export interface OmniaChannel {
   channelType: 'direct' | 'virtual';
   /** Eltoo contest window embedded in the funding script (default 256). */
   contestDelayBlocks?: number;
+  /**
+   * OMN-099 (audit 3, OMN-097): when the counterparty acknowledged the opening
+   * proposal. Activation requires this *and* funding depth; either alone is not
+   * evidence that the channel can be used.
+   */
+  peerAcceptedAt?: number;
   factoryRef?: string;
   /**
    * Local party signer — stored on the channel so callers can omit the signer param from

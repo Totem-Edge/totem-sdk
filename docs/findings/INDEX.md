@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-26T16:17:28.051Z. 152 findings, 43 open.
+Generated 2026-11-26T17:37:44.425Z. 152 findings, 40 open.
 
 sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 
@@ -106,9 +106,9 @@ sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 | `OMN-093` | high | sdk-defect | fixed | `@totemsdk/omnia` | Fulfilment and timeout are both eligible at the exact timeout block |
 | `OMN-094` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-pool` | HTLC fulfilment receipts are not bound to the authenticated transition that paid them |
 | `OMN-095` | high | sdk-gap | fixed | `@totemsdk/omnia-factory` | A factory participant's latest off-chain allocation is not unilaterally enforceable |
-| `OMN-099` | high | sdk-defect | open | `@totemsdk/omnia-host` | Channel activation conflates funding depth with peer acceptance |
-| `OMN-100` | high | sdk-defect | open | `@totemsdk/omnia` | Unilateral update coin verification does not bind sequence, commitment, amount or lineage |
-| `OMN-101` | high | sdk-defect | open | `@totemsdk/omnia` | A unilateral settlement broadcast is recorded as a completed closure |
+| `OMN-099` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Channel activation conflates funding depth with peer acceptance |
+| `OMN-100` | high | sdk-defect | fixed | `@totemsdk/omnia` | Unilateral update coin verification does not bind sequence, commitment, amount or lineage |
+| `OMN-101` | high | sdk-defect | fixed | `@totemsdk/omnia` | A unilateral settlement broadcast is recorded as a completed closure |
 | `OMN-102` | high | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | The distributed multi-hop branch bypasses the durable operation lifecycle |
 | `OMN-103` | high | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | Cross-token locality is decided from the inbound channel only |
 | `OMN-104` | high | sdk-defect | open | `null` | The S4 harness can report S4_PASS without asserting settlement |

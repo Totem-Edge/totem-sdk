@@ -54,6 +54,7 @@ import {
   proposeSettlement,
   startUnilateralClose,
   finalizeUnilateralClose,
+  confirmUnilateralSettlement,
   replaceUnilateralCloseState,
   recordUnilateralUpdateCoin,
   buildDisputePayload,
@@ -2314,6 +2315,9 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
     return {
       ...makeMockChainProvider(),
       getTip: jest.fn(async () => ({ block: 100, hash: '0x64' })),
+      // No transaction body by default: the lineage check is skipped, which is
+      // the documented behaviour for adapters that cannot look transactions up.
+      getTransaction: jest.fn(async () => null),
       getCoin: jest.fn(async (id: string) => ({
         coinId: id,
         address: fundingAddress,
@@ -2388,10 +2392,20 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
 
     chainProvider.getTip.mockResolvedValueOnce({ block: started.contestDeadlineBlock, hash: '0xready' });
     const finalized = await finalizeUnilateralClose(recorded, chainProvider as any, MOCK_BROADCAST_PROOFS);
-    expect(finalized.channel.status).toBe('closed');
+
+    // OMN-101: a broadcast is not a closure.
+    expect(finalized.channel.status).toBe('closing_unilateral');
+    expect(finalized.channel.unilateralClose?.status).toBe('settlement_broadcast');
+    expect(finalized.channel.unilateralClose?.settlementTxpowId).toBeTruthy();
     expect(finalized.settlementPayload.sequence).toBe(signedState.sequence);
     expect(finalized.settlementPayload.settlementTxHex).toBe(signedState.closePackage!.settlement.txHex);
     expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(2);
+
+    chainProvider.getTip.mockResolvedValueOnce({ block: started.contestDeadlineBlock + 1, hash: '0xconf' });
+    chainProvider.getTransaction.mockResolvedValueOnce({ txpowid: '0xsettle', block: 100, inputs: [], outputs: [] });
+    const confirmed = await confirmUnilateralSettlement(finalized.channel, chainProvider as any, 1);
+    expect(confirmed.status).toBe('closed');
+    expect(confirmed.unilateralClose?.status).toBe('settlement_confirmed');
   });
 
   it('rejects an update coin that does not carry the signed state sequence (OMN-100)', async () => {
@@ -2432,6 +2446,46 @@ describe('@totemsdk/omnia — unilateral close lifecycle', () => {
     chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
     await expect(recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any))
       .rejects.toThrow(/commitment does not match the signed state/);
+  });
+
+  it('does not report a channel closed when the settlement is not on chain (OMN-101)', async () => {
+    const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, signedState);
+    chainProvider.getTransaction.mockResolvedValue(null);
+    const started = await startUnilateralClose(
+      { ...updatedChannel, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+    chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
+    const recorded = await recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any);
+    chainProvider.getTip.mockResolvedValueOnce({ block: started.contestDeadlineBlock, hash: '0xready' });
+    const broadcast = await finalizeUnilateralClose(recorded, chainProvider as any, MOCK_BROADCAST_PROOFS);
+
+    await expect(confirmUnilateralSettlement(broadcast.channel, chainProvider as any, 1))
+      .rejects.toThrow(/not visible on chain/);
+    expect(broadcast.channel.status).toBe('closing_unilateral');
+  });
+
+  it('rejects an update coin whose transaction does not spend the channel coin (OMN-100)', async () => {
+    const { channel: updatedChannel, signedState } = await makeCompleteSignedState(
+      makeTestChannel(),
+      { alice: 500n, bob: 500n },
+    );
+    const chainProvider = makeUnilateralProvider(updatedChannel.fundingAddress, signedState);
+    chainProvider.getTransaction.mockResolvedValueOnce({ txpowid: '0xother', block: 99, inputs: [{ coinId: '0xdead' }], outputs: [] });
+    const started = await startUnilateralClose(
+      { ...updatedChannel, latestState: signedState },
+      chainProvider as any,
+      MOCK_BROADCAST_PROOFS,
+    );
+
+    chainProvider.getTip.mockResolvedValueOnce({ block: 101, hash: '0x65' });
+    await expect(recordUnilateralUpdateCoin(started.channel, UPDATE_COIN, chainProvider as any))
+      .rejects.toThrow(/not produced by a transaction spending the channel coin/);
   });
 
   it('replaces stale unilateral state with a newer signed state during dispute', async () => {

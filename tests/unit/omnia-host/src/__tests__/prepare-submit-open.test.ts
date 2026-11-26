@@ -165,7 +165,8 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
       })),
       getToken: jest.fn(async () => ({ script: 'RETURN TRUE' })),
       submitTransaction: jest.fn(async () => ({ success: true, txpowid: 'tx-funding' })),
-      getTip: jest.fn(async () => ({ block: 1 })),
+      // coin created at block 1; tip 2 gives one confirmation.
+      getTip: jest.fn(async () => ({ block: 2 })),
     };
 
     const listeners = new Set<(msg: any) => void>();

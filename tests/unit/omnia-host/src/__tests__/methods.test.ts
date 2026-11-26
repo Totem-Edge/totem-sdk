@@ -129,3 +129,64 @@ describe('omnia-host JSON-RPC methods', () => {
     expect(channels.get('channel-1')!.status).toBe('active');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-099 (audit 3, OMN-097) — depth alone does not activate a channel
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('activation requires the peer acknowledgement', () => {
+  function pendingChannel(over: Record<string, unknown> = {}) {
+    return {
+      channelId: 'channel-1',
+      status: 'funding_pending',
+      channelType: 'direct',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 10n,
+      currentSequence: 0,
+      fundingCoinId: 'coin',
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'a', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'b', addressIndex: 1 },
+      ],
+      balances: { alice: 6n, bob: 4n },
+      pendingHTLCs: [],
+      stateLog: [],
+      createdAt: 1,
+      updatedAt: 2,
+      ...over,
+    };
+  }
+
+  const confirmedChain = {
+    getCoin: async () => ({
+      coinid: 'coin', amount: '10', address: 'addr', tokenid: '0x00', spent: false, created: 10,
+    }),
+    getTip: async () => ({ block: 11 }),
+  } as any;
+
+  it('does not promote a confirmed but unacknowledged channel', async () => {
+    const channels = new Map<string, any>([['channel-1', pendingChannel()]]);
+    const methods = createHostMethods({
+      channels,
+      routing: new InProcessRoutingProvider(),
+      chainProvider: confirmedChain,
+    });
+
+    const view = await methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, unknown>;
+    expect(view.status).toBe('funding_pending');
+    expect(channels.get('channel-1')!.status).toBe('funding_pending');
+  });
+
+  it('promotes once the peer has acknowledged and the coin is buried', async () => {
+    const channels = new Map<string, any>([['channel-1', pendingChannel({ peerAcceptedAt: 5 })]]);
+    const methods = createHostMethods({
+      channels,
+      routing: new InProcessRoutingProvider(),
+      chainProvider: confirmedChain,
+    });
+
+    const view = await methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, unknown>;
+    expect(view.status).toBe('active');
+  });
+});
