@@ -324,10 +324,22 @@ export interface FactoryScriptOptions {
    * Every allocation change then has an on-chain artifact, and the unilateral
    * escape pays the latest checkpoint instead of the original funding split.
    *
-   * Off by default: the off-chain factory design stays available, with OMN-058
-   * open until the contestable protocol lands.
+   * The factory builders (`buildFactoryOpening`, `openFactory`) pass `true`;
+   * this option only defaults to off when the script is built directly.
+   *
+   * Setting it to `false` selects the legacy off-chain mode, where a unilateral
+   * exit pays the funding split and a newer allocation is **not** enforceable.
+   * OMN-095: that mode now requires `allowUnenforceableAllocations` so it is a
+   * deliberate release restriction rather than an accidental default.
    */
   enforceCheckpoints?: boolean;
+  /**
+   * OMN-095: acknowledge that `enforceCheckpoints: false` produces a factory
+   * whose latest off-chain allocation cannot be enforced on chain. Required to
+   * build such a factory; the resulting `ChannelFactory.allocationEnforcement`
+   * is `'none'`.
+   */
+  allowUnenforceableAllocations?: boolean;
   /**
    * OMN-058/RFC-079 §4A: add the output-enforced full-distribution branch.
    * Any participant can settle every committed share in one transaction; the

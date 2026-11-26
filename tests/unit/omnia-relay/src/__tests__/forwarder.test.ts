@@ -480,7 +480,11 @@ describe('relay durability and recovery', () => {
       get: async <T>(key: string) => (values.has(key) ? values.get(key) as T : null),
       set: async <T>(key: string, value: T) => {
         values.set(key, value);
-        if (Array.isArray(value)) snapshots.push(JSON.parse(JSON.stringify(value)));
+        // OMN-086: journaled links now carry the signed proposal, whose payload
+        // contains bigint amounts; the snapshot must tolerate them.
+        if (Array.isArray(value)) {
+          snapshots.push(JSON.parse(JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? v.toString() : v))));
+        }
       },
       remove: async (key: string) => values.delete(key),
       clear: async () => { values.clear(); },
@@ -750,5 +754,345 @@ describe('mid-route failure (RFC-035 §9)', () => {
     // The gap is what lets this node reclaim the outgoing lock before the
     // upstream can claim against it, if the route dies downstream.
     expect(outgoing.timeoutBlock < incomingAfter.timeoutBlock).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-084 (CAN-016) — forwarding admission is one atomic reservation
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('forward admission is atomic', () => {
+  async function setup() {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const journal = memoryJournal();
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: journal,
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    const forward = () => forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    });
+    return { forward, journal, hashlock, outChannel, channels };
+  }
+
+  test('two concurrent forwards for one hashlock admit exactly one', async () => {
+    const { forward, outChannel, channels } = await setup();
+
+    const [first, second] = await Promise.allSettled([forward(), forward()]);
+    const forwarded = [first, second].filter(
+      (result) => result.status === 'fulfilled' && result.value.status === 'forwarded',
+    );
+    const rejected = [first, second].filter((result) => result.status === 'rejected');
+
+    expect(forwarded).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(String((rejected[0] as PromiseRejectedResult).reason)).toMatch(/duplicate forward/);
+    // Only the winner took liquidity.
+    expect(channels.get(outChannel.channelId)!.pendingHTLCs).toHaveLength(1);
+  });
+
+  test('a second forward for the same incoming HTLC is refused even with a new hashlock', async () => {
+    const { forward, journal, hashlock } = await setup();
+    const first = await forward();
+    expect(first.status).toBe('forwarded');
+
+    const other = HTLCHelper.generateSecret();
+    const reservation = await journal.reserve!({
+      hashlock: other.hash,
+      inChannelId: (await journal.get(hashlock))!.inChannelId,
+      inHtlcId: (await journal.get(hashlock))!.inHtlcId,
+      outChannelId: 'out-2',
+      outHtlcId: '',
+      via: B,
+      status: 'intent',
+    });
+    expect(reservation.ok).toBe(false);
+    if (!reservation.ok) expect(reservation.reason).toBe('incoming');
+  });
+
+  test('a reservation is not an upsert: the same hashlock cannot be re-reserved', async () => {
+    const { forward, journal, hashlock } = await setup();
+    await forward();
+    const existing = (await journal.get(hashlock))!;
+    const again = await journal.reserve!({ ...existing, status: 'intent' });
+    expect(again.ok).toBe(false);
+    if (!again.ok) expect(again.reason).toBe('hashlock');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-086 — an undelivered proposal is a durable obligation
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('forward delivery journal', () => {
+  async function setup() {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    let offline = false;
+    const swarm = {
+      advertise: jest.fn(),
+      connectToPeer: jest.fn(async () => {
+        if (offline) throw new Error('peer offline');
+        return { sendMessage } as unknown as OmniaPeer;
+      }),
+      listenForChannels: jest.fn(() => () => {}),
+      broadcast: jest.fn(async () => {}),
+      close: jest.fn(async () => {}),
+    } as unknown as OmniaSwarm;
+
+    const outChannel = makeChannel(I, B, { first: 500n, second: 500n });
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const journal = memoryJournal();
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: journal,
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+    const forward = () => forwarder.forwardIncoming({
+      inChannelId: inChannel.channelId,
+      inHtlcId: incoming.htlcId,
+      hashlock,
+      envelope,
+      timeoutBlock: 100n,
+    });
+
+    return {
+      forward,
+      forwarder,
+      journal,
+      hashlock,
+      sendMessage,
+      channels,
+      outChannel,
+      setOffline: (value: boolean) => { offline = value; },
+    };
+  }
+
+  test('a proposal that cannot be delivered is journaled, not reported as active', async () => {
+    const { forward, journal, hashlock, setOffline } = await setup();
+    setOffline(true);
+
+    await expect(forward()).rejects.toThrow(/signed but not delivered/);
+
+    const link = await journal.get(hashlock);
+    expect(link?.status).toBe('pending-delivery');
+    expect(link?.messageId).toMatch(/^[0-9a-f]{64}$/);
+    expect(link?.pendingMessage).toBeDefined();
+  });
+
+  test('retransmission re-sends the same proposal without signing a second HTLC', async () => {
+    const { forward, forwarder, journal, hashlock, sendMessage, channels, outChannel, setOffline } = await setup();
+    setOffline(true);
+    await expect(forward()).rejects.toThrow();
+
+    const pending = await journal.get(hashlock);
+    expect(pending?.pendingMessage).toBeDefined();
+    const nonce = (pending!.pendingMessage as { nonce: number }).nonce;
+    const htlcCountBefore = channels.get(outChannel.channelId)!.pendingHTLCs.length;
+
+    setOffline(false);
+    const results = await forwarder.retransmitPending();
+
+    expect(results).toEqual([{ hashlock, delivered: true }]);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    // The counterparty sees the identical proposal.
+    expect(sendMessage.mock.calls[0]![0]).toMatchObject({ nonce });
+
+    const delivered = forwarder.links().get(hashlock);
+    expect(delivered?.status).toBe('active');
+    expect(delivered?.pendingMessage).toBeUndefined();
+    expect(delivered?.messageId).toBe(pending?.messageId);
+    // No second WOTS signature was released.
+    expect(channels.get(outChannel.channelId)!.pendingHTLCs.length).toBe(htlcCountBefore);
+  });
+
+  test('acknowledgement is recorded against the delivered proposal', async () => {
+    const { forward, forwarder, hashlock } = await setup();
+    await forward();
+    const messageId = forwarder.links().get(hashlock)?.messageId;
+    expect(messageId).toBeDefined();
+
+    await forwarder.acknowledge(hashlock, messageId);
+    expect(forwarder.links().get(hashlock)?.acknowledgedAt).toBeGreaterThan(0);
+
+    await expect(forwarder.acknowledge(hashlock, 'ff'.repeat(32)))
+      .rejects.toThrow(/does not match the proposal/);
+  });
+
+  test('a delivered proposal is active and carries no pending message', async () => {
+    const { forward, forwarder, hashlock } = await setup();
+    const result = await forward();
+    expect(result.status).toBe('forwarded');
+    const link = forwarder.links().get(hashlock);
+    expect(link?.status).toBe('active');
+    expect(link?.pendingMessage).toBeUndefined();
+    expect(link?.deliveredAt).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-085 — cross-token forwarding needs an authenticated quote
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('cross-token forwarding', () => {
+  const OUT_TOKEN = '0x' + 'cc'.repeat(32);
+  const NOW = 1_000;
+
+  async function setup(overrides: {
+    quote?: Record<string, unknown> | undefined;
+    verifier?: (q: unknown, payload: string) => boolean;
+    outTokenId?: string;
+  } = {}) {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const outChannel = { ...makeChannel(I, B, { first: 500n, second: 500n }), tokenId: overrides.outTokenId ?? OUT_TOKEN };
+    const inChannel = makeChannel(A, I, { first: 500n, second: 500n });
+    const lp = lease();
+    const sg = signer(I);
+    const { hash: hashlock } = HTLCHelper.generateSecret();
+    const incoming = await addHTLC(
+      inChannel,
+      { amount: 100n, hashlock, timeoutBlock: 110n, direction: 'received', counterpartPublicKeyDigest: A },
+      lp,
+      sg,
+    );
+    const channels = new Map([
+      [inChannel.channelId, incoming.channel],
+      [outChannel.channelId, outChannel],
+    ]);
+    const forwarder = createMultiHopForwarder({
+      channels,
+      leaseProvider: lp,
+      signer: sg,
+      swarm,
+      codec: createCleartextRoutingCodec(),
+      chainProvider: chainProviderAt(10n),
+      linkJournal: memoryJournal(),
+      now: () => NOW,
+      ...(overrides.verifier ? { verifySwapQuote: overrides.verifier } : {}),
+    });
+    const envelope = createCleartextRoutingCodec().build([hop(outChannel.channelId, I, B, 90n)]);
+
+    const quote = overrides.quote === undefined
+      ? undefined
+      : {
+          tokenIn: '0x00',
+          tokenOut: OUT_TOKEN,
+          amountIn: 100n,
+          amountOut: 90n,
+          expiresAt: NOW + 60_000,
+          signature: 'sig',
+          ...overrides.quote,
+        };
+
+    return {
+      forwarder,
+      hashlock,
+      forward: () => forwarder.forwardIncoming({
+        inChannelId: inChannel.channelId,
+        inHtlcId: incoming.htlcId,
+        hashlock,
+        envelope,
+        timeoutBlock: 100n,
+        ...(quote ? { swapQuote: quote as never } : {}),
+      }),
+    };
+  }
+
+  const acceptAll = () => true;
+
+  test('refuses a cross-token forward with no quote', async () => {
+    const { forward } = await setup({ verifier: acceptAll });
+    await expect(forward()).rejects.toThrow(/requires an authenticated swap quote/);
+  });
+
+  test('refuses a quote that covers different assets', async () => {
+    const { forward } = await setup({
+      verifier: acceptAll,
+      quote: { tokenOut: '0x' + 'dd'.repeat(32) },
+    });
+    await expect(forward()).rejects.toThrow(/swap quote covers/);
+  });
+
+  test('refuses a quote whose amounts do not match the payment', async () => {
+    const { forward } = await setup({ verifier: acceptAll, quote: { amountIn: 99n } });
+    await expect(forward()).rejects.toThrow(/takes in 99/);
+
+    const second = await setup({ verifier: acceptAll, quote: { amountOut: 91n } });
+    await expect(second.forward()).rejects.toThrow(/pays out 91/);
+  });
+
+  test('refuses an expired quote', async () => {
+    const { forward } = await setup({ verifier: acceptAll, quote: { expiresAt: NOW - 1 } });
+    await expect(forward()).rejects.toThrow(/expired/);
+  });
+
+  test('refuses when no verifier is configured', async () => {
+    const { forward } = await setup({ quote: {} });
+    await expect(forward()).rejects.toThrow(/requires a swap-quote verifier/);
+  });
+
+  test('refuses a quote whose signature does not verify', async () => {
+    const { forward } = await setup({ verifier: () => false, quote: {} });
+    await expect(forward()).rejects.toThrow(/signature does not verify/);
+  });
+
+  test('forwards an authorized cross-token payment and journals the quote digest', async () => {
+    const { forward, forwarder, hashlock } = await setup({ verifier: (q: any) => q.signature === 'sig', quote: {} });
+
+    const result = await forward();
+    expect(result.status).toBe('forwarded');
+
+    const link = forwarder.links().get(hashlock);
+    expect(link?.swapQuoteDigest).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('same-asset forwarding is unaffected by the quote path', async () => {
+    const { forward } = await setup({ outTokenId: '0x00' });
+    const result = await forward();
+    expect(result.status).toBe('forwarded');
   });
 });

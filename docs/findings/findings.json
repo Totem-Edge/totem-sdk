@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T19:33:33.346Z",
+  "generatedAt": "2026-11-26T10:52:46.641Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -282,10 +282,11 @@
       "summary": "Minima has one amount type, `MiniNumber`: JSON reports it as decimal MINIMA text (\"0.2\"), while the binary transaction stores `(unscaled, scale)` with value = unscaled x 10^-scale. Omnia kept channel maths in atoms but its canonical serializer wrote atom integers with scale 0, so a 0.2 MINIMA channel was encoded as 2x10^43 MINIMA. Separately, the RPC provider normalised its coin amounts to atoms while Hosted, Lookup and Composite providers stayed decimal, so `ChainStateProvider.getCoins/getCoin` no longer had a single unit contract.",
       "impact": "Every non-trivial channel funding/update/settlement draft was invalid: `Transaction.checkValid()` requires 0 < amount <= 1,000,000,000 and rejects the encoded value as an invalid Minima amount. The S4 run failed earlier, at `BigInt(\"0.2\")`, which masked the encoding fault. Consumers that expected node decimal text (tx-builder coin selection and serialisation, the extension's `TOTEM_GET_COINS` and selection, edge-adapters and realtime balances) would have been inflated by 10^44 once a provider returned atoms; a composite fallback flipped the unit mid-application.",
       "repro": {
-        "command": "build a funding draft for 0.2 MINIMA (`totalValue = 2e43` atoms) and decode the serialized coin amount: `buildFundingTx(...)` -> `omniaDraftToCanonicalMinimaBytes(...)`",
+        "command": "pnpm --filter @totemsdk/omnia test",
         "expected": "input/output amount is `MiniNumber(unscaled = 2x10^43, scale = 44)`, which Java reads as 0.2 MINIMA and accepts.",
         "actual": "the amount was written as `MiniNumber(unscaled = 2x10^43, scale = 0)`, which Java reads as 2x10^43 MINIMA; `isValidMinimaValue()` rejects it.",
         "evidence": [
+          "build a funding draft for 0.2 MINIMA (`totalValue = 2e43` atoms) and decode the serialized coin amount: `buildFundingTx(...)` -> `omniaDraftToCanonicalMinimaBytes(...)`",
           "minima-global/Minima objects/Coin.java:239 — `amount` JSON is `mAmount.toString()` (decimal text)",
           "minima-global/Minima objects/base/MiniNumber.java:31-49 — MAX_DECIMAL_PLACES = 44, MINI_UNIT = 1E-44",
           "minima-global/Minima objects/base/MiniNumber.java:287-299 — binary form is [scale][length][unscaled]",
@@ -1024,6 +1025,191 @@
       }
     },
     {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-064",
+      "id": "OMN-066",
+      "dependsOn": [
+        "OMN-071"
+      ],
+      "title": "An LSP open quote is executed without verifying its signature, terms or policy",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider",
+        "@totemsdk/omnia-lsp"
+      ],
+      "summary": "openQuote() checks only that the quote has not expired and that providerId matches the manifest, then passes the quote straight to the funding host. It does not verify the quote signature, recompute the terms hash from the quoted fields, re-run the admission policy, or bind the quote to the caller. Any caller that can reach this method can therefore present a quote the provider never signed.",
+      "impact": "If the facade is exposed through an untrusted API, a forged or modified quote can initiate a provider-funded channel on terms the provider never approved. Downstream host limits bound the loss, but the LSP authorization boundary itself is absent, so the provider's commercial policy is advisory.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "openQuote() rejects a quote whose signature does not verify over the canonical terms, whose termsHash does not match the quoted fields, or whose terms no longer satisfy the current policy.",
+        "actual": "A hand-built quote with signature 'x', an inflated remoteAmount and a stale termsHash is passed to host.openChannel and the host is asked to fund it. Only expiresAt and providerId are inspected.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/provider.ts:140-151 — openQuote checks expiresAt and providerId only",
+          "packages/omnia-lsp-provider/src/quote.ts:111-116 — signOpenQuote attaches the signature and nothing consumes it on the way back in",
+          "packages/omnia-lsp/src/quote.ts:152-170 — quoteMatchesManifest compares identity fields, not the signature or terms hash"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp/src/quote.ts",
+          "packages/omnia-lsp-provider/src/provider.ts"
+        ],
+        "approach": "Recompute termsHash from the quoted fields, verify the provider signature over it with the manifest's identity key, require quote.consumerPartyId/consumerPublicKeyDigest to equal the authenticated caller, re-run evaluateOpenRequest against current policy and capacity, and consume the issued quote id atomically before calling the host.",
+        "constraints": [
+          "Do not accept a structurally valid quote as authentic: signature verification is mandatory, not optional.",
+          "Structure the API so the unverified path cannot be reached by accident (make raw openQuote internal).",
+          "Do not weaken the check for local testing; inject a test signer/clock instead."
+        ],
+        "acceptance": [
+          "An unsigned, re-signed-by-another-key, or field-mutated quote is rejected before the host is called.",
+          "A quote issued to one consumer cannot be redeemed by another caller.",
+          "Replaying an already-consumed quote id is refused.",
+          "A quote that no longer satisfies policy is refused even when its signature is valid."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp test",
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-065",
+      "id": "OMN-067",
+      "title": "Admission validates the consumer contribution only, then the host swaps the two sides",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "summary": "evaluateOpenRequest() checks minChannel, maxChannel and direction capacity against request.localAmount alone. request.remoteAmount — the provider's own capital commitment — is never compared with the asset limits or available funds. The host adapter then maps quote.remoteAmount to the host's localAmount, so the unvalidated field becomes the provider's actual funding amount.",
+      "impact": "The provider's real capital commitment is not constrained by the advertised channel limits or capacity policy. A consumer-supplied remoteAmount is the amount the provider funds, so the manifest's maxChannel is bypassable and the provider's exposure is set by its counterparty.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "Admission validates both contributions independently, and the total channel value, available provider funds and directional liquidity against the manifest.",
+        "actual": "Only localAmount is range- and capacity-checked; remoteAmount is unconstrained and is passed to totem_omniaOpenChannel as localAmount (the provider side).",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/policy.ts:86-99 — every limit compares request.localAmount",
+          "packages/omnia-lsp-provider/src/host.ts:91-92 — localAmount: quote.remoteAmount, remoteAmount: quote.localAmount"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/policy.ts",
+          "packages/omnia-lsp-provider/src/host.ts",
+          "packages/omnia-lsp-provider/src/quote.ts"
+        ],
+        "approach": "Validate both sides: each contribution against minChannel/maxChannel, the sum against total capacity, the provider side against the asset's outbound/inbound capacity for the requested direction, and against a provider-supplied available-funds bound. Quote both amounts explicitly so the consumer sees what it is asking the provider to commit.",
+        "constraints": [
+          "Do not keep the manifest's limits meaningful for one side only.",
+          "Keep the consumer's perspective in the wire quote; perform the swap once, at the host boundary.",
+          "Do not infer provider capacity from the host's coin selection."
+        ],
+        "acceptance": [
+          "A request whose remoteAmount exceeds maxChannel or provider capacity is refused.",
+          "Total channel value is bounded independently of how it is split.",
+          "The provider-side amount the host funds equals the amount admission approved.",
+          "Directional capacity is checked against the side that actually supplies it."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "critical",
+      "canonical": "CAN-012",
+      "versions": {
+        "@totemsdk/omnia-splice": "0.3.5"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-072",
+      "id": "OMN-074",
+      "title": "A splice successor is identified by address, token and amount only, not by lineage from the splice",
+      "packages": [
+        "@totemsdk/omnia-splice"
+      ],
+      "summary": "observeSpliceSuccessor() selects the successor coin by matching address, token id and amount among unspent coins, and excludes spent coins. It does not establish that the coin was created by the intended splice transaction, and it does not explicitly exclude the predecessor funding coin. Rejecting two or more matches does not cover the single-wrong-match case.",
+      "impact": "A channel can be activated against a coin the splice did not create, or against an incorrect state commitment. The guard against ambiguity is real but narrow: any single unrelated coin with the same address, token and amount is adopted silently.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 18-omnia-splice",
+        "expected": "The successor is accepted only when the splice transaction is on chain, consumed the predecessor, and created this coin with the expected state, sequence and balance commitment.",
+        "actual": "Observation is a set filter over getCoins(address, tokenId). A coin funded to the same channel address by an unrelated transaction satisfies it.",
+        "evidence": [
+          "packages/omnia-splice/src/successor.ts:74-118 — candidates filter on spent/address/tokenid/amount",
+          "packages/omnia-splice/src/successor.ts:88-96 — multi-match rejection only",
+          "CAN-012 records the ambiguity case; the lineage case is still open"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-splice/src/successor.ts",
+          "packages/omnia-splice/src/finalize.ts"
+        ],
+        "approach": "Verify transaction lineage before activation: the splice tx must be mined, its first input must be the predecessor coin, and the successor must appear among its outputs with the expected state variables, sequence and total. Then observe burial depth on that coin id.",
+        "constraints": [
+          "Do not rely on a predicted coin id: the channel input floats (COINID_ELTOO).",
+          "Do not weaken the multi-match rejection; add lineage on top.",
+          "Fail closed when the chain adapter cannot return the spending transaction."
+        ],
+        "acceptance": [
+          "A coin with a matching address/token/amount but a different creating transaction is rejected.",
+          "The predecessor coin is never accepted as its own successor.",
+          "Successor sequence and balance commitment are checked against the accepted splice terms."
+        ],
+        "tests": [
+          "tests/unit/omnia-splice/src/__tests__/omnia-splice.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-splice test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 18-omnia-splice"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "test": "docs/findings/agent/CAN-012.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
       "id": "CAN-001",
       "kind": "sdk-defect",
       "status": "fixed",
@@ -1757,10 +1943,11 @@
       "summary": "`VerifyDepositParams.claimedAmount` is decimal MINIMA text (chain-provider compares it with the node's decimal `coin.amount`). liquidity-bond built it from `commitment.amount.toString()`, and `commitment.amount` is an atom count, so the omnia-host verifier converted it to atoms a second time. A 100000 MINIMA deposit became 1e93 atoms at the comparison.",
       "impact": "Every non-zero liquidity-pool deposit failed the amount gate with \"insufficient amount\", and `acceptLiquidityCommitment`/`confirmLiquidityCommitment` refused to accept or confirm funding. The failure looked like a funding problem, not a unit bug.",
       "repro": {
-        "command": "npx jest --config tests/jest/omnia-host.cjs --runInBand tests/unit/omnia-host/src/__tests__/pool.test.ts",
+        "command": "pnpm --filter @totemsdk/omnia-host test",
         "expected": "a commitment for a funded coin of 100000 MINIMA passes on-chain verification.",
         "actual": "`insufficient amount`: coinAmountAtoms(coin) = 1e49 vs amountToAtoms(\"1\" + 49 zeros) = 1e93.",
         "evidence": [
+          "npx jest --config tests/jest/omnia-host.cjs --runInBand tests/unit/omnia-host/src/__tests__/pool.test.ts",
           "packages/liquidity-bond/src/commitment.ts:59,123,162 — `claimedAmount: commitment.amount.toString()`",
           "packages/liquidity-bond/src/types.ts:256 — `amount: bigint` (atoms)",
           "packages/chain-provider/src/types.ts:83 — `claimedAmount` is decimal text",
@@ -3986,6 +4173,1517 @@
       }
     },
     {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-066",
+      "id": "OMN-068",
+      "dependsOn": [
+        "OMN-067"
+      ],
+      "title": "LSP quotes are issued against advertised capacity with no durable reservation",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "summary": "The admission policy documents that it does not reserve capacity and that the provider must re-check before co-signing. The facade implements neither the reservation nor the re-check: every quote() call is evaluated against the same static manifest, so N concurrent quotes can each be within capacity while their sum is not.",
+      "impact": "Concurrent requests can collectively exceed available liquidity. Host-level coin selection bounds what can be funded on chain, but it does not enforce a commercial exposure limit and fails late, after a consumer has been given a signed commitment.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "Issuing a quote reserves its provider-side amount against a durable ledger, and the reservation is released on expiry, consumed on open and reconciled after restart.",
+        "actual": "Two quote() calls for the same asset at maxChannel both succeed; nothing records the first commitment.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/policy.ts:62-67 — the policy states it does not reserve capacity",
+          "packages/omnia-lsp-provider/src/provider.ts:108-119 — quote() calls evaluation only",
+          "packages/omnia-lsp-provider/src/provider.ts:132-151 — open()/openQuote() never re-check capacity"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/provider.ts",
+          "packages/omnia-lsp-provider/src/policy.ts"
+        ],
+        "approach": "Add a reservation ledger keyed by quoteId with amount, expiry and state (reserved/consumed/released). Reserve on issue, release on expiry, consume atomically on open, and reconcile entries that outlive a restart. Capacity checks subtract outstanding reservations.",
+        "constraints": [
+          "Reservation state must be durable, not in-process memory.",
+          "Expiry must use the provider clock, not the request's.",
+          "A failed open must release, not leak, its reservation."
+        ],
+        "acceptance": [
+          "Concurrent quotes cannot exceed the provider's per-asset exposure limit.",
+          "An expired reservation stops counting against capacity.",
+          "A restart re-reads outstanding reservations instead of resetting exposure.",
+          "The open path re-checks capacity against the live ledger."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-067",
+      "id": "OMN-069",
+      "title": "Manifest freshness is decided with a caller-supplied clock",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "summary": "evaluateOpenRequest() reads `request.now` and falls back to Date.now(). The expiry check that protects the provider is therefore under the requester's control: an expired manifest can be made to look current by setting now to a past timestamp.",
+      "impact": "The provider can be made to serve terms it has withdrawn. The same field is also carried through the open request type, so the attack needs no special access.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "Freshness is decided by the provider's trusted clock; a time source is injectable for tests through configuration only.",
+        "actual": "evaluateOpenRequest(manifest, { ...request, now: 1 }) treats a manifest whose expiresAt is in the past as valid.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/policy.ts:74 — const now = request.now ?? Date.now()"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/policy.ts",
+          "packages/omnia-lsp-provider/src/provider.ts"
+        ],
+        "approach": "Remove `now` from the public request type. Thread the provider clock (already available as config.now in createOmniaLspProvider) into evaluateOpenRequest as an explicit parameter.",
+        "constraints": [
+          "Keep deterministic tests possible via the config clock.",
+          "Do not silently ignore a caller-supplied now: reject the field if it is still accepted structurally."
+        ],
+        "acceptance": [
+          "A request cannot influence the manifest expiry check.",
+          "The facade's clock injection still works for tests.",
+          "The public request type no longer exposes a time source."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-068",
+      "id": "OMN-070",
+      "title": "Host adapter reports success for an undefined, malformed or error-only response",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "summary": "createOmniaHostProviderHost() defines success as `result?.success !== false`. An undefined return, a response object with no success field, or an object carrying only an error is therefore classified as a successful open or close.",
+      "impact": "A failed or unrecognised host response is reported to the consumer as success, so the LSP layer believes a channel exists (or was closed) when it does not. Callers that key funding or accounting off this flag act on a false positive.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "Success requires an explicit success flag plus operation-specific evidence: a channelId for open, a terminal lifecycle state for close.",
+        "actual": "A handler returning undefined, {}, or { error: 'boom' } is reported as { success: true }.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/host.ts:104-110 — success: result?.success !== false (open)",
+          "packages/omnia-lsp-provider/src/host.ts:135-139 — same rule for close"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/host.ts"
+        ],
+        "approach": "Require result.success === true and, for open, a non-empty channelId; for close, a status that proves the channel reached a closing/closed state. Treat a non-object response as HOST_PROTOCOL_ERROR.",
+        "constraints": [
+          "Fail closed on an unrecognised response shape.",
+          "Do not invent a channelId when the host omitted one.",
+          "Preserve errorCode passthrough so callers can distinguish causes."
+        ],
+        "acceptance": [
+          "undefined, null, non-object and error-only responses are failures.",
+          "open success without a channelId is a failure.",
+          "A malformed host result cannot reach the consumer as success."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/host.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-lsp": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-069",
+      "id": "OMN-071",
+      "title": "Quote validation establishes shape, not authenticity",
+      "packages": [
+        "@totemsdk/omnia-lsp"
+      ],
+      "summary": "validateOpenQuote() requires only that signature is a non-empty string and that termsHash is 32 bytes. Neither is recomputed or verified. quoteMatchesManifest() compares provider identity, settlement address and token offering, and states in its own doc comment that it is not a substitute for manifest verification. The package exposes no API that verifies a quote's signature or its terms commitment.",
+      "impact": "Every consumer of the LSP layer inherits an authenticity gap: a structurally valid quote cannot be distinguished from a forged one. This is the missing primitive that OMN-066 needs to close its authorization boundary.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp test",
+        "expected": "A canonical verifyOpenQuote(quote, manifest, { now }) recomputes termsHash from the quoted fields, verifies the provider signature over it with the manifest identity key, and checks freshness.",
+        "actual": "A quote with signature 'not-a-signature' and an arbitrary termsHash passes validateOpenQuote() and quoteMatchesManifest().",
+        "evidence": [
+          "packages/omnia-lsp/src/quote.ts:114 — signature must be a non-empty string",
+          "packages/omnia-lsp/src/quote.ts:152-170 — quoteMatchesManifest compares identity fields only",
+          "no verifyOpenQuote export exists in packages/omnia-lsp/src/index.ts"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp/src/quote.ts",
+          "packages/omnia-lsp/src/index.ts"
+        ],
+        "approach": "Add verifyOpenQuote(quote, manifest, options) that rebuilds the canonical terms object, recomputes the hash with the same domain separator used at issue time, verifies the signature through an injected verifier, and returns structured errors. Keep structural validation separate and name it as such.",
+        "constraints": [
+          "The canonical terms serialisation must be byte-identical to createUnsignedOpenQuote.",
+          "Signature verification stays runtime-neutral via injection, matching signOpenQuote.",
+          "Do not make validateOpenQuote imply authenticity in its name or docs."
+        ],
+        "acceptance": [
+          "A mutated amount, fee, token, expiry or consumer identity is detected by the recomputed terms hash.",
+          "A signature from a key other than the manifest identity key is rejected.",
+          "A verifier that throws produces a structured failure, not an exception.",
+          "Round-tripping a provider-issued quote verifies."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp/src/__tests__/quote.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-070",
+      "id": "OMN-072",
+      "title": "LSP fee admission and fee calculation ignore the flat fee and the provider's contribution",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider",
+        "@totemsdk/omnia-lsp"
+      ],
+      "summary": "Admission compares only manifest.fees.openBps with request.maxOpenFeeBps, so a flat opening fee is never checked against the consumer's ceiling. Quote construction then computes openFee and leaseFee from request.localAmount (the consumer side) even though the provider is the party supplying the liquidity the lease is priced on.",
+      "impact": "A consumer can be charged more than its stated maximum when the manifest carries a flat fee, and the provider's fee revenue is sized off the counterparty's deposit rather than its own commitment. Both directions of the commercial terms are wrong.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "The maximum-fee check covers the total the consumer will pay, expressed in token atoms, and the fee basis is explicit in the signed terms.",
+        "actual": "With openFlat set and maxOpenFeeBps 0, admission passes and the quote charges the flat fee. Changing remoteAmount does not change the lease fee.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/policy.ts:107-112 — only openBps is compared",
+          "packages/omnia-lsp-provider/src/quote.ts:52-58 — openFee from openFlat/openBps, leaseFee from localAmount"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/policy.ts",
+          "packages/omnia-lsp-provider/src/quote.ts"
+        ],
+        "approach": "Compute the full fee schedule for the request, compare its atom total against a maximum expressed in atoms, and state the fee basis (consumer contribution vs total channel value vs provider commitment) explicitly in the signed terms so the consumer can verify what it agreed to.",
+        "constraints": [
+          "Do not mix basis points and flat amounts in one unchecked comparison.",
+          "Fees must be derivable from the signed terms alone.",
+          "Changing a fee basis is a wire change: version the terms object."
+        ],
+        "acceptance": [
+          "A flat opening fee above the consumer's ceiling is refused at admission.",
+          "The quote's fee fields match the schedule admission approved.",
+          "The fee basis is explicit and covered by the terms hash."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-splice": "0.3.5"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-073",
+      "id": "OMN-075",
+      "title": "The pending splice journal does not record its expected successor",
+      "packages": [
+        "@totemsdk/omnia-splice"
+      ],
+      "summary": "PendingSpliceRecord has an `expected` field carrying the successor address, token and amount, and recoverInterruptedSplices() prefers it. finalizeSplice() writes its recovery record without populating it, so recovery falls back to the globally supplied observation parameters.",
+      "impact": "When more than one splice is interrupted, recovery can reconcile one splice against another splice's expected successor — accepting a coin with the right shape but the wrong channel. The journal that exists to make recovery specific is not used in practice.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-splice test",
+        "expected": "Every production journal entry names the successor it expects.",
+        "actual": "The record written at broadcast time has no `expected` field, and recoverInterruptedSplices falls through to the caller-supplied address/token/amount.",
+        "evidence": [
+          "packages/omnia-splice/src/finalize.ts:307-314 — record omits `expected`",
+          "packages/omnia-splice/src/successor.ts:178-195 — record.expected preferred, else global options"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-splice/src/finalize.ts"
+        ],
+        "approach": "Compute the expected successor descriptor from the splice terms at journal-write time and make the field mandatory in the type, so a store cannot persist a record without it.",
+        "constraints": [
+          "Recovery must never use a global observation for a record that has its own expectation.",
+          "Store atomically with the tx hex and txpow id already written."
+        ],
+        "acceptance": [
+          "The journal record written before broadcast contains the expected successor.",
+          "Two interrupted splices recover against their own expectations.",
+          "A legacy record without `expected` is rejected or migrated explicitly, not silently defaulted."
+        ],
+        "tests": [
+          "tests/unit/omnia-splice/src/__tests__/omnia-splice.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-splice test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-splice": "0.3.5"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-074",
+      "id": "OMN-076",
+      "title": "The splice journal is cleared before the successor channel is persisted",
+      "packages": [
+        "@totemsdk/omnia-splice",
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "finalizeSplice() clears the pending record as soon as the successor is observed as active, and only then builds and returns the SplicedChannel object that the caller persists. A crash in that window leaves the predecessor channel in local state, the successor on chain and no recovery record.",
+      "impact": "The failure is unrecoverable without manual chain inspection: the host resumes with a channel whose funding coin is spent, and nothing tells it a splice completed. It is exactly the state the journal exists to prevent.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 34-omnia-host-durability",
+        "expected": "Journal completion, predecessor retirement and successor persistence commit together; a crash before commit leaves the splice pending and recoverable.",
+        "actual": "pendingSpliceStore.clear() runs before splicedChannel is constructed and before the caller can store it.",
+        "evidence": [
+          "packages/omnia-splice/src/finalize.ts:381-385 — clear on active",
+          "packages/omnia-splice/src/finalize.ts:387-424 — successor object built afterwards"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-splice/src/finalize.ts",
+          "packages/omnia-host/src"
+        ],
+        "approach": "Reorder so the successor is constructed and durably persisted, the predecessor is marked spliced, and the journal entry is cleared last. Where the host owns the store, pass a completion callback so the journal is cleared only after the channel store commits.",
+        "constraints": [
+          "Never clear the journal before the successor is durable.",
+          "Keep the operation idempotent: a re-run with the journal still present must converge.",
+          "Do not leave the predecessor active after a successful commit."
+        ],
+        "acceptance": [
+          "A crash injected between observation and persistence leaves a recoverable journal entry.",
+          "A successful finalize persists the successor before clearing the journal.",
+          "Recovery from either crash window converges on the same splicing state."
+        ],
+        "tests": [
+          "tests/unit/omnia-splice/src/__tests__/omnia-splice.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-splice test",
+          "pnpm --filter @totemsdk/omnia-host test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 34-omnia-host-durability"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-host": "0.15.1"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-075",
+      "id": "OMN-077",
+      "title": "Operation replay verification loses its receiver and throws instead of returning the committed result",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "withOperation() reads verifyRequest off the operation store into a local variable and calls it as a bare function. OperationStore.verifyRequest() calls this.get(), so the call throws TypeError. Any RPC retried with an existing operationId therefore fails instead of returning the previously committed result. The unit tests missed it because they stub the store with an object literal whose verifyRequest is a closure.",
+      "impact": "The host's idempotency guarantee does not hold for the real SQLite-backed store: a client that retries after a timeout gets an error rather than the committed result, and cannot tell whether the operation ran. Only the operationId path is affected.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "A retried operation with an identical request returns the stored result.",
+        "actual": "On the real OperationStore the retry throws TypeError: Cannot read properties of undefined (reading 'get').",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts:514-516 — method extracted and invoked unbound",
+          "packages/omnia-host/src/stores/operations.ts:119-122 — verifyRequest uses this.get()",
+          "packages/omnia-host/src/lifecycle.ts:236 — production constructs a real OperationStore",
+          "tests/unit/omnia-host/src/__tests__/mutations.test.ts:233 — mock uses a closure, so it cannot catch this"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts",
+          "tests/unit/omnia-host/src/__tests__"
+        ],
+        "approach": "Call the method on the store (or bind it). Add a regression test that replays an operation through a real OperationStore on a temp sqlite file, not a stubbed object.",
+        "constraints": [
+          "Do not change OperationStore's contract to accommodate an unbound call.",
+          "Keep the conflict error for a genuinely different request.",
+          "The regression test must not mock the store."
+        ],
+        "acceptance": [
+          "Replaying a committed operation through the real store returns its result.",
+          "Replaying with different params still raises OperationConflictError.",
+          "A test exercises the real store and would fail against the unbound call."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/operation-replay.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 34-omnia-host-durability"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-host": "0.15.1"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-076",
+      "id": "OMN-078",
+      "title": "An observability failure can strand a committed operation or misreport it as failed",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "withOperation() emits operation.executing outside the protected block, so a rejecting observer leaves the operation in `executing` with nothing to drive it forward. Inside the try it records `committed` and then awaits operation.committed; if that emit rejects, the catch attempts executing→failed on a record that is already `committed`, which throws an invalid-transition error.",
+      "impact": "Observer failure is observers' business, but here it changes the financial lifecycle: an operation that committed can be reported as failed and become unreplayable, and an operation can stall in `executing` before any work started.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "Observability delivery cannot change the authoritative operation state; a rejecting observer is recorded and the operation still commits or fails on its own merits.",
+        "actual": "With an observer that throws on operation.committed, the RPC rejects even though run() succeeded and the record is `committed`; with one that throws on operation.executing, the record stays `executing`.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts:546-551 — emit outside the try",
+          "packages/omnia-host/src/api/methods.ts:553-558 — committed transition then await emit",
+          "packages/omnia-host/src/api/methods.ts:560-566 — catch assumes status is executing"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts",
+          "packages/omnia-host/src/observe"
+        ],
+        "approach": "Route all observer delivery through a non-throwing boundary (or a transactional outbox) so a failed emit is recorded and retried without affecting the state machine. Move the executing emit inside a protected block and never transition committed→failed.",
+        "constraints": [
+          "Observer failure must not be able to change or roll back an authoritative transition.",
+          "Do not swallow observer errors silently: surface them on the observability channel.",
+          "Keep the committed result readable even when the emit failed."
+        ],
+        "acceptance": [
+          "A throwing observer cannot make a committed operation report failure.",
+          "A throwing observer cannot leave an operation stuck in `executing` before run().",
+          "Observer failures appear as their own recorded health signal."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/mutations.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-host": "0.15.1"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-077",
+      "id": "OMN-079",
+      "title": "An operation whose financial side effect is unknown is classified as a retryable failure",
+      "packages": [
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "withOperation() catches every exception from run() and moves the operation to `failed`, and the retry guard accepts `pending` and `failed`. There is no distinction between a failure before a financial side effect and a failure after signing, broadcasting or a remote party accepting. The store's status union already includes `unknown`, but nothing sets it.",
+      "impact": "Retrying after an ambiguous failure can repeat a financial side effect. The host relies entirely on each handler being individually careful, which the register already shows is not the case (CAN-022, OMN-077).",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-host test",
+        "expected": "A handler that cannot prove whether its side effect occurred leaves the operation in a reconciling state, and retry is refused until reconciliation says it did not happen.",
+        "actual": "Any exception yields status `failed`, which the retry guard accepts on the next call.",
+        "evidence": [
+          "packages/omnia-host/src/api/methods.ts:530-533 — failed is retryable",
+          "packages/omnia-host/src/api/methods.ts:560-562 — every caught error becomes failed",
+          "packages/omnia-host/src/stores/operations.ts:5 — `unknown` exists in OperationStatus but is never written"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-host/src/api/methods.ts",
+          "packages/omnia-host/src/stores/operations.ts"
+        ],
+        "approach": "Introduce an explicit unknown-outcome state. Handlers (or the RPC layer) declare the point after which an error is ambiguous; withOperation records `unknown` and refuses retry until a reconciliation step resolves it to committed or failed.",
+        "constraints": [
+          "Fail closed: ambiguity is not retried.",
+          "Reconciliation must be able to consult the chain and the peer, not only local state.",
+          "Do not let an `unknown` operation be silently re-executed by a client retry."
+        ],
+        "acceptance": [
+          "A failure after broadcast/sign/remote-accept records `unknown`.",
+          "A retry against `unknown` is refused with an actionable error.",
+          "Reconciliation resolves `unknown` to committed or failed with evidence.",
+          "A failure before any side effect remains plainly retryable."
+        ],
+        "tests": [
+          "tests/unit/omnia-host/src/__tests__/mutations.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-host test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-router": "0.5.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-078",
+      "id": "OMN-080",
+      "title": "Route validation checks each hop and never the path",
+      "packages": [
+        "@totemsdk/omnia-router"
+      ],
+      "summary": "validateRoute() iterates route.hops and validates each in isolation. It does not require any hops, does not check that consecutive hops connect, does not check the route starts at the payer and ends at the requested recipient for the requested amount and asset, and does not check that amounts and token transitions are consistent along the path. executeMultiHopPayment() then locks only non-swap hops, so a swap-only route validates and settles nothing.",
+      "impact": "An empty route returns { success: true, state: 'recipient-settled', settledHops: [] } — a payment reported as settled with no value moved. A route whose hops are individually valid but disconnected can also pass, so the payment fails partway with locks already placed.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 13-omnia-router-single-hop",
+        "expected": "A route that does not begin at the payer, end at the recipient, transport the requested amount in a consistent asset, or contain hops at all is refused before any HTLC is locked.",
+        "actual": "validateRoute({ hops: [] }) returns ok, and executeMultiHopPayment returns success with settledHops [].",
+        "evidence": [
+          "packages/omnia-router/src/route-validation.ts:116-127 — loop over hops, no path invariant",
+          "packages/omnia-router/src/execute.ts:112-140 — plainHops derived, empty loop skipped",
+          "packages/omnia-router/src/execute.ts:194-239 — success returned with nothing settled"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-router/src/route-validation.ts",
+          "packages/omnia-router/src/execute.ts"
+        ],
+        "approach": "Validate the route against the payment request, not only the channel graph: non-empty, hop[i].to === hop[i+1].from, first hop starts at the payer, last hop ends at request.recipient for request.token/amount, amounts non-increasing after fees, and every token transition either identical or an explicit swap. Refuse a route with no executable hops.",
+        "constraints": [
+          "Do not change the channel-graph checks; add request-level invariants.",
+          "An empty or non-executable route is a failure, never a success.",
+          "Acceptance is bound to the PaymentRequest, not to a mutable hop object."
+        ],
+        "acceptance": [
+          "An empty route is rejected.",
+          "A disconnected route is rejected before the first lock.",
+          "A route that does not deliver the requested amount and token to the recipient is rejected.",
+          "A swap-only route cannot return success with no settlement."
+        ],
+        "tests": [
+          "tests/unit/omnia-router/src/__tests__/router.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-router test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 14-omnia-router-multi-hop"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-router": "0.5.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-079",
+      "id": "OMN-081",
+      "title": "Consecutive HTLC deadlines differ by one block in multi-hop and cross-token execution",
+      "packages": [
+        "@totemsdk/omnia-router"
+      ],
+      "summary": "Both execution paths derive each hop's timeout as expiryBlock - i (and - pos++ in the cross-token path). The gap between adjacent hops is therefore exactly one block, independent of the channel contest period, confirmation policy or the time an intermediary needs to claim or refund.",
+      "impact": "An intermediary can be left unable to claim an outgoing HTLC before it must refund the incoming one, or unable to act at all under network disruption. The safety margin the protocol depends on is one block.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 36-omnia-real-multi-hop",
+        "expected": "The expiry delta is derived from the channel contest delay plus the confirmation and recovery requirements, and is validated as sufficient before locking.",
+        "actual": "Hops are one block apart regardless of contestDelayBlocks (normally 256).",
+        "evidence": [
+          "packages/omnia-router/src/execute.ts:168 — expiryBlock - BigInt(i)",
+          "packages/omnia-router/src/execute.ts:413,429,454 — expiryBlock - BigInt(pos++)"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-router/src/execute.ts",
+          "packages/omnia-splice/src"
+        ],
+        "approach": "Compute the required delta from the channel's contest delay and the recovery policy, expose it as a policy input with a safe default, and refuse a route whose available expiry window cannot fit every hop.",
+        "constraints": [
+          "Never reduce the existing spread.",
+          "The delta must come from channel terms the router can verify, not a caller-chosen constant.",
+          "A route that cannot fit the window is rejected, not truncated."
+        ],
+        "acceptance": [
+          "Consecutive HTLC deadlines are separated by at least the contest delay plus the recovery margin.",
+          "A route with insufficient expiry window is refused before locking.",
+          "Both execution paths use the same derivation."
+        ],
+        "tests": [
+          "tests/unit/omnia-router/src/__tests__/router.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-router test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 36-omnia-real-multi-hop"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "canonical": "CAN-015",
+      "versions": {
+        "@totemsdk/omnia-router": "0.5.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-080",
+      "id": "OMN-082",
+      "title": "Rollback silently drops a locked HTLC when its channel or lease provider is missing",
+      "packages": [
+        "@totemsdk/omnia-router"
+      ],
+      "summary": "cancelHtlcs() skips a locked HTLC entirely when the channel is absent from the map or no lease provider is registered for it. It does not add the obligation to pendingRefunds, so the caller is told that rollback completed while the lock remains.",
+      "impact": "Liquidity stays locked with no record. The caller receives a failure result that implies recovery, and no later pass reconciles the stranded HTLC. CAN-015 covers the early-timeout part of this path; the missing-dependency branch is still open.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 23-chaos-recovery",
+        "expected": "Every lock that rollback could not release is reported to the caller and persisted for reconciliation.",
+        "actual": "With the lease provider removed from the map, cancelHtlcs returns without pushing a pendingRefund.",
+        "evidence": [
+          "packages/omnia-router/src/execute.ts:65 — if (!ch || !lp) continue",
+          "packages/omnia-router/src/execute.ts:67-82 — only a thrown timeoutHTLC becomes a pendingRefund"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-router/src/execute.ts"
+        ],
+        "approach": "Treat a missing channel or lease provider as an unresolved refund obligation: record it with the reason, surface it in pendingRefunds, and make it reconcilable once the dependency is available.",
+        "constraints": [
+          "Do not silently skip any locked HTLC.",
+          "Keep the existing pendingRefunds shape and reason field.",
+          "A rollback that leaves locks behind must not report a clean failure."
+        ],
+        "acceptance": [
+          "A lock with a missing channel or lease provider appears in pendingRefunds.",
+          "The failed result carries the unresolved obligations.",
+          "Reconciliation can release the lock once the dependency returns."
+        ],
+        "tests": [
+          "tests/unit/omnia-router/src/__tests__/router.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-router test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 23-chaos-recovery"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "test": "docs/findings/agent/CAN-015.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-router": "0.5.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-081",
+      "id": "OMN-083",
+      "title": "Router fee proofs hash descriptive fields and are not settlement evidence",
+      "packages": [
+        "@totemsdk/omnia-router",
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "buildRouterFeeProof() builds a canonical JSON hash over channelId, htlcId, recipient, amount, tokenId and settledAt, and nothing else. The hash proves the supplied data is internally consistent; it carries no authentication from either channel party and no reference to the state transition that actually paid the intermediary.",
+      "impact": "Any downstream accounting that treats proofHash as evidence of earned routing income is unsound: the record can be produced for a payment that never settled. recordPoolFee consumes this structure, so pool income accounting inherits the weakness.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-router test",
+        "expected": "A fee proof binds the authenticated predecessor and successor channel states, both parties' authorization and the net amount the intermediary retained.",
+        "actual": "The proof is a self-consistent hash of caller-supplied fields; it verifies for an HTLC that was never fulfilled.",
+        "evidence": [
+          "packages/omnia-router/src/execute.ts:249-266 — proof fields and hash",
+          "packages/omnia-router/src/execute.ts:268-274 — computeRouterFeeProofHash over canonicalJson",
+          "packages/omnia-pool/src — recordPoolFee consumes the proof"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-router/src/execute.ts",
+          "packages/omnia-pool/src"
+        ],
+        "approach": "Attach the signed state transition (predecessor and successor state hashes, both signatures) and the fee actually retained, and verify both when the proof is consumed. Keep the current hash as an integrity check of the envelope, not as the evidence.",
+        "constraints": [
+          "Do not describe an unauthenticated hash as a settlement proof in API names or docs.",
+          "Fee accounting must refuse a proof without verified bilateral authorization.",
+          "Keep backwards compatibility explicit: version the proof."
+        ],
+        "acceptance": [
+          "A proof for an unfulfilled HTLC fails verification.",
+          "A proof with one party's signature missing fails verification.",
+          "Pool fee accounting refuses an unverified proof.",
+          "The retained fee is derived from the state delta, not asserted."
+        ],
+        "tests": [
+          "tests/unit/omnia-router/src/__tests__/router.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-router test",
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "canonical": "CAN-016",
+      "versions": {
+        "@totemsdk/omnia-relay": "0.10.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-082",
+      "id": "OMN-084",
+      "title": "Forwarding admission is a check-then-write across awaits, not an atomic reservation",
+      "packages": [
+        "@totemsdk/omnia-relay"
+      ],
+      "summary": "The forwarder checks the in-memory link set and the journal for a duplicate hashlock or incoming HTLC, then awaits and writes the intent in a separate operation. The journal serialises individual writes, so two concurrent forwards can both pass the duplicate check and the second write then overwrites the first entry.",
+      "impact": "Duplicate forwarding admission. Other channel guards may prevent a doubled signature, but the forwarding journal — the record recovery depends on — is silently replaced, so one incoming HTLC can lose its outgoing association.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 38-omnia-relay-phase-a",
+        "expected": "A reserveForward() operation performs the uniqueness check and the intent write in one atomic step.",
+        "actual": "Two concurrent forwards for one hashlock both observe no duplicate and both write an intent.",
+        "evidence": [
+          "packages/omnia-relay/src/forwarder.ts:219-243 — duplicate check, then awaits, then record(intent)",
+          "packages/omnia-relay/src/link-journal.ts:75-87 — write is serialised but not check-and-reserve"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-relay/src/forwarder.ts",
+          "packages/omnia-relay/src/link-journal.ts"
+        ],
+        "approach": "Add a transactional reserveForward(intent) to the journal that fails if the hashlock or incoming (channelId, htlcId) already exists, and drive the forward path through it. Enforce uniqueness at the storage layer too.",
+        "constraints": [
+          "Uniqueness must hold across processes, not only within one journal instance.",
+          "A retried forward must converge on the existing reservation, not create a second obligation.",
+          "Keep the existing journal shape readable for recovery."
+        ],
+        "acceptance": [
+          "Concurrent forwards for one hashlock admit exactly one.",
+          "A duplicate reservation raises a typed conflict, not an overwrite.",
+          "Recovery sees the same association the forwarder committed."
+        ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-relay test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 38-omnia-relay-phase-a"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "test": "docs/findings/agent/CAN-016.md"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-relay": "0.10.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-083",
+      "id": "OMN-085",
+      "title": "Forwarding compares amounts across assets without an exchange-rate authorization",
+      "packages": [
+        "@totemsdk/omnia-relay"
+      ],
+      "summary": "The forward path rejects an outgoing amount greater than the incoming amount without first establishing that the two HTLCs are denominated in the same token. Comparing bare integers across different assets is not an economic check, and a cross-token forward has no authenticated rate at all.",
+      "impact": "A cross-token forward can be admitted on a meaningless numeric comparison, so the intermediary can pay out more value than it took in. Nothing in the journal records what rate was agreed.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 15-omnia-cross-token-route",
+        "expected": "Same-asset forwarding requires matching token ids. A cross-asset hop requires an authenticated swap quote with explicit input/output amounts, assets, expiry and rate limits.",
+        "actual": "Two HTLCs with different token ids are compared by amount alone and the forward is admitted.",
+        "evidence": [
+          "packages/omnia-relay/src/forwarder.ts:206-218 — next.amount > inHtlc.amount, no token comparison"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-relay/src/forwarder.ts"
+        ],
+        "approach": "Require token equality for ordinary forwarding. Add an explicit cross-token branch that consumes a signed swap quote (input asset/amount, output asset/amount, rate, expiry, max slippage) and journals it with the link.",
+        "constraints": [
+          "Never compare amounts across assets as a safety check.",
+          "A cross-token hop without a verified quote must be refused.",
+          "Journal the quote reference so recovery can re-check it."
+        ],
+        "acceptance": [
+          "A same-asset forward with mismatched token ids is refused.",
+          "A cross-token forward without a verified quote is refused.",
+          "The journal records the rate and quote used."
+        ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-relay test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 15-omnia-cross-token-route"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-relay": "0.10.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-084",
+      "id": "OMN-086",
+      "title": "An outgoing forward is journaled as active before the peer has received or acknowledged it",
+      "packages": [
+        "@totemsdk/omnia-relay"
+      ],
+      "summary": "After signing the outgoing HTLC the forwarder writes the link with status 'active', then connects to the peer and sends STATE_UPDATE. The journal does not retain the exact signed proposal or a deterministic message id, so a transport failure leaves an obligation recorded as active that the counterparty has never seen.",
+      "impact": "Recovery cannot distinguish 'delivered and awaiting settlement' from 'never delivered'. The outgoing payment exists locally and may later be timed out on the intermediary's side, or be re-created with a different nonce, without any record of what the peer was actually offered.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 38-omnia-relay-phase-a",
+        "expected": "The signed outgoing proposal is persisted with a deterministic message id and retransmitted until the peer acknowledges it.",
+        "actual": "The link is 'active' before connectToPeer/sendMessage, and neither the message nor an ack expectation is journaled.",
+        "evidence": [
+          "packages/omnia-relay/src/forwarder.ts:241 — record(intent) before signing",
+          "packages/omnia-relay/src/forwarder.ts:245-262 — link 'active' written",
+          "packages/omnia-relay/src/forwarder.ts:264-278 — connectToPeer and sendMessage afterwards"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-relay/src/forwarder.ts",
+          "packages/omnia-relay/src/link-journal.ts"
+        ],
+        "approach": "Journal the exact signed state update and a deterministic message id as a delivery obligation before sending. Move to 'active' only after the peer acknowledges. Add acknowledgement-based retransmission to the recovery pass.",
+        "constraints": [
+          "A link is not active until the peer has acknowledged it.",
+          "Retransmission must reuse the same signed message; never re-sign a new one.",
+          "Transport failure must leave a recoverable delivery obligation."
+        ],
+        "acceptance": [
+          "A failed send leaves a pending-delivery record, not an active link.",
+          "Recovery retransmits the identical signed proposal.",
+          "A peer ack promotes the link to active exactly once."
+        ],
+        "tests": [
+          "tests/unit/omnia-relay/src/__tests__/forwarder.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-relay test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 38-omnia-relay-phase-a"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-085",
+      "id": "OMN-087",
+      "title": "Exit entitlement verification checks that a pool epoch exists, not that it publishes this root",
+      "packages": [
+        "@totemsdk/omnia-vtxo"
+      ],
+      "summary": "verifyVtxoExitEntitlement() compares the entitlement root with the VTXO's own proof root, then — when an authoritative pool is supplied — only checks that a pool.epochRoots entry exists for the entitlement's epoch number. The published root for that epoch is never compared, and the decoded payout output's token id is never checked against the entitlement token.",
+      "impact": "An entitlement can pass every local check while disagreeing with the authoritative pool's published commitment, depending entirely on the injected witness verifier. A payout in the wrong asset is accepted as long as the amount and address match.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-vtxo test",
+        "expected": "Entitlement, decoded transaction, inclusion proof, published epoch root and payout token are bound to the same authoritative pool commitment.",
+        "actual": "A pool whose epochRoots lists the epoch with a different root still verifies, and a payout output in a different token passes.",
+        "evidence": [
+          "packages/omnia-vtxo/src/exit-entitlement.ts:143-180 — pool checks",
+          "packages/omnia-vtxo/src/exit-entitlement.ts:160-166 — some(entry => entry.epoch === entitlement.epoch)",
+          "packages/omnia-vtxo/src/exit-entitlement.ts:120-133 — payout address and amount, no token check"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/exit-entitlement.ts"
+        ],
+        "approach": "Resolve the published root for the entitlement epoch and require equality with the entitlement root. Compare the decoded payout token id with the entitlement token id. Require an inclusion proof for the entitlement leaf when a pool root is available.",
+        "constraints": [
+          "Do not weaken the existing VTXO-local root comparison.",
+          "Historical epochs must verify against their own published root.",
+          "Fail closed when the authoritative pool does not publish the epoch."
+        ],
+        "acceptance": [
+          "An epoch published with a different root fails verification.",
+          "A payout in the wrong token fails verification.",
+          "A correct entitlement in a historical epoch still verifies.",
+          "An unpublished epoch fails rather than being skipped."
+        ],
+        "tests": [
+          "tests/unit/omnia-vtxo/src/__tests__/exit-entitlement-binding.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-086",
+      "id": "OMN-088",
+      "title": "createExitDraft returns a receipt without consuming it",
+      "packages": [
+        "@totemsdk/omnia-vtxo"
+      ],
+      "summary": "The doc comment says createExitDraft consumes the VTXO's receipt so a second exit draft is refused. The implementation checks exitConsumedAt, builds a draft and returns a receipt; consumption requires a separate consumeExitReceipt call that nothing forces.",
+      "impact": "Repeated calls generate competing exit drafts for the same VTXO. The underlying UTXO cannot be double-spent, so this is not a fund-loss path, but the SDK-level single-exit guarantee the API advertises does not hold, and callers that skip the second call get two drafts they may act on independently.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-vtxo test",
+        "expected": "One call atomically reserves the exit against the authoritative VTXO store; a repeat returns the original draft.",
+        "actual": "createExitDraft can be called twice in a row against the same VTXO object and returns two receipts.",
+        "evidence": [
+          "packages/omnia-vtxo/src/exit.ts:83-133 — createExitDraft",
+          "packages/omnia-vtxo/src/exit.ts:136-148 — consumeExitReceipt is a separate opt-in call"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/exit.ts"
+        ],
+        "approach": "Make creation reserve the exit atomically (store-backed) and return the existing draft on a repeat request rather than a new one. Deprecate the two-step API or make the separate call a no-op once reserved.",
+        "constraints": [
+          "Repeated requests must be idempotent, not error-and-forget.",
+          "Reservation must be durable across a restart.",
+          "Do not change the receipt id derivation for an existing draft."
+        ],
+        "acceptance": [
+          "A second createExitDraft returns the first draft and receipt.",
+          "A VTXO with a reserved exit cannot produce a competing draft.",
+          "The reservation survives a restart."
+        ],
+        "tests": [
+          "tests/unit/omnia-vtxo/src/__tests__/exit.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-087",
+      "id": "OMN-089",
+      "title": "markExited accepts any non-empty transaction id as proof of exit",
+      "packages": [
+        "@totemsdk/omnia-vtxo",
+        "@totemsdk/omnia-host"
+      ],
+      "summary": "markExited() requires status 'exiting' and a non-empty txpowId, then records the VTXO as exited. It does not verify that the transaction exists, is confirmed, succeeds, or pays the correct owner the correct amount.",
+      "impact": "As an internal state reducer under a trusted caller this may be acceptable, but the exported API reads as completion of an exit. Any consumer treating 'exited' as verified settlement can be shown a fabricated exit.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-vtxo test",
+        "expected": "Broadcast, confirmation and final settlement are distinct states, and the final transition requires authoritative chain evidence.",
+        "actual": "markExited(vtxo, { txpowId: 'x' }) yields status 'exited'.",
+        "evidence": [
+          "packages/omnia-vtxo/src/exit.ts:33-59 — markExited"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-vtxo/src/exit.ts"
+        ],
+        "approach": "Split the state machine: broadcast (tx id known), confirmed (buried), settled (verified payout). Require an injected chain witness for the confirmed and settled transitions, and rename the current function to make its trust level explicit.",
+        "constraints": [
+          "Do not rename a trusted reducer into a verifier without adding the verification.",
+          "The final transition must be able to fail closed when the chain cannot be read.",
+          "Keep existing stored VTXOs readable."
+        ],
+        "acceptance": [
+          "An unconfirmed or unknown transaction cannot reach the settled state.",
+          "The payout is verified against the expected owner and amount on the final transition.",
+          "The API distinguishes local bookkeeping from verified completion."
+        ],
+        "tests": [
+          "tests/unit/omnia-vtxo/src/__tests__/exit.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-pool": "0.6.2"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-088",
+      "id": "OMN-090",
+      "title": "Pool payout trusts caller-supplied position and intent instead of the registry",
+      "packages": [
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "executePoolPayout() checks params.intent.status === 'approved' and verifies settlement evidence, then derives the accounting transition from params.position and params.intent directly. It never resolves the authoritative position or withdrawal intent from the registry it is given, and never compares them.",
+      "impact": "A stale or inconsistent position object can drive a new accounting transition: the payout can be computed against an amount, status or receipt that the registry has already superseded. Directly relevant to Pool 001, where LP capital accounting is the thing being protected.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 24-omnia-pool-001-rehearsal",
+        "expected": "The payout resolves the position and intent from the registry, requires the caller's inputs to match, and binds the transition to the registry revision it consumed.",
+        "actual": "A position with an inflated amount is paid out without the registry being consulted.",
+        "evidence": [
+          "packages/omnia-pool/src/withdraw.ts:225-247 — executes from params.position/params.intent",
+          "no registry position lookup exists in the payout path"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-pool/src/withdraw.ts"
+        ],
+        "approach": "Load the position and intent from the registry by id, require them to match the supplied objects (or reject the supplied objects entirely), and carry the registry revision into the accounting update so a concurrent mutation is detected.",
+        "constraints": [
+          "The registry is the only authority for position state.",
+          "A missing registry record is an error, not a reason to use the caller's copy.",
+          "The transition must be revision-bound so it cannot apply twice."
+        ],
+        "acceptance": [
+          "A position that differs from the registry is refused.",
+          "A payout against a superseded intent is refused.",
+          "The accounting update records the registry revision consumed."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 24-omnia-pool-001-rehearsal"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-pool": "0.6.2"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-089",
+      "id": "OMN-091",
+      "title": "A partial withdrawal resets the remaining liquidity to fully available and unimpaired",
+      "packages": [
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "After a payout the remaining position is written with effectiveAmount = availableAmount = remaining and allocatedAmount = reservedAmount = 0n. That asserts the residual capital has no outstanding allocations, no reservations and no impairment — none of which the payout established.",
+      "impact": "With residual obligations or impaired capital, the registry overstates immediately available liquidity, which is the number a withdrawal or Pool 001 capacity decision is made on.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "Outstanding allocations and reservations are preserved or reduced by the withdrawn amount, and effective-value adjustments survive.",
+        "actual": "A position with allocatedAmount 5000 and a partial withdrawal comes back with allocatedAmount 0.",
+        "evidence": [
+          "packages/omnia-pool/src/withdraw.ts:289-302 — the reset block"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-pool/src/withdraw.ts"
+        ],
+        "approach": "Reconcile instead of resetting: subtract the withdrawn amount from allocated/reserved in the position's own terms, keep the impairment adjustment, and refuse the payout if the withdrawal would strand an allocation that cannot be reduced.",
+        "constraints": [
+          "Never raise available liquidity beyond what the pre-payout record justified.",
+          "Preserve the effective-value ratio across a partial withdrawal.",
+          "Refuse rather than guess when allocations exceed the remaining amount."
+        ],
+        "acceptance": [
+          "A partial withdrawal preserves outstanding allocations.",
+          "An impaired position stays impaired after a partial withdrawal.",
+          "The available amount never increases because of a withdrawal."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-pool": "0.6.2"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-090",
+      "id": "OMN-092",
+      "title": "Liquidity receipt consumption is skipped when the receipt is missing",
+      "packages": [
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "The payout consumes the liquidity receipt only if nextRegistry.receipts[position.receiptId] exists. For a position that names a receipt id, a missing receipt should be an integrity failure; instead the payout completes without consuming anything.",
+      "impact": "A receipt-backed position can be paid out while its receipt remains unconsumed, so the single-spend marker is silently bypassed. Whether that becomes a double withdrawal depends on other checks the audit cannot assume.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-pool test",
+        "expected": "Every receipt-backed payout requires and atomically consumes the authoritative receipt; a missing one aborts the payout.",
+        "actual": "Deleting the receipt from the registry lets the payout succeed with no consumption.",
+        "evidence": [
+          "packages/omnia-pool/src/withdraw.ts:313-318 — if (receipt) { consume }"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-pool/src/withdraw.ts"
+        ],
+        "approach": "Treat position.receiptId as mandatory for receipt-backed positions: resolve it, fail if absent, consume it in the same transition, and mint a successor receipt for the remaining balance on a partial withdrawal.",
+        "constraints": [
+          "Fail closed on a missing receipt.",
+          "Consumption and accounting update must be one atomic transition.",
+          "A partial withdrawal must not leave the successor without a receipt."
+        ],
+        "acceptance": [
+          "A receipt-backed payout with no receipt fails.",
+          "A consumed receipt cannot be consumed again.",
+          "A partial withdrawal produces a successor receipt for the remainder."
+        ],
+        "tests": [
+          "tests/unit/omnia-pool/src/__tests__/pool.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-091",
+      "id": "OMN-093",
+      "title": "Fulfilment and timeout are both eligible at the exact timeout block",
+      "packages": [
+        "@totemsdk/omnia"
+      ],
+      "summary": "fulfillHTLC() refuses only when tip.block > htlc.timeoutBlock; timeoutHTLC() refuses only when tip.block < htlc.timeoutBlock. At exactly timeoutBlock both transitions pass their SDK-level guard, so the two branches of the same HTLC overlap for one block.",
+      "impact": "Two parties can each believe their transition is valid at the same height. The on-chain script decides the real boundary, so the SDK can co-sign a state the deployed KISSVM contract rejects, or accept a conflicting claim it should have refused.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 11-omnia-direct-channel",
+        "expected": "Exactly one transition is eligible at every height, matching the deployed script.",
+        "actual": "At tip.block == timeoutBlock both fulfillHTLC and timeoutHTLC proceed past their guards.",
+        "evidence": [
+          "packages/omnia/src/htlc.ts:316 — if (BigInt(tip.block) > htlc.timeoutBlock) throw",
+          "packages/omnia/src/htlc.ts:436 — if (currentBlock < htlc.timeoutBlock) throw"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia/src/htlc.ts",
+          "packages/omnia-factory/src/script.ts"
+        ],
+        "approach": "Adopt one canonical boundary rule that matches the deployed KISSVM comparison, expose it as a single shared predicate, and apply it in every package that reasons about HTLC expiry.",
+        "constraints": [
+          "The rule must match the on-chain script exactly; derive it from the script, not from a preference.",
+          "Do not leave two implementations of the boundary.",
+          "Changing the boundary is a wire/behaviour change: note it in the changelog."
+        ],
+        "acceptance": [
+          "At most one of fulfil/refund is eligible at any height.",
+          "The SDK boundary and the deployed script agree at the critical block.",
+          "One exported predicate is used everywhere the boundary is evaluated."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 12-omnia-direct-settlement"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia": "3.0.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-092",
+      "id": "OMN-094",
+      "title": "HTLC fulfilment receipts are not bound to the authenticated transition that paid them",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-pool"
+      ],
+      "summary": "The receipt builder reads amount and fulfilment status from the channel's historical HTLC records, and the verifier authenticates a supplied signed state with the recipient's signature. Neither establishes that the specific transition from the preceding authenticated state fulfilled that HTLC and moved the stated amount.",
+      "impact": "Receipt verification cannot stand alone as a financial earn-proof boundary. A receipt can be produced for an amount the transition did not actually transfer, which undermines the pool fee accounting that consumes it (see OMN-083).",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia test",
+        "expected": "Verification checks the authenticated predecessor and successor states, the HTLC identity, the preimage commitment, the exact balance delta and both parties' authorization.",
+        "actual": "A receipt whose amount differs from the state delta still verifies against a validly signed successor state.",
+        "evidence": [
+          "packages/omnia/src/htlc.ts:63-122 — receipt build and verify",
+          "amount and status sourced from channel.pendingHTLCs, not from the state delta"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia/src/htlc.ts"
+        ],
+        "approach": "Carry the predecessor and successor state hashes in the receipt, derive the amount from the balance delta between them, include the hashlock/preimage commitment and both signatures, and verify all of it.",
+        "constraints": [
+          "Do not trust the historical HTLC record for the amount.",
+          "Version the receipt format; old receipts must not silently pass the new verifier.",
+          "Verification must fail closed when the predecessor state is unavailable."
+        ],
+        "acceptance": [
+          "A receipt whose amount does not match the state delta fails.",
+          "A receipt for an HTLC absent from the transition fails.",
+          "A missing counterparty signature fails.",
+          "Downstream fee accounting refuses an unverified receipt."
+        ],
+        "tests": [
+          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia test",
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
+      "kind": "sdk-gap",
+      "status": "fixed",
+      "severity": "high",
+      "versions": {
+        "@totemsdk/omnia-factory": "0.8.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-093",
+      "id": "OMN-095",
+      "title": "A factory participant's latest off-chain allocation is not unilaterally enforceable",
+      "packages": [
+        "@totemsdk/omnia-factory"
+      ],
+      "summary": "The OMN-058 work added an output-enforced distribution branch that reads every share from PREVSTATE and pins destinations, amounts, output count and conservation. But checkpoint enforcement is still optional at the script-builder level, and the distribution implementation states that it covers the latest confirmed allocation only. A newer off-chain allocation therefore has no enforceable on-chain artifact.",
+      "impact": "A participant's economic entitlement can differ from what they can unilaterally take on chain. This is a capability boundary rather than a regression: there are two distinct production modes and only one of them is enforceable. Treating OMN-058 as fully closed overstates the guarantee.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary run 16-omnia-factory",
+        "expected": "The enforceable on-chain entitlement always equals the participant's latest valid allocation, including an off-chain update that no one has checkpointed.",
+        "actual": "With enforceCheckpoints off, an off-chain allocation change is not represented on chain. With it on, VC open/close and reallocate are refused until the change is checkpointed.",
+        "evidence": [
+          "packages/omnia-factory/src/script.ts:329-330 — enforceCheckpoints is optional, off by default",
+          "packages/omnia-factory/src/script.ts:404 — enforceCheckpoints = options.enforceCheckpoints === true",
+          "packages/omnia-factory/src/distribution.ts:1-12 — scope is the latest confirmed allocation"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-factory/src/script.ts",
+          "packages/omnia-factory/src/distribution.ts"
+        ],
+        "approach": "Keep this as a documented release restriction with two named modes: 'confirmed checkpoint factory' (latest confirmed allocation, enforceable) and 'fully off-chain contestable factory' (latest valid off-chain allocation, outstanding). Do not advertise the second until the contest protocol lands.",
+        "constraints": [
+          "Do not describe the factory as fully off-chain-enforceable in docs or manifests.",
+          "Do not close OMN-058 on the strength of the checkpoint branch alone.",
+          "Refuse off-chain allocation changes on a non-checkpointed factory rather than allowing an unenforceable state."
+        ],
+        "acceptance": [
+          "The capability claim distinguishes the two factory modes.",
+          "A non-checkpointed factory cannot accumulate an unenforceable allocation delta.",
+          "The limitation is recorded in the RFC and the register rather than only in a code comment."
+        ],
+        "tests": [
+          "tests/unit/omnia-factory/src/__tests__/distribution.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-factory test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary run 16-omnia-factory"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING",
+        "rfc": "docs/rfc/RFC-079-FACTORY-ESCAPE-ENFORCEABILITY.md",
+        "checkpointTests": "tests/unit/omnia-factory/src/__tests__/checkpoint.test.ts"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
       "id": "CAN-005",
       "kind": "sdk-defect",
       "status": "open",
@@ -4049,7 +5747,7 @@
     {
       "id": "CAN-012",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "medium",
       "title": "Splice successor selection matches on address, token and amount only",
       "packages": [
@@ -4094,13 +5792,14 @@
         "autonomous-maintenance-escrow"
       ],
       "links": {
+        "fixedIn": "PENDING",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-015",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "medium",
       "title": "Router rollback cannot release HTLCs early and reports failure as if liquidity were returned",
       "packages": [
@@ -4151,13 +5850,14 @@
         "data-as-cash-flow-asset"
       ],
       "links": {
+        "fixedIn": "PENDING",
         "canaryCommit": "8fa26907"
       }
     },
     {
       "id": "CAN-016",
       "kind": "sdk-defect",
-      "status": "in-progress",
+      "status": "fixed",
       "severity": "medium",
       "title": "Relay link journal is not atomic and duplicate detection races the write",
       "packages": [
@@ -4207,6 +5907,7 @@
         "confidential-supplier-settlement"
       ],
       "links": {
+        "fixedIn": "PENDING",
         "canaryCommit": "8fa26907"
       }
     },
@@ -4388,6 +6089,117 @@
       ],
       "links": {
         "canaryCommit": "5d8c427b"
+      }
+    },
+    {
+      "id": "CAN-026",
+      "kind": "canary-coverage",
+      "status": "open",
+      "severity": "medium",
+      "title": "No scenario exercises omnia-lsp or omnia-lsp-provider",
+      "packages": [
+        "@totemsdk/omnia-lsp",
+        "@totemsdk/omnia-lsp-provider"
+      ],
+      "versions": {
+        "@totemsdk/omnia-lsp": "0.1.0",
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "registry audit, 25 Nov 2026: grep -rln \"omnia-lsp\" artifacts/canary/src returns nothing",
+      "summary": "Both LSP packages shipped in 0.1.0 and appear in no scenario, no profile and no gate. The Omnia audit of 25 November 2026 raised eight findings against them, including two P0 authorization and capital-exposure defects (OMN-066, OMN-067), all found by static review rather than by a run. The harness cannot observe a regression in the provider quote path because it never executes it.",
+      "impact": "An LSP regression — forged quote accepted, provider amount unvalidated, false-positive host success — reaches a release with no canary evidence. The release gate can only block on what the register knows, and the register only learns about this package from external audits.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary list | grep -i lsp",
+        "expected": "At least one scenario imports the LSP provider facade and drives a quote → open cycle.",
+        "actual": "No matches. Scenario ids stop at 49-omnia-two-peer-channel and none imports @totemsdk/omnia-lsp or @totemsdk/omnia-lsp-provider.",
+        "evidence": [
+          "artifacts/canary/src/scenarios contains no lsp scenario",
+          "artifacts/canary/src/orchestrator/ScenarioRegistry.ts ALL_SCENARIOS has no lsp entry",
+          "docs/findings/agent/OMN-066.md and OMN-067.md describe defects that a quote-tamper scenario would catch"
+        ]
+      },
+      "fix": {
+        "where": [
+          "artifacts/canary/src/scenarios/50-omnia-lsp-quote-open.ts",
+          "artifacts/canary/src/orchestrator/ScenarioRegistry.ts",
+          "artifacts/canary/src/config/profiles.ts",
+          "artifacts/canary/src/config/packageMatrix.ts"
+        ],
+        "approach": "Add a local-simulated scenario that issues a quote through the provider facade against a fixed manifest, then asserts: (a) the issued quote verifies; (b) a mutated amount, fee or token is rejected; (c) a quote issued to one consumer cannot be redeemed by another; (d) an expired quote is refused; (e) a host returning undefined or an error-only object is reported as failure. Register it in ALL_SCENARIOS and a profile.",
+        "constraints": [
+          "Use the published packages, not a re-implementation of the policy.",
+          "Do not assert current (defective) behaviour: the negative legs are expected to fail until OMN-066/067/070/071 close.",
+          "No private keys or live funding in local-simulated mode."
+        ],
+        "acceptance": [
+          "The scenario imports @totemsdk/omnia-lsp-provider and exercises quote() and openQuote().",
+          "Every negative leg above is asserted.",
+          "The scenario is registered, listed by `canary list`, and part of a profile.",
+          "The package appears in the pin matrix so a version drift is visible."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp test",
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary list | grep omnia-lsp",
+          "cd artifacts/canary && pnpm run canary run 50-omnia-lsp-quote-open"
+        ]
+      },
+      "links": {
+        "rfc": "docs/rfc/RFC-081-OMNIA-LSP.md"
+      }
+    },
+    {
+      "id": "CAN-027",
+      "kind": "canary-coverage",
+      "status": "open",
+      "severity": "medium",
+      "title": "omnia-vtxo has no dedicated lifecycle scenario",
+      "packages": [
+        "@totemsdk/omnia-vtxo"
+      ],
+      "versions": {
+        "@totemsdk/omnia-vtxo": "0.9.0"
+      },
+      "source": "docs/coverage-gap-report.md:157, re-confirmed 25 Nov 2026",
+      "summary": "The coverage-gap report already recorded that omnia-vtxo has no dedicated scenario and proposed one (originally numbered 43, now omnia-observe). The only exercise is incidental: 39-custody-escape-exec runs the pool owner path, and 24-omnia-pool-001-rehearsal touches pool accounting. Mint, claim, transfer, refresh and exit are never driven end to end. The audit of 25 November 2026 raised three findings against the exit path (OMN-087, OMN-088, OMN-089) that a lifecycle scenario would have surfaced.",
+      "impact": "VTXO-backed liquidity — a Pool 001 capability — has no live evidence. Exit-entitlement binding, single-exit enforcement and completion finality can regress without any gate noticing.",
+      "repro": {
+        "command": "cd artifacts/canary && pnpm run canary list | grep -i vtxo",
+        "expected": "A scenario drives mint → claim → transfer → refresh → exit with balance conservation at each step.",
+        "actual": "No scenario covers the VTXO lifecycle; the only vtxo references are the pool-owner leg of 39-custody-escape-exec and the pool rehearsal.",
+        "evidence": [
+          "docs/coverage-gap-report.md:157 — \"omnia-vtxo (virtual channels) has no dedicated scenario\"",
+          "packages/omnia-vtxo/src/exit.ts has no canary caller"
+        ]
+      },
+      "fix": {
+        "where": [
+          "artifacts/canary/src/scenarios/51-omnia-vtxo-claim.ts",
+          "artifacts/canary/src/orchestrator/ScenarioRegistry.ts",
+          "artifacts/canary/src/config/profiles.ts"
+        ],
+        "approach": "Add a local-simulated VTXO lifecycle scenario: mint into a pool, claim, transfer to a second owner, refresh across an epoch, then exit — asserting root/epoch continuity, receipt consumption, and balance conservation at every transition. Include the negative legs for OMN-087 (wrong epoch root) and OMN-088 (second exit draft).",
+        "constraints": [
+          "Do not reuse the pool-rehearsal fixtures if they bypass the VTXO state machine.",
+          "Assert receipt consumption rather than trusting exitConsumedAt to have been set by the caller.",
+          "Keep the exit leg simulated unless a chain provider is supplied."
+        ],
+        "acceptance": [
+          "Mint, claim, transfer, refresh and exit each have an assertion.",
+          "A second exit draft for the same VTXO is refused.",
+          "An entitlement against a mismatched epoch root is refused.",
+          "Pool roots and epochs are continuous across the refresh."
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-vtxo test",
+          "pnpm --filter @totemsdk/omnia-pool test"
+        ],
+        "verificationPostPublish": [
+          "cd artifacts/canary && pnpm run canary list | grep omnia-vtxo",
+          "cd artifacts/canary && pnpm run canary run 51-omnia-vtxo-claim"
+        ]
       }
     },
     {
@@ -5178,11 +6990,71 @@
       }
     },
     {
+      "kind": "sdk-defect",
+      "status": "fixed",
+      "severity": "medium",
+      "versions": {
+        "@totemsdk/omnia-lsp-provider": "0.1.0"
+      },
+      "source": "Omnia SDK audit — 25 November 2026, reporter finding OMN-071",
+      "id": "OMN-073",
+      "title": "Decimal parsing in the LSP truncates precision and mis-signs negative input",
+      "packages": [
+        "@totemsdk/omnia-lsp-provider",
+        "@totemsdk/omnia-lsp"
+      ],
+      "summary": "decimalKey() splits on '.', multiplies the whole part by 10^18 and adds the fraction padded or sliced to 18 digits. Fractional precision beyond 18 places is silently truncated, a negative value adds a positive fraction to a negative whole (so -1.5 parses as -0.5), and malformed or empty parts reach BigInt() and throw. The same function is duplicated in quote.ts, so the two copies can drift.",
+      "impact": "Amount comparisons and fee arithmetic can be off by a truncation unit, and a negative amount is interpreted as a different number instead of being rejected. Throwing from BigInt surfaces as an opaque error rather than a policy refusal.",
+      "repro": {
+        "command": "pnpm --filter @totemsdk/omnia-lsp-provider test",
+        "expected": "A shared strict parser accepts a canonical non-negative decimal with at most the asset's precision and rejects everything else with a structured error.",
+        "actual": "decimalKey('-1.5') yields -500000000000000000n; '1.0000000000000000001' truncates to 1; 'abc' throws SyntaxError from BigInt.",
+        "evidence": [
+          "packages/omnia-lsp-provider/src/policy.ts:44-50 — decimalKey",
+          "packages/omnia-lsp-provider/src/quote.ts:18-24 — duplicate decimalKey"
+        ]
+      },
+      "fix": {
+        "where": [
+          "packages/omnia-lsp-provider/src/policy.ts",
+          "packages/omnia-lsp-provider/src/quote.ts",
+          "packages/omnia-lsp/src"
+        ],
+        "approach": "Replace both copies with one strict parser in @totemsdk/omnia-lsp: /^(0|[1-9][0-9]*)(\\.[0-9]+)?$/, reject negative values, reject excess precision instead of truncating, and return a discriminated result rather than throwing.",
+        "constraints": [
+          "One implementation, shared by policy, quote and any future fee code.",
+          "Do not silently round: excess precision is a rejection.",
+          "Keep the on-wire decimal string format unchanged."
+        ],
+        "acceptance": [
+          "Negative, malformed and over-precise amounts are refused with a policy error.",
+          "policy.ts and quote.ts no longer contain their own parsers.",
+          "Valid amounts round-trip through parse and format unchanged."
+        ],
+        "tests": [
+          "tests/unit/omnia-lsp/src/__tests__/quote.test.ts",
+          "tests/unit/omnia-lsp-provider/src/__tests__/provider.test.ts"
+        ],
+        "verification": [
+          "pnpm --filter @totemsdk/omnia-lsp test",
+          "pnpm --filter @totemsdk/omnia-lsp-provider test"
+        ]
+      },
+      "links": {
+        "fixedIn": "PENDING"
+      },
+      "origin": {
+        "audit": "Omnia SDK audit — 25 November 2026",
+        "auditedCommit": "9f882c875b7031c6ed7b720ddcb76376f29e8c58",
+        "verification": "code-confirmed"
+      }
+    },
+    {
       "id": "sdk-gap:integration-gates",
       "kind": "sdk-gap",
       "status": "open",
       "severity": "medium",
-      "title": "41 publishable packages declare no test:integration gate",
+      "title": "43 publishable packages declare no test:integration gate",
       "packages": [
         "@totemsdk/agent-policy",
         "@totemsdk/authority",
@@ -5202,6 +7074,8 @@
         "@totemsdk/mcp-server",
         "@totemsdk/omnia-factory",
         "@totemsdk/omnia-host",
+        "@totemsdk/omnia-lsp",
+        "@totemsdk/omnia-lsp-provider",
         "@totemsdk/omnia-pool",
         "@totemsdk/omnia-router",
         "@totemsdk/omnia-vtxo",
@@ -5232,7 +7106,7 @@
       "repro": {
         "command": "node scripts/verify-workspace.mjs --integration",
         "expected": "Every RC package either declares test:integration or a reasoned exemption.",
-        "actual": "Missing: @totemsdk/agent-policy (rc), @totemsdk/authority (rc), @totemsdk/chain-provider (rc), @totemsdk/connect (rc), @totemsdk/decision (beta), @totemsdk/edge (rc), @totemsdk/governance (rc), @totemsdk/identity (rc), @totemsdk/intelligence (beta), @totemsdk/kissvm (rc), @totemsdk/liquidity-bond (rc), @totemsdk/lookup-client (rc), @totemsdk/lookup-node (rc), @totemsdk/lookup-protocol (rc), @totemsdk/manifest (rc), @totemsdk/mcp-server (rc), @totemsdk/omnia-factory (rc), @totemsdk/omnia-host (rc), @totemsdk/omnia-pool (rc), @totemsdk/omnia-router (rc), @totemsdk/omnia-vtxo (rc), @totemsdk/p2p-hub (alpha), @totemsdk/pear (rc), @totemsdk/provider-bond (rc), @totemsdk/minima-rpc (rc), @totemsdk/pubsub-transport (rc), @totemsdk/qvac (beta), @totemsdk/realtime (rc), @totemsdk/recursive-mast (rc), @totemsdk/root-identity (rc), @totemsdk/se-server (rc), @totemsdk/server (rc), @totemsdk/storage (rc), @totemsdk/stream-transport (rc), @totemsdk/tx-builder (rc), @totemsdk/txpow (rc), @totemsdk/wallet-adapter (rc), @totemsdk/wots-lease (rc), @totemsdk/entity (alpha), @totemsdk/eefi (rc), @totemsdk/replication (alpha)"
+        "actual": "Missing: @totemsdk/agent-policy (rc), @totemsdk/authority (rc), @totemsdk/chain-provider (rc), @totemsdk/connect (rc), @totemsdk/decision (beta), @totemsdk/edge (rc), @totemsdk/governance (rc), @totemsdk/identity (rc), @totemsdk/intelligence (beta), @totemsdk/kissvm (rc), @totemsdk/liquidity-bond (rc), @totemsdk/lookup-client (rc), @totemsdk/lookup-node (rc), @totemsdk/lookup-protocol (rc), @totemsdk/manifest (rc), @totemsdk/mcp-server (rc), @totemsdk/omnia-factory (rc), @totemsdk/omnia-host (rc), @totemsdk/omnia-lsp (alpha), @totemsdk/omnia-lsp-provider (alpha), @totemsdk/omnia-pool (rc), @totemsdk/omnia-router (rc), @totemsdk/omnia-vtxo (rc), @totemsdk/p2p-hub (alpha), @totemsdk/pear (rc), @totemsdk/provider-bond (rc), @totemsdk/minima-rpc (rc), @totemsdk/pubsub-transport (rc), @totemsdk/qvac (beta), @totemsdk/realtime (rc), @totemsdk/recursive-mast (rc), @totemsdk/root-identity (rc), @totemsdk/se-server (rc), @totemsdk/server (rc), @totemsdk/storage (rc), @totemsdk/stream-transport (rc), @totemsdk/tx-builder (rc), @totemsdk/txpow (rc), @totemsdk/wallet-adapter (rc), @totemsdk/wots-lease (rc), @totemsdk/entity (alpha), @totemsdk/eefi (rc), @totemsdk/replication (alpha)"
       },
       "fix": {
         "where": [

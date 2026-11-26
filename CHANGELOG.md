@@ -32,16 +32,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `vtxo:<poolId>`. This is a pre-release break: VTXO ids, receipts, commitments
   and persisted operator state from 0.9.x are not compatible with 0.10.0.
 
-### Added — PWA stateful sends (unreleased)
+### Fixed — Omnia audit remediation (unreleased)
 
-`totem-pwa-wallet` can now store state variables on a send's recipient output
-and transaction state on the transaction itself. The send UI exposes an
-advanced JSON state editor; `TOTEM_SEND_TRANSACTION` approval URLs carry
-`state`, `storeState` and `transactionState`; and token creation accepts an
-initial `state` array for the token-create output. `buildTxnRow.ts` serializes
-state via the new pinned `stateSerialization.ts` (Java
-`StateVariable.writeDataStream` layout), and the input CoinProof parser now
-handles all four state types (hex, number, string, bool).
+The 30 findings of the 25 November 2026 Omnia audit are closed. Every package
+below passes `verify-findings-gate.mjs` at `--min-severity high`.
+
+**Breaking changes**
+
+- `@totemsdk/omnia` 4.0.0 — `buildHtlcFulfillmentReceipt` and
+  `verifyHtlcFulfillmentReceipt` take the authenticated `{ previous, next }`
+  state pair, derive the amount from the balance delta, and bind both state
+  commitments. Fulfilment is refused from `timeoutBlock` onwards (the refund
+  owns the boundary), matching the deployed program.
+- `@totemsdk/vtxo` 0.10.0 — `createExitDraft(vtxo, store, now?)` is async
+  and store-backed, reserving the receipt atomically and returning the original
+  draft on a repeat. `markExited` requires chain evidence or an explicit
+  `trusted: true`; `markExitBroadcast` / `markExitConfirmed` / `markExitSettled`
+  add the staged exit lifecycle.
+- `@totemsdk/omnia-splice` 0.4.0 — successor observation proves the coin is an
+  output of the splice and that the splice spent the predecessor. A chain
+  adapter without `getTransaction` cannot activate a splice. `finalizeSplice`
+  gains `persistSuccessor` and clears the journal only after persistence.
+- `@totemsdk/omnia-factory` 0.9.0 — a factory without checkpoint enforcement
+  requires `allowUnenforceableAllocations: true`; `allocationEnforcement`
+  records the capability level.
+- `@totemsdk/omnia-router` 0.6.0 — `RouterFeeProof` carries `authenticated` plus
+  the transition commitments; the descriptive builder is explicitly not
+  settlement evidence. Route validation is bound to the payment request.
+- `@totemsdk/omnia-lsp` / `@totemsdk/omnia-lsp-provider` 0.2.0 — quotes carry a
+  signed `feeBasis` priced on total channel value; `verifyOpenQuote` verifies
+  the recomputed terms hash and signature; `openQuote` requires a verifier and
+  the authenticated consumer and reserves provider capacity through a ledger.
+- `@totemsdk/chain-provider` 0.5.0 — optional `getTransaction(txpowid)` on
+  `ChainStateProvider`, implemented by the node and Axia providers.
+
+**Compatible changes**
+
+- `@totemsdk/omnia-host` 0.16.0 — operation replay invokes the verifier on the
+  store; observability failures can no longer strand or misreport an operation;
+  an ambiguous side effect records `unknown` and `reconcileOperation` resolves
+  it; the pay path binds the route to payer and recipient.
+- `@totemsdk/omnia-relay` 0.11.0 — forwarding admission is one atomic
+  reservation; cross-token forwarding requires an authenticated swap quote; an
+  undelivered outgoing proposal is journaled with a deterministic message id and
+  retransmitted without re-signing.
+- `@totemsdk/omnia-pool` 0.7.0 — payouts resolve the authoritative position and
+  intent, bind the transition to the consumed registry revision, reconcile
+  residual allocations instead of resetting them, and require receipt
+  consumption with successor receipts on partial withdrawals.
 
 ### Fixed — `@totemsdk/minima-rpc` single command schema (unreleased)
 
@@ -70,6 +108,25 @@ history. `BalanceQuery` and `CoinsQuery` expose the full node parameter set;
 `TxnInputParams` gains `coindata`/`scriptmmr`, and `TxnScriptParams` gains
 `auto` with an object-valued `scripts` map.
 
+### Added — Omnia LSP packages (unreleased)
+
+`@totemsdk/omnia-lsp` 0.1.0 and `@totemsdk/omnia-lsp-provider` 0.1.0 add signed
+provider manifests, open quotes, deterministic provider ranking, provider
+admission policy and an `omnia-host` adapter. The wallet-side funding-witness
+builder, Axia funding-proof provider, opt-in Axia lease adapter and provider
+funding auto-selection are included. See RFC-081.
+
+### Added — PWA stateful sends (unreleased)
+
+`totem-pwa-wallet` can now store state variables on a send's recipient output
+and transaction state on the transaction itself. The send UI exposes an
+advanced JSON state editor; `TOTEM_SEND_TRANSACTION` approval URLs carry
+`state`, `storeState` and `transactionState`; and token creation accepts an
+initial `state` array for the token-create output. `buildTxnRow.ts` serializes
+state via the new pinned `stateSerialization.ts` (Java
+`StateVariable.writeDataStream` layout), and the input CoinProof parser now
+handles all four state types (hex, number, string, bool).
+
 ### Fixed — `@totemsdk/minima-rpc` stateful `send` (unreleased)
 
 `send()` and `runCommand('send', …)` now share one generated-schema path. The
@@ -82,59 +139,6 @@ divergent `sendfrom` and `sendnosign` arms: `sendfrom` now carries `state` and
 `privatekey`, and both serialize object/array values as JSON instead of
 `String(value)`. The Pear starter payment port now calls `send()` with the
 node's `{"port":"value"}` state shape instead of an array the node discarded.
-
-### Added — Omnia LSP packages (unreleased)
-
-`@totemsdk/omnia-lsp` 0.1.0 and `@totemsdk/omnia-lsp-provider` 0.1.0 add signed
-provider manifests, open quotes, deterministic provider ranking, provider
-admission policy and an `omnia-host` adapter. The wallet-side funding-witness
-builder, Axia funding-proof provider, opt-in Axia lease adapter and provider
-funding auto-selection are included. See RFC-081.
-
-### Fixed — MinimaNode transaction links (1.0.31)
-
-"View on minimanode" on the Activity transaction detail page opened
-`https://minimanode.com/#/<txpowid>` — the popup's own deep-link shape — instead
-of the explorer's `#/tx/<txpowid>`. MinimaNode routes on the `tx/` prefix and
-renders its dashboard for anything else, so the transaction was dropped and the
-visitor landed on the explorer home page.
-
-Explorer links now come from `src/core/links/minimanode.ts`, which both the
-detail page and the transaction receipt/receipt store use, and a test pins the
-URL shape so the two hash forms cannot be confused again.
-
-### Fixed — extension download filename and update notice (1.0.30)
-
-The rolling `extension-latest` release was never receiving the version-stamped
-artifacts: `action-gh-release`'s `files:` input is not shell-expanded, so
-`totem-extension-v${VERSION}.zip` matched nothing. The publish step now passes
-the resolved version explicitly (and the versioned `.crx` too), and a new
-verification step fails the release if either asset is missing from
-`extension-latest`.
-
-That silent gap had two user-visible effects:
-
-- **totem.ing served the wrong build.** `/api/config` resolves the newest
-  versioned asset from the release listing, so after 1.0.27 it kept pointing at
-  `totem-extension-1.0.27.zip` — visitors downloaded 1.0.27 while 1.0.29 was
-  live. The site now reads the published version from `totem-extension.xml`
-  (written by the same build) and serves exactly that version, falling back to
-  the unversioned `totem-extension.zip` when the versioned copy is missing
-  rather than quietly serving an older build.
-- **The update notice never fired.** The extension accepted only the legacy
-  `totem-extension-<version>.zip` asset name, so every build after 1.0.27
-  compared itself against 1.0.27 and saw "no update". Both spellings are
-  accepted now, and a cached result is discarded when the running manifest
-  version changes, so a freshly updated build re-checks immediately.
-### Fixed — `@totemsdk/intelligence` 0.2.1 packed training subpath (unreleased)
-
-`0.2.0` shipped `dist/training` and the `exports["./training"]` map but omitted
-`training` from `typesVersions`, so a consumer using `moduleResolution: node`
-could not resolve `@totemsdk/intelligence/training` even though the tarball
-contained the declarations. Add the mapping and a generic packed-consumer gate,
-`pnpm test:training-pack`, which packs the package, checks the ESM/CJS/types
-files, compiles under `node` and `bundler` resolution, and imports the subpath
-from both module systems.
 
 ### Fixed — `@totemsdk/connect` peer range (unreleased)
 

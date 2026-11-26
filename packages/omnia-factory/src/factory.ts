@@ -300,6 +300,16 @@ export async function buildFactoryOpening(
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
   }
+  // OMN-095: without checkpoint enforcement a unilateral exit pays the funding
+  // split, so the latest off-chain allocation is unenforceable. Refuse to build
+  // that silently; it is allowed only as an explicit, acknowledged mode.
+  if (scriptOptions.enforceCheckpoints !== true && scriptOptions.allowUnenforceableAllocations !== true) {
+    throw new Error(
+      'refusing to build a factory whose allocations are not checkpoint-enforced: '
+      + 'a unilateral exit would pay the funding split, not the latest allocation. '
+      + 'Pass { allowUnenforceableAllocations: true } only for a factory that will never rely on unilateral exits.',
+    );
+  }
   const totalValue = participants.reduce((sum, p) => sum + p.contributionAmount, 0n);
   const allocations: Record<string, bigint> = {};
   for (const p of participants) allocations[p.partyId] = p.contributionAmount;
@@ -381,6 +391,7 @@ export async function buildFactoryOpening(
     pendingCommitment: Buffer.from(pendingCommitment).toString('hex'),
     pendingSignatures: {},
     enforceCheckpoints: scriptOptions.enforceCheckpoints === true,
+    allocationEnforcement: scriptOptions.enforceCheckpoints === true ? 'checkpoint' : 'none',
   };
   return {
     factory,

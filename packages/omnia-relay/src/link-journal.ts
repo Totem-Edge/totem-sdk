@@ -14,7 +14,7 @@
  */
 
 import type { StorageAdapter } from '@totemsdk/core';
-import type { HtlcLink, HtlcLinkJournal } from './forwarder.js';
+import type { ForwardReservation, HtlcLink, HtlcLinkJournal } from './forwarder.js';
 
 const JOURNAL_KEY = 'omnia_relay:htlc_links_v2';
 
@@ -69,6 +69,34 @@ export function createDurableHtlcLinkJournal(storage: StorageAdapter): DurableHt
       return serialized(async () => {
         const all = await readAll();
         return all.find((link) => sameHashlock(link.hashlock, hashlock));
+      });
+    },
+
+    /**
+     * OMN-084: check uniqueness and write the intent in one critical section.
+     * Unlike `record`, this never upserts — an existing link means the
+     * reservation is refused.
+     */
+    reserve(link: HtlcLink): Promise<ForwardReservation> {
+      return serialized(async () => {
+        const hashlock = link.hashlock?.toLowerCase();
+        if (!hashlock) {
+          throw new Error('cannot journal an HTLC link without a hashlock');
+        }
+        const all = await readAll();
+
+        const byHashlock = all.find((existing) => sameHashlock(existing.hashlock, hashlock));
+        if (byHashlock) return { ok: false, reason: 'hashlock', existing: byHashlock };
+
+        const byIncoming = all.find(
+          (existing) =>
+            existing.inChannelId === link.inChannelId && existing.inHtlcId === link.inHtlcId,
+        );
+        if (byIncoming) return { ok: false, reason: 'incoming', existing: byIncoming };
+
+        const reserved: HtlcLink = { ...link, hashlock };
+        await writeAll([...all, reserved]);
+        return { ok: true, link: reserved };
       });
     },
 

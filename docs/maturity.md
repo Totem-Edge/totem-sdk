@@ -19,18 +19,18 @@
 | v1 | 13 |
 | rc | 53 |
 | beta | 4 |
-| alpha | 6 |
+| alpha | 7 |
 | excluded | 6 |
 
 | Support tier | Packages |
 |---|---:|
 | Tier 0 | 3 |
 | Tier 1 | 10 |
-| Tier 2 | 23 |
+| Tier 2 | 24 |
 | Outside production surface | 40 |
 | Excluded | 6 |
 
-Total: **76** publishable packages + **6** excluded entries = **82** workspace entries.
+Total: **77** publishable packages + **6** excluded entries = **83** workspace entries.
 
 ## Matrix
 
@@ -63,12 +63,13 @@ Total: **76** publishable packages + **6** excluded entries = **82** workspace e
 | `@totemsdk/omnia-relay` | 0.11.0 | rc | 2 | `packages/omnia-relay` |
 | `@totemsdk/omnia-router` | 0.6.0 | rc | 2 | `packages/omnia-router` |
 | `@totemsdk/omnia-splice` | 0.4.0 | rc | 2 | `packages/omnia-splice` |
-| `@totemsdk/vtxo` | 0.10.0 | rc | 2 | `packages/vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.1 | rc | 2 | `packages/pubsub-transport` |
 | `@totemsdk/root-identity` | 1.0.12 | rc | 2 | `packages/root-identity` |
 | `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
 | `@totemsdk/tx-builder` | 0.3.5 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
+| `@totemsdk/vtxo` | 0.10.0 | rc | 2 | `packages/vtxo` |
+| `@totemsdk/claim` | 0.1.0 | alpha | 2 | `packages/claim` |
 | `@totemsdk/omnia-lsp` | 0.2.0 | alpha | 2 | `packages/omnia-lsp` |
 | `@totemsdk/omnia-lsp-provider` | 0.2.0 | alpha | 2 | `packages/omnia-lsp-provider` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |

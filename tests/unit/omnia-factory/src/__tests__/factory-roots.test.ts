@@ -42,7 +42,6 @@ describe('OMN-060 factory commitment roots', () => {
       0,
       { getTip: async () => ({ block: 10, hash: '0x01' }) } as never,
       materials,
-      1_000n,
     );
     expect(plan.onChain).toBe(true);
 
@@ -76,7 +75,6 @@ describe('OMN-060 factory commitment roots', () => {
       0,
       chainProvider,
       funding as never,
-      1_000n,
     );
     const ports = plan.fundingStateVariables ?? [];
     const byPort = new Map(ports.map((sv: any) => [sv.port, sv.value]));

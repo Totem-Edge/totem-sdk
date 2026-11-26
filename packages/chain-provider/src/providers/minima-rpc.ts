@@ -9,8 +9,10 @@
  */
 
 import type { MinimaRpcClient } from '@totemsdk/minima-rpc';
+import { mapMinimaTransaction } from './transaction.js';
 import type {
   ChainStateProvider,
+  ChainTransaction,
   CoinsQuery,
   Coin,
   MMRProof,
@@ -69,6 +71,23 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
     try {
       const coins = await this.getCoins({ coinId });
       return coins[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Full transaction body by TxPoW id (OMN-074), via the node's `txpow` command.
+   *
+   * `txpow txpowid:<id>` returns the whole TxPoW including the transaction body,
+   * which is what proves a coin was created by an expected transaction. Returns
+   * null when the node does not know the id or the response has no body, so the
+   * caller fails closed rather than trusting an unattributed coin.
+   */
+  async getTransaction(txpowid: string): Promise<ChainTransaction | null> {
+    try {
+      const raw = await this.client.runCommand('txpow', { txpowid });
+      return mapMinimaTransaction(txpowid, raw);
     } catch {
       return null;
     }

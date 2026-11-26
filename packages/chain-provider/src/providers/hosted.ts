@@ -10,8 +10,10 @@
  * require x-api-key: 'totem-shared'. Use the apiKey config option accordingly.
  */
 
+import { mapMinimaTransaction } from './transaction.js';
 import type {
   ChainStateProvider,
+  ChainTransaction,
   CoinsQuery,
   Coin,
   MMRProof,
@@ -192,6 +194,25 @@ export class HostedProvider implements ChainStateProvider {
       block: data.chainTip ?? 0,
       hash:  '',
     };
+  }
+
+  /**
+   * Full transaction body by TxPoW id (OMN-074).
+   *
+   * Axia proxies Minima commands through `/v1/wallet/rpc` (the same route
+   * `coinproof` and `tokens` use). If the hosted build does not expose `txpow`
+   * on that route, this returns null and callers must fail closed; the
+   * address-scoped `txpow_getHistory` route is not sufficient to prove that a
+   * specific coin was created by a specific transaction.
+   */
+  async getTransaction(txpowid: string): Promise<ChainTransaction | null> {
+    try {
+      const clean = sanitizeRpcParam(txpowid, 'txpowid');
+      const raw = await this.rpc<unknown>(`txpow txpowid:${clean}`);
+      return mapMinimaTransaction(clean, raw);
+    } catch {
+      return null;
+    }
   }
 
   /**

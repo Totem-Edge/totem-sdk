@@ -14812,950 +14812,6 @@
         }
       }
     },
-    "@totemsdk/vtxo": {
-      "symbols": {
-        "VtxoId": {
-          "kind": "type",
-          "signature": "export type VtxoId = string"
-        },
-        "VtxoStatus": {
-          "kind": "type",
-          "signature": "export type VtxoStatus = | 'active' | 'transferred' | 'split' | 'merged' | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid' /** * OMN-041: issued but not yet transferable. A VTXO i"
-        },
-        "VtxoOp": {
-          "kind": "type",
-          "signature": "export type VtxoOp = | 'mint' | 'transfer' | 'split' | 'merge' | 'refresh' | 'exit_initiated' | 'exit_complete' | 'spent'"
-        },
-        "VtxoPoolPolicy": {
-          "kind": "interface",
-          "signature": "export interface VtxoPoolPolicy"
-        },
-        "VtxoPoolMember": {
-          "kind": "interface",
-          "signature": "export interface VtxoPoolMember",
-          "doc": "One VTXO leaf committed by the pool's membership set (OMN-002)."
-        },
-        "VtxoEpochRoot": {
-          "kind": "interface",
-          "signature": "export interface VtxoEpochRoot",
-          "doc": "A published epoch root. The pool keeps every root it has published so a\nproof minted in an earlier epoch stays verifiable after later batches."
-        },
-        "VtxoPoolBacking": {
-          "kind": "interface",
-          "signature": "export interface VtxoPoolBacking",
-          "doc": "OMN-041: authoritative on-chain backing for a pool. Created only from a\nverified deposit; `amount` is in atoms."
-        },
-        "OmniaVtxoPool": {
-          "kind": "interface",
-          "signature": "export interface OmniaVtxoPool"
-        },
-        "VtxoProof": {
-          "kind": "interface",
-          "signature": "export interface VtxoProof"
-        },
-        "VtxoHistoryEntry": {
-          "kind": "interface",
-          "signature": "export interface VtxoHistoryEntry"
-        },
-        "OmniaVtxo": {
-          "kind": "interface",
-          "signature": "export interface OmniaVtxo"
-        },
-        "VtxoExitState": {
-          "kind": "type",
-          "signature": "export type VtxoExitState = 'broadcast' | 'confirmed' | 'settled'"
-        },
-        "VtxoTransfer": {
-          "kind": "interface",
-          "signature": "export interface VtxoTransfer"
-        },
-        "VtxoOperatorReceipt": {
-          "kind": "interface",
-          "signature": "export interface VtxoOperatorReceipt"
-        },
-        "CreatePoolParams": {
-          "kind": "interface",
-          "signature": "export interface CreatePoolParams"
-        },
-        "MintVtxoParams": {
-          "kind": "interface",
-          "signature": "export interface MintVtxoParams"
-        },
-        "TransferVtxoParams": {
-          "kind": "interface",
-          "signature": "export interface TransferVtxoParams"
-        },
-        "SplitVtxoParams": {
-          "kind": "interface",
-          "signature": "export interface SplitVtxoParams"
-        },
-        "MergeVtxosParams": {
-          "kind": "interface",
-          "signature": "export interface MergeVtxosParams"
-        },
-        "RefreshVtxoParams": {
-          "kind": "interface",
-          "signature": "export interface RefreshVtxoParams"
-        },
-        "MintResult": {
-          "kind": "interface",
-          "signature": "export interface MintResult"
-        },
-        "TransferResult": {
-          "kind": "interface",
-          "signature": "export interface TransferResult"
-        },
-        "SplitResult": {
-          "kind": "interface",
-          "signature": "export interface SplitResult"
-        },
-        "MergeResult": {
-          "kind": "interface",
-          "signature": "export interface MergeResult"
-        },
-        "RefreshResult": {
-          "kind": "interface",
-          "signature": "export interface RefreshResult"
-        },
-        "ExitDraft": {
-          "kind": "interface",
-          "signature": "export interface ExitDraft"
-        },
-        "VtxoExitEvidence": {
-          "kind": "interface",
-          "signature": "export interface VtxoExitEvidence",
-          "doc": "OMN-042: chain evidence for an exit transaction. Produced by a trusted\nverifier — never by the RPC caller."
-        },
-        "VtxoExitVerifier": {
-          "kind": "type",
-          "signature": "export type VtxoExitVerifier = (request: { vtxo: OmniaVtxo"
-        },
-        "VerifyVtxoResult": {
-          "kind": "interface",
-          "signature": "export interface VerifyVtxoResult"
-        },
-        "OmniaVtxoStore": {
-          "kind": "interface",
-          "signature": "export interface OmniaVtxoStore"
-        },
-        "OmniaVtxoOperator": {
-          "kind": "interface",
-          "signature": "export interface OmniaVtxoOperator"
-        },
-        "OmniaVtxoError": {
-          "kind": "class",
-          "signature": "export class OmniaVtxoError extends Error"
-        },
-        "VtxoAmountError": {
-          "kind": "class",
-          "signature": "export class VtxoAmountError extends OmniaVtxoError"
-        },
-        "VtxoStatusError": {
-          "kind": "class",
-          "signature": "export class VtxoStatusError extends OmniaVtxoError"
-        },
-        "VtxoOwnershipError": {
-          "kind": "class",
-          "signature": "export class VtxoOwnershipError extends OmniaVtxoError"
-        },
-        "VtxoProofError": {
-          "kind": "class",
-          "signature": "export class VtxoProofError extends OmniaVtxoError"
-        },
-        "VtxoPoolCapacityError": {
-          "kind": "class",
-          "signature": "export class VtxoPoolCapacityError extends OmniaVtxoError"
-        },
-        "VtxoPolicyError": {
-          "kind": "class",
-          "signature": "export class VtxoPolicyError extends OmniaVtxoError"
-        },
-        "VtxoMergeError": {
-          "kind": "class",
-          "signature": "export class VtxoMergeError extends OmniaVtxoError"
-        },
-        "VtxoSplitError": {
-          "kind": "class",
-          "signature": "export class VtxoSplitError extends OmniaVtxoError"
-        },
-        "VtxoExitError": {
-          "kind": "class",
-          "signature": "export class VtxoExitError extends OmniaVtxoError"
-        },
-        "EMPTY_LEAF": {
-          "kind": "const",
-          "signature": "EMPTY_LEAF = '0000000000000000000000000000000000000000000000000000000000000000'"
-        },
-        "EMPTY_TREE_ROOT": {
-          "kind": "const",
-          "signature": "EMPTY_TREE_ROOT = '0000000000000000000000000000000000000000000000000000000000000000'"
-        },
-        "EPOCH_ZERO": {
-          "kind": "const",
-          "signature": "EPOCH_ZERO = 0"
-        },
-        "DEFAULT_POLICY": {
-          "kind": "const",
-          "signature": "DEFAULT_POLICY = { minAmount: BigInt(1), maxAmount: BigInt(1_000_000_000_000_000), maxMergeInputs: 8, maxSplitOutputs: 8, exitTimelockSeconds: 86400, } as const"
-        },
-        "computeBatchCommitment": {
-          "kind": "function",
-          "signature": "computeBatchCommitment(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): string",
-          "doc": "Canonical batch commitment (RFC-038 §3.2): the operator signs this over the\npool, epoch, Merkle root, and the ordered VTXO ids in the batch."
-        },
-        "computeVtxoReceiptCommitment": {
-          "kind": "function",
-          "signature": "computeVtxoReceiptCommitment(receipt: { receiptId: string; poolId: string; op: string; inputIds: readonly string[]; outputIds: readonly string[]; epoch: number; at: number; }, root: string): string",
-          "doc": "Receipt commitment binds every semantically relevant receipt field."
-        },
-        "computeVtxoReceiptCommitmentBytes": {
-          "kind": "function",
-          "signature": "computeVtxoReceiptCommitmentBytes(receipt: Parameters<typeof computeVtxoReceiptCommitment>[0], root: string): Uint8Array"
-        },
-        "computeBatchCommitmentBytes": {
-          "kind": "function",
-          "signature": "computeBatchCommitmentBytes(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): Uint8Array",
-          "doc": "The 32-byte digest of a batch commitment, for signing."
-        },
-        "computeVtxoLeaf": {
-          "kind": "function",
-          "signature": "computeVtxoLeaf(vtxo: OmniaVtxo): string"
-        },
-        "computeVtxoId": {
-          "kind": "function",
-          "signature": "computeVtxoId(params: ComputeVtxoIdParams): string"
-        },
-        "computePoolId": {
-          "kind": "function",
-          "signature": "computePoolId(params: ComputePoolIdParams): string"
-        },
-        "computeCommitmentRoot": {
-          "kind": "function",
-          "signature": "computeCommitmentRoot(leaves: string[]): string"
-        },
-        "verifyMerkleProof": {
-          "kind": "function",
-          "signature": "verifyMerkleProof(leaf: string, proof: MerkleProofNode[], root: string): boolean"
-        },
-        "vtxoCommitmentMember": {
-          "kind": "function",
-          "signature": "vtxoCommitmentMember(vtxo: OmniaVtxo): VtxoCommitmentMember",
-          "doc": "Derive the commitment member record for a VTXO without changing its leaf."
-        },
-        "buildVtxoProofSetFromMembers": {
-          "kind": "function",
-          "signature": "buildVtxoProofSetFromMembers(members: readonly VtxoCommitmentMember[]): VtxoProofSet",
-          "doc": "Build one proof set over an existing membership set.\n\nSorting is by `vtxoId`, so appending a member never changes the position of\nan existing member relative to the others and the leaf of an existing VTXO\nis never recomputed (OMN-002)."
-        },
-        "buildVtxoProofSet": {
-          "kind": "function",
-          "signature": "buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet"
-        },
-        "computeReceiptId": {
-          "kind": "function",
-          "signature": "computeReceiptId(poolId: string, op: string, inputIds: string[], outputIds: string[], at: number): string"
-        },
-        "computeEpochCommitmentBytes": {
-          "kind": "function",
-          "signature": "computeEpochCommitmentBytes(poolId: string, epoch: number, root: string, receiptIds: readonly string[], inputIds: readonly string[]): Uint8Array",
-          "doc": "Operator-signed epoch record commitment (spend-state authority)."
-        },
-        "VTXO_ID_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1'",
-          "doc": "Domain-separated hash prefixes (#33) — a hash on one record cannot replay against another."
-        },
-        "VTXO_POOL_ID_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_POOL_ID_DOMAIN = 'totemsdk/omnia-vtxo/pool/v1'"
-        },
-        "VTXO_LEAF_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_LEAF_DOMAIN = 'totemsdk/omnia-vtxo/leaf/v1'"
-        },
-        "VTXO_RECEIPT_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1'"
-        },
-        "VTXO_RECEIPT_BINDING_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_RECEIPT_BINDING_DOMAIN = 'totemsdk/omnia-vtxo/receipt-binding/v1'"
-        },
-        "VTXO_BATCH_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1'"
-        },
-        "VTXO_EPOCH_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_EPOCH_DOMAIN = 'totemsdk/omnia-vtxo/epoch/v1'"
-        },
-        "ComputeVtxoIdParams": {
-          "kind": "interface",
-          "signature": "export interface ComputeVtxoIdParams"
-        },
-        "ComputePoolIdParams": {
-          "kind": "interface",
-          "signature": "export interface ComputePoolIdParams"
-        },
-        "MerkleProofNode": {
-          "kind": "interface",
-          "signature": "export interface MerkleProofNode"
-        },
-        "VtxoProofSet": {
-          "kind": "interface",
-          "signature": "export interface VtxoProofSet"
-        },
-        "VtxoCommitmentMember": {
-          "kind": "interface",
-          "signature": "export interface VtxoCommitmentMember",
-          "doc": "A leaf committed by a pool membership set."
-        },
-        "vtxoOperatorTreeId": {
-          "kind": "function",
-          "signature": "vtxoOperatorTreeId(poolId: string): string",
-          "doc": "Lease treeId for a pool's operator signatures."
-        },
-        "createVtxoOperator": {
-          "kind": "function",
-          "signature": "createVtxoOperator(options: VtxoOperatorOptions): VtxoOperatorWithIdentity"
-        },
-        "VtxoOperatorOptions": {
-          "kind": "interface",
-          "signature": "export interface VtxoOperatorOptions"
-        },
-        "VtxoOperatorWithIdentity": {
-          "kind": "interface",
-          "signature": "export interface VtxoOperatorWithIdentity extends OmniaVtxoOperator"
-        },
-        "buildVtxoReceiptPayload": {
-          "kind": "function",
-          "signature": "buildVtxoReceiptPayload(receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Uint8Array",
-          "doc": "Co-sign a receipt with the operator, after verifying the batch."
-        },
-        "signVtxoReceipt": {
-          "kind": "function",
-          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Promise<VtxoOperatorReceipt>"
-        },
-        "verifyVtxoReceipt": {
-          "kind": "function",
-          "signature": "verifyVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<boolean>",
-          "doc": "Verify a co-signed receipt against the operator and the batch root."
-        },
-        "verifyVtxoReceiptForPool": {
-          "kind": "function",
-          "signature": "verifyVtxoReceiptForPool(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, pool: Pick<OmniaVtxoPool, \"poolId\" | \"epoch\" | \"commitmentRoot\">): Promise<boolean>",
-          "doc": "Verify a receipt against the pool's current anchored state, not a\ncaller-supplied root. Rejects a receipt from another pool/epoch and requires\nthe pool's committed root to be present."
-        },
-        "VtxoReceiptBatch": {
-          "kind": "interface",
-          "signature": "export interface VtxoReceiptBatch",
-          "doc": "The batch the receipt belongs to — the operator's source of truth."
-        },
-        "buildPoolScript": {
-          "kind": "function",
-          "signature": "buildPoolScript(params: PoolScriptParams): string",
-          "doc": "Per-share-constrained, epoch-monotone, state-carrying pool script."
-        },
-        "poolScriptAddress": {
-          "kind": "function",
-          "signature": "poolScriptAddress(script: string): string"
-        },
-        "buildAndHashPoolScript": {
-          "kind": "function",
-          "signature": "buildAndHashPoolScript(params: PoolScriptParams): { script: string; address: string; }"
-        },
-        "POOL_SHARE_PORT_BASE": {
-          "kind": "const",
-          "signature": "POOL_SHARE_PORT_BASE = 128",
-          "doc": "State port base for per-holder shares: holder k ⇒ `base + k`. Kept below the\nMSHS-2 floor so Omnia ports never collide with MASH (ports are bytes, 0–255).\nSee RFC-048 §12 / RFC-049 §5."
-        },
-        "MSHS_PORT_FLOOR": {
-          "kind": "const",
-          "signature": "MSHS_PORT_FLOOR = 230",
-          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this.\nThe node installs the MASH authorization bundle at ports **230–255**\n(`bundleBase = 256 − (4 + k) = 230`): the header R / ROOTS_BLOB /\nSECRETS_BLOB / TREE_SIG at 230–233 and PROOF at 234–255. A composite\nMASH + Omnia coin must therefore keep Omnia ports ≤ 229."
-        },
-        "POOL_MAX_HOLDERS": {
-          "kind": "const",
-          "signature": "POOL_MAX_HOLDERS = MSHS_PORT_FLOOR - POOL_SHARE_PORT_BASE",
-          "doc": "Maximum holders whose share ports remain below the MSHS floor."
-        },
-        "PoolScriptParams": {
-          "kind": "interface",
-          "signature": "export interface PoolScriptParams"
-        },
-        "ownerAddressFor": {
-          "kind": "function",
-          "signature": "ownerAddressFor(ownerPk: string): string",
-          "doc": "Derive the committed payout address from an owner public-key digest."
-        },
-        "buildOwnerPoolScript": {
-          "kind": "function",
-          "signature": "buildOwnerPoolScript(): string",
-          "doc": "The transferable owner-pool script. State ports 100–104 are the only state;\nthere are no fixed holder constants."
-        },
-        "buildOwnerPoolState": {
-          "kind": "function",
-          "signature": "buildOwnerPoolState(state: OwnerPoolState): StateValue[]"
-        },
-        "ownerPoolAddress": {
-          "kind": "function",
-          "signature": "ownerPoolAddress(): string"
-        },
-        "buildOwnerTransferDraft": {
-          "kind": "function",
-          "signature": "buildOwnerTransferDraft(params: OwnerTransferParams): OmniaTxDraft",
-          "doc": "Build the transfer transaction: same script address, same amount/token,\nnew owner state and a higher epoch."
-        },
-        "buildOwnerExitDraft": {
-          "kind": "function",
-          "signature": "buildOwnerExitDraft(params: OwnerExitParams): OmniaTxDraft",
-          "doc": "Build the unilateral exit: full amount to the committed owner address."
-        },
-        "buildOwnerTransferTransaction": {
-          "kind": "function",
-          "signature": "buildOwnerTransferTransaction(params: OwnerTransferParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
-          "doc": "Sign and assemble the owner-rotation transfer transaction."
-        },
-        "buildOwnerExitTransaction": {
-          "kind": "function",
-          "signature": "buildOwnerExitTransaction(params: OwnerExitParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
-          "doc": "Sign and assemble the unilateral owner exit transaction."
-        },
-        "OWNER_POOL_ROOT_PORT": {
-          "kind": "const",
-          "signature": "OWNER_POOL_ROOT_PORT = 100"
-        },
-        "OWNER_POOL_EPOCH_PORT": {
-          "kind": "const",
-          "signature": "OWNER_POOL_EPOCH_PORT = 101"
-        },
-        "OWNER_POOL_EXIT_BLOCK_PORT": {
-          "kind": "const",
-          "signature": "OWNER_POOL_EXIT_BLOCK_PORT = 102"
-        },
-        "OWNER_POOL_PK_PORT": {
-          "kind": "const",
-          "signature": "OWNER_POOL_PK_PORT = 103"
-        },
-        "OWNER_POOL_ADDR_PORT": {
-          "kind": "const",
-          "signature": "OWNER_POOL_ADDR_PORT = 104"
-        },
-        "OwnerPoolState": {
-          "kind": "interface",
-          "signature": "export interface OwnerPoolState"
-        },
-        "OwnerPoolCoin": {
-          "kind": "interface",
-          "signature": "export interface OwnerPoolCoin"
-        },
-        "OwnerTransferParams": {
-          "kind": "interface",
-          "signature": "export interface OwnerTransferParams"
-        },
-        "OwnerExitParams": {
-          "kind": "interface",
-          "signature": "export interface OwnerExitParams"
-        },
-        "OwnerPoolTxDeps": {
-          "kind": "interface",
-          "signature": "export interface OwnerPoolTxDeps"
-        },
-        "OwnerPoolTxResult": {
-          "kind": "interface",
-          "signature": "export interface OwnerPoolTxResult"
-        },
-        "openEpochAuthority": {
-          "kind": "function",
-          "signature": "openEpochAuthority(adapter: StorageAdapterWithCapabilities & CasStore, options: EpochAuthorityOptions & { namespace?: string; requireAckMode?: \"durably-acknowledged\" | \"volatile\"; }): Promise<EpochAuthority>",
-          "doc": "Open an epoch authority over a storage adapter (journal recovery on open)."
-        },
-        "EpochRecord": {
-          "kind": "interface",
-          "signature": "export interface EpochRecord"
-        },
-        "EpochPublished": {
-          "kind": "interface",
-          "signature": "export interface EpochPublished"
-        },
-        "EpochEvent": {
-          "kind": "type",
-          "signature": "export type EpochEvent = EpochRecord | EpochPublished"
-        },
-        "EpochAuthorityOptions": {
-          "kind": "interface",
-          "signature": "export interface EpochAuthorityOptions"
-        },
-        "EpochAuthorityState": {
-          "kind": "interface",
-          "signature": "export interface EpochAuthorityState"
-        },
-        "EpochRecovery": {
-          "kind": "interface",
-          "signature": "export interface EpochRecovery"
-        },
-        "EpochAuthority": {
-          "kind": "class",
-          "signature": "export class EpochAuthority"
-        },
-        "poolStateVariables": {
-          "kind": "function",
-          "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number, shares?: bigint[]): StateValue[]",
-          "doc": "Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k."
-        },
-        "buildBatchAnchorDraft": {
-          "kind": "function",
-          "signature": "buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft",
-          "doc": "Build the batch-anchor draft (input = pool coin, output = pool state output)."
-        },
-        "batchAnchorDigest": {
-          "kind": "function",
-          "signature": "batchAnchorDigest(draft: OmniaTxDraft): Uint8Array"
-        },
-        "anchorBatch": {
-          "kind": "function",
-          "signature": "anchorBatch(params: BatchAnchorParams, deps: BatchAnchorDeps): Promise<BatchAnchorResult>",
-          "doc": "Sign (and, when a chain provider is given, mine + broadcast) a batch anchor."
-        },
-        "checkPoolFunding": {
-          "kind": "function",
-          "signature": "checkPoolFunding(coinId: string, expected: PoolFundingExpectation, chainProvider: ChainStateProvider, options?: { verifyProof?: (proof: unknown, coinId: string) => boolean; requireVerified?: boolean; }): Promise<PoolFundingCheck>",
-          "doc": "Check that the pool's on-chain coin exists, matches the expected\n(address, amount, token), is unspent, and that the node serves an MMR proof.\n\nNOTE: this is a **presence/shape check**, not a cryptographic proof\nverification, unless a `verifyProof` callback is supplied — see\n`PoolFundingCheck.proofVerified`."
-        },
-        "BatchAnchorParams": {
-          "kind": "interface",
-          "signature": "export interface BatchAnchorParams"
-        },
-        "BatchAnchorDeps": {
-          "kind": "interface",
-          "signature": "export interface BatchAnchorDeps"
-        },
-        "BatchAnchorResult": {
-          "kind": "interface",
-          "signature": "export interface BatchAnchorResult"
-        },
-        "PoolFundingExpectation": {
-          "kind": "interface",
-          "signature": "export interface PoolFundingExpectation"
-        },
-        "PoolFundingCheck": {
-          "kind": "interface",
-          "signature": "export interface PoolFundingCheck"
-        },
-        "buildExitTransactionDraft": {
-          "kind": "function",
-          "signature": "buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft",
-          "doc": "Draft that spends the pool coin: output 0 = holder's share, remainder = pool."
-        },
-        "exitTransactionDigest": {
-          "kind": "function",
-          "signature": "exitTransactionDigest(draft: OmniaTxDraft): Uint8Array"
-        },
-        "exitTransactionHex": {
-          "kind": "function",
-          "signature": "exitTransactionHex(draft: OmniaTxDraft): string"
-        },
-        "buildExitTransaction": {
-          "kind": "function",
-          "signature": "buildExitTransaction(params: ExitTxParams, deps: ExitTxDeps): Promise<ExitTxResult>",
-          "doc": "Build, sign (and optionally mine + broadcast) a per-share VTXO exit transaction."
-        },
-        "EXIT_DELAY_PORT": {
-          "kind": "const",
-          "signature": "EXIT_DELAY_PORT = 110",
-          "doc": "State port carrying an optional exit delay on the holder's output."
-        },
-        "ExitTxParams": {
-          "kind": "interface",
-          "signature": "export interface ExitTxParams"
-        },
-        "ExitTxDeps": {
-          "kind": "interface",
-          "signature": "export interface ExitTxDeps"
-        },
-        "ExitTxResult": {
-          "kind": "interface",
-          "signature": "export interface ExitTxResult"
-        },
-        "createPool": {
-          "kind": "function",
-          "signature": "createPool(params: CreatePoolParams, now: number): OmniaVtxoPool"
-        },
-        "assertPoolCanMint": {
-          "kind": "function",
-          "signature": "assertPoolCanMint(pool: OmniaVtxoPool, amount: bigint): void"
-        },
-        "updatePoolRoot": {
-          "kind": "function",
-          "signature": "updatePoolRoot(pool: OmniaVtxoPool, root: string): OmniaVtxoPool"
-        },
-        "advancePoolEpoch": {
-          "kind": "function",
-          "signature": "advancePoolEpoch(pool: OmniaVtxoPool, newEpoch: number): OmniaVtxoPool"
-        },
-        "commitPoolMembers": {
-          "kind": "function",
-          "signature": "commitPoolMembers(pool: OmniaVtxoPool, vtxos: readonly OmniaVtxo[], options?: CommitPoolMembersOptions): CommitPoolMembersResult",
-          "doc": "Append VTXOs to the pool's membership set and rebuild the commitment tree\n(OMN-002).\n\nThe pool's `commitmentRoot` commits to the whole set (`members`), not to a\nsingle leaf: appending a member never removes an earlier member, and the\nprevious root is retained in `epochRoots` so proofs issued in earlier epochs\nstay verifiable. Every batch advances `epoch`; `batchId` tracks the root.\n\nIdempotent for a member already present with the same leaf; a conflicting\nleaf for an existing `vtxoId` is rejected."
-        },
-        "poolPublishedRoots": {
-          "kind": "function",
-          "signature": "poolPublishedRoots(pool: OmniaVtxoPool): string[]",
-          "doc": "Every root the pool has published (current + historical epochs)."
-        },
-        "poolEpochRoot": {
-          "kind": "function",
-          "signature": "poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined",
-          "doc": "The published epoch record for `epoch`, if the pool has one."
-        },
-        "transitionPoolMembers": {
-          "kind": "function",
-          "signature": "transitionPoolMembers(pool: OmniaVtxoPool, params: { consume: readonly string[]; add: readonly OmniaVtxo[]; epoch?: number; }): { pool: OmniaVtxoPool; proofs: Record<string, VtxoProof>; }",
-          "doc": "OMN-055: atomically consume members and add replacement members, publishing a\nnew root at the target epoch. Transfer and refresh outputs become real pool\nmembers only through this transition."
-        },
-        "CommitPoolMembersOptions": {
-          "kind": "interface",
-          "signature": "export interface CommitPoolMembersOptions"
-        },
-        "CommitPoolMembersResult": {
-          "kind": "interface",
-          "signature": "export interface CommitPoolMembersResult"
-        },
-        "isVtxoActive": {
-          "kind": "function",
-          "signature": "isVtxoActive(vtxo: OmniaVtxo): boolean"
-        },
-        "mintVtxo": {
-          "kind": "function",
-          "signature": "mintVtxo(pool: OmniaVtxoPool, params: MintVtxoParams, now?: number): MintResult",
-          "doc": "Mints a new VTXO against a pool."
-        },
-        "markVtxoSpent": {
-          "kind": "function",
-          "signature": "markVtxoSpent(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
-          "doc": "Marks an active VTXO as spent."
-        },
-        "transferVtxo": {
-          "kind": "function",
-          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number, options?: TransferVtxoOptions): TransferOutcome"
-        },
-        "transferVtxoWithExit": {
-          "kind": "function",
-          "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferOutcome & { exitEntitlement: VtxoExitEntitlement; }>",
-          "doc": "V1 transfer: build the *recipient's* independent exit before moving the\nclaim, then transfer only if the rebuilt entitlement verifies against the\noutput VTXO (OMN-003).\n\n`exitParams` describes the pool coin and holder share set for the input.\nThe helper rebinds it to the recipient: the holder at `holderIndex` becomes\nthe recipient, the exit VTXO becomes the output and the root/epoch become\nthe output's proof root/epoch. The exit transaction therefore pays the\nrecipient, not the previous owner."
-        },
-        "TransferVtxoOptions": {
-          "kind": "interface",
-          "signature": "export interface TransferVtxoOptions",
-          "doc": "OMN-025: an entitlement supplied by a peer must carry a witness the caller can\nverify. Set `allowUnverifiedExit` only for entitlements this process built."
-        },
-        "transferVtxoWithEntitlement": {
-          "kind": "const",
-          "signature": "transferVtxoWithEntitlement = transferVtxoWithExit",
-          "doc": "Alias for {@link transferVtxoWithExit}: derive a fresh entitlement for the recipient."
-        },
-        "splitVtxo": {
-          "kind": "function",
-          "signature": "splitVtxo(vtxo: OmniaVtxo, params: SplitVtxoParams, now?: number): SplitResult & { receipt: VtxoOperatorReceipt; }",
-          "doc": "Splits a VTXO into multiple outputs."
-        },
-        "mergeVtxos": {
-          "kind": "function",
-          "signature": "mergeVtxos(vtxos: OmniaVtxo[], params: MergeVtxosParams, now?: number): MergeResult & { receipt: VtxoOperatorReceipt; }",
-          "doc": "Merges multiple VTXOs into one."
-        },
-        "refreshVtxo": {
-          "kind": "function",
-          "signature": "refreshVtxo(vtxo: OmniaVtxo, params: RefreshVtxoParams, now?: number): RefreshResult & { receipt: VtxoOperatorReceipt; }",
-          "doc": "Refreshes a VTXO to a new epoch."
-        },
-        "markExiting": {
-          "kind": "function",
-          "signature": "markExiting(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
-          "doc": "Transitions an active VTXO to 'exiting' status."
-        },
-        "markExitBroadcast": {
-          "kind": "function",
-          "signature": "markExitBroadcast(vtxo: OmniaVtxo, options: { txpowId: string; now?: number; }): OmniaVtxo",
-          "doc": "Record that an exit transaction exists. This is bookkeeping only: it does not\nclaim the transaction is confirmed or that it pays the right party."
-        },
-        "markExitConfirmed": {
-          "kind": "function",
-          "signature": "markExitConfirmed(vtxo: OmniaVtxo, options: { txpowId: string; verify: (input: ExitConfirmationInput) => Promise<ExitConfirmationEvidence> | ExitConfirmationEvidence; now?: number; }): Promise<OmniaVtxo>",
-          "doc": "Record chain confirmation of the exit, from an authoritative verifier.\n\nThe verifier is required: without one there is nothing to distinguish a real\nconfirmation from a caller asserting one."
-        },
-        "markExitSettled": {
-          "kind": "function",
-          "signature": "markExitSettled(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; now?: number; }): OmniaVtxo",
-          "doc": "Final transition: the exit is settled and the VTXO is no longer a claim on\nthe pool. Requires a prior confirmation, or explicit evidence for the callers\nthat verified settlement in another layer."
-        },
-        "markExited": {
-          "kind": "function",
-          "signature": "markExited(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; trusted?: boolean; now?: number; }): OmniaVtxo",
-          "doc": "One-step exit completion.\n\nOMN-089: this is a **trusted reducer**. It now requires either chain evidence\n(`evidence.confirmed`) or an explicit `trusted: true` declaration — a bare\ntransaction id is no longer enough to mark a VTXO as exited. Callers that\nverified settlement elsewhere (for example the pool payout path, which checks\nfinality before calling) pass `trusted: true` and own that assertion."
-        },
-        "createMemoryExitDraftStore": {
-          "kind": "function",
-          "signature": "createMemoryExitDraftStore(): VtxoExitDraftStore",
-          "doc": "Default in-process store. Inject a durable one to survive a restart."
-        },
-        "buildExitDraft": {
-          "kind": "function",
-          "signature": "buildExitDraft(vtxo: OmniaVtxo, now?: number): { draft: ExitDraft; receipt: VtxoOperatorReceipt; }",
-          "doc": "The pure draft builder. Does **not** reserve anything — use `createExitDraft`."
-        },
-        "createExitDraft": {
-          "kind": "function",
-          "signature": "createExitDraft(vtxo: OmniaVtxo, store: VtxoExitDraftStore, now?: number): Promise<ExitDraftReservation & { created: boolean; }>",
-          "doc": "Create **and reserve** an exit draft (OMN-088).\n\nThe VTXO's receipt is consumed by the reservation, and a repeat request\nreturns the original draft rather than producing a competing one. The store\nis required: a draft that nobody reserved was the double-exit hole."
-        },
-        "consumeExitReceipt": {
-          "kind": "function",
-          "signature": "consumeExitReceipt(vtxo: OmniaVtxo, receiptId: string, now?: number): OmniaVtxo",
-          "doc": "Consume a VTXO's exit receipt — the single-spend marker that prevents a\nsecond exit draft for the same VTXO. Returns the updated VTXO."
-        },
-        "exitProgress": {
-          "kind": "function",
-          "signature": "exitProgress(vtxo: OmniaVtxo): VtxoExitState | undefined",
-          "doc": "Narrow a VTXO's exit progress. `undefined` means no exit has been recorded."
-        },
-        "ExitConfirmationInput": {
-          "kind": "interface",
-          "signature": "export interface ExitConfirmationInput"
-        },
-        "ExitConfirmationEvidence": {
-          "kind": "interface",
-          "signature": "export interface ExitConfirmationEvidence",
-          "doc": "What a chain verifier observed for an exit transaction. A verifier that\ncannot see the transaction must return `confirmed: false`."
-        },
-        "ExitDraftReservation": {
-          "kind": "interface",
-          "signature": "export interface ExitDraftReservation"
-        },
-        "VtxoExitDraftStore": {
-          "kind": "interface",
-          "signature": "export interface VtxoExitDraftStore"
-        },
-        "verifyVtxo": {
-          "kind": "function",
-          "signature": "verifyVtxo(vtxo: OmniaVtxo, options?: VerifyVtxoOptions): VerifyVtxoResult"
-        },
-        "verifyVtxoMembership": {
-          "kind": "function",
-          "signature": "verifyVtxoMembership(vtxo: OmniaVtxo, pool: OmniaVtxoPool): VerifyVtxoResult",
-          "doc": "Anchor a VTXO proof to a pool: the proof must be present, its root must be\na root the pool published, and (when the pool records membership) the VTXO\nmust be a member with the matching leaf.\n\nAccepts historical epoch roots, so a VTXO minted in an earlier epoch remains\nverifiable after later batches (OMN-002 + OMN-010)."
-        },
-        "verifyVtxoProof": {
-          "kind": "function",
-          "signature": "verifyVtxoProof(vtxo: OmniaVtxo, proof: VtxoProof): VerifyVtxoResult"
-        },
-        "verifyVtxoTransfer": {
-          "kind": "function",
-          "signature": "verifyVtxoTransfer(input: OmniaVtxo, output: OmniaVtxo, transfer: VtxoTransfer): VerifyVtxoResult"
-        },
-        "verifyConservation": {
-          "kind": "function",
-          "signature": "verifyConservation(params: ConservationInput): VerifyVtxoResult",
-          "doc": "Verifies amount conservation across a set of inputs and outputs.\n\nDefault mode (`'lte'`): `sum(outputs) <= sum(inputs)` — allows exits, fees, and burn flows.\nStrict mode (`'strict'`): `sum(outputs) === sum(inputs)` — required for transfer, split, merge.\n\nAlways requires: same `poolId` and `tokenId` across all inputs and outputs."
-        },
-        "VerifyVtxoOptions": {
-          "kind": "interface",
-          "signature": "export interface VerifyVtxoOptions"
-        },
-        "ConservationInput": {
-          "kind": "interface",
-          "signature": "export interface ConservationInput"
-        },
-        "MemoryOmniaVtxoStore": {
-          "kind": "class",
-          "signature": "export class MemoryOmniaVtxoStore implements OmniaVtxoStore"
-        },
-        "createDurableOmniaVtxoStore": {
-          "kind": "function",
-          "signature": "createDurableOmniaVtxoStore(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableOmniaVtxoStoreOptions): DurableOmniaVtxoStore"
-        },
-        "OmniaVtxoRegistryState": {
-          "kind": "interface",
-          "signature": "export interface OmniaVtxoRegistryState"
-        },
-        "DurableOmniaVtxoStoreOptions": {
-          "kind": "interface",
-          "signature": "export interface DurableOmniaVtxoStoreOptions"
-        },
-        "DurableOmniaVtxoStore": {
-          "kind": "interface",
-          "signature": "export interface DurableOmniaVtxoStore extends OmniaVtxoStore"
-        },
-        "serializeVtxo": {
-          "kind": "function",
-          "signature": "serializeVtxo(vtxo: OmniaVtxo): string"
-        },
-        "deserializeVtxo": {
-          "kind": "function",
-          "signature": "deserializeVtxo(json: string): OmniaVtxo"
-        },
-        "serializePool": {
-          "kind": "function",
-          "signature": "serializePool(pool: OmniaVtxoPool): string"
-        },
-        "deserializePool": {
-          "kind": "function",
-          "signature": "deserializePool(json: string): OmniaVtxoPool"
-        },
-        "buildVtxoTransferIntent": {
-          "kind": "function",
-          "signature": "buildVtxoTransferIntent(vtxo: OmniaVtxo, recipient: string, amount: bigint, nonce: string, changeNonce?: string): VtxoTransferIntent"
-        },
-        "buildVtxoExitIntent": {
-          "kind": "function",
-          "signature": "buildVtxoExitIntent(vtxo: OmniaVtxo): VtxoExitIntent"
-        },
-        "VtxoTransferIntent": {
-          "kind": "interface",
-          "signature": "export interface VtxoTransferIntent"
-        },
-        "VtxoExitIntent": {
-          "kind": "interface",
-          "signature": "export interface VtxoExitIntent"
-        },
-        "verifyClaimPolicy": {
-          "kind": "function",
-          "signature": "verifyClaimPolicy(policy: VtxoClaimPolicy, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult",
-          "doc": "Verify the VTXO binding, then evaluate the pure claim policy.\n\nBinding is deliberately enforced here, not in `@totemsdk/claim`: a policy\nbound to `poolId`/`tokenId` must not be evaluated against another pool or\nasset. The generic evaluator knows nothing about VTXO pools."
-        },
-        "claimPolicyOf": {
-          "kind": "function",
-          "signature": "claimPolicyOf(vtxo: OmniaVtxo): VtxoClaimPolicy",
-          "doc": "Resolve the policy attached to a VTXO, defaulting to its single owner."
-        },
-        "computeVtxoClaimPreimage": {
-          "kind": "function",
-          "signature": "computeVtxoClaimPreimage(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, signer: string): Uint8Array",
-          "doc": "The canonical bytes a claimant must sign. Binds the VTXO identity, the\nclaimed signer, the policy context (block, path, scope, HTLC, preimage) and\nthe vesting amount so a signature cannot be replayed in another context."
-        },
-        "verifyVtxoClaimSignatures": {
-          "kind": "function",
-          "signature": "verifyVtxoClaimSignatures(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, verifySignature: VtxoClaimSignatureVerifier): Promise<{ valid: boolean; signers: string[]; errors: string[]; }>",
-          "doc": "Verify every supplied signature over its canonical claim preimage and return\nthe identities actually backed by a valid signature.\n\nThis is deliberately separate from {@link verifyClaimPolicy}: the policy\ndecides *who* may claim; this decides *whether they proved it*."
-        },
-        "verifyVtxoClaim": {
-          "kind": "function",
-          "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext, options: VerifyVtxoClaimOptions): Promise<VtxoClaimResult>",
-          "doc": "Authoritative claim verification.\n\nRequires cryptographic signature proof for the claimed signer(s) — a bare\n`witness.signers` list is rejected. The policy is then evaluated with only\nthe verified signer identities. Callers must supply a real signature\nverifier (e.g. WOTS verification against the signer's public key) and, on\nthe authoritative path, the chain tip so a caller-chosen future block is\nrejected (OMN-007)."
-        },
-        "ClaimContext": {
-          "kind": "interface",
-          "signature": "export interface ClaimContext"
-        },
-        "ClaimPolicy": {
-          "kind": "type",
-          "signature": "export type ClaimPolicy = SingleClaimPolicy | ThresholdClaimPolicy | ConditionalClaimPolicy | DvpClaimPolicy | DelegatedClaimPolicy | RotationClaimPolicy | VestingClaimPolicy | RecoveryClaimPolicy | C"
-        },
-        "ClaimResult": {
-          "kind": "interface",
-          "signature": "export interface ClaimResult"
-        },
-        "ClaimSignature": {
-          "kind": "interface",
-          "signature": "export interface ClaimSignature",
-          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
-        },
-        "ClaimSignatureProof": {
-          "kind": "interface",
-          "signature": "export interface ClaimSignatureProof"
-        },
-        "ClaimSignatureVerifier": {
-          "kind": "type",
-          "signature": "export type ClaimSignatureVerifier = (proof: ClaimSignatureProof) => boolean | Promise<boolean>",
-          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
-        },
-        "ClaimWitness": {
-          "kind": "interface",
-          "signature": "export interface ClaimWitness"
-        },
-        "VerifyClaimOptions": {
-          "kind": "interface",
-          "signature": "export interface VerifyClaimOptions"
-        },
-        "VestingSchedule": {
-          "kind": "interface",
-          "signature": "export interface VestingSchedule",
-          "doc": "Vesting schedule arithmetic.\n\nThe schedule is intentionally pure and chain-agnostic: the caller supplies the\nevaluation block. Integer division floors, so a vested amount is never rounded\nup. The KISSVM script templates in `@totemsdk/kissvm` implement the same\nrelease curve on-chain."
-        },
-        "VtxoPolicyBinding": {
-          "kind": "interface",
-          "signature": "export interface VtxoPolicyBinding"
-        },
-        "VtxoClaimPolicy": {
-          "kind": "type",
-          "signature": "export type VtxoClaimPolicy = ClaimPolicy & { binding?: VtxoPolicyBinding }",
-          "doc": "A generic claim policy plus an optional VTXO pool/token binding."
-        },
-        "VtxoClaimWitness": {
-          "kind": "type",
-          "signature": "export type VtxoClaimWitness = ClaimWitness"
-        },
-        "VtxoClaimSignature": {
-          "kind": "type",
-          "signature": "export type VtxoClaimSignature = ClaimSignature"
-        },
-        "VtxoClaimSignatureProof": {
-          "kind": "type",
-          "signature": "export type VtxoClaimSignatureProof = ClaimSignatureProof"
-        },
-        "VtxoClaimSignatureVerifier": {
-          "kind": "type",
-          "signature": "export type VtxoClaimSignatureVerifier = ClaimSignatureVerifier"
-        },
-        "VerifyVtxoClaimOptions": {
-          "kind": "type",
-          "signature": "export type VerifyVtxoClaimOptions = VerifyClaimOptions"
-        },
-        "VtxoClaimContext": {
-          "kind": "type",
-          "signature": "export type VtxoClaimContext = ClaimContext"
-        },
-        "VtxoVestingSchedule": {
-          "kind": "type",
-          "signature": "export type VtxoVestingSchedule = VestingSchedule"
-        },
-        "VtxoClaimResult": {
-          "kind": "type",
-          "signature": "export type VtxoClaimResult = ClaimResult"
-        },
-        "VTXO_CLAIM_PREIMAGE_DOMAIN": {
-          "kind": "const",
-          "signature": "VTXO_CLAIM_PREIMAGE_DOMAIN = 'totemsdk/omnia-vtxo/claim/v1'",
-          "doc": "Domain separator for the canonical VTXO claim preimage."
-        },
-        "distributeYield": {
-          "kind": "function",
-          "signature": "distributeYield(total: bigint, weights: Record<string, bigint>): Record<string, bigint>",
-          "doc": "Deterministic pro-rata yield distribution for multiparty VTXO/pool claims."
-        },
-        "createVtxoExitEntitlement": {
-          "kind": "function",
-          "signature": "createVtxoExitEntitlement(params: ExitTxParams, result: ExitTxResult): VtxoExitEntitlement"
-        },
-        "verifyVtxoExitEntitlement": {
-          "kind": "function",
-          "signature": "verifyVtxoExitEntitlement(entitlement: VtxoExitEntitlement, vtxo: OmniaVtxo, options?: VerifyExitEntitlementOptions): ExitEntitlementVerification"
-        },
-        "VtxoExitEntitlement": {
-          "kind": "interface",
-          "signature": "export interface VtxoExitEntitlement"
-        },
-        "ExitEntitlementVerification": {
-          "kind": "interface",
-          "signature": "export interface ExitEntitlementVerification"
-        },
-        "VerifyExitEntitlementOptions": {
-          "kind": "interface",
-          "signature": "export interface VerifyExitEntitlementOptions",
-          "doc": "OMN-025: witness verification needs the signing key material, which an\nentitlement cannot carry. Callers therefore supply a verifier; without one,\nan untrusted entitlement is rejected rather than accepted on shape alone."
-        }
-      }
-    },
     "@totemsdk/p2p-hub": {
       "symbols": {
         "deriveTopicKey": {
@@ -21889,6 +20945,92 @@
           "signature": "buildMinimaWitnessBytes(signatures: TreeSignature[]): Uint8Array",
           "doc": "Canonical Minima witness serializer for TreeKey signers (RFC-009).\n\nEmits the signatures section as a list of Minima `Signature` objects — each\nserialized via `serializeTreeSignature`, byte-identical to Java\n`Signature.writeDataStream()` — followed by the empty coin-proof and script\nsections:\n\n  `[MiniNumber(count)][Signature…][MiniNumber(0)][MiniNumber(0)]`\n\nThis is the witness shape a Minima node expects for a cooperative\n`MULTISIG`/`SIGNEDBY` spend when the signers are TreeKey roots. It is the\nsingle source of truth shared by `@totemsdk/statechain`."
         },
+        "draftOutputCoinIds": {
+          "kind": "function",
+          "signature": "draftOutputCoinIds(draft: TxDraft): string[]",
+          "doc": "Derive the coin IDs that a draft's outputs will have on chain."
+        },
+        "draftToCanonicalMinimaBytes": {
+          "kind": "function",
+          "signature": "draftToCanonicalMinimaBytes(draft: TxDraft): Uint8Array",
+          "doc": "Serialize a draft to canonical Minima transaction bytes."
+        },
+        "draftToMinimaBytes": {
+          "kind": "function",
+          "signature": "draftToMinimaBytes(draft: TxDraft): Uint8Array",
+          "doc": "Alias used by call sites that describe the operation as \"draft to bytes\"."
+        },
+        "computeDraftDigest": {
+          "kind": "function",
+          "signature": "computeDraftDigest(draft: TxDraft): Uint8Array",
+          "doc": "The digest that is WOTS-signed for a state transaction."
+        },
+        "serializeDraft": {
+          "kind": "function",
+          "signature": "serializeDraft(draft: TxDraft): string",
+          "doc": "BigInt-safe JSON/hex draft serialization for storage and transport."
+        },
+        "deserializeDraft": {
+          "kind": "function",
+          "signature": "deserializeDraft(hex: string): TxDraft"
+        },
+        "computeDraftJsonDigest": {
+          "kind": "function",
+          "signature": "computeDraftJsonDigest(draft: TxDraft): Uint8Array",
+          "doc": "Legacy/test-only JSON draft digest. Production signatures must use computeDraftDigest()."
+        },
+        "serializeDraftWitness": {
+          "kind": "function",
+          "signature": "serializeDraftWitness(options: WitnessOptions): Uint8Array",
+          "doc": "Serialize the signatures, coin proofs and script proofs for broadcast."
+        },
+        "assertBroadcastProofs": {
+          "kind": "function",
+          "signature": "assertBroadcastProofs(proofs?: Partial<WitnessProofs>): asserts proofs is WitnessProofs"
+        },
+        "COINID_OUTPUT": {
+          "kind": "const",
+          "signature": "COINID_OUTPUT = '0x00'",
+          "doc": "Sentinel coin ID for an output that is referenced by index."
+        },
+        "COINID_ELTOO": {
+          "kind": "const",
+          "signature": "COINID_ELTOO = '0x01'",
+          "doc": "Sentinel coin ID used by the eltoo/state-coin base input."
+        },
+        "TxDraftInput": {
+          "kind": "interface",
+          "signature": "export interface TxDraftInput"
+        },
+        "TxDraftOutput": {
+          "kind": "interface",
+          "signature": "export interface TxDraftOutput"
+        },
+        "TxDraft": {
+          "kind": "interface",
+          "signature": "export interface TxDraft"
+        },
+        "computeLegacyDraftDigest": {
+          "kind": "const",
+          "signature": "computeLegacyDraftDigest = computeDraftJsonDigest"
+        },
+        "serializeTxDraft": {
+          "kind": "const",
+          "signature": "serializeTxDraft = serializeDraft",
+          "doc": "Compatibility aliases for callers migrating from `@totemsdk/omnia`."
+        },
+        "deserializeTxDraft": {
+          "kind": "const",
+          "signature": "deserializeTxDraft = deserializeDraft"
+        },
+        "WitnessProofs": {
+          "kind": "interface",
+          "signature": "export interface WitnessProofs"
+        },
+        "WitnessOptions": {
+          "kind": "interface",
+          "signature": "export interface WitnessOptions extends WitnessProofs"
+        },
         "serializeTransactionHex": {
           "kind": "function",
           "signature": "serializeTransactionHex(tx: MinimaTransaction): string",
@@ -22521,6 +21663,950 @@
         "VerifyWorkAdmissionOptions": {
           "kind": "interface",
           "signature": "export interface VerifyWorkAdmissionOptions"
+        }
+      }
+    },
+    "@totemsdk/vtxo": {
+      "symbols": {
+        "VtxoId": {
+          "kind": "type",
+          "signature": "export type VtxoId = string"
+        },
+        "VtxoStatus": {
+          "kind": "type",
+          "signature": "export type VtxoStatus = | 'active' | 'transferred' | 'split' | 'merged' | 'refreshed' | 'exiting' | 'exited' | 'spent' | 'expired' | 'invalid' /** * OMN-041: issued but not yet transferable. A VTXO i"
+        },
+        "VtxoOp": {
+          "kind": "type",
+          "signature": "export type VtxoOp = | 'mint' | 'transfer' | 'split' | 'merge' | 'refresh' | 'exit_initiated' | 'exit_complete' | 'spent'"
+        },
+        "VtxoPoolPolicy": {
+          "kind": "interface",
+          "signature": "export interface VtxoPoolPolicy"
+        },
+        "VtxoPoolMember": {
+          "kind": "interface",
+          "signature": "export interface VtxoPoolMember",
+          "doc": "One VTXO leaf committed by the pool's membership set (OMN-002)."
+        },
+        "VtxoEpochRoot": {
+          "kind": "interface",
+          "signature": "export interface VtxoEpochRoot",
+          "doc": "A published epoch root. The pool keeps every root it has published so a\nproof minted in an earlier epoch stays verifiable after later batches."
+        },
+        "VtxoPoolBacking": {
+          "kind": "interface",
+          "signature": "export interface VtxoPoolBacking",
+          "doc": "OMN-041: authoritative on-chain backing for a pool. Created only from a\nverified deposit; `amount` is in atoms."
+        },
+        "OmniaVtxoPool": {
+          "kind": "interface",
+          "signature": "export interface OmniaVtxoPool"
+        },
+        "VtxoProof": {
+          "kind": "interface",
+          "signature": "export interface VtxoProof"
+        },
+        "VtxoHistoryEntry": {
+          "kind": "interface",
+          "signature": "export interface VtxoHistoryEntry"
+        },
+        "OmniaVtxo": {
+          "kind": "interface",
+          "signature": "export interface OmniaVtxo"
+        },
+        "VtxoExitState": {
+          "kind": "type",
+          "signature": "export type VtxoExitState = 'broadcast' | 'confirmed' | 'settled'"
+        },
+        "VtxoTransfer": {
+          "kind": "interface",
+          "signature": "export interface VtxoTransfer"
+        },
+        "VtxoOperatorReceipt": {
+          "kind": "interface",
+          "signature": "export interface VtxoOperatorReceipt"
+        },
+        "CreatePoolParams": {
+          "kind": "interface",
+          "signature": "export interface CreatePoolParams"
+        },
+        "MintVtxoParams": {
+          "kind": "interface",
+          "signature": "export interface MintVtxoParams"
+        },
+        "TransferVtxoParams": {
+          "kind": "interface",
+          "signature": "export interface TransferVtxoParams"
+        },
+        "SplitVtxoParams": {
+          "kind": "interface",
+          "signature": "export interface SplitVtxoParams"
+        },
+        "MergeVtxosParams": {
+          "kind": "interface",
+          "signature": "export interface MergeVtxosParams"
+        },
+        "RefreshVtxoParams": {
+          "kind": "interface",
+          "signature": "export interface RefreshVtxoParams"
+        },
+        "MintResult": {
+          "kind": "interface",
+          "signature": "export interface MintResult"
+        },
+        "TransferResult": {
+          "kind": "interface",
+          "signature": "export interface TransferResult"
+        },
+        "SplitResult": {
+          "kind": "interface",
+          "signature": "export interface SplitResult"
+        },
+        "MergeResult": {
+          "kind": "interface",
+          "signature": "export interface MergeResult"
+        },
+        "RefreshResult": {
+          "kind": "interface",
+          "signature": "export interface RefreshResult"
+        },
+        "ExitDraft": {
+          "kind": "interface",
+          "signature": "export interface ExitDraft"
+        },
+        "VtxoExitEvidence": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitEvidence",
+          "doc": "OMN-042: chain evidence for an exit transaction. Produced by a trusted\nverifier — never by the RPC caller."
+        },
+        "VtxoExitVerifier": {
+          "kind": "type",
+          "signature": "export type VtxoExitVerifier = (request: { vtxo: OmniaVtxo"
+        },
+        "VerifyVtxoResult": {
+          "kind": "interface",
+          "signature": "export interface VerifyVtxoResult"
+        },
+        "OmniaVtxoStore": {
+          "kind": "interface",
+          "signature": "export interface OmniaVtxoStore"
+        },
+        "OmniaVtxoOperator": {
+          "kind": "interface",
+          "signature": "export interface OmniaVtxoOperator"
+        },
+        "OmniaVtxoError": {
+          "kind": "class",
+          "signature": "export class OmniaVtxoError extends Error"
+        },
+        "VtxoAmountError": {
+          "kind": "class",
+          "signature": "export class VtxoAmountError extends OmniaVtxoError"
+        },
+        "VtxoStatusError": {
+          "kind": "class",
+          "signature": "export class VtxoStatusError extends OmniaVtxoError"
+        },
+        "VtxoOwnershipError": {
+          "kind": "class",
+          "signature": "export class VtxoOwnershipError extends OmniaVtxoError"
+        },
+        "VtxoProofError": {
+          "kind": "class",
+          "signature": "export class VtxoProofError extends OmniaVtxoError"
+        },
+        "VtxoPoolCapacityError": {
+          "kind": "class",
+          "signature": "export class VtxoPoolCapacityError extends OmniaVtxoError"
+        },
+        "VtxoPolicyError": {
+          "kind": "class",
+          "signature": "export class VtxoPolicyError extends OmniaVtxoError"
+        },
+        "VtxoMergeError": {
+          "kind": "class",
+          "signature": "export class VtxoMergeError extends OmniaVtxoError"
+        },
+        "VtxoSplitError": {
+          "kind": "class",
+          "signature": "export class VtxoSplitError extends OmniaVtxoError"
+        },
+        "VtxoExitError": {
+          "kind": "class",
+          "signature": "export class VtxoExitError extends OmniaVtxoError"
+        },
+        "EMPTY_LEAF": {
+          "kind": "const",
+          "signature": "EMPTY_LEAF = '0000000000000000000000000000000000000000000000000000000000000000'"
+        },
+        "EMPTY_TREE_ROOT": {
+          "kind": "const",
+          "signature": "EMPTY_TREE_ROOT = '0000000000000000000000000000000000000000000000000000000000000000'"
+        },
+        "EPOCH_ZERO": {
+          "kind": "const",
+          "signature": "EPOCH_ZERO = 0"
+        },
+        "DEFAULT_POLICY": {
+          "kind": "const",
+          "signature": "DEFAULT_POLICY = { minAmount: BigInt(1), maxAmount: BigInt(1_000_000_000_000_000), maxMergeInputs: 8, maxSplitOutputs: 8, exitTimelockSeconds: 86400, } as const"
+        },
+        "computeBatchCommitment": {
+          "kind": "function",
+          "signature": "computeBatchCommitment(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): string",
+          "doc": "Canonical batch commitment (RFC-038 §3.2): the operator signs this over the\npool, epoch, Merkle root, and the ordered VTXO ids in the batch."
+        },
+        "computeVtxoReceiptCommitment": {
+          "kind": "function",
+          "signature": "computeVtxoReceiptCommitment(receipt: { receiptId: string; poolId: string; op: string; inputIds: readonly string[]; outputIds: readonly string[]; epoch: number; at: number; }, root: string): string",
+          "doc": "Receipt commitment binds every semantically relevant receipt field."
+        },
+        "computeVtxoReceiptCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeVtxoReceiptCommitmentBytes(receipt: Parameters<typeof computeVtxoReceiptCommitment>[0], root: string): Uint8Array"
+        },
+        "computeBatchCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeBatchCommitmentBytes(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): Uint8Array",
+          "doc": "The 32-byte digest of a batch commitment, for signing."
+        },
+        "computeVtxoLeaf": {
+          "kind": "function",
+          "signature": "computeVtxoLeaf(vtxo: OmniaVtxo): string"
+        },
+        "computeVtxoId": {
+          "kind": "function",
+          "signature": "computeVtxoId(params: ComputeVtxoIdParams): string"
+        },
+        "computePoolId": {
+          "kind": "function",
+          "signature": "computePoolId(params: ComputePoolIdParams): string"
+        },
+        "computeCommitmentRoot": {
+          "kind": "function",
+          "signature": "computeCommitmentRoot(leaves: string[]): string"
+        },
+        "verifyMerkleProof": {
+          "kind": "function",
+          "signature": "verifyMerkleProof(leaf: string, proof: MerkleProofNode[], root: string): boolean"
+        },
+        "vtxoCommitmentMember": {
+          "kind": "function",
+          "signature": "vtxoCommitmentMember(vtxo: OmniaVtxo): VtxoCommitmentMember",
+          "doc": "Derive the commitment member record for a VTXO without changing its leaf."
+        },
+        "buildVtxoProofSetFromMembers": {
+          "kind": "function",
+          "signature": "buildVtxoProofSetFromMembers(members: readonly VtxoCommitmentMember[]): VtxoProofSet",
+          "doc": "Build one proof set over an existing membership set.\n\nSorting is by `vtxoId`, so appending a member never changes the position of\nan existing member relative to the others and the leaf of an existing VTXO\nis never recomputed (OMN-002)."
+        },
+        "buildVtxoProofSet": {
+          "kind": "function",
+          "signature": "buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet"
+        },
+        "computeReceiptId": {
+          "kind": "function",
+          "signature": "computeReceiptId(poolId: string, op: string, inputIds: string[], outputIds: string[], at: number): string"
+        },
+        "computeEpochCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeEpochCommitmentBytes(poolId: string, epoch: number, root: string, receiptIds: readonly string[], inputIds: readonly string[]): Uint8Array",
+          "doc": "Operator-signed epoch record commitment (spend-state authority)."
+        },
+        "VTXO_ID_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_ID_DOMAIN = 'totemsdk/vtxo/id/v1'",
+          "doc": "Domain-separated hash prefixes (#33) — a hash on one record cannot replay against another."
+        },
+        "VTXO_POOL_ID_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_POOL_ID_DOMAIN = 'totemsdk/vtxo/pool/v1'"
+        },
+        "VTXO_LEAF_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_LEAF_DOMAIN = 'totemsdk/vtxo/leaf/v1'"
+        },
+        "VTXO_RECEIPT_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_RECEIPT_DOMAIN = 'totemsdk/vtxo/receipt/v1'"
+        },
+        "VTXO_RECEIPT_BINDING_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_RECEIPT_BINDING_DOMAIN = 'totemsdk/vtxo/receipt-binding/v1'"
+        },
+        "VTXO_BATCH_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_BATCH_DOMAIN = 'totemsdk/vtxo/batch/v1'"
+        },
+        "VTXO_EPOCH_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_EPOCH_DOMAIN = 'totemsdk/vtxo/epoch/v1'"
+        },
+        "ComputeVtxoIdParams": {
+          "kind": "interface",
+          "signature": "export interface ComputeVtxoIdParams"
+        },
+        "ComputePoolIdParams": {
+          "kind": "interface",
+          "signature": "export interface ComputePoolIdParams"
+        },
+        "MerkleProofNode": {
+          "kind": "interface",
+          "signature": "export interface MerkleProofNode"
+        },
+        "VtxoProofSet": {
+          "kind": "interface",
+          "signature": "export interface VtxoProofSet"
+        },
+        "VtxoCommitmentMember": {
+          "kind": "interface",
+          "signature": "export interface VtxoCommitmentMember",
+          "doc": "A leaf committed by a pool membership set."
+        },
+        "vtxoOperatorTreeId": {
+          "kind": "function",
+          "signature": "vtxoOperatorTreeId(poolId: string): string",
+          "doc": "Lease treeId for a pool's operator signatures."
+        },
+        "createVtxoOperator": {
+          "kind": "function",
+          "signature": "createVtxoOperator(options: VtxoOperatorOptions): VtxoOperatorWithIdentity"
+        },
+        "VtxoOperatorOptions": {
+          "kind": "interface",
+          "signature": "export interface VtxoOperatorOptions"
+        },
+        "VtxoOperatorWithIdentity": {
+          "kind": "interface",
+          "signature": "export interface VtxoOperatorWithIdentity extends OmniaVtxoOperator"
+        },
+        "buildVtxoReceiptPayload": {
+          "kind": "function",
+          "signature": "buildVtxoReceiptPayload(receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Uint8Array",
+          "doc": "Co-sign a receipt with the operator, after verifying the batch."
+        },
+        "signVtxoReceipt": {
+          "kind": "function",
+          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Promise<VtxoOperatorReceipt>"
+        },
+        "verifyVtxoReceipt": {
+          "kind": "function",
+          "signature": "verifyVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<boolean>",
+          "doc": "Verify a co-signed receipt against the operator and the batch root."
+        },
+        "verifyVtxoReceiptForPool": {
+          "kind": "function",
+          "signature": "verifyVtxoReceiptForPool(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, pool: Pick<OmniaVtxoPool, \"poolId\" | \"epoch\" | \"commitmentRoot\">): Promise<boolean>",
+          "doc": "Verify a receipt against the pool's current anchored state, not a\ncaller-supplied root. Rejects a receipt from another pool/epoch and requires\nthe pool's committed root to be present."
+        },
+        "VtxoReceiptBatch": {
+          "kind": "interface",
+          "signature": "export interface VtxoReceiptBatch",
+          "doc": "The batch the receipt belongs to — the operator's source of truth."
+        },
+        "buildPoolScript": {
+          "kind": "function",
+          "signature": "buildPoolScript(params: PoolScriptParams): string",
+          "doc": "Per-share-constrained, epoch-monotone, state-carrying pool script."
+        },
+        "poolScriptAddress": {
+          "kind": "function",
+          "signature": "poolScriptAddress(script: string): string"
+        },
+        "buildAndHashPoolScript": {
+          "kind": "function",
+          "signature": "buildAndHashPoolScript(params: PoolScriptParams): { script: string; address: string; }"
+        },
+        "POOL_SHARE_PORT_BASE": {
+          "kind": "const",
+          "signature": "POOL_SHARE_PORT_BASE = 128",
+          "doc": "State port base for per-holder shares: holder k ⇒ `base + k`. Kept below the\nMSHS-2 floor so Omnia ports never collide with MASH (ports are bytes, 0–255).\nSee RFC-048 §12 / RFC-049 §5."
+        },
+        "MSHS_PORT_FLOOR": {
+          "kind": "const",
+          "signature": "MSHS_PORT_FLOOR = 230",
+          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this.\nThe node installs the MASH authorization bundle at ports **230–255**\n(`bundleBase = 256 − (4 + k) = 230`): the header R / ROOTS_BLOB /\nSECRETS_BLOB / TREE_SIG at 230–233 and PROOF at 234–255. A composite\nMASH + Omnia coin must therefore keep Omnia ports ≤ 229."
+        },
+        "POOL_MAX_HOLDERS": {
+          "kind": "const",
+          "signature": "POOL_MAX_HOLDERS = MSHS_PORT_FLOOR - POOL_SHARE_PORT_BASE",
+          "doc": "Maximum holders whose share ports remain below the MSHS floor."
+        },
+        "PoolScriptParams": {
+          "kind": "interface",
+          "signature": "export interface PoolScriptParams"
+        },
+        "ownerAddressFor": {
+          "kind": "function",
+          "signature": "ownerAddressFor(ownerPk: string): string",
+          "doc": "Derive the committed payout address from an owner public-key digest."
+        },
+        "buildOwnerPoolScript": {
+          "kind": "function",
+          "signature": "buildOwnerPoolScript(): string",
+          "doc": "The transferable owner-pool script. State ports 100–104 are the only state;\nthere are no fixed holder constants."
+        },
+        "buildOwnerPoolState": {
+          "kind": "function",
+          "signature": "buildOwnerPoolState(state: OwnerPoolState): StateValue[]"
+        },
+        "ownerPoolAddress": {
+          "kind": "function",
+          "signature": "ownerPoolAddress(): string"
+        },
+        "buildOwnerTransferDraft": {
+          "kind": "function",
+          "signature": "buildOwnerTransferDraft(params: OwnerTransferParams): TxDraft",
+          "doc": "Build the transfer transaction: same script address, same amount/token,\nnew owner state and a higher epoch."
+        },
+        "buildOwnerExitDraft": {
+          "kind": "function",
+          "signature": "buildOwnerExitDraft(params: OwnerExitParams): TxDraft",
+          "doc": "Build the unilateral exit: full amount to the committed owner address."
+        },
+        "buildOwnerTransferTransaction": {
+          "kind": "function",
+          "signature": "buildOwnerTransferTransaction(params: OwnerTransferParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
+          "doc": "Sign and assemble the owner-rotation transfer transaction."
+        },
+        "buildOwnerExitTransaction": {
+          "kind": "function",
+          "signature": "buildOwnerExitTransaction(params: OwnerExitParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
+          "doc": "Sign and assemble the unilateral owner exit transaction."
+        },
+        "OWNER_POOL_ROOT_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_ROOT_PORT = 100"
+        },
+        "OWNER_POOL_EPOCH_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_EPOCH_PORT = 101"
+        },
+        "OWNER_POOL_EXIT_BLOCK_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_EXIT_BLOCK_PORT = 102"
+        },
+        "OWNER_POOL_PK_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_PK_PORT = 103"
+        },
+        "OWNER_POOL_ADDR_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_ADDR_PORT = 104"
+        },
+        "OwnerPoolState": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolState"
+        },
+        "OwnerPoolCoin": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolCoin"
+        },
+        "OwnerTransferParams": {
+          "kind": "interface",
+          "signature": "export interface OwnerTransferParams"
+        },
+        "OwnerExitParams": {
+          "kind": "interface",
+          "signature": "export interface OwnerExitParams"
+        },
+        "OwnerPoolTxDeps": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolTxDeps"
+        },
+        "OwnerPoolTxResult": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolTxResult"
+        },
+        "openEpochAuthority": {
+          "kind": "function",
+          "signature": "openEpochAuthority(adapter: StorageAdapterWithCapabilities & CasStore, options: EpochAuthorityOptions & { namespace?: string; requireAckMode?: \"durably-acknowledged\" | \"volatile\"; }): Promise<EpochAuthority>",
+          "doc": "Open an epoch authority over a storage adapter (journal recovery on open)."
+        },
+        "EpochRecord": {
+          "kind": "interface",
+          "signature": "export interface EpochRecord"
+        },
+        "EpochPublished": {
+          "kind": "interface",
+          "signature": "export interface EpochPublished"
+        },
+        "EpochEvent": {
+          "kind": "type",
+          "signature": "export type EpochEvent = EpochRecord | EpochPublished"
+        },
+        "EpochAuthorityOptions": {
+          "kind": "interface",
+          "signature": "export interface EpochAuthorityOptions"
+        },
+        "EpochAuthorityState": {
+          "kind": "interface",
+          "signature": "export interface EpochAuthorityState"
+        },
+        "EpochRecovery": {
+          "kind": "interface",
+          "signature": "export interface EpochRecovery"
+        },
+        "EpochAuthority": {
+          "kind": "class",
+          "signature": "export class EpochAuthority"
+        },
+        "poolStateVariables": {
+          "kind": "function",
+          "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number, shares?: bigint[]): StateValue[]",
+          "doc": "Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k."
+        },
+        "buildBatchAnchorDraft": {
+          "kind": "function",
+          "signature": "buildBatchAnchorDraft(params: BatchAnchorParams): TxDraft",
+          "doc": "Build the batch-anchor draft (input = pool coin, output = pool state output)."
+        },
+        "batchAnchorDigest": {
+          "kind": "function",
+          "signature": "batchAnchorDigest(draft: TxDraft): Uint8Array"
+        },
+        "anchorBatch": {
+          "kind": "function",
+          "signature": "anchorBatch(params: BatchAnchorParams, deps: BatchAnchorDeps): Promise<BatchAnchorResult>",
+          "doc": "Sign (and, when a chain provider is given, mine + broadcast) a batch anchor."
+        },
+        "checkPoolFunding": {
+          "kind": "function",
+          "signature": "checkPoolFunding(coinId: string, expected: PoolFundingExpectation, chainProvider: ChainStateProvider, options?: { verifyProof?: (proof: unknown, coinId: string) => boolean; requireVerified?: boolean; }): Promise<PoolFundingCheck>",
+          "doc": "Check that the pool's on-chain coin exists, matches the expected\n(address, amount, token), is unspent, and that the node serves an MMR proof.\n\nNOTE: this is a **presence/shape check**, not a cryptographic proof\nverification, unless a `verifyProof` callback is supplied — see\n`PoolFundingCheck.proofVerified`."
+        },
+        "BatchAnchorParams": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorParams"
+        },
+        "BatchAnchorDeps": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorDeps"
+        },
+        "BatchAnchorResult": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorResult"
+        },
+        "PoolFundingExpectation": {
+          "kind": "interface",
+          "signature": "export interface PoolFundingExpectation"
+        },
+        "PoolFundingCheck": {
+          "kind": "interface",
+          "signature": "export interface PoolFundingCheck"
+        },
+        "buildExitTransactionDraft": {
+          "kind": "function",
+          "signature": "buildExitTransactionDraft(params: ExitTxParams): TxDraft",
+          "doc": "Draft that spends the pool coin: output 0 = holder's share, remainder = pool."
+        },
+        "exitTransactionDigest": {
+          "kind": "function",
+          "signature": "exitTransactionDigest(draft: TxDraft): Uint8Array"
+        },
+        "exitTransactionHex": {
+          "kind": "function",
+          "signature": "exitTransactionHex(draft: TxDraft): string"
+        },
+        "buildExitTransaction": {
+          "kind": "function",
+          "signature": "buildExitTransaction(params: ExitTxParams, deps: ExitTxDeps): Promise<ExitTxResult>",
+          "doc": "Build, sign (and optionally mine + broadcast) a per-share VTXO exit transaction."
+        },
+        "EXIT_DELAY_PORT": {
+          "kind": "const",
+          "signature": "EXIT_DELAY_PORT = 110",
+          "doc": "State port carrying an optional exit delay on the holder's output."
+        },
+        "ExitTxParams": {
+          "kind": "interface",
+          "signature": "export interface ExitTxParams"
+        },
+        "ExitTxDeps": {
+          "kind": "interface",
+          "signature": "export interface ExitTxDeps"
+        },
+        "ExitTxResult": {
+          "kind": "interface",
+          "signature": "export interface ExitTxResult"
+        },
+        "createPool": {
+          "kind": "function",
+          "signature": "createPool(params: CreatePoolParams, now: number): OmniaVtxoPool"
+        },
+        "assertPoolCanMint": {
+          "kind": "function",
+          "signature": "assertPoolCanMint(pool: OmniaVtxoPool, amount: bigint): void"
+        },
+        "updatePoolRoot": {
+          "kind": "function",
+          "signature": "updatePoolRoot(pool: OmniaVtxoPool, root: string): OmniaVtxoPool"
+        },
+        "advancePoolEpoch": {
+          "kind": "function",
+          "signature": "advancePoolEpoch(pool: OmniaVtxoPool, newEpoch: number): OmniaVtxoPool"
+        },
+        "commitPoolMembers": {
+          "kind": "function",
+          "signature": "commitPoolMembers(pool: OmniaVtxoPool, vtxos: readonly OmniaVtxo[], options?: CommitPoolMembersOptions): CommitPoolMembersResult",
+          "doc": "Append VTXOs to the pool's membership set and rebuild the commitment tree\n(OMN-002).\n\nThe pool's `commitmentRoot` commits to the whole set (`members`), not to a\nsingle leaf: appending a member never removes an earlier member, and the\nprevious root is retained in `epochRoots` so proofs issued in earlier epochs\nstay verifiable. Every batch advances `epoch`; `batchId` tracks the root.\n\nIdempotent for a member already present with the same leaf; a conflicting\nleaf for an existing `vtxoId` is rejected."
+        },
+        "poolPublishedRoots": {
+          "kind": "function",
+          "signature": "poolPublishedRoots(pool: OmniaVtxoPool): string[]",
+          "doc": "Every root the pool has published (current + historical epochs)."
+        },
+        "poolEpochRoot": {
+          "kind": "function",
+          "signature": "poolEpochRoot(pool: OmniaVtxoPool, epoch: number): VtxoEpochRoot | undefined",
+          "doc": "The published epoch record for `epoch`, if the pool has one."
+        },
+        "transitionPoolMembers": {
+          "kind": "function",
+          "signature": "transitionPoolMembers(pool: OmniaVtxoPool, params: { consume: readonly string[]; add: readonly OmniaVtxo[]; epoch?: number; }): { pool: OmniaVtxoPool; proofs: Record<string, VtxoProof>; }",
+          "doc": "OMN-055: atomically consume members and add replacement members, publishing a\nnew root at the target epoch. Transfer and refresh outputs become real pool\nmembers only through this transition."
+        },
+        "CommitPoolMembersOptions": {
+          "kind": "interface",
+          "signature": "export interface CommitPoolMembersOptions"
+        },
+        "CommitPoolMembersResult": {
+          "kind": "interface",
+          "signature": "export interface CommitPoolMembersResult"
+        },
+        "isVtxoActive": {
+          "kind": "function",
+          "signature": "isVtxoActive(vtxo: OmniaVtxo): boolean"
+        },
+        "mintVtxo": {
+          "kind": "function",
+          "signature": "mintVtxo(pool: OmniaVtxoPool, params: MintVtxoParams, now?: number): MintResult",
+          "doc": "Mints a new VTXO against a pool."
+        },
+        "markVtxoSpent": {
+          "kind": "function",
+          "signature": "markVtxoSpent(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
+          "doc": "Marks an active VTXO as spent."
+        },
+        "transferVtxo": {
+          "kind": "function",
+          "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number, options?: TransferVtxoOptions): TransferOutcome"
+        },
+        "transferVtxoWithExit": {
+          "kind": "function",
+          "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferOutcome & { exitEntitlement: VtxoExitEntitlement; }>",
+          "doc": "V1 transfer: build the *recipient's* independent exit before moving the\nclaim, then transfer only if the rebuilt entitlement verifies against the\noutput VTXO (OMN-003).\n\n`exitParams` describes the pool coin and holder share set for the input.\nThe helper rebinds it to the recipient: the holder at `holderIndex` becomes\nthe recipient, the exit VTXO becomes the output and the root/epoch become\nthe output's proof root/epoch. The exit transaction therefore pays the\nrecipient, not the previous owner."
+        },
+        "TransferVtxoOptions": {
+          "kind": "interface",
+          "signature": "export interface TransferVtxoOptions",
+          "doc": "OMN-025: an entitlement supplied by a peer must carry a witness the caller can\nverify. Set `allowUnverifiedExit` only for entitlements this process built."
+        },
+        "transferVtxoWithEntitlement": {
+          "kind": "const",
+          "signature": "transferVtxoWithEntitlement = transferVtxoWithExit",
+          "doc": "Alias for {@link transferVtxoWithExit}: derive a fresh entitlement for the recipient."
+        },
+        "splitVtxo": {
+          "kind": "function",
+          "signature": "splitVtxo(vtxo: OmniaVtxo, params: SplitVtxoParams, now?: number): SplitResult & { receipt: VtxoOperatorReceipt; }",
+          "doc": "Splits a VTXO into multiple outputs."
+        },
+        "mergeVtxos": {
+          "kind": "function",
+          "signature": "mergeVtxos(vtxos: OmniaVtxo[], params: MergeVtxosParams, now?: number): MergeResult & { receipt: VtxoOperatorReceipt; }",
+          "doc": "Merges multiple VTXOs into one."
+        },
+        "refreshVtxo": {
+          "kind": "function",
+          "signature": "refreshVtxo(vtxo: OmniaVtxo, params: RefreshVtxoParams, now?: number): RefreshResult & { receipt: VtxoOperatorReceipt; }",
+          "doc": "Refreshes a VTXO to a new epoch."
+        },
+        "markExiting": {
+          "kind": "function",
+          "signature": "markExiting(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
+          "doc": "Transitions an active VTXO to 'exiting' status."
+        },
+        "markExitBroadcast": {
+          "kind": "function",
+          "signature": "markExitBroadcast(vtxo: OmniaVtxo, options: { txpowId: string; now?: number; }): OmniaVtxo",
+          "doc": "Record that an exit transaction exists. This is bookkeeping only: it does not\nclaim the transaction is confirmed or that it pays the right party."
+        },
+        "markExitConfirmed": {
+          "kind": "function",
+          "signature": "markExitConfirmed(vtxo: OmniaVtxo, options: { txpowId: string; verify: (input: ExitConfirmationInput) => Promise<ExitConfirmationEvidence> | ExitConfirmationEvidence; now?: number; }): Promise<OmniaVtxo>",
+          "doc": "Record chain confirmation of the exit, from an authoritative verifier.\n\nThe verifier is required: without one there is nothing to distinguish a real\nconfirmation from a caller asserting one."
+        },
+        "markExitSettled": {
+          "kind": "function",
+          "signature": "markExitSettled(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; now?: number; }): OmniaVtxo",
+          "doc": "Final transition: the exit is settled and the VTXO is no longer a claim on\nthe pool. Requires a prior confirmation, or explicit evidence for the callers\nthat verified settlement in another layer."
+        },
+        "markExited": {
+          "kind": "function",
+          "signature": "markExited(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; trusted?: boolean; now?: number; }): OmniaVtxo",
+          "doc": "One-step exit completion.\n\nOMN-089: this is a **trusted reducer**. It now requires either chain evidence\n(`evidence.confirmed`) or an explicit `trusted: true` declaration — a bare\ntransaction id is no longer enough to mark a VTXO as exited. Callers that\nverified settlement elsewhere (for example the pool payout path, which checks\nfinality before calling) pass `trusted: true` and own that assertion."
+        },
+        "createMemoryExitDraftStore": {
+          "kind": "function",
+          "signature": "createMemoryExitDraftStore(): VtxoExitDraftStore",
+          "doc": "Default in-process store. Inject a durable one to survive a restart."
+        },
+        "buildExitDraft": {
+          "kind": "function",
+          "signature": "buildExitDraft(vtxo: OmniaVtxo, now?: number): { draft: ExitDraft; receipt: VtxoOperatorReceipt; }",
+          "doc": "The pure draft builder. Does **not** reserve anything — use `createExitDraft`."
+        },
+        "createExitDraft": {
+          "kind": "function",
+          "signature": "createExitDraft(vtxo: OmniaVtxo, store: VtxoExitDraftStore, now?: number): Promise<ExitDraftReservation & { created: boolean; }>",
+          "doc": "Create **and reserve** an exit draft (OMN-088).\n\nThe VTXO's receipt is consumed by the reservation, and a repeat request\nreturns the original draft rather than producing a competing one. The store\nis required: a draft that nobody reserved was the double-exit hole."
+        },
+        "consumeExitReceipt": {
+          "kind": "function",
+          "signature": "consumeExitReceipt(vtxo: OmniaVtxo, receiptId: string, now?: number): OmniaVtxo",
+          "doc": "Consume a VTXO's exit receipt — the single-spend marker that prevents a\nsecond exit draft for the same VTXO. Returns the updated VTXO."
+        },
+        "exitProgress": {
+          "kind": "function",
+          "signature": "exitProgress(vtxo: OmniaVtxo): VtxoExitState | undefined",
+          "doc": "Narrow a VTXO's exit progress. `undefined` means no exit has been recorded."
+        },
+        "ExitConfirmationInput": {
+          "kind": "interface",
+          "signature": "export interface ExitConfirmationInput"
+        },
+        "ExitConfirmationEvidence": {
+          "kind": "interface",
+          "signature": "export interface ExitConfirmationEvidence",
+          "doc": "What a chain verifier observed for an exit transaction. A verifier that\ncannot see the transaction must return `confirmed: false`."
+        },
+        "ExitDraftReservation": {
+          "kind": "interface",
+          "signature": "export interface ExitDraftReservation"
+        },
+        "VtxoExitDraftStore": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitDraftStore"
+        },
+        "verifyVtxo": {
+          "kind": "function",
+          "signature": "verifyVtxo(vtxo: OmniaVtxo, options?: VerifyVtxoOptions): VerifyVtxoResult"
+        },
+        "verifyVtxoMembership": {
+          "kind": "function",
+          "signature": "verifyVtxoMembership(vtxo: OmniaVtxo, pool: OmniaVtxoPool): VerifyVtxoResult",
+          "doc": "Anchor a VTXO proof to a pool: the proof must be present, its root must be\na root the pool published, and (when the pool records membership) the VTXO\nmust be a member with the matching leaf.\n\nAccepts historical epoch roots, so a VTXO minted in an earlier epoch remains\nverifiable after later batches (OMN-002 + OMN-010)."
+        },
+        "verifyVtxoProof": {
+          "kind": "function",
+          "signature": "verifyVtxoProof(vtxo: OmniaVtxo, proof: VtxoProof): VerifyVtxoResult"
+        },
+        "verifyVtxoTransfer": {
+          "kind": "function",
+          "signature": "verifyVtxoTransfer(input: OmniaVtxo, output: OmniaVtxo, transfer: VtxoTransfer): VerifyVtxoResult"
+        },
+        "verifyConservation": {
+          "kind": "function",
+          "signature": "verifyConservation(params: ConservationInput): VerifyVtxoResult",
+          "doc": "Verifies amount conservation across a set of inputs and outputs.\n\nDefault mode (`'lte'`): `sum(outputs) <= sum(inputs)` — allows exits, fees, and burn flows.\nStrict mode (`'strict'`): `sum(outputs) === sum(inputs)` — required for transfer, split, merge.\n\nAlways requires: same `poolId` and `tokenId` across all inputs and outputs."
+        },
+        "VerifyVtxoOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyVtxoOptions"
+        },
+        "ConservationInput": {
+          "kind": "interface",
+          "signature": "export interface ConservationInput"
+        },
+        "MemoryOmniaVtxoStore": {
+          "kind": "class",
+          "signature": "export class MemoryOmniaVtxoStore implements OmniaVtxoStore"
+        },
+        "createDurableOmniaVtxoStore": {
+          "kind": "function",
+          "signature": "createDurableOmniaVtxoStore(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableOmniaVtxoStoreOptions): DurableOmniaVtxoStore"
+        },
+        "OmniaVtxoRegistryState": {
+          "kind": "interface",
+          "signature": "export interface OmniaVtxoRegistryState"
+        },
+        "DurableOmniaVtxoStoreOptions": {
+          "kind": "interface",
+          "signature": "export interface DurableOmniaVtxoStoreOptions"
+        },
+        "DurableOmniaVtxoStore": {
+          "kind": "interface",
+          "signature": "export interface DurableOmniaVtxoStore extends OmniaVtxoStore"
+        },
+        "serializeVtxo": {
+          "kind": "function",
+          "signature": "serializeVtxo(vtxo: OmniaVtxo): string"
+        },
+        "deserializeVtxo": {
+          "kind": "function",
+          "signature": "deserializeVtxo(json: string): OmniaVtxo"
+        },
+        "serializePool": {
+          "kind": "function",
+          "signature": "serializePool(pool: OmniaVtxoPool): string"
+        },
+        "deserializePool": {
+          "kind": "function",
+          "signature": "deserializePool(json: string): OmniaVtxoPool"
+        },
+        "buildVtxoTransferIntent": {
+          "kind": "function",
+          "signature": "buildVtxoTransferIntent(vtxo: OmniaVtxo, recipient: string, amount: bigint, nonce: string, changeNonce?: string): VtxoTransferIntent"
+        },
+        "buildVtxoExitIntent": {
+          "kind": "function",
+          "signature": "buildVtxoExitIntent(vtxo: OmniaVtxo): VtxoExitIntent"
+        },
+        "VtxoTransferIntent": {
+          "kind": "interface",
+          "signature": "export interface VtxoTransferIntent"
+        },
+        "VtxoExitIntent": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitIntent"
+        },
+        "verifyClaimPolicy": {
+          "kind": "function",
+          "signature": "verifyClaimPolicy(policy: VtxoClaimPolicy, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult",
+          "doc": "Verify the VTXO binding, then evaluate the pure claim policy.\n\nBinding is deliberately enforced here, not in `@totemsdk/claim`: a policy\nbound to `poolId`/`tokenId` must not be evaluated against another pool or\nasset. The generic evaluator knows nothing about VTXO pools."
+        },
+        "claimPolicyOf": {
+          "kind": "function",
+          "signature": "claimPolicyOf(vtxo: OmniaVtxo): VtxoClaimPolicy",
+          "doc": "Resolve the policy attached to a VTXO, defaulting to its single owner."
+        },
+        "computeVtxoClaimPreimage": {
+          "kind": "function",
+          "signature": "computeVtxoClaimPreimage(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, signer: string): Uint8Array",
+          "doc": "The canonical bytes a claimant must sign. Binds the VTXO identity, the\nclaimed signer, the policy context (block, path, scope, HTLC, preimage) and\nthe vesting amount so a signature cannot be replayed in another context."
+        },
+        "verifyVtxoClaimSignatures": {
+          "kind": "function",
+          "signature": "verifyVtxoClaimSignatures(vtxo: Pick<OmniaVtxo, \"vtxoId\" | \"poolId\" | \"tokenId\" | \"amount\" | \"owner\">, witness: VtxoClaimWitness, ctx: VtxoClaimContext, verifySignature: VtxoClaimSignatureVerifier): Promise<{ valid: boolean; signers: string[]; errors: string[]; }>",
+          "doc": "Verify every supplied signature over its canonical claim preimage and return\nthe identities actually backed by a valid signature.\n\nThis is deliberately separate from {@link verifyClaimPolicy}: the policy\ndecides *who* may claim; this decides *whether they proved it*."
+        },
+        "verifyVtxoClaim": {
+          "kind": "function",
+          "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext, options: VerifyVtxoClaimOptions): Promise<VtxoClaimResult>",
+          "doc": "Authoritative claim verification.\n\nRequires cryptographic signature proof for the claimed signer(s) — a bare\n`witness.signers` list is rejected. The policy is then evaluated with only\nthe verified signer identities. Callers must supply a real signature\nverifier (e.g. WOTS verification against the signer's public key) and, on\nthe authoritative path, the chain tip so a caller-chosen future block is\nrejected (OMN-007)."
+        },
+        "ClaimContext": {
+          "kind": "interface",
+          "signature": "export interface ClaimContext"
+        },
+        "ClaimPolicy": {
+          "kind": "type",
+          "signature": "export type ClaimPolicy = SingleClaimPolicy | ThresholdClaimPolicy | ConditionalClaimPolicy | DvpClaimPolicy | DelegatedClaimPolicy | RotationClaimPolicy | VestingClaimPolicy | RecoveryClaimPolicy | C"
+        },
+        "ClaimResult": {
+          "kind": "interface",
+          "signature": "export interface ClaimResult"
+        },
+        "ClaimSignature": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignature",
+          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
+        },
+        "ClaimSignatureProof": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignatureProof"
+        },
+        "ClaimSignatureVerifier": {
+          "kind": "type",
+          "signature": "export type ClaimSignatureVerifier = (proof: ClaimSignatureProof) => boolean | Promise<boolean>",
+          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
+        },
+        "ClaimWitness": {
+          "kind": "interface",
+          "signature": "export interface ClaimWitness"
+        },
+        "VerifyClaimOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyClaimOptions"
+        },
+        "VestingSchedule": {
+          "kind": "interface",
+          "signature": "export interface VestingSchedule",
+          "doc": "Vesting schedule arithmetic.\n\nThe schedule is intentionally pure and chain-agnostic: the caller supplies the\nevaluation block. Integer division floors, so a vested amount is never rounded\nup. The KISSVM script templates in `@totemsdk/kissvm` implement the same\nrelease curve on-chain."
+        },
+        "VtxoPolicyBinding": {
+          "kind": "interface",
+          "signature": "export interface VtxoPolicyBinding"
+        },
+        "VtxoClaimPolicy": {
+          "kind": "type",
+          "signature": "export type VtxoClaimPolicy = ClaimPolicy & { binding?: VtxoPolicyBinding }",
+          "doc": "A generic claim policy plus an optional VTXO pool/token binding."
+        },
+        "VtxoClaimWitness": {
+          "kind": "type",
+          "signature": "export type VtxoClaimWitness = ClaimWitness"
+        },
+        "VtxoClaimSignature": {
+          "kind": "type",
+          "signature": "export type VtxoClaimSignature = ClaimSignature"
+        },
+        "VtxoClaimSignatureProof": {
+          "kind": "type",
+          "signature": "export type VtxoClaimSignatureProof = ClaimSignatureProof"
+        },
+        "VtxoClaimSignatureVerifier": {
+          "kind": "type",
+          "signature": "export type VtxoClaimSignatureVerifier = ClaimSignatureVerifier"
+        },
+        "VerifyVtxoClaimOptions": {
+          "kind": "type",
+          "signature": "export type VerifyVtxoClaimOptions = VerifyClaimOptions"
+        },
+        "VtxoClaimContext": {
+          "kind": "type",
+          "signature": "export type VtxoClaimContext = ClaimContext"
+        },
+        "VtxoVestingSchedule": {
+          "kind": "type",
+          "signature": "export type VtxoVestingSchedule = VestingSchedule"
+        },
+        "VtxoClaimResult": {
+          "kind": "type",
+          "signature": "export type VtxoClaimResult = ClaimResult"
+        },
+        "VTXO_CLAIM_PREIMAGE_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_CLAIM_PREIMAGE_DOMAIN = 'totemsdk/vtxo/claim/v1'",
+          "doc": "Domain separator for the canonical VTXO claim preimage."
+        },
+        "distributeYield": {
+          "kind": "function",
+          "signature": "distributeYield(total: bigint, weights: Record<string, bigint>): Record<string, bigint>",
+          "doc": "Deterministic pro-rata yield distribution for multiparty VTXO/pool claims."
+        },
+        "createVtxoExitEntitlement": {
+          "kind": "function",
+          "signature": "createVtxoExitEntitlement(params: ExitTxParams, result: ExitTxResult): VtxoExitEntitlement"
+        },
+        "verifyVtxoExitEntitlement": {
+          "kind": "function",
+          "signature": "verifyVtxoExitEntitlement(entitlement: VtxoExitEntitlement, vtxo: OmniaVtxo, options?: VerifyExitEntitlementOptions): ExitEntitlementVerification"
+        },
+        "VtxoExitEntitlement": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitEntitlement"
+        },
+        "ExitEntitlementVerification": {
+          "kind": "interface",
+          "signature": "export interface ExitEntitlementVerification"
+        },
+        "VerifyExitEntitlementOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyExitEntitlementOptions",
+          "doc": "OMN-025: witness verification needs the signing key material, which an\nentitlement cannot carry. Callers therefore supply a verifier; without one,\nan untrusted entitlement is rejected rather than accepted on shape alone."
         }
       }
     },

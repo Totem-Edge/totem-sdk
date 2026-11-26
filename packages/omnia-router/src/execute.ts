@@ -1,5 +1,6 @@
 import { bytesToHex, sha3_256 } from '@totemsdk/core';
-import { validateChannelSpend, validateRoute, validateRoutingHop, swapIntermediary } from './route-validation.js';
+import { validateChannelSpend, validateRoute, validateRoutingHop, swapIntermediary, type RouteBinding } from './route-validation.js';
+import { hopTimeout, planRouteExpiry, type ExpiryPolicy } from './expiry.js';
 import { SCALE } from './rates.js';
 import type {
   ChannelOps,
@@ -14,6 +15,8 @@ import type {
   RoutingHop,
   ChannelHTLC,
   RouterFeeProof,
+  RouterSignedState,
+  RouterStateTransition,
 } from './types.js';
 
 // ─── Type guard ───────────────────────────────────────────────────────────────
@@ -62,7 +65,18 @@ async function cancelHtlcs(
   for (const { channelId, htlcId } of [...locked].reverse()) {
     const ch = channels.get(channelId);
     const lp = leaseProviders.get(channelId);
-    if (!ch || !lp) continue;
+    if (!ch || !lp) {
+      // OMN-082 (CAN-015): a missing dependency is not a released lock. Record
+      // the obligation so the caller is never told rollback was clean.
+      pending.push({
+        channelId,
+        htlcId,
+        reason: !ch
+          ? `channel ${channelId} is no longer in the routing view`
+          : `no lease provider for channel ${channelId}`,
+      });
+      continue;
+    }
     try {
       const res = await ops.timeoutHTLC(ch, htlcId, lp);
       channels.set(channelId, res.channel);
@@ -103,6 +117,8 @@ export async function executeMultiHopPayment(
   route:          Route,
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
+  binding?:       RouteBinding,
+  expiry?:        ExpiryPolicy,
 ): Promise<PaymentResult> {
   /** Locks rollback could not release (CAN-015). */
   const pendingRefunds: PendingRefund[] = [];
@@ -114,6 +130,28 @@ export async function executeMultiHopPayment(
   }
 
   const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
+
+  // OMN-080: this entry point settles a single asset. A swap hop belongs to
+  // executeCrossTokenPayment; silently dropping them used to let a swap-only
+  // route report success with nothing settled.
+  if (plainHops.length !== route.hops.length) {
+    return failed({
+      success: false,
+      state: 'failed',
+      terminal: true,
+      error: 'executeMultiHopPayment received a route with swap hops; use executeCrossTokenPayment',
+      settledHops: [],
+    });
+  }
+  if (plainHops.length === 0) {
+    return failed({
+      success: false,
+      state: 'failed',
+      terminal: true,
+      error: 'route has no executable hops',
+      settledHops: [],
+    });
+  }
 
   // Fee-aware per-hop amounts. Each hop locks the payment plus the fees of the
   // downstream intermediaries; the fee for the final edge belongs to the
@@ -128,12 +166,31 @@ export async function executeMultiHopPayment(
     plainHops[i].amount = paymentRequest.amount + downstream;
   }
 
-  const routeValidation = validateRoute(channels, route);
+  const routeValidation = validateRoute(channels, route, {
+    payer: binding?.payer ?? plainHops[0]!.from,
+    recipient: binding?.recipient ?? plainHops[plainHops.length - 1]!.to,
+    amount: paymentRequest.amount,
+    tokenId: paymentRequest.tokenId,
+  });
   if (!routeValidation.ok) {
     return failed({
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
+  // OMN-081: derive the deadline spread from the channels' contest windows and
+  // refuse the route if the requested expiry cannot fit every hop.
+  const expiryPlan = planRouteExpiry(channels, route, paymentRequest.expiryBlock, plainHops.length, expiry ?? {});
+  if (!expiryPlan.ok) {
+    return failed({
+      success: false,
+      state: 'failed',
+      terminal: true,
+      error: `EXPIRY_PLAN_FAILED: ${expiryPlan.error}`,
+      errorCode: 'EXPIRY_PLAN_FAILED',
       settledHops: [],
     });
   }
@@ -165,7 +222,7 @@ export async function executeMultiHopPayment(
     }
 
     // Timeouts decrease toward the recipient so each hop has time to claim.
-    const timeoutBlock = paymentRequest.expiryBlock - BigInt(i);
+    const timeoutBlock = hopTimeout(paymentRequest.expiryBlock, expiryPlan.plan.delta, i);
 
     let addResult: { channel: RouterChannel; htlcId: string; error?: string };
     try {
@@ -202,7 +259,7 @@ export async function executeMultiHopPayment(
     const channel = channels.get(channelId)!;
     const lp      = leaseProviders.get(channelId)!;
 
-    let fulfillResult: { channel: RouterChannel; error?: string };
+    let fulfillResult: Awaited<ReturnType<ChannelOps['fulfillHTLC']>>;
     try {
       fulfillResult = await ops.fulfillHTLC(channel, htlcId, preimage, lp);
     } catch (err) {
@@ -222,10 +279,28 @@ export async function executeMultiHopPayment(
     settled.push(htlcId);
     fulfilledSet.add(htlcId);
 
-    // Build the verifiable fee proof for this settled hop (#29).
+    // Build the verifiable fee proof for this settled hop (#29 / OMN-083).
     const htlc = fulfillResult.channel.pendingHTLCs.find(h => h.htlcId === htlcId);
     if (htlc) {
-      feeProofs.push(buildRouterFeeProof(fulfillResult.channel, htlc, Date.now()));
+      const hopIndex = plainHops.findIndex(h => h.htlcId === htlcId);
+      const hopAmount = hopIndex >= 0 ? plainHops[hopIndex]!.amount : htlc.amount;
+      const downstream = hopIndex >= 0
+        ? (plainHops[hopIndex + 1]?.amount ?? paymentRequest.amount)
+        : paymentRequest.amount;
+      const feeAmount = hopAmount > downstream ? hopAmount - downstream : 0n;
+
+      if (fulfillResult.previousState && fulfillResult.nextState) {
+        feeProofs.push(buildAuthenticatedRouterFeeProof(
+          fulfillResult.channel,
+          htlc,
+          { previous: fulfillResult.previousState, next: fulfillResult.nextState },
+          { feeAmount, settledAt: Date.now() },
+        ));
+      } else {
+        // No authenticated state pair: emit a proof that says so, rather than a
+        // descriptive hash masquerading as settlement evidence.
+        feeProofs.push(buildRouterFeeProof(fulfillResult.channel, htlc, Date.now()));
+      }
     }
   }
 
@@ -239,26 +314,95 @@ export async function executeMultiHopPayment(
   };
 }
 
-export const ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v1';
+export const ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v2';
+
+/** Port carrying the state commitment the proof binds (OMN-083). */
+const STATE_COMMITMENT_V2_PORT = 102;
+
+function commitmentOf(state: RouterSignedState, label: string): string {
+  const value = state.stateVariables?.find((sv) => sv.port === STATE_COMMITMENT_V2_PORT);
+  if (!value) throw new Error(`${label} is missing the port-102 commitment`);
+  return String(value.value).replace(/^0x/i, '').toLowerCase();
+}
+
+function recipientOf(
+  channel: RouterChannel,
+  htlc: Pick<ChannelHTLC, 'recipientPublicKeyDigest'>,
+): { partyId: string; publicKeyDigest: string } {
+  const party = channel.parties.find((p) => p.publicKeyDigest === htlc.recipientPublicKeyDigest);
+  if (!party) throw new Error('HTLC recipient is not a channel party');
+  return { partyId: party.partyId, publicKeyDigest: party.publicKeyDigest };
+}
 
 /**
- * Build a verifiable fee-provenance record for a settled hop (#29). The pool's
- * `recordPoolFee` earn-proof consumes this — a fee record can be traced to a
- * real fulfilled payment, never a declared string.
+ * OMN-083: build a fee proof bound to the authenticated transition that settled
+ * the HTLC.
+ *
+ * The proof carries both state commitments, the exact balance delta the
+ * recipient received, and the fee the intermediary retained. A hash over
+ * descriptive fields proves only that the caller's numbers are self-consistent;
+ * this proves the payment happened on this channel.
+ */
+export function buildAuthenticatedRouterFeeProof(
+  channel: RouterChannel,
+  htlc: ChannelHTLC,
+  transition: RouterStateTransition,
+  options: { feeAmount?: bigint; settledAt?: number } = {},
+): RouterFeeProof {
+  const { previous, next } = transition;
+  if (next.sequence <= previous.sequence) {
+    throw new Error('successor state does not follow the predecessor');
+  }
+  const pending = previous.pendingHTLCs?.find((h) => h.htlcId === htlc.htlcId);
+  if (!pending) throw new Error(`HTLC ${htlc.htlcId} is not pending in the predecessor state`);
+  if (next.pendingHTLCs?.some((h) => h.htlcId === htlc.htlcId)) {
+    throw new Error(`successor state still carries HTLC ${htlc.htlcId}`);
+  }
+  const recipient = recipientOf(channel, htlc);
+  const balanceDelta = (next.balances[recipient.partyId] ?? 0n) - (previous.balances[recipient.partyId] ?? 0n);
+  if (balanceDelta !== pending.amount) {
+    throw new Error(
+      `transition moves ${balanceDelta.toString()} to the recipient, not the HTLC amount ${pending.amount.toString()}`,
+    );
+  }
+
+  const proof: RouterFeeProof = {
+    channelId: channel.channelId,
+    htlcId: htlc.htlcId,
+    recipientPublicKeyDigest: recipient.publicKeyDigest,
+    amount: pending.amount,
+    tokenId: channel.tokenId,
+    settledAt: options.settledAt ?? Date.now(),
+    authenticated: true,
+    ...(options.feeAmount !== undefined ? { feeAmount: options.feeAmount } : {}),
+    previousSequence: previous.sequence,
+    sequence: next.sequence,
+    previousStateCommitmentV2: commitmentOf(previous, 'predecessor state'),
+    stateCommitmentV2: commitmentOf(next, 'successor state'),
+    balanceDelta,
+    proofHash: '',
+  };
+  proof.proofHash = computeRouterFeeProofHash(proof);
+  return proof;
+}
+
+/**
+ * Legacy descriptive proof. Kept for callers that only need a provenance
+ * record; it is explicitly **not** settlement evidence (OMN-083).
  */
 export function buildRouterFeeProof(
   channel: RouterChannel,
   htlc: ChannelHTLC,
   settledAt?: number,
 ): RouterFeeProof {
-  const ts = settledAt ?? Date.now();
   const proof: RouterFeeProof = {
     channelId: channel.channelId,
     htlcId: htlc.htlcId,
     recipientPublicKeyDigest: htlc.recipientPublicKeyDigest,
     amount: htlc.amount,
     tokenId: channel.tokenId,
-    settledAt: ts,
+    settledAt: settledAt ?? Date.now(),
+    authenticated: false,
     proofHash: '',
   };
   proof.proofHash = computeRouterFeeProofHash(proof);
@@ -269,6 +413,56 @@ export function computeRouterFeeProofHash(proof: RouterFeeProof): string {
   const { proofHash, ...rest } = proof;
   const input = `${ROUTER_FEE_PROOF_DOMAIN}|${canonicalJson(rest)}`;
   return bytesToHex(sha3_256(new TextEncoder().encode(input)));
+}
+
+export interface VerifyRouterFeeProofOptions {
+  /**
+   * Optional signature check over the successor state. The router is runtime
+   * neutral, so bilateral authorization is verified by the caller that holds
+   * the channel keys.
+   */
+  verifySignature?: (state: RouterSignedState, party: { partyId: string; publicKeyDigest: string }) => boolean;
+}
+
+/** Re-derive an authenticated fee proof from the states it claims. */
+export function verifyRouterFeeProof(
+  channel: RouterChannel,
+  transition: RouterStateTransition,
+  proof: RouterFeeProof,
+  options: VerifyRouterFeeProofOptions = {},
+): boolean {
+  try {
+    if (proof.authenticated !== true) return false;
+    if (proof.channelId !== channel.channelId) return false;
+    if (proof.previousSequence !== transition.previous.sequence) return false;
+    if (proof.sequence !== transition.next.sequence) return false;
+
+    const pending = transition.previous.pendingHTLCs?.find((h) => h.htlcId === proof.htlcId);
+    if (!pending) return false;
+    if (transition.next.pendingHTLCs?.some((h) => h.htlcId === proof.htlcId)) return false;
+
+    const recipient = recipientOf(channel, { recipientPublicKeyDigest: proof.recipientPublicKeyDigest });
+    const delta = (transition.next.balances[recipient.partyId] ?? 0n)
+      - (transition.previous.balances[recipient.partyId] ?? 0n);
+    if (delta !== proof.balanceDelta) return false;
+    if (delta !== proof.amount || pending.amount !== proof.amount) return false;
+    if (commitmentOf(transition.previous, 'predecessor state') !== proof.previousStateCommitmentV2) return false;
+    if (commitmentOf(transition.next, 'successor state') !== proof.stateCommitmentV2) return false;
+
+    const { proofHash, ...rest } = proof;
+    if (computeRouterFeeProofHash({ ...rest, proofHash: '' }) !== proofHash) return false;
+
+    if (options.verifySignature) {
+      for (const party of channel.parties) {
+        if (!options.verifySignature(transition.next, { partyId: party.partyId, publicKeyDigest: party.publicKeyDigest })) {
+          return false;
+        }
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function canonicalJson(value: unknown): string {
@@ -333,6 +527,7 @@ export async function executeCrossTokenPayment(
   route:          CrossTokenRoute,
   paymentRequest: PaymentRequest,
   leaseProviders: Map<string, LeaseProvider>,
+  expiry?:        ExpiryPolicy,
 ): Promise<PaymentResult> {
   /** Locks rollback could not release (CAN-015). */
   const pendingRefunds: PendingRefund[] = [];
@@ -349,6 +544,21 @@ export async function executeCrossTokenPayment(
       success: false,
       error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
       errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    });
+  }
+
+  // OMN-081: one lock per routing hop, two per swap hop. Derive the spread from
+  // the channels' contest windows before anything is locked.
+  const lockCount = route.hops.reduce((count, hop) => count + (isSwapHop(hop) ? 2 : 1), 0);
+  const expiryPlan = planRouteExpiry(channels, route, paymentRequest.expiryBlock, lockCount, expiry ?? {});
+  if (!expiryPlan.ok) {
+    return failed({
+      success: false,
+      state: 'failed',
+      terminal: true,
+      error: `EXPIRY_PLAN_FAILED: ${expiryPlan.error}`,
+      errorCode: 'EXPIRY_PLAN_FAILED',
       settledHops: [],
     });
   }
@@ -410,7 +620,7 @@ export async function executeCrossTokenPayment(
   for (const hop of route.hops) {
     if (isSwapHop(hop)) {
       // Inbound channel (sender → intermediary, tokenIn side)
-      const inTimeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const inTimeout = hopTimeout(paymentRequest.expiryBlock, expiryPlan.plan.delta, pos++);
       try {
         hop.htlcId = await lockHTLC(
           hop.inboundChannelId,
@@ -426,7 +636,7 @@ export async function executeCrossTokenPayment(
       }
 
       // Outbound channel (intermediary → recipient, tokenOut side)
-      const outTimeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const outTimeout = hopTimeout(paymentRequest.expiryBlock, expiryPlan.plan.delta, pos++);
       const intermediary = swapIntermediary(channels, hop);
       if (!intermediary) {
         await cancelHtlcs(ops, channels, locked, leaseProviders, pendingRefunds);
@@ -451,7 +661,7 @@ export async function executeCrossTokenPayment(
         return failed({ success: false, error: `Outbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] });
       }
     } else {
-      const timeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const timeout = hopTimeout(paymentRequest.expiryBlock, expiryPlan.plan.delta, pos++);
       try {
         hop.htlcId = await lockHTLC(
           hop.channelId,
@@ -476,7 +686,7 @@ export async function executeCrossTokenPayment(
     const channel = channels.get(channelId)!;
     const lp      = leaseProviders.get(channelId)!;
 
-    let fulfillResult: { channel: RouterChannel; error?: string };
+    let fulfillResult: Awaited<ReturnType<ChannelOps['fulfillHTLC']>>;
     try {
       fulfillResult = await ops.fulfillHTLC(channel, htlcId, preimage, lp);
     } catch (err) {

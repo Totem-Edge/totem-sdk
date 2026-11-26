@@ -51,7 +51,7 @@ const createFactory = (
   provider,
   tokenScale,
   funding,
-  { settlement: 'per-party', enforceCheckpoints: false },
+  { settlement: 'per-party', enforceCheckpoints: false, allowUnenforceableAllocations: true },
 );
 
 // ─── Mock builders ────────────────────────────────────────────────────────────

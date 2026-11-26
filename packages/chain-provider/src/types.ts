@@ -156,6 +156,31 @@ export interface AddressInfo {
   script: string;
 }
 
+/**
+ * A transaction body resolved from the chain (OMN-074).
+ *
+ * Only the fields needed to prove provenance are modelled: which coins the
+ * transaction spent and which outputs it created. A caller that needs byte
+ * fidelity should use `minima-rpc` directly.
+ */
+export interface ChainTransaction {
+  txpowid: string;
+  /** Block height when the node reports the containing block. */
+  block?: number;
+  inputs: Array<{
+    coinId: string;
+    address?: string;
+    amount?: string;
+    tokenId?: string;
+  }>;
+  outputs: Array<{
+    coinId?: string;
+    address: string;
+    amount: string;
+    tokenId?: string;
+  }>;
+}
+
 export interface ExportedCoin {
   coinid: string;
   data: string;
@@ -177,6 +202,17 @@ export interface ChainStateProvider {
   getCoin(coinId: string): Promise<Coin | null>;
   getProof(coinId: string): Promise<MMRProof>;
   getTip(): Promise<ChainTip>;
+  /**
+   * Full transaction body by TxPoW id (OMN-074). Used to prove that a coin was
+   * created by an expected transaction — for example that a splice successor is
+   * an output of the splice that named it.
+   *
+   * Optional: a provider that cannot serve transaction bodies leaves this
+   * undefined, and callers that need provenance must fail closed rather than
+   * assume the coin is legitimate. `MinimaRpcProvider` (any Minima/hawk node,
+   * via the `txpow` command) and `HostedProvider` (Axia) implement it.
+   */
+  getTransaction?(txpowid: string): Promise<ChainTransaction | null>;
   getToken(tokenId: string): Promise<TokenInfo>;
   searchTokens(query: TokenSearchQuery): Promise<TokenInfo[]>;
   getTokensByCreator(address: string): Promise<TokenInfo[]>;

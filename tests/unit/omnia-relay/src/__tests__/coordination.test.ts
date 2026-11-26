@@ -123,6 +123,17 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
             created: '1',
           }],
           getTip: async () => ({ block: 100 }),
+          // OMN-074: the successor must be an output of the splice transaction.
+          getTransaction: async (txpowid: string) => ({
+            txpowid,
+            inputs: [{ coinId: ch.fundingCoinId }],
+            outputs: [{
+              coinId: '0x' + '77'.repeat(32),
+              address: ch.fundingAddress,
+              amount: '1500',
+              tokenId: '0x00',
+            }],
+          }),
         },
       },
       onSpliceFinalized: (s) => { finalized = s; },
@@ -179,6 +190,17 @@ describe('createWalletCoordination (RFC-035 B5)', () => {
             created: '1',
           }],
           getTip: async () => ({ block: 100 }),
+          // OMN-074: the successor must be an output of the splice transaction.
+          getTransaction: async (txpowid: string) => ({
+            txpowid,
+            inputs: [{ coinId: ch.fundingCoinId }],
+            outputs: [{
+              coinId: '0x' + '77'.repeat(32),
+              address: ch.fundingAddress,
+              amount: '1500',
+              tokenId: '0x00',
+            }],
+          }),
         },
       },
       onSpliceFinalized: (s) => { finalized = s; },

@@ -4,6 +4,7 @@
 
 import type {
   ChainStateProvider,
+  ChainTransaction,
   CoinsQuery,
   Coin,
   MMRProof,
@@ -68,5 +69,23 @@ export class CompositeProvider implements ChainStateProvider {
 
   broadcastTxPoW(txpowHex: string): Promise<BroadcastResult> {
     return this.withArg('broadcastTxPoW', txpowHex);
+  }
+
+  /**
+   * Transaction body (OMN-074): use whichever side implements the lookup. A
+   * provider without it is skipped, not treated as authoritative absence.
+   */
+  async getTransaction(txpowid: string): Promise<ChainTransaction | null> {
+    if (this.primary.getTransaction) {
+      try {
+        return await this.primary.getTransaction(txpowid);
+      } catch (error) {
+        this.onFallback?.('getTransaction', error);
+      }
+    }
+    if (this.fallback.getTransaction) {
+      return this.fallback.getTransaction(txpowid);
+    }
+    return null;
   }
 }

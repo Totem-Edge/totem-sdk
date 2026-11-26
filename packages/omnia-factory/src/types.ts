@@ -104,6 +104,14 @@ export interface FactoryLogEntry {
   virtualChannelIds: string[];
 }
 
+/**
+ * OMN-095: the two production capability levels of a factory.
+ *
+ * `checkpoint` is the only mode that can back a unilateral exit. `none` is a
+ * release restriction, not an equivalent alternative.
+ */
+export type FactoryAllocationEnforcement = 'checkpoint' | 'none';
+
 export interface ChannelFactory {
   factoryId: string;
   participants: FactoryParticipant[];
@@ -131,6 +139,18 @@ export interface ChannelFactory {
    * unilateral escape can never pay a stale split.
    */
   enforceCheckpoints?: boolean;
+
+  /**
+   * OMN-095: what a participant's latest allocation is enforceable to.
+   *
+   * - `checkpoint` — the covenant only accepts a same-script, same-value
+   *   successor whose sequence advanced by one, so a unilateral exit pays the
+   *   latest **confirmed** allocation.
+   * - `none` — the legacy off-chain mode. The timeout escape pays the original
+   *   funding split, so a newer off-chain allocation is *not* unilaterally
+   *   enforceable. Creating this mode requires an explicit opt-in.
+   */
+  allocationEnforcement?: FactoryAllocationEnforcement;
 
   /** Monotonically increasing. Incremented on every committed state transition. */
   currentSequence: number;

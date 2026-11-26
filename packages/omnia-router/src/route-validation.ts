@@ -13,6 +13,26 @@ import type {
   SwapHop,
 } from './types.js';
 
+/**
+ * What the route is supposed to do, expressed independently of the route object
+ * (OMN-080). Without this a structurally valid route that pays nobody still
+ * "passes" validation.
+ */
+export interface RouteBinding {
+  /** Party the payment starts from. */
+  payer?: string;
+  /** Party the payment must reach. */
+  recipient?: string;
+  /** Amount the recipient must receive. */
+  amount?: bigint;
+  /** Asset the recipient must receive. */
+  tokenId?: string;
+}
+
+function sameToken(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 export type RouteValidationResult =
   | { ok: true }
   | { ok: false; error: string };
@@ -112,16 +132,73 @@ export function validateSwapHop(
   return validateChannelSpend(outbound, intermediary, hop.amountOut, hop.tokenOut);
 }
 
-/** Validate every hop of a route against live channel state. */
+/**
+ * Validate a route against live channel state **and** against what the payment
+ * is supposed to do (OMN-080).
+ *
+ * Per-hop checks answer "can this channel spend?". They do not answer "does
+ * this route pay the right party the right amount?" — an empty route, a route
+ * whose hops do not connect, or a route that delivers a different amount all
+ * used to pass. `binding` supplies the intent; when it is omitted the route is
+ * still required to be non-empty and internally consistent.
+ */
 export function validateRoute(
   channels: Map<string, RouterChannel>,
   route:    Route,
+  binding:  RouteBinding = {},
 ): RouteValidationResult {
-  for (const hop of route.hops) {
+  if (!Array.isArray(route.hops) || route.hops.length === 0) {
+    return fail('route has no hops');
+  }
+
+  for (const [index, hop] of route.hops.entries()) {
     const result = (hop as SwapHop).isSwap
       ? validateSwapHop(channels, hop as SwapHop)
       : validateRoutingHop(channels, hop as RoutingHop);
     if (!result.ok) return result;
+
+    const next = route.hops[index + 1];
+    if (next && hop.to !== next.from) {
+      return fail(
+        `route is disconnected between hops ${index} and ${index + 1}: `
+        + `${hop.to} != ${next.from}`,
+      );
+    }
+    if (next && sameToken(hop.tokenId, next.tokenId) === false) {
+      // A token transition is only legitimate through an explicit swap hop.
+      const swap = (hop as SwapHop).isSwap ? hop as SwapHop : (next as SwapHop).isSwap ? next as SwapHop : undefined;
+      if (!swap) {
+        return fail(
+          `route changes asset between hops ${index} and ${index + 1} `
+          + `(${hop.tokenId} -> ${next.tokenId}) without a swap`,
+        );
+      }
+    }
   }
+
+  const first = route.hops[0] as RoutingHop;
+  const last = route.hops[route.hops.length - 1] as RoutingHop;
+
+  if (binding.payer !== undefined && first.from !== binding.payer) {
+    return fail(`route starts at ${first.from}, not at the payer ${binding.payer}`);
+  }
+  if (binding.recipient !== undefined && last.to !== binding.recipient) {
+    return fail(`route ends at ${last.to}, not at the recipient ${binding.recipient}`);
+  }
+  if (binding.amount !== undefined) {
+    const delivered = (last as SwapHop).isSwap ? (last as SwapHop).amountOut : last.amount;
+    if (delivered !== binding.amount) {
+      return fail(
+        `route delivers ${delivered.toString()}, not the requested ${binding.amount.toString()}`,
+      );
+    }
+  }
+  if (binding.tokenId !== undefined) {
+    const deliveredToken = (last as SwapHop).isSwap ? (last as SwapHop).tokenOut : last.tokenId;
+    if (!sameToken(deliveredToken, binding.tokenId)) {
+      return fail(`route delivers ${deliveredToken}, not the requested ${binding.tokenId}`);
+    }
+  }
+
   return { ok: true };
 }

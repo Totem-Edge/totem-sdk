@@ -319,8 +319,12 @@ describe('OMN-058 funded covenant default', () => {
   it('allows opting out to the per-party covenant', async () => {
     const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
       settlement: 'per-party',
+      // OMN-095: the per-party covenant without checkpoints is the legacy,
+      // unenforceable mode, so it must be opted into explicitly.
+      allowUnenforceableAllocations: true,
     });
     expect(plan.factory.fundingScript).not.toContain('IF @TOTIN EQ 1 THEN');
+    expect(plan.factory.allocationEnforcement).toBe('none');
   });
 });
 
@@ -330,6 +334,27 @@ describe('OMN-058 checkpoint enforcement', () => {
     const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0);
     expect(plan.factory.enforceCheckpoints).toBe(true);
     expect(plan.factory.fundingScript).toContain('INC(PREVSTATE(104))');
+  });
+
+  // ── OMN-095 ────────────────────────────────────────────────────────────────
+  it('OMN-095: records the capability level on the factory', async () => {
+    const checkpointed = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0);
+    expect(checkpointed.factory.enforceCheckpoints).toBe(true);
+    expect(checkpointed.factory.allocationEnforcement).toBe('checkpoint');
+
+    const legacy = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
+      settlement: 'per-party',
+      enforceCheckpoints: false,
+      allowUnenforceableAllocations: true,
+    });
+    expect(legacy.factory.allocationEnforcement).toBe('none');
+  });
+
+  it('OMN-095: refuses a non-checkpointed factory without an explicit acknowledgement', async () => {
+    await expect(buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
+      settlement: 'per-party',
+      enforceCheckpoints: false,
+    })).rejects.toThrow(/allowUnenforceableAllocations/);
   });
 
   it('refuses off-chain allocation changes on a checkpointed factory', async () => {
@@ -350,6 +375,7 @@ describe('OMN-058 checkpoint enforcement', () => {
     const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
       settlement: 'per-party',
       enforceCheckpoints: false,
+      allowUnenforceableAllocations: true,
     });
     expect(plan.factory.enforceCheckpoints).toBe(false);
     const active = { ...plan.factory, status: 'active' as const };

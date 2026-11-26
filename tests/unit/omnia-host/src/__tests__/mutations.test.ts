@@ -1,6 +1,6 @@
 import { amountToAtoms } from '@totemsdk/core';
 import { _resetChannelWatermarks } from '@totemsdk/omnia';
-import { createHostMethods, requestPeerReply } from '../api/methods.js';
+import { createHostMethods, requestPeerReply, reconcileOperation } from '../api/methods.js';
 import { InProcessRoutingProvider } from '../router/routing-provider.js';
 
 /** Channel/pool internals are integer atoms; RPC amounts are decimal MINIMA text. */
@@ -258,5 +258,143 @@ describe('omnia-host mutations', () => {
     const methods = createHostMethods(context);
     await expect(methods.get('totem_omniaCloseChannel')!({ operationId: 'same', channelId: 'other' }))
       .rejects.toThrow('does not match the original request');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-078 — observability failures must not drive the financial lifecycle
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('operation observability failures (OMN-078)', () => {
+  it('does not turn a committed operation into a failure when the observer rejects', async () => {
+    const operations = operationStore();
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    (context as any).observe = {
+      emit: jest.fn(async () => { throw new Error('observer down'); }),
+    };
+    const methods = createHostMethods(context);
+
+    const result = await methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'observe-committed', channelId: 'channel-1', by: '1',
+    });
+
+    expect(result).toMatchObject({ success: true });
+    expect(operations.get('observe-committed')!.status).toBe('committed');
+  });
+
+  it('does not strand an operation when the executing emit rejects', async () => {
+    const operations = operationStore();
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    (context as any).observe = {
+      emit: jest.fn(async (event: { kind?: string }) => {
+        if (event.kind === 'operation.executing') throw new Error('observer down');
+      }),
+    };
+    const methods = createHostMethods(context);
+
+    const result = await methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'observe-executing', channelId: 'channel-1', by: '1',
+    });
+
+    expect(result).toMatchObject({ success: true });
+    expect(operations.get('observe-executing')!.status).toBe('committed');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-079 — an ambiguous side effect is not a retryable failure
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('unknown operation outcomes (OMN-079)', () => {
+  beforeEach(() => { _resetChannelWatermarks(); });
+
+  function withBrokenPeer() {
+    const operations = operationStore();
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    // The state is signed and stored before the peer send is attempted.
+    (context as any).swarm = {
+      connectToPeer: jest.fn(async () => { throw new Error('peer offline'); }),
+    };
+    const methods = createHostMethods(context);
+    return { operations, methods, context };
+  }
+
+  it('records an unknown outcome when the peer delivery fails after signing', async () => {
+    const { operations, methods } = withBrokenPeer();
+
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-1', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow(/could not be delivered/);
+
+    expect(operations.get('ambiguous-1')!.status).toBe('unknown');
+  });
+
+  it('refuses to replay an unknown operation', async () => {
+    const { methods } = withBrokenPeer();
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-2', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow();
+
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-2', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow(/unknown outcome; reconcile it/);
+  });
+
+  it('reconciliation to committed unblocks replay with the recovered result', async () => {
+    const { operations, methods, context } = withBrokenPeer();
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-3', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow();
+
+    reconcileOperation(context, 'ambiguous-3', {
+      status: 'committed',
+      result: { success: true, channelId: 'channel-1', sequence: 1 },
+    });
+
+    const replay = await methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-3', channelId: 'channel-1', by: '1',
+    });
+    expect(replay).toMatchObject({ sequence: 1 });
+    expect(operations.get('ambiguous-3')!.status).toBe('committed');
+  });
+
+  it('reconciliation to failed makes the operation retryable again', async () => {
+    const { operations, methods, context } = withBrokenPeer();
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-4', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow();
+
+    reconcileOperation(context, 'ambiguous-4', { status: 'failed', error: 'peer never received it' });
+    expect(operations.get('ambiguous-4')!.status).toBe('failed');
+
+    // Retrying is allowed again (it fails at the same ambiguous point, which is
+    // fine: the point is that it is no longer blocked as unknown).
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'ambiguous-4', channelId: 'channel-1', by: '1',
+    })).rejects.toThrow(/could not be delivered/);
+  });
+
+  it('reconciliation refuses an operation that is not unknown', async () => {
+    const operations = operationStore();
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    const methods = createHostMethods(context);
+    await methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'settled-1', channelId: 'channel-1', by: '1',
+    });
+
+    expect(() => reconcileOperation(context, 'settled-1', { status: 'failed', error: 'x' }))
+      .toThrow(/not 'unknown'/);
+  });
+
+  it('a failure before any side effect stays plainly retryable', async () => {
+    const operations = operationStore();
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    const methods = createHostMethods(context);
+
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'early-1', channelId: 'missing-channel', by: '1',
+    })).rejects.toThrow(/not found/);
+
+    expect(operations.get('early-1')!.status).toBe('failed');
   });
 });
