@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-11-25
+
+### Fixed
+
+- `totem_omniaGetChannelState` now also re-checks channels in `opening`. The
+  initiator stays in `opening` until its funding coin has depth and no event
+  fires for it, so a channel opened against a real chain never became active.
+  Both `opening` and `funding_pending` are promoted on read, matching the
+  acceptor path.
+
 ## [0.13.1] - 2026-10-24
 
 ### Fixed
