@@ -42,7 +42,7 @@ module.exports = {
     '^@totemsdk/omnia-factory$': '<rootDir>/packages/omnia-factory/src/index.ts',
     '^@totemsdk/omnia-router$': '<rootDir>/packages/omnia-router/src/index.ts',
     '^@totemsdk/omnia-splice$': '<rootDir>/packages/omnia-splice/src/index.ts',
-    '^@totemsdk/omnia-vtxo$': '<rootDir>/packages/omnia-vtxo/src/index.ts',
+    '^@totemsdk/vtxo$': '<rootDir>/packages/vtxo/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/packages/wots-lease/src/index.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/packages/chain-provider/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',

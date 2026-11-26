@@ -1,0 +1,1 @@
+../../../../packages/vtxo/src/split.ts

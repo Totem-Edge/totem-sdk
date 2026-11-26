@@ -8,6 +8,7 @@ import {
   registerSettledFeePayout,
   type LiquidityBondRegistryState,
   type RegistryTransitionSigner,
+  issueLiquidityReceipt,
 } from '@totemsdk/liquidity-bond';
 import {
   createOmniaPool,
@@ -335,8 +336,8 @@ describe('omnia-pool', () => {
   });
 
   it('allocates to a vtxo target using a port', async () => {
-    const vtxo = { vtxoId: 'v-1' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxo;
-    const pool = { poolId: 'vtxo-pool-1' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxoPool;
+    const vtxo = { vtxoId: 'v-1' } as unknown as import('@totemsdk/vtxo').OmniaVtxo;
+    const pool = { poolId: 'vtxo-pool-1' } as unknown as import('@totemsdk/vtxo').OmniaVtxoPool;
     const port: VtxoExecutionPort = {
       createPool: jest.fn(),
       mintVtxo: jest.fn().mockResolvedValue({ pool, vtxo }),
@@ -536,7 +537,7 @@ describe('omnia-pool', () => {
   });
 
   it('rebalances capital to a vtxo target as vtxo-backing', async () => {
-    const vtxoPool = { poolId: 'vtxo-pool-2' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxoPool;
+    const vtxoPool = { poolId: 'vtxo-pool-2' } as unknown as import('@totemsdk/vtxo').OmniaVtxoPool;
     const port: VtxoExecutionPort = {
       createPool: jest.fn(),
       mintVtxo: jest.fn().mockResolvedValue({ pool: vtxoPool, vtxo: { vtxoId: 'v-2' } }),
@@ -811,4 +812,117 @@ describe('omnia-pool', () => {
       executePoolPayout({ pool: manifest, position, intent, recipientAddress: lp }, withIntent),
     ).rejects.toThrow('must be approved before payout');
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OMN-090/091/092 — payout consumes authoritative state
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('payout authority, reconciliation and receipts', () => {
+  async function approvedWithdrawal(amount = '30000') {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const { intent, state: withIntent } = withdrawLiquidity(
+      manifest,
+      position,
+      { positionId: position.positionId, amount, recipientAddress: lp },
+      state,
+    );
+    const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
+    return { manifest, position, approved, approvedReg };
+  }
+
+  function payout(manifest: typeof registry extends never ? never : any, position: any, approved: any, reg: any, overrides: Record<string, unknown> = {}) {
+    return executePoolPayout(
+      {
+        pool: manifest,
+        position,
+        intent: approved,
+        recipientAddress: lp,
+        settlement: settlementFor(manifest, position, approved, lp),
+        settlementVerifier: passSettlementVerifier,
+        ...overrides,
+      } as any,
+      reg,
+    );
+  }
+
+  it('OMN-090: rejects a caller-supplied position that disagrees with the registry', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const inflated = { ...position, amount: position.amount + 50000n };
+    await expect(payout(manifest, inflated, approved, approvedReg))
+      .rejects.toThrow(/disagree with the registry \(position.amount\)/);
+  });
+
+  it('OMN-090: rejects an intent the registry does not hold', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const unknown = { ...approved, withdrawalId: 'wd-not-recorded' };
+    await expect(payout(manifest, position, unknown, approvedReg))
+      .rejects.toThrow(/is not recorded against position/);
+  });
+
+  it('OMN-090: pays the registry amount, not the caller copy', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const result = await payout(manifest, position, approved, approvedReg);
+    expect(result.position.amount).toBe(70000n);
+  });
+
+  it('OMN-091: a partial withdrawal preserves allocations and reservations', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const allocated = { ...approvedReg.positions[position.positionId]!, allocatedAmount: 20000n, reservedAmount: 5000n, availableAmount: 75000n };
+    const reg = { ...approvedReg, positions: { ...approvedReg.positions, [position.positionId]: allocated } };
+
+    const result = await payout(manifest, allocated, approved, reg);
+    expect(result.position.allocatedAmount).toBe(20000n);
+    expect(result.position.reservedAmount).toBe(5000n);
+    expect(result.position.availableAmount).toBe(45000n);
+    expect(result.position.amount).toBe(70000n);
+    // available never rises because of a withdrawal
+    expect(result.position.availableAmount!).toBeLessThan(75000n);
+  });
+
+  it('OMN-091: refuses a withdrawal that would dip into allocated capital', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const allocated = { ...approvedReg.positions[position.positionId]!, allocatedAmount: 90000n, availableAmount: 10000n };
+    const reg = { ...approvedReg, positions: { ...approvedReg.positions, [position.positionId]: allocated } };
+    await expect(payout(manifest, allocated, approved, reg))
+      .rejects.toThrow(/exceeds available liquidity/);
+  });
+
+  it('OMN-092: a receipt-backed position must have its receipt in the registry', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const withReceipt = { ...approvedReg.positions[position.positionId]!, receiptId: 'rcpt-missing' };
+    const reg = { ...approvedReg, positions: { ...approvedReg.positions, [position.positionId]: withReceipt } };
+    await expect(payout(manifest, withReceipt, approved, reg))
+      .rejects.toThrow(/missing from the registry/);
+  });
+
+  it('OMN-092: a partial withdrawal consumes the receipt and issues a successor', async () => {
+    const { manifest, position, approved, approvedReg } = await approvedWithdrawal();
+    const receipt = issueLiquidityReceipt({
+      position: approvedReg.positions[position.positionId]!,
+      poolId: approvedReg.positions[position.positionId]!.poolId,
+      ownerAddress: lp,
+    });
+    const withReceipt = { ...approvedReg.positions[position.positionId]!, receiptId: receipt.receiptId };
+    const reg = {
+      ...approvedReg,
+      positions: { ...approvedReg.positions, [position.positionId]: withReceipt },
+      receipts: { ...approvedReg.receipts, [receipt.receiptId]: receipt },
+    };
+
+    const result = await payout(manifest, withReceipt, approved, reg);
+
+    const original = result.registry.receipts[receipt.receiptId]!;
+    expect(original.consumedIntentId).toBe(approved.withdrawalId);
+
+    const successorId = result.position.receiptId!;
+    expect(successorId).not.toBe(receipt.receiptId);
+    const successor = result.registry.receipts[successorId]!;
+    expect(successor.amount).toBe(70000n);
+    expect(successor.consumedAt).toBeUndefined();
+  });
+});
 });

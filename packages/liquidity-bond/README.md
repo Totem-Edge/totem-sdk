@@ -6,7 +6,7 @@ Deterministic, non-custodial LP position and productive liquidity record package
 > receipts, allocations, fee records, and withdrawal intents — "who supplied what
 > to which pool, and what proof proves it." It holds no value and executes
 > nothing; `@totemsdk/omnia-pool` drives it and the execution packages
-> (`@totemsdk/omnia`, `@totemsdk/omnia-vtxo`, …) hold the balances.
+> (`@totemsdk/omnia`, `@totemsdk/vtxo`, …) hold the balances.
 > See [`docs/examples/meridian-vtxo-payments.md`](../../docs/examples/meridian-vtxo-payments.md).
 
 ## What liquidity-bond is

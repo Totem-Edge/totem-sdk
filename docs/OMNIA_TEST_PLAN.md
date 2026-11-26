@@ -18,7 +18,7 @@ and record every run in [`OMNIA_TEST_RESULTS.md`](./OMNIA_TEST_RESULTS.md).
 | `@totemsdk/omnia` | eltoo channel state machine, framing, peer/stream layer | S4 |
 | `@totemsdk/omnia-host` | durable daemon: lifecycle, routing, control JSON-RPC | S1–S3 |
 | `@totemsdk/omnia-factory` | N-of-N factory funding, virtual channels, settlement | S5 |
-| `@totemsdk/omnia-vtxo` | virtual-UTXO / pool claims | S6 |
+| `@totemsdk/vtxo` | virtual-UTXO / pool claims | S6 |
 | `@totemsdk/omnia-splice` | splice in/out (live resize) | S7 |
 | `@totemsdk/omnia-router` | multi-hop / cross-token routing | S8 |
 | `@totemsdk/omnia-relay` | browser-safe relay transport | S9 |
@@ -119,7 +119,7 @@ the two expected clients. No node, chain, or cloud host is required.
 node scripts/omnia-s6-vtxo.mjs
 ```
 
-Real `@totemsdk/omnia-vtxo` primitives with a unified TreeKey operator and a
+Real `@totemsdk/vtxo` primitives with a unified TreeKey operator and a
 mock lease provider: create pool → mint 100k → co-sign/verify the mint receipt →
 partial transfer 40k (60k change) → co-sign/verify the transfer receipt →
 refresh to epoch 1 → co-sign/verify → exit draft → exited. Also asserts a

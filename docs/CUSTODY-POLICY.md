@@ -48,13 +48,13 @@ unilateral timer-escaped owner path**. A script whose only spend path requires
 Each publishable package declares custody in `scripts/workspace-gates.config.json`:
 
 ```jsonc
-"packages/omnia-vtxo": {
+"packages/vtxo": {
   "status": "publishable",
   "maturity": "rc",
   "custody": {
     "classification": "non-custodial",
     "reason": "owner exit branch after exitTimelock; cooperative update is MULTISIG(2 operator owner)",
-    "script": { "file": "packages/omnia-vtxo/src/pool-script.ts", "fn": "buildPoolScript" }
+    "script": { "file": "packages/vtxo/src/pool-script.ts", "fn": "buildPoolScript" }
   }
 }
 ```
@@ -130,7 +130,7 @@ A `non-custodial` claim must be *proven*, not asserted:
 |---|---|---|
 | `@totemsdk/statechain` | non-custodial ✅ | reference — owner reclaim after `RECLAIM_TIMELOCK` |
 | `@totemsdk/omnia` | non-custodial ✅ | co-signed close package (both-signed settlement) broadcast unilaterally after the contest delay; no single-signer spend path |
-| `@totemsdk/omnia-vtxo` | non-custodial ✅ | per-share constrained exit after `EXITBLOCK` (each holder withdraws only its committed share); cooperative update co-signed |
+| `@totemsdk/vtxo` | non-custodial ✅ | per-share constrained exit after `EXITBLOCK` (each holder withdraws only its committed share); cooperative update co-signed |
 | `@totemsdk/omnia-factory` | non-custodial ✅ | N-of-N close + per-party escape after the absolute block in `STATE(103)` |
 | `@totemsdk/omnia-pool` | non-custodial ✅ | inherits the VTXO pool script |
 | `@totemsdk/omnia-splice` | non-custodial ✅ | inherits the channel script |

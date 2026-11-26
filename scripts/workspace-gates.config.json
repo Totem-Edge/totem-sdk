@@ -561,19 +561,6 @@
         "reason": "splicing follows the non-custodial channel script"
       }
     },
-    "packages/omnia-vtxo": {
-      "status": "publishable",
-      "maturity": "rc",
-      "supportTier": 2,
-      "custody": {
-        "classification": "non-custodial",
-        "reason": "owner-unilateral exit after exitTimelock; cooperative update MULTISIG(2 operator,owner)",
-        "script": {
-          "file": "packages/omnia-vtxo/src/pool-script.ts",
-          "fn": "buildPoolScript"
-        }
-      }
-    },
     "packages/p2p-hub": {
       "status": "publishable",
       "maturity": "alpha",
@@ -898,6 +885,28 @@
       "supportReason": "RC with MAVLink framing/telemetry/command simulator integration and the governed mission profile (edge-mavlink/governed, RFC-025) under unit, envelope and conformance gates; no autopilot vendor binding or SITL CI run",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/rfc/RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md"
+    },
+    "packages/vtxo": {
+      "status": "publishable",
+      "maturity": "rc",
+      "supportTier": 2,
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "owner-unilateral exit after exitTimelock; cooperative update MULTISIG(2 operator,owner)",
+        "script": {
+          "file": "packages/vtxo/src/pool-script.ts",
+          "fn": "buildPoolScript"
+        }
+      }
+    },
+    "packages/claim": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "supportTier": 2,
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library; holds no on-chain value"
+      }
     }
   }
 }

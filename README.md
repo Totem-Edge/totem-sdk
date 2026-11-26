@@ -41,7 +41,7 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 
 | System | Covers | Example packages |
 |--------|--------|------------------|
-| **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `omnia-vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
+| **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
 | **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `location-proof`, `spatial-proof`, `raster-proof`, `identity`, `manifest`, `connect` |
 | **Policy** | Decisions, delegation, governance, agent seams | `recursive-mast`, `authority`, `governance`, `agent-policy` |
 | **Action** | Bounded operational execution on devices | `edge`, `act-core`, `edge-ocpp/governed`, `edge-mavlink/governed`, `edge-adapters` |
@@ -86,7 +86,7 @@ The five systems sit on a shared foundation. Each package is independently usabl
 ┌──────────────────────────────────────────────────────────────┐
 │                 SETTLEMENT SYSTEM                              │
 │  omnia  omnia-router  omnia-splice  omnia-factory             │
-│  omnia-vtxo  omnia-host  statechain  se-server                │
+│  vtxo        omnia-host  statechain  se-server                │
 │  tx-builder  txpow  liquidity-bond  provider-bond             │
 │  Eltoo channels. Multi-hop routing. Statechains.              │
 │  HTLC / vault / treasury / membership / asset programs.       │
@@ -147,7 +147,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/omnia-router`](packages/omnia-router) | Multi-hop payments and cross-token swaps across the channel network |
 | [`@totemsdk/omnia-splice`](packages/omnia-splice) | Resize channels without closing them — splice-in and splice-out |
 | [`@totemsdk/omnia-factory`](packages/omnia-factory) | Scale payment channels — N-of-N funded factory channels with virtual channel support |
-| [`@totemsdk/omnia-vtxo`](packages/omnia-vtxo) | VTXO management for Omnia channels — Merkle-verified exit proofs |
+| [`@totemsdk/vtxo`](packages/vtxo) | VTXO claim layer — cash-like off-chain balances backed by a shared pool |
 | [`@totemsdk/omnia-pool`](packages/omnia-pool) | Generic Omnia liquidity pool orchestration — deposit, allocate, fee, NAV, and withdraw across the Omnia execution family |
 | [`@totemsdk/omnia-relay`](packages/omnia-relay) | Wallet-side Omnia client — composes the relay transport, routing and the single-party factory/splice halves without a package cycle |
 | [`@totemsdk/statechain`](packages/statechain) | Off-chain UTXO ownership transfer using the Mercury protocol with blind SE co-signatures |

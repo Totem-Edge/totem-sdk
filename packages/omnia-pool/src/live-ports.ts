@@ -36,7 +36,7 @@ import {
   acceptSplice,
   finalizeSplice,
 } from '@totemsdk/omnia-splice';
-import { createPool, mintVtxo, createExitDraft, markExiting, markExited } from '@totemsdk/omnia-vtxo';
+import { createPool, mintVtxo, createExitDraft, markExiting, markExited } from '@totemsdk/vtxo';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {

@@ -51,7 +51,7 @@
     "@totemsdk/omnia-relay": 53,
     "@totemsdk/omnia-router": 45,
     "@totemsdk/omnia-splice": 54,
-    "@totemsdk/omnia-vtxo": 197,
+    "@totemsdk/vtxo": 197,
     "@totemsdk/p2p-hub": 12,
     "@totemsdk/pear": 36,
     "@totemsdk/proof": 46,

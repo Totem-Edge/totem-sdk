@@ -57,7 +57,7 @@ import {
   type OmniaVtxoPool,
   type VtxoOperatorReceipt,
   transitionPoolMembers,
-} from '@totemsdk/omnia-vtxo';
+} from '@totemsdk/vtxo';
 import {
   createOmniaPool,
   depositToPool,
@@ -161,17 +161,17 @@ export interface HostApiContext {
    * OMN-007: verifies VTXO claim signatures over the canonical claim preimage
    * against the signer's trusted key. Without it, claim verification fails closed.
    */
-  vtxoClaimVerifier?: import('@totemsdk/omnia-vtxo').VtxoClaimSignatureVerifier;
+  vtxoClaimVerifier?: import('@totemsdk/vtxo').VtxoClaimSignatureVerifier;
   /**
    * OMN-042: trusted chain verifier for VTXO exit transactions. Required by
    * `completeVtxoExit`; a caller assertion is never enough.
    */
-  vtxoExitVerifier?: import('@totemsdk/omnia-vtxo').VtxoExitVerifier;
+  vtxoExitVerifier?: import('@totemsdk/vtxo').VtxoExitVerifier;
   /**
    * OMN-025: verifier for the serialized witness carried by an exit
    * entitlement. Without it the host refuses to certify an entitlement.
    */
-  vtxoExitWitnessVerifier?: import('@totemsdk/omnia-vtxo').VerifyExitEntitlementOptions['verifyWitness'];
+  vtxoExitWitnessVerifier?: import('@totemsdk/vtxo').VerifyExitEntitlementOptions['verifyWitness'];
   /**
    * OMN-049: durable record of consumed WOTS leaves (`addressIndex:l1:l2` →
    * digest hex). Supplied by deployments so prepared-signature submissions can
@@ -2548,7 +2548,7 @@ function registerPreparedPayMethods(
         createPool: async () => {
           throw new Error('allocatePoolCapital cannot create VTXO pools; provision the pool first');
         },
-        mintVtxo: async (pool: import('@totemsdk/omnia-vtxo').OmniaVtxoPool, mintParams: import('@totemsdk/omnia-vtxo').MintVtxoParams) => {
+        mintVtxo: async (pool: import('@totemsdk/vtxo').OmniaVtxoPool, mintParams: import('@totemsdk/vtxo').MintVtxoParams) => {
           const stored = context.vtxoPools!.get(pool.poolId);
           if (!stored?.backing) throw new Error(`VTXO pool ${pool.poolId} has no verified on-chain backing`);
           const minted = mintVtxo(stored, mintParams);
@@ -2557,9 +2557,9 @@ function registerPreparedPayMethods(
           context.vtxoReceipts?.set(minted.receipt.receiptId, minted.receipt);
           return { pool: minted.pool, vtxo: { ...minted.vtxo, status: 'provisional' } };
         },
-        createExitDraft: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo) => createExitDraft(vtxo).draft,
-        markExiting: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo, now?: number) => markExiting(vtxo, now),
-        markExited: async (vtxo: import('@totemsdk/omnia-vtxo').OmniaVtxo, txpowId: string, now?: number) => markExited(vtxo, { txpowId, now }),
+        createExitDraft: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo) => createExitDraft(vtxo).draft,
+        markExiting: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo, now?: number) => markExiting(vtxo, now),
+        markExited: async (vtxo: import('@totemsdk/vtxo').OmniaVtxo, txpowId: string, now?: number) => markExited(vtxo, { txpowId, now }),
       },
     } : {};
     return { ...injected, ...routing, ...vtxo } as import('@totemsdk/omnia-pool').OmniaPoolAllocationContext;

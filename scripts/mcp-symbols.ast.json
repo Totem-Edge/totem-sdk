@@ -1427,6 +1427,11 @@
           "kind": "interface",
           "signature": "export interface ChainStateProvider"
         },
+        "ChainTransaction": {
+          "kind": "interface",
+          "signature": "export interface ChainTransaction",
+          "doc": "A transaction body resolved from the chain (OMN-074).\n\nOnly the fields needed to prove provenance are modelled: which coins the\ntransaction spent and which outputs it created. A caller that needs byte\nfidelity should use `minima-rpc` directly."
+        },
         "CoinsQuery": {
           "kind": "interface",
           "signature": "export interface CoinsQuery"
@@ -1580,6 +1585,189 @@
         }
       }
     },
+    "@totemsdk/claim": {
+      "symbols": {
+        "evaluateClaim": {
+          "kind": "function",
+          "signature": "evaluateClaim(policy: ClaimPolicy, witness: ClaimWitness, ctx: ClaimContext): ClaimResult",
+          "doc": "Pure authorization evaluator. May be used offline.\n\nThis decides *who may claim* from the signer set and the supplied context. It\ndoes not verify signatures and does not check settlement-specific bindings."
+        },
+        "SingleClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface SingleClaimPolicy"
+        },
+        "ThresholdClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface ThresholdClaimPolicy"
+        },
+        "ConditionalClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface ConditionalClaimPolicy"
+        },
+        "DvpClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface DvpClaimPolicy"
+        },
+        "DelegatedClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface DelegatedClaimPolicy"
+        },
+        "RotationClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface RotationClaimPolicy"
+        },
+        "VestingClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface VestingClaimPolicy"
+        },
+        "RecoveryClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface RecoveryClaimPolicy"
+        },
+        "CollateralClaimPolicy": {
+          "kind": "interface",
+          "signature": "export interface CollateralClaimPolicy"
+        },
+        "ClaimPolicy": {
+          "kind": "type",
+          "signature": "export type ClaimPolicy = | SingleClaimPolicy | ThresholdClaimPolicy | ConditionalClaimPolicy | DvpClaimPolicy | DelegatedClaimPolicy | RotationClaimPolicy | VestingClaimPolicy | RecoveryClaimPolicy |"
+        },
+        "ClaimWitness": {
+          "kind": "interface",
+          "signature": "export interface ClaimWitness"
+        },
+        "ClaimSignature": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignature",
+          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
+        },
+        "ClaimSignatureProof": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignatureProof"
+        },
+        "ClaimSignatureVerifier": {
+          "kind": "type",
+          "signature": "export type ClaimSignatureVerifier = ( proof: ClaimSignatureProof, ) => boolean | Promise<boolean>",
+          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
+        },
+        "VerifyClaimOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyClaimOptions"
+        },
+        "ClaimContext": {
+          "kind": "interface",
+          "signature": "export interface ClaimContext"
+        },
+        "ClaimResult": {
+          "kind": "interface",
+          "signature": "export interface ClaimResult"
+        },
+        "computeVestingSchedule": {
+          "kind": "function",
+          "signature": "computeVestingSchedule(policy: VestingPolicyShape, block: number, totalAmount?: bigint): VestingScheduleResult",
+          "doc": "Compute the vested amount and the schedule bounds at `block`.\n\n`totalAmount` may come from the policy or from the claim context (the VTXO\namount, for example). Evaluation fails closed when neither is available."
+        },
+        "vestedAmountAt": {
+          "kind": "function",
+          "signature": "vestedAmountAt(policy: VestingPolicyShape, block: number, totalAmount?: bigint): bigint | undefined",
+          "doc": "The maximum amount claimable at `block`, or `undefined` when the schedule is\ninvalid or the total is unknown."
+        },
+        "VestingSchedule": {
+          "kind": "interface",
+          "signature": "export interface VestingSchedule",
+          "doc": "Vesting schedule arithmetic.\n\nThe schedule is intentionally pure and chain-agnostic: the caller supplies the\nevaluation block. Integer division floors, so a vested amount is never rounded\nup. The KISSVM script templates in `@totemsdk/kissvm` implement the same\nrelease curve on-chain."
+        },
+        "VestingPolicyShape": {
+          "kind": "interface",
+          "signature": "export interface VestingPolicyShape"
+        },
+        "VestingScheduleResult": {
+          "kind": "type",
+          "signature": "export type VestingScheduleResult = | { valid: true"
+        },
+        "normalizeClaimValue": {
+          "kind": "function",
+          "signature": "normalizeClaimValue(value: unknown): unknown",
+          "doc": "Normalise a value for canonical serialization.\n\n`canonicalJson` sorts object keys but does not handle `bigint`; policies may\ncarry bigint totals. Bigints become decimal strings, which is the same\nrepresentation used on the wire."
+        },
+        "serializeClaimEnvelope": {
+          "kind": "function",
+          "signature": "serializeClaimEnvelope(envelope: ClaimEnvelope): string",
+          "doc": "Canonical JSON for transport or storage."
+        },
+        "computeClaimEnvelopeHash": {
+          "kind": "function",
+          "signature": "computeClaimEnvelopeHash(envelope: ClaimEnvelope): string",
+          "doc": "The canonical envelope hash. This is the commitment a claim link or receipt\ncan carry; re-serialising the same envelope always produces the same digest."
+        },
+        "assertClaimEnvelope": {
+          "kind": "function",
+          "signature": "assertClaimEnvelope(envelope: ClaimEnvelope): void",
+          "doc": "Minimal structural validation. This is not a schema validator: it checks the\nproperties the policy evaluator depends on and lets the caller validate the\npayload with the adapter that owns it."
+        },
+        "NativeClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface NativeClaimPayload"
+        },
+        "TokenClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface TokenClaimPayload"
+        },
+        "NftClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface NftClaimPayload"
+        },
+        "BasketClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface BasketClaimPayload"
+        },
+        "VtxoClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimPayload"
+        },
+        "StatechainClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface StatechainClaimPayload"
+        },
+        "LiquidityPositionClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface LiquidityPositionClaimPayload"
+        },
+        "ProofClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface ProofClaimPayload"
+        },
+        "ManifestClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface ManifestClaimPayload"
+        },
+        "MandateClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface MandateClaimPayload"
+        },
+        "DataClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface DataClaimPayload"
+        },
+        "CustomClaimPayload": {
+          "kind": "interface",
+          "signature": "export interface CustomClaimPayload"
+        },
+        "ClaimPayload": {
+          "kind": "type",
+          "signature": "export type ClaimPayload = | NativeClaimPayload | TokenClaimPayload | NftClaimPayload | BasketClaimPayload | VtxoClaimPayload | StatechainClaimPayload | LiquidityPositionClaimPayload | ProofClaimPaylo"
+        },
+        "ClaimEnvelope": {
+          "kind": "interface",
+          "signature": "export interface ClaimEnvelope"
+        },
+        "CLAIM_ENVELOPE_DOMAIN": {
+          "kind": "const",
+          "signature": "CLAIM_ENVELOPE_DOMAIN = 'totemsdk/claim/envelope/v1'",
+          "doc": "Domain separator for the canonical envelope hash."
+        }
+      }
+    },
     "@totemsdk/connect": {
       "symbols": {
         "setActiveProvider": {
@@ -1721,7 +1909,7 @@
         },
         "omniaOpenChannel": {
           "kind": "function",
-          "signature": "omniaOpenChannel(origin: string, params: { remotePartyId: string; localAmount: string; remoteAmount: string; tokenId?: string; fundingCoinId: string; }): Promise<TotemOmniaOpenChannelResponse>"
+          "signature": "omniaOpenChannel(origin: string, params: { remotePartyId: string; remotePublicKeyDigest: string; remoteAddressIndex?: number; remoteSettlementAddress?: string; remoteTransportPubkey?: string; localAmount: string; remoteAmount: string; tokenId?: string; fundingCoinId: string; }): Promise<TotemOmniaOpenChannelResponse>"
         },
         "omniaPay": {
           "kind": "function",
@@ -2476,6 +2664,10 @@
           "signature": "createWalletRuntime(ctx: WalletHandlerContext, options?: WalletRuntimeOptions): WalletRuntime",
           "doc": "Compose a wallet runtime over the shared handlers. Every canonical connect\nmethod is addressable; methods whose ports are absent resolve to an explicit\n`unsupported` response (and are listed in the manifest), never a silent no-op."
         },
+        "deriveOmniaCapabilities": {
+          "kind": "function",
+          "signature": "deriveOmniaCapabilities(probe: OmniaSupportProbe | undefined): TotemCapabilities[\"omnia\"]"
+        },
         "LEGACY_METHODS": {
           "kind": "const",
           "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_GET_CHAIN_TIP', 'TOTEM_SEND_COMPLEX', 'TOTEM_TOKENCREATE', 'TOTEM_SIGN_DAT",
@@ -2617,6 +2809,11 @@
         "WalletRuntime": {
           "kind": "interface",
           "signature": "export interface WalletRuntime"
+        },
+        "OmniaSupportProbe": {
+          "kind": "interface",
+          "signature": "export interface OmniaSupportProbe",
+          "doc": "RFC-035 B5 — derive the coarse `omnia` capability block from what the wallet's\nOmnia port will actually attempt.\n\nThe capability manifest is a claim about behaviour, and the same wallet build\nruns in two very different modes: self-hosted (WOTS lease material present, so\nsigning-required operations work) and Axia lease mode (no signing material).\nA static block either over-claims in Axia mode or under-claims in self-hosted\nmode; deriving it from the port's `supports()` probe is truthful in both."
         },
         "isWalletCapabilityManifest": {
           "kind": "function",
@@ -10769,7 +10966,7 @@
         "buildCommandString": {
           "kind": "function",
           "signature": "buildCommandString(method: string, params?: Record<string, unknown>): string",
-          "doc": "Build the Minima command string from a method name + params object.\nPorted from MinimaRpcAdapter.translateToMinimaCommand() with Gap 1 + Gap 2 fixes applied."
+          "doc": "Build the Minima command string from a method name + params object.\n\nKnown commands are serialized exclusively from the generated node schema;\nunknown commands keep a validated passthrough for node extensions."
         },
         "postCommand": {
           "kind": "function",
@@ -11813,6 +12010,42 @@
           "signature": "confirmUpdateBroadcast(channel: OmniaChannel, opts: ConfirmUpdateOptions, chainProvider: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
           "doc": "Record that the latest signed update is confirmed on chain.\n\nEltoo settlement spends the channel coin at its *on-chain* state, so\n`onChainSequence` and `latestCoinId` must track the last confirmed update. They\nare read from the coin itself — not from the off-chain sequence, and not from a\ncaller-supplied transaction — so a signed-but-unbroadcast state cannot move them.\n\nThe coin must be under the channel script address, have the requested\nconfirmation depth, and carry the sequence and port-102 commitment of\n`latestState`."
         },
+        "createWalletFundingWitnessBuilder": {
+          "kind": "function",
+          "signature": "createWalletFundingWitnessBuilder(options: WalletFundingWitnessBuilderOptions): FundingWitnessBuilder",
+          "doc": "Reference wallet funding-witness builder.\n\nThe wallet signs the exact funding digest produced by `buildChannelOpening`\nand supplies the coin proof + address script. The lease is committed on\nsuccess and burned on failure, so a failed open never reuses a WOTS leaf."
+        },
+        "createChainFundingProofProvider": {
+          "kind": "function",
+          "signature": "createChainFundingProofProvider(chainProvider: ChainStateProvider): FundingProofProvider",
+          "doc": "Funding proof provider backed by a `ChainStateProvider` that supports\n`exportCoin` and `getAddressInfo` (for example a self-hosted Minima RPC node).\n\nHosted providers that cannot export coin proofs fail closed with an explicit\nerror instead of fabricating a witness."
+        },
+        "createAxiaFundingProofProvider": {
+          "kind": "function",
+          "signature": "createAxiaFundingProofProvider(config: AxiaFundingProofProviderConfig): FundingProofProvider",
+          "doc": "Axia funding-proof provider.\n\n- With a hardened lease token, use `/v1/wots-hardened/coinproofs` so the\n  CoinProof is bound to the lease.\n- With a local lease, fall back to `/v1/wallet/sdk/proofs`, which requires a\n  real project x-api-key (not the shared `totem-shared` default)."
+        },
+        "AxiaFundingProofProviderConfig": {
+          "kind": "interface",
+          "signature": "export interface AxiaFundingProofProviderConfig"
+        },
+        "FundingWitnessBuilder": {
+          "kind": "interface",
+          "signature": "export interface FundingWitnessBuilder",
+          "doc": "Wallet-side port that assembles the signed funding witness for a channel open.\n\nThe dApp supplies the funding coin id and channel terms. The wallet owns the\ncoin, so only the wallet can build the funding witness. A dApp or provider\nMUST NOT be able to substitute a witness for a different coin or amount."
+        },
+        "FundingWitnessBuilderInput": {
+          "kind": "interface",
+          "signature": "export interface FundingWitnessBuilderInput"
+        },
+        "FundingProofProvider": {
+          "kind": "interface",
+          "signature": "export interface FundingProofProvider"
+        },
+        "WalletFundingWitnessBuilderOptions": {
+          "kind": "interface",
+          "signature": "export interface WalletFundingWitnessBuilderOptions"
+        },
         "addHTLC": {
           "kind": "function",
           "signature": "addHTLC(channel: OmniaChannel, params: AddHTLCParams, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<{ channel: OmniaChannel; htlcId: string; partialState: Partial<SignedChannelState>; error?: string; }>",
@@ -11830,12 +12063,17 @@
         },
         "buildHtlcFulfillmentReceipt": {
           "kind": "function",
-          "signature": "buildHtlcFulfillmentReceipt(channel: OmniaChannel, state: SignedChannelState, htlcId: string, fulfilledAt?: number): HtlcFulfillmentReceipt",
-          "doc": "Build a fee-provenance receipt bound to a **signed** state.\n\nA receipt is only meaningful if it can be traced to a state the recipient\nactually signed. The commitment is included in the hash and\n`verifyHtlcFulfillmentReceipt` re-derives everything from that state and\nverifies the recipient's signature — a bare self-hash is not evidence."
+          "signature": "buildHtlcFulfillmentReceipt(channel: OmniaChannel, transition: HtlcFulfillmentTransition, htlcId: string, fulfilledAt?: number): HtlcFulfillmentReceipt",
+          "doc": "Build a fee-provenance receipt bound to an **authenticated transition**.\n\nOMN-094: the receipt no longer reads the amount from the channel's historical\nrecord. It derives it from the balance delta between the predecessor and\nsuccessor states, carries both commitments, and refuses to build when the\nstates do not describe the fulfilment being claimed."
         },
         "computeHtlcFulfillmentReceiptHash": {
           "kind": "function",
           "signature": "computeHtlcFulfillmentReceiptHash(receipt: HtlcFulfillmentReceipt): string"
+        },
+        "htlcTransitionEligibility": {
+          "kind": "function",
+          "signature": "htlcTransitionEligibility(htlc: Pick<HTLCRecord, \"timeoutBlock\">, currentBlock: bigint): \"claim\" | \"refund\"",
+          "doc": "Canonical HTLC transition boundary (OMN-093).\n\nThe deployed program validates a refund when `currentBlock >= timeoutBlock`\n(`program.ts`, `validateTransition` → `'htlc timeout block not reached'`).\nAt the exact timeout block, therefore, only the **refund** path is valid and\na fulfil must already be refused. This predicate is the single place that\ndecision is made."
         },
         "HTLC_FEE_PROOF_DOMAIN": {
           "kind": "const",
@@ -11845,6 +12083,11 @@
           "kind": "interface",
           "signature": "export interface HtlcFulfillmentReceipt",
           "doc": "A verifiable fee-provenance record for a fulfilled HTLC (#27): the exact\nartifact a pool's `recordPoolFee` earn-proof consumes. It binds the channel,\nthe HTLC, the recipient, and the amount so a fee record can be traced to a\nreal fulfilled payment — never a declared string."
+        },
+        "HtlcFulfillmentTransition": {
+          "kind": "interface",
+          "signature": "export interface HtlcFulfillmentTransition",
+          "doc": "The authenticated transition a receipt describes."
         },
         "buildRegistryRootTransition": {
           "kind": "function",
@@ -12972,7 +13215,7 @@
         },
         "ObservationPhase": {
           "kind": "type",
-          "signature": "export type ObservationPhase = | \"observed\" | \"proposed\" | \"accepted\" | \"prepared\" | \"executing\" | \"committed\" | \"broadcast\" | \"confirmed\" | \"closed\" | \"failed\" | \"recovered\""
+          "signature": "export type ObservationPhase = | \"observed\" | \"proposed\" | \"accepted\" | \"prepared\" | \"executing\" | \"committed\" | \"broadcast\" | \"confirmed\" | \"unknown\" | \"closed\" | \"failed\" | \"recovered\""
         },
         "ObservationEntityType": {
           "kind": "type",
@@ -13070,6 +13313,356 @@
         "ObservationSnapshot": {
           "kind": "interface",
           "signature": "export interface ObservationSnapshot"
+        }
+      }
+    },
+    "@totemsdk/omnia-lsp": {
+      "symbols": {
+        "OMNIA_LSP_VERSION": {
+          "kind": "const",
+          "signature": "OMNIA_LSP_VERSION = 'omnia-lsp/v1' as const"
+        },
+        "NATIVE_TOKEN_ID": {
+          "kind": "const",
+          "signature": "NATIVE_TOKEN_ID = '0x00' as const"
+        },
+        "validateManifest": {
+          "kind": "function",
+          "signature": "validateManifest(value: unknown, options?: ManifestValidationOptions): ManifestValidationResult"
+        },
+        "assertValidManifest": {
+          "kind": "function",
+          "signature": "assertValidManifest(value: unknown, options?: ManifestValidationOptions): asserts value is OmniaLspManifest"
+        },
+        "manifestIsFresh": {
+          "kind": "function",
+          "signature": "manifestIsFresh(manifest: OmniaLspManifest, now?: number): boolean"
+        },
+        "OmniaLspAsset": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspAsset"
+        },
+        "OmniaLspBond": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspBond"
+        },
+        "OmniaLspClosePolicy": {
+          "kind": "type",
+          "signature": "export type OmniaLspClosePolicy = 'cooperative' | 'unilateral' | 'either'"
+        },
+        "OmniaLspCustody": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspCustody"
+        },
+        "OmniaLspCustodyMode": {
+          "kind": "type",
+          "signature": "export type OmniaLspCustodyMode = 'self' | 'trust-minimised' | 'hosted'"
+        },
+        "OmniaLspFees": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspFees"
+        },
+        "OmniaLspManifest": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspManifest"
+        },
+        "OmniaLspTerms": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspTerms"
+        },
+        "ManifestValidationOptions": {
+          "kind": "interface",
+          "signature": "export interface ManifestValidationOptions"
+        },
+        "ManifestValidationResult": {
+          "kind": "interface",
+          "signature": "export interface ManifestValidationResult"
+        },
+        "OMNIA_LSP_OPEN_QUOTE_VERSION": {
+          "kind": "const",
+          "signature": "OMNIA_LSP_OPEN_QUOTE_VERSION = 'omnia-lsp/open-quote/v1' as const"
+        },
+        "OMNIA_LSP_OPEN_TERMS_VERSION": {
+          "kind": "const",
+          "signature": "OMNIA_LSP_OPEN_TERMS_VERSION = 'omnia-lsp/open-terms/v1' as const",
+          "doc": "Domain + version of the canonical terms object a quote commits to."
+        },
+        "OMNIA_LSP_OPEN_QUOTE_SIGNING_DOMAIN": {
+          "kind": "const",
+          "signature": "OMNIA_LSP_OPEN_QUOTE_SIGNING_DOMAIN = 'omnia-lsp:open-quote:v1' as const",
+          "doc": "Domain separator for the payload a provider signs."
+        },
+        "validateOpenQuote": {
+          "kind": "function",
+          "signature": "validateOpenQuote(value: unknown, options?: QuoteValidationOptions): QuoteValidationResult",
+          "doc": "Structural validation only.\n\nPassing this does not establish that the quote is authentic: it does not\nrecompute the terms hash or verify the signature. Use `verifyOpenQuote` for\nthat (OMN-071)."
+        },
+        "assertValidOpenQuote": {
+          "kind": "function",
+          "signature": "assertValidOpenQuote(value: unknown, options?: QuoteValidationOptions): asserts value is OmniaLspOpenQuote"
+        },
+        "quoteIsFresh": {
+          "kind": "function",
+          "signature": "quoteIsFresh(quote: OmniaLspOpenQuote, now?: number): boolean"
+        },
+        "quoteMatchesManifest": {
+          "kind": "function",
+          "signature": "quoteMatchesManifest(quote: OmniaLspOpenQuote, manifest: OmniaLspManifest): { ok: boolean; errors: string[]; }",
+          "doc": "Bind a quote to the provider manifest fields it claims to represent.\nA quote is not a substitute for manifest verification; it must be checked\nafter the manifest signature and identity binding have been verified."
+        },
+        "buildOpenTerms": {
+          "kind": "function",
+          "signature": "buildOpenTerms(input: BuildOpenTermsInput): OmniaLspOpenTerms",
+          "doc": "Build the canonical terms object.\n\nThis is the single definition: quote issuance and quote verification both\ncall it, so the hashed field set cannot drift between them."
+        },
+        "openTermsHash": {
+          "kind": "function",
+          "signature": "openTermsHash(terms: OmniaLspOpenTerms): string"
+        },
+        "openQuoteTerms": {
+          "kind": "function",
+          "signature": "openQuoteTerms(quote: OmniaLspOpenQuote): OmniaLspOpenTerms",
+          "doc": "Rebuild the signed terms from a quote. Requires `feeBasis` (OMN-072)."
+        },
+        "openQuoteTermsHash": {
+          "kind": "function",
+          "signature": "openQuoteTermsHash(quote: OmniaLspOpenQuote): string"
+        },
+        "openQuoteSigningPayload": {
+          "kind": "function",
+          "signature": "openQuoteSigningPayload(quote: Pick<OmniaLspOpenQuote, \"termsHash\">): OpenQuoteSigningPayload",
+          "doc": "The bytes a provider signs: `domain|termsHash`.\n\nSigning the terms hash (rather than the whole quote object) means a verifier\nnever has to agree on object key order, and any field change invalidates the\nsignature as soon as the hash is recomputed."
+        },
+        "verifyOpenQuote": {
+          "kind": "function",
+          "signature": "verifyOpenQuote(value: unknown, manifest: OmniaLspManifest, options?: VerifyOpenQuoteOptions): Promise<VerifyOpenQuoteResult>",
+          "doc": "Verify that a quote is authentic and still applies (OMN-071 / OMN-066).\n\nChecks, in order: structural validity, freshness against the supplied clock,\nthat the quoted fields reproduce `termsHash`, that the provider identity\nmatches the manifest and token offering, that the quote is bound to the\nexpected consumer (when supplied), and the signature over the recomputed\nterms hash."
+        },
+        "OmniaLspOpenQuote": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspOpenQuote"
+        },
+        "OmniaLspOpenTerms": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspOpenTerms",
+          "doc": "The exact object the provider commits to. Every field is signed."
+        },
+        "OpenQuoteSigningPayload": {
+          "kind": "interface",
+          "signature": "export interface OpenQuoteSigningPayload"
+        },
+        "QuoteValidationOptions": {
+          "kind": "interface",
+          "signature": "export interface QuoteValidationOptions"
+        },
+        "QuoteValidationResult": {
+          "kind": "interface",
+          "signature": "export interface QuoteValidationResult"
+        },
+        "VerifyOpenQuoteOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyOpenQuoteOptions"
+        },
+        "VerifyOpenQuoteResult": {
+          "kind": "interface",
+          "signature": "export interface VerifyOpenQuoteResult"
+        },
+        "LSP_DECIMAL_SCALE": {
+          "kind": "const",
+          "signature": "LSP_DECIMAL_SCALE = 18",
+          "doc": "Fractional precision the LSP wire format supports."
+        },
+        "parseDecimalUnits": {
+          "kind": "function",
+          "signature": "parseDecimalUnits(value: string, options?: { allowZero?: boolean; }): DecimalParseResult",
+          "doc": "Parse a decimal string into integer units at `LSP_DECIMAL_SCALE`.\n\nRejects negatives, signs, exponents, leading zeros, empty fractions and any\nprecision beyond 18 decimal places. Zero is rejected unless `allowZero`."
+        },
+        "formatDecimalUnits": {
+          "kind": "function",
+          "signature": "formatDecimalUnits(units: bigint): string",
+          "doc": "Render integer units at `LSP_DECIMAL_SCALE` as a canonical decimal string."
+        },
+        "applyBpsUnits": {
+          "kind": "function",
+          "signature": "applyBpsUnits(units: bigint, bps: number): bigint",
+          "doc": "Whole-number basis points of an integer-unit amount, floored."
+        },
+        "DecimalParseResult": {
+          "kind": "type",
+          "signature": "export type DecimalParseResult = | { ok: true"
+        },
+        "computeOpenFees": {
+          "kind": "function",
+          "signature": "computeOpenFees(manifest: OmniaLspManifest, input: OmniaLspFeeInput, basis?: OmniaLspFeeBasis): FeeScheduleResult",
+          "doc": "Compute the complete fee schedule for an open request.\n\nFlat and percentage fees are resolved into one atom total so admission can\ncompare a single number against the consumer's ceiling."
+        },
+        "DEFAULT_FEE_BASIS": {
+          "kind": "const",
+          "signature": "DEFAULT_FEE_BASIS: OmniaLspFeeBasis = 'total'",
+          "doc": "Bases an already-issued quote can declare."
+        },
+        "LEGACY_FEE_BASIS": {
+          "kind": "const",
+          "signature": "LEGACY_FEE_BASIS: OmniaLspFeeBasis = 'consumer'",
+          "doc": "Legacy quotes (no `feeBasis`) were priced on the consumer contribution."
+        },
+        "FeeScheduleResult": {
+          "kind": "type",
+          "signature": "export type FeeScheduleResult = | { ok: true"
+        },
+        "OmniaLspFeeBasis": {
+          "kind": "type",
+          "signature": "export type OmniaLspFeeBasis = 'consumer' | 'total'"
+        },
+        "OmniaLspFeeInput": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspFeeInput"
+        },
+        "OmniaLspFeeSchedule": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspFeeSchedule"
+        },
+        "rankProviders": {
+          "kind": "function",
+          "signature": "rankProviders(candidates: readonly OmniaLspCandidate[], request: OmniaLspRankingRequest, policy?: OmniaLspRankingPolicy): OmniaLspRankedProvider[]",
+          "doc": "Rank providers deterministically for a request.\n\nThis is a policy filter plus a stable sort. It does not verify manifests or\nreserve capacity; callers MUST verify the manifest signature, identity\nbinding and freshness before ranking, and MUST treat capacity as a hint."
+        },
+        "OmniaLspCandidate": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspCandidate"
+        },
+        "OmniaLspDirection": {
+          "kind": "type",
+          "signature": "export type OmniaLspDirection = 'send' | 'receive' | 'both'"
+        },
+        "OmniaLspRankedProvider": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspRankedProvider"
+        },
+        "OmniaLspRankingPolicy": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspRankingPolicy"
+        },
+        "OmniaLspRankingRequest": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspRankingRequest"
+        }
+      }
+    },
+    "@totemsdk/omnia-lsp-provider": {
+      "symbols": {
+        "evaluateOpenRequest": {
+          "kind": "function",
+          "signature": "evaluateOpenRequest(manifest: OmniaLspManifest, request: OmniaLspOpenRequest, policy?: OmniaLspProviderPolicy, now?: number): OmniaLspOpenDecision",
+          "doc": "Evaluate an open request against a provider manifest.\n\nThis is the provider's admission policy. It does not reserve capacity; the\nprovider MUST do that through the quote ledger (OMN-068).\n\nBoth sides of the channel are validated independently (OMN-067): the\nconsumer's `localAmount` and the provider's own `remoteAmount`, because the\nprovider is the party that funds the latter. `now` is the provider's trusted\nclock — never the requester's (OMN-069)."
+        },
+        "OmniaLspOpenDecision": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspOpenDecision"
+        },
+        "OmniaLspOpenRequest": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspOpenRequest"
+        },
+        "OmniaLspProviderPolicy": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspProviderPolicy"
+        },
+        "createUnsignedOpenQuote": {
+          "kind": "function",
+          "signature": "createUnsignedOpenQuote(options: CreateQuoteOptions): UnsignedOmniaLspOpenQuote",
+          "doc": "Build the provider's unsigned open quote. The provider host signs it before\nreturning it to the consumer; a quote without a signature is not authoritative.\n\nThe quoted fees come from the shared schedule (OMN-072) and the terms object\nis built by `buildOpenTerms`, which is the same function the verifier uses to\nrecompute the hash."
+        },
+        "signOpenQuote": {
+          "kind": "function",
+          "signature": "signOpenQuote(quote: UnsignedOmniaLspOpenQuote, sign: (quote: UnsignedOmniaLspOpenQuote, payload: OpenQuoteSigningPayload) => Promise<string> | string): Promise<OmniaLspOpenQuote>",
+          "doc": "Sign an unsigned quote with a provider identity signer. The signer is injected\nso the package stays runtime-neutral and never holds a private key.\n\nThe second argument is the exact payload to sign (`domain|termsHash`). A\none-argument signer keeps working; a signer that ignores the payload must sign\nthis same string to produce quotes that `verifyOpenQuote` accepts."
+        },
+        "CreateQuoteOptions": {
+          "kind": "interface",
+          "signature": "export interface CreateQuoteOptions"
+        },
+        "UnsignedOmniaLspOpenQuote": {
+          "kind": "type",
+          "signature": "export type UnsignedOmniaLspOpenQuote = Omit<OmniaLspOpenQuote, 'signature'>"
+        },
+        "createOmniaLspProvider": {
+          "kind": "function",
+          "signature": "createOmniaLspProvider(config: OmniaLspProviderConfig): OmniaLspProvider",
+          "doc": "Reference provider facade.\n\nIt does not hold keys, open channels or broadcast. It applies policy, issues\nsigned quotes, reserves provider capacity and delegates the channel operation\nto the injected host."
+        },
+        "OmniaLspConsumerIdentity": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspConsumerIdentity",
+          "doc": "The authenticated caller's identity, supplied by the API layer."
+        },
+        "OmniaLspHostCloseResult": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspHostCloseResult"
+        },
+        "OmniaLspHostOpenInput": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspHostOpenInput extends OmniaLspHostFunding"
+        },
+        "OmniaLspHostOpenResult": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspHostOpenResult"
+        },
+        "OmniaLspOpenQuoteOptions": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspOpenQuoteOptions"
+        },
+        "OmniaLspProvider": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspProvider"
+        },
+        "OmniaLspProviderConfig": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspProviderConfig"
+        },
+        "OmniaLspProviderHost": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspProviderHost",
+          "doc": "Host port implemented by the provider runtime (for example an `omnia-host`\nwrapper). The LSP package owns policy and quotes; the host owns channel\nconstruction, signing and broadcast."
+        },
+        "createMemoryQuoteLedger": {
+          "kind": "function",
+          "signature": "createMemoryQuoteLedger(): OmniaLspQuoteLedger",
+          "doc": "Default in-process ledger.\n\nSingle-threaded JS makes the check-and-set inside `consume` atomic for one\nprocess. It does not survive a restart — inject a durable ledger for that."
+        },
+        "ConsumeReservationResult": {
+          "kind": "type",
+          "signature": "export type ConsumeReservationResult = /** The reservation existed, was live, and is now consumed. */ | 'consumed' /** No reservation with this id was ever recorded. */ | 'unknown' /** The reservation"
+        },
+        "OmniaLspQuoteLedger": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspQuoteLedger"
+        },
+        "OmniaLspQuoteReservation": {
+          "kind": "interface",
+          "signature": "export interface OmniaLspQuoteReservation"
+        },
+        "QuoteReservationState": {
+          "kind": "type",
+          "signature": "export type QuoteReservationState = 'reserved' | 'consumed' | 'released'",
+          "doc": "Quote reservations (OMN-068).\n\nAdmission validates a request against the manifest's advertised capacity, but\nthe manifest is static: without a ledger, N concurrent quotes each fit inside\ncapacity while their sum does not. The facade now reserves the provider-side\namount when it issues a quote, releases it on expiry or a failed open, and\nconsumes it atomically when a quote is redeemed.\n\nThe in-memory ledger is the default. A production provider injects an\nimplementation backed by durable storage; the interface is intentionally\nsmall so that the durable version can make `consume` a single transaction."
+        },
+        "createOmniaHostProviderHost": {
+          "kind": "function",
+          "signature": "createOmniaHostProviderHost(options: CreateOmniaHostProviderHostOptions): OmniaLspProviderHost",
+          "doc": "Adapt an `omnia-host` method registry (`createHostMethods(context)`) to the\nLSP provider host port.\n\nThe quote is written from the consumer's perspective: `localAmount` is the\nconsumer side and `remoteAmount` is the provider side. The host is the provider,\nso those sides are swapped when calling `totem_omniaOpenChannel`."
+        },
+        "CreateOmniaHostProviderHostOptions": {
+          "kind": "interface",
+          "signature": "export interface CreateOmniaHostProviderHostOptions"
+        },
+        "OmniaHostHandler": {
+          "kind": "type",
+          "signature": "export type OmniaHostHandler = (params: unknown) => Promise<unknown> | unknown"
+        },
+        "OmniaHostMethodMap": {
+          "kind": "interface",
+          "signature": "export interface OmniaHostMethodMap"
         }
       }
     },
@@ -13275,7 +13868,7 @@
         "executePoolPayout": {
           "kind": "function",
           "signature": "executePoolPayout(params: ExecutePoolPayoutParams, registry: LiquidityBondRegistryState): Promise<{ intent: WithdrawalIntent; position: LiquidityPosition; registry: LiquidityBondRegistryState; execution?: unknown; signedTransition?: import(\"@totemsdk/liquidity-bond\").RegistrySignedTransition; }>",
-          "doc": "Execute a payout for an approved withdrawal intent.\nFor VTXO-backed positions this creates an exit draft; for channel-backed\npositions it requests a settlement payload. Pure-record positions return the\nintent only and expect the caller to handle settlement externally.\n\nRFC-048 §3.3: a prepared draft is not a payout. When `settlement` is supplied\nit is verified *before* any execution side effect; only verified evidence may\nmark the intent settled, decrement LP capital and consume the receipt."
+          "doc": "Execute a payout for an approved withdrawal intent.\nFor VTXO-backed positions this creates an exit draft; for channel-backed\npositions it requests a settlement payload. Pure-record positions return the\nintent only and expect the caller to handle settlement externally.\n\nRFC-048 §3.3: a prepared draft is not a payout. When `settlement` is supplied\nit is verified *before* any execution side effect; only verified evidence may\nmark the intent settled, decrement LP capital and consume the receipt.\n\nOMN-090: the caller's position and intent are treated as a *claim*. The\nauthoritative records are loaded from the registry, compared, and used for\nevery downstream decision and for the signed transition."
         },
         "DepositToPoolResult": {
           "kind": "interface",
@@ -13420,7 +14013,7 @@
         "createRelayOmniaOperations": {
           "kind": "function",
           "signature": "createRelayOmniaOperations(options: RelayOmniaOperationsOptions): RelayOmniaOperations",
-          "doc": "Local channel operations backed by the wallet's signing material — the port of\n`@totemsdk/omnia-host`'s `openChannel`/`pay`/`settle`/`closeChannel` handlers\n(RFC-014 §6.3), browser-safe (no SQLite/RPC/Node builtins).\n\n`openChannel` expects the wallet/dApp to supply `fundingWitnessHex` (the signed\nfunding-input witness) — the wallet signs the funding transaction itself."
+          "doc": "Local channel operations backed by the wallet's signing material — the port of\n`@totemsdk/omnia-host`'s `openChannel`/`pay`/`settle`/`closeChannel` handlers\n(RFC-014 §6.3), browser-safe (no SQLite/RPC/Node builtins).\n\n`openChannel` builds the funding transaction and requires the wallet's\n`fundingWitnessBuilder` to sign it. A dApp or provider MUST NOT supply\n`fundingWitnessHex`; that would let it substitute a witness for another coin."
         },
         "createRelayOmniaClient": {
           "kind": "function",
@@ -13476,6 +14069,20 @@
           "kind": "function",
           "signature": "createMultiHopForwarder(options: MultiHopForwarderOptions): MultiHopForwarder"
         },
+        "computeForwardMessageId": {
+          "kind": "function",
+          "signature": "computeForwardMessageId(link: { hashlock: string; outChannelId: string; outHtlcId: string; messageNonce: number; }): string",
+          "doc": "OMN-086: deterministic message id for a forward. Depends only on the link\nidentity, so a retransmission after a restart produces the same id."
+        },
+        "relaySwapQuotePayload": {
+          "kind": "function",
+          "signature": "relaySwapQuotePayload(quote: RelaySwapQuote): string",
+          "doc": "Canonical string a quote signature covers."
+        },
+        "RELAY_SWAP_QUOTE_DOMAIN": {
+          "kind": "const",
+          "signature": "RELAY_SWAP_QUOTE_DOMAIN = 'totemsdk/omnia-relay/swap-quote/v1'"
+        },
         "MultiHopForwarder": {
           "kind": "interface",
           "signature": "export interface MultiHopForwarder"
@@ -13502,8 +14109,22 @@
         },
         "HtlcLinkJournal": {
           "kind": "interface",
-          "signature": "export interface HtlcLinkJournal",
-          "doc": "Durable link journal. The forwarder records the incoming→outgoing HTLC\nassociation before sending the outgoing state update, so a restart can\nreconcile a pending outgoing lock instead of losing it."
+          "signature": "export interface HtlcLinkJournal"
+        },
+        "ForwardReservation": {
+          "kind": "type",
+          "signature": "export type ForwardReservation = | { ok: true",
+          "doc": "Outcome of an atomic forward reservation (OMN-084).\n\n`ok: false` means another forward already owns this hashlock or this incoming\nHTLC. The existing link is returned so the caller can reconcile rather than\ncreating a second outgoing obligation."
+        },
+        "ForwardMessage": {
+          "kind": "type",
+          "signature": "export type ForwardMessage = OmniaMessage",
+          "doc": "The signed state update the forwarder delivers to the next hop."
+        },
+        "RelaySwapQuote": {
+          "kind": "interface",
+          "signature": "export interface RelaySwapQuote",
+          "doc": "An authenticated cross-token swap quote (OMN-085).\n\nComparing amounts across different assets is not an economic check: 100 of\ntoken A and 100 of token B are unrelated. A cross-asset forward therefore\nneeds an explicit, signed deal — the exact assets and amounts, an expiry, and\na signature the intermediary can verify."
         },
         "createDurableHtlcLinkJournal": {
           "kind": "function",
@@ -13513,6 +14134,35 @@
         "DurableHtlcLinkJournal": {
           "kind": "interface",
           "signature": "export interface DurableHtlcLinkJournal extends HtlcLinkJournal"
+        },
+        "createApprovalQueue": {
+          "kind": "function",
+          "signature": "createApprovalQueue<T>(options?: ApprovalQueueOptions): ApprovalQueue<T>"
+        },
+        "ApprovalQueue": {
+          "kind": "interface",
+          "signature": "export interface ApprovalQueue<T>"
+        },
+        "ApprovalQueueOptions": {
+          "kind": "interface",
+          "signature": "export interface ApprovalQueueOptions",
+          "doc": "RFC-035 B5 — consent queue for peer-coordination approvals.\n\nAccepting a factory/virtual-channel/splice proposal emits a WOTS signature, so\nevery request needs an explicit user decision. Two properties matter and were\npreviously left to each wallet:\n\n - **One decision at a time.** A wallet UI can show one modal at a time. The\n   earlier PWA implementation kept a single pending slot, so a second request\n   overwrote the first and the first handler waited forever on a promise\n   nobody could resolve.\n - **Fail closed.** Teardown (lock, tab close, host stop) denies everything\n   outstanding, and an unanswered request expires rather than signing later."
+        },
+        "createWalletForwarding": {
+          "kind": "function",
+          "signature": "createWalletForwarding(options: WalletForwardingOptions): WalletForwarding"
+        },
+        "WalletForwarding": {
+          "kind": "interface",
+          "signature": "export interface WalletForwarding"
+        },
+        "WalletForwardingOptions": {
+          "kind": "interface",
+          "signature": "export interface WalletForwardingOptions"
+        },
+        "WalletForwardingError": {
+          "kind": "interface",
+          "signature": "export interface WalletForwardingError"
         },
         "channelGraphEdges": {
           "kind": "function",
@@ -13779,12 +14429,12 @@
         },
         "executeMultiHopPayment": {
           "kind": "function",
-          "signature": "executeMultiHopPayment(ops: ChannelOps, channels: Map<string, RouterChannel>, route: Route, paymentRequest: PaymentRequest, leaseProviders: Map<string, LeaseProvider>): Promise<PaymentResult>",
+          "signature": "executeMultiHopPayment(ops: ChannelOps, channels: Map<string, RouterChannel>, route: Route, paymentRequest: PaymentRequest, leaseProviders: Map<string, LeaseProvider>, binding?: RouteBinding, expiry?: ExpiryPolicy): Promise<PaymentResult>",
           "doc": "Execute a single-token multi-hop payment atomically:\n\n1. Forward phase — lock HTLCs across each hop in route.hops.\n2. Reveal phase — reveal preimage via fulfillHTLC in reverse order.\n\nRollback (best-effort timeoutHTLC on all still-pending locks) fires on ANY\nfailure, including failures that occur during the reveal phase — so stranded\nHTLCs are never left behind silently.\n\n`paymentRequest.preimage` MUST be set (buildPaymentRequest sets it).\n\nThe `channels` map is updated in-place after each HTLC operation."
         },
         "executeCrossTokenPayment": {
           "kind": "function",
-          "signature": "executeCrossTokenPayment(ops: ChannelOps, channels: Map<string, RouterChannel>, route: CrossTokenRoute, paymentRequest: PaymentRequest, leaseProviders: Map<string, LeaseProvider>): Promise<PaymentResult>",
+          "signature": "executeCrossTokenPayment(ops: ChannelOps, channels: Map<string, RouterChannel>, route: CrossTokenRoute, paymentRequest: PaymentRequest, leaseProviders: Map<string, LeaseProvider>, expiry?: ExpiryPolicy): Promise<PaymentResult>",
           "doc": "Execute a cross-token payment atomically.\n\nFor each SwapHop:\n  1. Lock the inbound HTLC (tokenIn side).\n  2. Lock the outbound HTLC (tokenOut side).\n  Both use the same hashlock — the intermediary can only claim by revealing\n  the preimage on both sides simultaneously.\n\nThen forward-locks all remaining non-swap hops, and reveals the preimage\nbackwards across all locked channels.\n\nRollback fires on ANY failure (forward OR backward phase) by timing out\nall still-pending locked HTLCs."
         },
         "cancelPayment": {
@@ -13795,7 +14445,17 @@
         "buildRouterFeeProof": {
           "kind": "function",
           "signature": "buildRouterFeeProof(channel: RouterChannel, htlc: ChannelHTLC, settledAt?: number): RouterFeeProof",
-          "doc": "Build a verifiable fee-provenance record for a settled hop (#29). The pool's\n`recordPoolFee` earn-proof consumes this — a fee record can be traced to a\nreal fulfilled payment, never a declared string."
+          "doc": "Legacy descriptive proof. Kept for callers that only need a provenance\nrecord; it is explicitly **not** settlement evidence (OMN-083)."
+        },
+        "buildAuthenticatedRouterFeeProof": {
+          "kind": "function",
+          "signature": "buildAuthenticatedRouterFeeProof(channel: RouterChannel, htlc: ChannelHTLC, transition: RouterStateTransition, options?: { feeAmount?: bigint; settledAt?: number; }): RouterFeeProof",
+          "doc": "OMN-083: build a fee proof bound to the authenticated transition that settled\nthe HTLC.\n\nThe proof carries both state commitments, the exact balance delta the\nrecipient received, and the fee the intermediary retained. A hash over\ndescriptive fields proves only that the caller's numbers are self-consistent;\nthis proves the payment happened on this channel."
+        },
+        "verifyRouterFeeProof": {
+          "kind": "function",
+          "signature": "verifyRouterFeeProof(channel: RouterChannel, transition: RouterStateTransition, proof: RouterFeeProof, options?: VerifyRouterFeeProofOptions): boolean",
+          "doc": "Re-derive an authenticated fee proof from the states it claims."
         },
         "computeRouterFeeProofHash": {
           "kind": "function",
@@ -13803,12 +14463,65 @@
         },
         "ROUTER_FEE_PROOF_DOMAIN": {
           "kind": "const",
-          "signature": "ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v1'"
+          "signature": "ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v2'"
+        },
+        "PendingRefundError": {
+          "kind": "class",
+          "signature": "export class PendingRefundError extends Error",
+          "doc": "Raised when rollback could not release every HTLC (CAN-015)."
+        },
+        "planRouteExpiry": {
+          "kind": "function",
+          "signature": "planRouteExpiry(channels: Map<string, RouterChannel>, route: Route, expiryBlock: bigint, lockCount: number, policy?: ExpiryPolicy): ExpiryPlanResult",
+          "doc": "Derive the expiry delta for a route and check it fits the requested window.\n\n`lockCount` is the number of HTLC locks the execution will place — one per\nrouting hop, two per swap hop — not the number of route hops."
+        },
+        "hopTimeout": {
+          "kind": "function",
+          "signature": "hopTimeout(expiryBlock: bigint, delta: bigint, index: number | bigint): bigint",
+          "doc": "Deadline of the `index`-th HTLC lock, counting from the payer.\n\nTimeouts decrease toward the recipient: the downstream HTLC expires first so\nthe intermediary can claim it before its own incoming HTLC becomes\nrefundable."
+        },
+        "ExpiryPlan": {
+          "kind": "interface",
+          "signature": "export interface ExpiryPlan"
+        },
+        "ExpiryPlanResult": {
+          "kind": "type",
+          "signature": "export type ExpiryPlanResult = | { ok: true"
+        },
+        "ExpiryPolicy": {
+          "kind": "interface",
+          "signature": "export interface ExpiryPolicy"
+        },
+        "validateRoute": {
+          "kind": "function",
+          "signature": "validateRoute(channels: Map<string, RouterChannel>, route: Route, binding?: RouteBinding): RouteValidationResult",
+          "doc": "Validate a route against live channel state **and** against what the payment\nis supposed to do (OMN-080).\n\nPer-hop checks answer \"can this channel spend?\". They do not answer \"does\nthis route pay the right party the right amount?\" — an empty route, a route\nwhose hops do not connect, or a route that delivers a different amount all\nused to pass. `binding` supplies the intent; when it is omitted the route is\nstill required to be non-empty and internally consistent."
+        },
+        "RouteBinding": {
+          "kind": "interface",
+          "signature": "export interface RouteBinding",
+          "doc": "What the route is supposed to do, expressed independently of the route object\n(OMN-080). Without this a structurally valid route that pays nobody still\n\"passes\" validation."
+        },
+        "RouteValidationResult": {
+          "kind": "type",
+          "signature": "export type RouteValidationResult = | { ok: true } | { ok: false"
         },
         "RouterFeeProof": {
           "kind": "interface",
-          "signature": "export interface RouterFeeProof",
-          "doc": "A verifiable fee-provenance record for a settled hop (#29): the artifact a\npool's `recordPoolFee` earn-proof consumes. Binds channel + HTLC + recipient\n+ amount so a fee record traces to a real fulfilled payment."
+          "signature": "export interface RouterFeeProof"
+        },
+        "RouterSignedState": {
+          "kind": "interface",
+          "signature": "export interface RouterSignedState",
+          "doc": "A channel state the router can reason about without depending on `omnia`\n(OMN-083). Only the fields the fee proof binds are modelled."
+        },
+        "RouterStateTransition": {
+          "kind": "interface",
+          "signature": "export interface RouterStateTransition"
+        },
+        "VerifyRouterFeeProofOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyRouterFeeProofOptions"
         },
         "createCleartextRoutingCodec": {
           "kind": "function",
@@ -13931,6 +14644,11 @@
           "kind": "function",
           "signature": "recoverInterruptedSplices(store: PendingSpliceStore, chain: SpliceChainObserver, observe: Omit<SpliceSuccessorOptions, \"now\">, broadcast: (txHex: string) => Promise<{ txpowid?: string; success?: boolean; }>): Promise<SpliceRecoveryResult[]>",
           "doc": "Reconcile interrupted broadcasts.\n\n- If the successor is already visible, record its coin id and clear the\n  pending entry.\n- Otherwise rebroadcast the exact TxPoW (idempotent at the node by txpow id)\n  and leave the entry pending for the next pass."
+        },
+        "SpliceSuccessorLineageError": {
+          "kind": "class",
+          "signature": "export class SpliceSuccessorLineageError extends Error",
+          "doc": "Raised when a successor coin cannot be tied to the splice transaction that is\nsupposed to have created it (OMN-074)."
         },
         "SpliceChainObserver": {
           "kind": "interface",
@@ -14094,7 +14812,7 @@
         }
       }
     },
-    "@totemsdk/omnia-vtxo": {
+    "@totemsdk/vtxo": {
       "symbols": {
         "VtxoId": {
           "kind": "type",
@@ -14142,6 +14860,10 @@
         "OmniaVtxo": {
           "kind": "interface",
           "signature": "export interface OmniaVtxo"
+        },
+        "VtxoExitState": {
+          "kind": "type",
+          "signature": "export type VtxoExitState = 'broadcast' | 'confirmed' | 'settled'"
         },
         "VtxoTransfer": {
           "kind": "interface",
@@ -14752,20 +15474,67 @@
           "signature": "markExiting(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
           "doc": "Transitions an active VTXO to 'exiting' status."
         },
+        "markExitBroadcast": {
+          "kind": "function",
+          "signature": "markExitBroadcast(vtxo: OmniaVtxo, options: { txpowId: string; now?: number; }): OmniaVtxo",
+          "doc": "Record that an exit transaction exists. This is bookkeeping only: it does not\nclaim the transaction is confirmed or that it pays the right party."
+        },
+        "markExitConfirmed": {
+          "kind": "function",
+          "signature": "markExitConfirmed(vtxo: OmniaVtxo, options: { txpowId: string; verify: (input: ExitConfirmationInput) => Promise<ExitConfirmationEvidence> | ExitConfirmationEvidence; now?: number; }): Promise<OmniaVtxo>",
+          "doc": "Record chain confirmation of the exit, from an authoritative verifier.\n\nThe verifier is required: without one there is nothing to distinguish a real\nconfirmation from a caller asserting one."
+        },
+        "markExitSettled": {
+          "kind": "function",
+          "signature": "markExitSettled(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; now?: number; }): OmniaVtxo",
+          "doc": "Final transition: the exit is settled and the VTXO is no longer a claim on\nthe pool. Requires a prior confirmation, or explicit evidence for the callers\nthat verified settlement in another layer."
+        },
         "markExited": {
           "kind": "function",
-          "signature": "markExited(vtxo: OmniaVtxo, options: { txpowId: string; now?: number; }): OmniaVtxo",
-          "doc": "Transitions an exiting VTXO to 'exited' status."
+          "signature": "markExited(vtxo: OmniaVtxo, options: { txpowId: string; evidence?: ExitConfirmationEvidence; trusted?: boolean; now?: number; }): OmniaVtxo",
+          "doc": "One-step exit completion.\n\nOMN-089: this is a **trusted reducer**. It now requires either chain evidence\n(`evidence.confirmed`) or an explicit `trusted: true` declaration — a bare\ntransaction id is no longer enough to mark a VTXO as exited. Callers that\nverified settlement elsewhere (for example the pool payout path, which checks\nfinality before calling) pass `trusted: true` and own that assertion."
+        },
+        "createMemoryExitDraftStore": {
+          "kind": "function",
+          "signature": "createMemoryExitDraftStore(): VtxoExitDraftStore",
+          "doc": "Default in-process store. Inject a durable one to survive a restart."
+        },
+        "buildExitDraft": {
+          "kind": "function",
+          "signature": "buildExitDraft(vtxo: OmniaVtxo, now?: number): { draft: ExitDraft; receipt: VtxoOperatorReceipt; }",
+          "doc": "The pure draft builder. Does **not** reserve anything — use `createExitDraft`."
         },
         "createExitDraft": {
           "kind": "function",
-          "signature": "createExitDraft(vtxo: OmniaVtxo, now?: number): { draft: ExitDraft; receipt: VtxoOperatorReceipt; }",
-          "doc": "Creates a mock exit draft for a VTXO. Validates the proof leaf before\ndrafting, caps the exit at the verified share, and consumes the VTXO's\nreceipt so a second exit draft is refused (double-exit prevention, #28)."
+          "signature": "createExitDraft(vtxo: OmniaVtxo, store: VtxoExitDraftStore, now?: number): Promise<ExitDraftReservation & { created: boolean; }>",
+          "doc": "Create **and reserve** an exit draft (OMN-088).\n\nThe VTXO's receipt is consumed by the reservation, and a repeat request\nreturns the original draft rather than producing a competing one. The store\nis required: a draft that nobody reserved was the double-exit hole."
         },
         "consumeExitReceipt": {
           "kind": "function",
           "signature": "consumeExitReceipt(vtxo: OmniaVtxo, receiptId: string, now?: number): OmniaVtxo",
           "doc": "Consume a VTXO's exit receipt — the single-spend marker that prevents a\nsecond exit draft for the same VTXO. Returns the updated VTXO."
+        },
+        "exitProgress": {
+          "kind": "function",
+          "signature": "exitProgress(vtxo: OmniaVtxo): VtxoExitState | undefined",
+          "doc": "Narrow a VTXO's exit progress. `undefined` means no exit has been recorded."
+        },
+        "ExitConfirmationInput": {
+          "kind": "interface",
+          "signature": "export interface ExitConfirmationInput"
+        },
+        "ExitConfirmationEvidence": {
+          "kind": "interface",
+          "signature": "export interface ExitConfirmationEvidence",
+          "doc": "What a chain verifier observed for an exit transaction. A verifier that\ncannot see the transaction must return `confirmed: false`."
+        },
+        "ExitDraftReservation": {
+          "kind": "interface",
+          "signature": "export interface ExitDraftReservation"
+        },
+        "VtxoExitDraftStore": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitDraftStore"
         },
         "verifyVtxo": {
           "kind": "function",
@@ -14851,7 +15620,8 @@
         },
         "verifyClaimPolicy": {
           "kind": "function",
-          "signature": "verifyClaimPolicy(policy: VtxoClaimPolicy, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult"
+          "signature": "verifyClaimPolicy(policy: VtxoClaimPolicy, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult",
+          "doc": "Verify the VTXO binding, then evaluate the pure claim policy.\n\nBinding is deliberately enforced here, not in `@totemsdk/claim`: a policy\nbound to `poolId`/`tokenId` must not be evaluated against another pool or\nasset. The generic evaluator knows nothing about VTXO pools."
         },
         "claimPolicyOf": {
           "kind": "function",
@@ -14873,53 +15643,90 @@
           "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext, options: VerifyVtxoClaimOptions): Promise<VtxoClaimResult>",
           "doc": "Authoritative claim verification.\n\nRequires cryptographic signature proof for the claimed signer(s) — a bare\n`witness.signers` list is rejected. The policy is then evaluated with only\nthe verified signer identities. Callers must supply a real signature\nverifier (e.g. WOTS verification against the signer's public key) and, on\nthe authoritative path, the chain tip so a caller-chosen future block is\nrejected (OMN-007)."
         },
+        "ClaimContext": {
+          "kind": "interface",
+          "signature": "export interface ClaimContext"
+        },
+        "ClaimPolicy": {
+          "kind": "type",
+          "signature": "export type ClaimPolicy = SingleClaimPolicy | ThresholdClaimPolicy | ConditionalClaimPolicy | DvpClaimPolicy | DelegatedClaimPolicy | RotationClaimPolicy | VestingClaimPolicy | RecoveryClaimPolicy | C"
+        },
+        "ClaimResult": {
+          "kind": "interface",
+          "signature": "export interface ClaimResult"
+        },
+        "ClaimSignature": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignature",
+          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
+        },
+        "ClaimSignatureProof": {
+          "kind": "interface",
+          "signature": "export interface ClaimSignatureProof"
+        },
+        "ClaimSignatureVerifier": {
+          "kind": "type",
+          "signature": "export type ClaimSignatureVerifier = (proof: ClaimSignatureProof) => boolean | Promise<boolean>",
+          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
+        },
+        "ClaimWitness": {
+          "kind": "interface",
+          "signature": "export interface ClaimWitness"
+        },
+        "VerifyClaimOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyClaimOptions"
+        },
+        "VestingSchedule": {
+          "kind": "interface",
+          "signature": "export interface VestingSchedule",
+          "doc": "Vesting schedule arithmetic.\n\nThe schedule is intentionally pure and chain-agnostic: the caller supplies the\nevaluation block. Integer division floors, so a vested amount is never rounded\nup. The KISSVM script templates in `@totemsdk/kissvm` implement the same\nrelease curve on-chain."
+        },
         "VtxoPolicyBinding": {
           "kind": "interface",
           "signature": "export interface VtxoPolicyBinding"
         },
         "VtxoClaimPolicy": {
           "kind": "type",
-          "signature": "export type VtxoClaimPolicy = ( | { type: 'single'"
+          "signature": "export type VtxoClaimPolicy = ClaimPolicy & { binding?: VtxoPolicyBinding }",
+          "doc": "A generic claim policy plus an optional VTXO pool/token binding."
         },
         "VtxoClaimWitness": {
-          "kind": "interface",
-          "signature": "export interface VtxoClaimWitness"
+          "kind": "type",
+          "signature": "export type VtxoClaimWitness = ClaimWitness"
         },
         "VtxoClaimSignature": {
-          "kind": "interface",
-          "signature": "export interface VtxoClaimSignature",
-          "doc": "One claimed signer signature. Hex strings (with or without `0x`)."
+          "kind": "type",
+          "signature": "export type VtxoClaimSignature = ClaimSignature"
         },
         "VtxoClaimSignatureProof": {
-          "kind": "interface",
-          "signature": "export interface VtxoClaimSignatureProof"
+          "kind": "type",
+          "signature": "export type VtxoClaimSignatureProof = ClaimSignatureProof"
         },
         "VtxoClaimSignatureVerifier": {
           "kind": "type",
-          "signature": "export type VtxoClaimSignatureVerifier = ( proof: VtxoClaimSignatureProof, ) => boolean | Promise<boolean>",
-          "doc": "Caller-supplied primitive that verifies one signature over the preimage."
+          "signature": "export type VtxoClaimSignatureVerifier = ClaimSignatureVerifier"
         },
         "VerifyVtxoClaimOptions": {
-          "kind": "interface",
-          "signature": "export interface VerifyVtxoClaimOptions",
-          "doc": "The verifier is the trust boundary: it MUST resolve `signer` to the trusted\nkey/address itself (or check that a supplied `publicKey` derives to\n`signer`). `publicKey` comes from the untrusted witness and must never be\naccepted merely because it verifies its own signature."
+          "kind": "type",
+          "signature": "export type VerifyVtxoClaimOptions = VerifyClaimOptions"
         },
         "VtxoClaimContext": {
-          "kind": "interface",
-          "signature": "export interface VtxoClaimContext"
+          "kind": "type",
+          "signature": "export type VtxoClaimContext = ClaimContext"
         },
         "VtxoVestingSchedule": {
-          "kind": "interface",
-          "signature": "export interface VtxoVestingSchedule"
+          "kind": "type",
+          "signature": "export type VtxoVestingSchedule = VestingSchedule"
         },
         "VtxoClaimResult": {
-          "kind": "interface",
-          "signature": "export interface VtxoClaimResult"
+          "kind": "type",
+          "signature": "export type VtxoClaimResult = ClaimResult"
         },
         "VTXO_CLAIM_PREIMAGE_DOMAIN": {
           "kind": "const",
           "signature": "VTXO_CLAIM_PREIMAGE_DOMAIN = 'totemsdk/omnia-vtxo/claim/v1'",
-          "doc": "Domain separator for the canonical claim preimage."
+          "doc": "Domain separator for the canonical VTXO claim preimage."
         },
         "distributeYield": {
           "kind": "function",
@@ -21929,6 +22736,14 @@
         "AxiaLeaseProviderConfig": {
           "kind": "interface",
           "signature": "export interface AxiaLeaseProviderConfig"
+        },
+        "OmniaAxiaLeaseProvider": {
+          "kind": "class",
+          "signature": "export class OmniaAxiaLeaseProvider implements WotsLeaseProvider"
+        },
+        "OmniaAxiaLeaseProviderConfig": {
+          "kind": "interface",
+          "signature": "export interface OmniaAxiaLeaseProviderConfig"
         },
         "HybridLeaseProvider": {
           "kind": "class",

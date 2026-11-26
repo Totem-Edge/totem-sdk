@@ -252,7 +252,7 @@ Between the payment rail (Omnia) and the prepaid pass system (Statechains) sits 
 
 ### VTXOs: Cash-like balances inside a shared pool
 
-A VTXO (`@totemsdk/omnia-vtxo`) is a claim on a pool of on-chain capacity, backed by a deterministic Merkle commitment tree. Think of it as a bearer note inside a shared liquidity pool. The pool operator holds the on-chain UTXO. The VTXO holder holds the Merkle proof.
+A VTXO (`@totemsdk/vtxo`) is a claim on a pool of on-chain capacity, backed by a deterministic Merkle commitment tree. Think of it as a bearer note inside a shared liquidity pool. The pool operator holds the on-chain UTXO. The VTXO holder holds the Merkle proof.
 
 VTXOs support a full lifecycle: **mint** (create a new VTXO from pool capacity), **transfer** (send to a new owner), **split** (break into smaller denominations), **merge** (combine into a larger one), **refresh** (rotate keys for security), and **exit** (claim the on-chain funds).
 
@@ -881,7 +881,7 @@ Eefi is not a finished product. It's a direction. The Totem SDK provides the pri
 | `@totemsdk/omnia-router` | [`packages/omnia-router`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/omnia-router) | Multi-hop payment routing with cross-token swaps |
 | `@totemsdk/omnia-splice` | [`packages/omnia-splice`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/omnia-splice) | Channel resizing without closing |
 | `@totemsdk/omnia-factory` | [`packages/omnia-factory`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/omnia-factory) | N-of-N group channels with virtual channel support |
-| `@totemsdk/omnia-vtxo` | [`packages/omnia-vtxo`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/omnia-vtxo) | Virtual UTXOs — off-chain balance claims with Merkle proofs |
+| `@totemsdk/vtxo` | [`packages/vtxo`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/vtxo) | Virtual UTXOs — off-chain balance claims with Merkle proofs |
 | `@totemsdk/statechain` | [`packages/statechain`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/statechain) | Off-chain UTXO ownership transfer with blind SE co-signatures |
 | `@totemsdk/se-server` | [`packages/se-server`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/se-server) | Self-hostable Statechain Entity server |
 | `@totemsdk/authority` | [`packages/authority`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/authority) | Deterministic authority engine — mandate verification, scope matching |

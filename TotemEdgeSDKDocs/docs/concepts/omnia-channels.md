@@ -55,11 +55,11 @@ await closeChannel(channel, { cooperative: true });
 | `@totemsdk/omnia-splice` | Resize a channel without closing |
 | `@totemsdk/omnia` | Peer discovery |
 | `@totemsdk/stream-transport` | Wire transport |
-| [`@totemsdk/omnia-vtxo`](/concepts/omnia-vtxo) | Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees |
+| [`@totemsdk/vtxo`](/concepts/vtxo) | Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees |
 
 ## See also
 
 - [Omnia Pocket guide](/guides/omnia-pocket) — mobile payment wallet
 - [Omnia Router Node guide](/guides/omnia-router-node) — routing infrastructure
 - [Channel Factory Wallet guide](/guides/channel-factory-wallet) — group channels
-- [Omnia VTXO concept](/concepts/omnia-vtxo) — cash-like bearer notes backed by pool capacity
+- [VTXO concept](/concepts/vtxo) — cash-like bearer notes backed by pool capacity

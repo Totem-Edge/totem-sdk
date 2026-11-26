@@ -51,7 +51,7 @@ const sidebars: SidebarsConfig = {
         'concepts/agent-policy-overview',
         'concepts/wots-key-management',
         'concepts/omnia-channels',
-        'concepts/omnia-vtxo',
+        'concepts/vtxo',
         'concepts/relay-modes',
         'concepts/totem-connect',
       ],
@@ -65,6 +65,14 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'guides/typescript-configuration',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Primitives & Patterns',
+      collapsed: false,
+      items: [
+        'guides/vtxo-users-guide',
       ],
     },
     {

@@ -132,7 +132,7 @@ at reservation, and a settled claim remains owned by its holder.
 - **Owner-state covenant (landed):** `buildOwnerPoolScript()` authenticates the
   committed previous owner (`SIGNEDBY(PREVSTATE(103))`) for both transfer and
   exit; `buildOwnerTransferDraft()` / `buildOwnerExitDraft()` and the signed
-  transaction assemblers are in `packages/omnia-vtxo/src/owner-pool.ts`.
+  transaction assemblers are in `packages/vtxo/src/owner-pool.ts`.
 - **Transfer confirmation rule:** a recipient must not treat a transfer as final
   until the owner-rotation transaction is confirmed; an unconfirmed transfer can
   lose a race to the previous owner's exit.
