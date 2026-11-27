@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/vtxo",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Virtual UTXO claim layer \u2014 cash-like off-chain balances backed by a shared on-chain pool",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

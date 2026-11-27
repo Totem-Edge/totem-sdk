@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-27
+
+### Breaking
+
+- Opening a channel now requires a peer-co-signed sequence-0 state with a
+  verified close package. `submitOpenChannel` and `openChannel` exchange
+  `CHANNEL_OPEN_COSIGN` before funding; a local-only open requires the explicit
+  `allowLocalOnlyOpen` flag (OMN-098, RFC-082).
+- `releasePoolAllocation` now requires `recovery` evidence and a configured
+  `allocationRecoveryVerifier`; a release without verified recovery is refused,
+  not treated as recovered capital (OMN-114).
+- Routing graphs only advertise active, funded channels (OMN-120).
+
+### Fixed
+
+- Watcher actions take the shared per-channel mutation coordinator and reload
+  the authoritative channel after acquiring it; scans stay single-flight
+  (OMN-105).
+- An interrupted external signer seals the sequence and marks the intent
+  ambiguous instead of releasing the guard (OMN-109).
+- Policy signing refuses a request with no amount, a non-integer amount or a
+  negative amount; the amount is derived from the transition (OMN-121).
+- Pool allocation checks risk-adjusted headroom before executing, binds the
+  target to the authorised amount, and refuses execution on mismatch
+  (OMN-112/113).
+- Fallback routing edges and malformed envelopes are refused (OMN-119).
+
 ## [0.16.1] - 2026-11-26
 
 ### Fixed

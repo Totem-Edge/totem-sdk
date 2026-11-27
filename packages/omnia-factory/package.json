@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia-factory",
-  "version": "0.9.0",
-  "description": "Channel factory layer for Omnia — N-of-N MULTISIG funding, virtual channel management, and factory settlement",
+  "version": "0.10.0",
+  "description": "Channel factory layer for Omnia \u2014 N-of-N MULTISIG funding, virtual channel management, and factory settlement",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {

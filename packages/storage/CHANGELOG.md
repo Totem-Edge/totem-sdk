@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
+### Fixed
+
+- Journal append and `recover()` are now mutually exclusive across writers via
+  a CAS append lease. Recovery defers while a live writer holds the lease and
+  only truncates a tail after taking over an expired lease, so a paused append
+  can no longer have its head rolled back (OMN-123).
+
 ## [0.2.1] - 2026-10-23
 
 ### Fixed
