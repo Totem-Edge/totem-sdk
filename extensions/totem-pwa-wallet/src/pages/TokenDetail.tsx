@@ -23,39 +23,9 @@ import {
 import type { PortfolioEntry } from '@totemsdk/realtime';
 import { formatAmount } from '../core/format';
 import { parseTokenImageUrl, tokenArtwork } from '../core/tokenImage';
-
-type VintageTier = 'GENESIS' | 'SPARTACUS' | 'REX' | 'OG' | 'PIONEER' | 'EXPLORER' | 'FRONTIER';
-
-const VINTAGE_META: Record<VintageTier, { label: string; color: string; period: string }> = {
-  GENESIS:   { label: 'GENESIS',   color: '#9B59B6', period: 'Q1–Q2 2023' },
-  SPARTACUS: { label: 'SPARTACUS', color: '#FFD700', period: 'Q3–Q4 2023' },
-  REX:       { label: 'REX',       color: '#00D9B5', period: 'H1 2024' },
-  OG:        { label: 'OG',        color: '#00FF88', period: 'H2 2024' },
-  PIONEER:   { label: 'PIONEER',   color: '#6C8EF5', period: '2025' },
-  EXPLORER:  { label: 'EXPLORER',  color: '#C0C0C0', period: '2026' },
-  FRONTIER:  { label: 'FRONTIER',  color: 'var(--text-muted)', period: '2027+' },
-};
-
-const ANCHOR_BLOCK = 1_977_800;
-const ANCHOR_TIME_MS = 1_772_640_000_000;
-const AVG_BLOCK_MS = 64_000;
-
-function estimateMintTimestamp(mintBlock: number): number {
-  return ANCHOR_TIME_MS - (ANCHOR_BLOCK - mintBlock) * AVG_BLOCK_MS;
-}
-
-function getVintageTier(ts: number): VintageTier {
-  const d = new Date(ts);
-  const y = d.getFullYear();
-  const m = d.getMonth();
-  if (y < 2023 || (y === 2023 && m <= 5)) return 'GENESIS';
-  if (y === 2023) return 'SPARTACUS';
-  if (y === 2024 && m <= 5) return 'REX';
-  if (y === 2024) return 'OG';
-  if (y === 2025) return 'PIONEER';
-  if (y === 2026) return 'EXPLORER';
-  return 'FRONTIER';
-}
+import { estimateMintTimestamp, getVintageTier, VINTAGE_META } from '../core/tokenVintage';
+import { EraBadge } from '../components/EraBadge';
+import { EraInfoModal } from '../components/EraInfoModal';
 
 function parseDocument(raw?: string): Record<string, unknown> {
   if (!raw) return {};
@@ -107,6 +77,7 @@ export function TokenDetail() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [artFailed, setArtFailed] = useState(false);
+  const [showEraInfo, setShowEraInfo] = useState(false);
 
   const tokenId = selectedTokenId ?? '';
   const addresses = useMemo(() => {
@@ -191,7 +162,8 @@ export function TokenDetail() {
   const mintTimestamp =
     vintage?.mintTimestamp ??
     (createdBlock != null ? estimateMintTimestamp(createdBlock) : null);
-  const vintageMeta = mintTimestamp ? VINTAGE_META[getVintageTier(mintTimestamp)] : null;
+  const vintageTier = mintTimestamp ? getVintageTier(mintTimestamp) : null;
+  const vintageMeta = vintageTier ? VINTAGE_META[vintageTier] : null;
 
   const maxSupply = descriptor?.total ?? undefined;
   const decimals = entry?.decimals ?? descriptor?.decimals;
@@ -299,21 +271,9 @@ export function TokenDetail() {
                 <span title={`Verified by ${entry?.webvalidate}`} style={{ color: 'var(--minima-green, var(--axia-aqua))', fontSize: 14 }}>★</span>
               )}
             </div>
-            {vintageMeta && (
-              <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    padding: '1px 6px',
-                    borderRadius: 999,
-                    border: `1px solid ${vintageMeta.color}`,
-                    color: vintageMeta.color,
-                  }}
-                >
-                  {vintageMeta.label}
-                </span>
+            {vintageMeta && vintageTier && (
+              <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <EraBadge tier={vintageTier} onClick={() => setShowEraInfo(true)} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                   {vintageMeta.period}
                   {mintTimestamp
@@ -392,6 +352,12 @@ export function TokenDetail() {
       </div>
 
       <div style={{ height: 'var(--space-4)' }} />
+
+      <EraInfoModal
+        open={showEraInfo}
+        onClose={() => setShowEraInfo(false)}
+        currentTier={vintageTier}
+      />
     </div>
   );
 }

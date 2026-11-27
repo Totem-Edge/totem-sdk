@@ -385,7 +385,7 @@ export function TotemApp() {
           {activeTab === 'activity' && <TotemActivity activeAccountAddress={accountAddress} onSelectTx={openTransaction} />}
           {activeTab === 'tx-detail' && selectedTxId && <TotemTxDetail txpowid={selectedTxId} activeAccountAddress={accountAddress} onBack={closeTransaction} />}
           {activeTab === 'settings' && <TotemSettings onAccountsUpdated={handleAccountsUpdated} />}
-          {activeTab === 'token-detail' && selectedToken && <TotemTokenDetail token={selectedToken} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
+          {activeTab === 'token-detail' && selectedToken && <TotemTokenDetail token={selectedToken} activeAccountAddress={accountAddress} onNavigate={setActiveTab} onSendToken={(token) => { setSendToken(token); setActiveTab('send'); }} onBack={() => setActiveTab('home')} />}
         </main>
 
         {/* Bottom Navigation */}

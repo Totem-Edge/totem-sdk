@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Button } from '../../components/atoms';
 import { ReceiveModal } from '../../components/molecules';
+import { EraBadge } from '../../components/molecules/EraBadge';
+import { EraInfoModal } from '../../components/molecules/EraInfoModal';
 import { formatAmount, formatTokenAmount, parseTokenImageUrl } from '../../../constants';
 import { NavTab } from '../../components/organisms';
 import { getApiBase, getProjectId } from '../../../core/api/base';
+import { estimateMintTimestamp, getVintageTier, VINTAGE_META } from '../../../core/tokenVintage';
 import '../../theme/axia-tokens.css';
 
 export interface TokenDetailData {
@@ -28,47 +31,17 @@ export interface TokenDetailData {
 
 interface TotemTokenDetailProps {
   token: TokenDetailData;
+  activeAccountAddress?: string;
   onNavigate: (tab: NavTab) => void;
   onSendToken: (token: TokenDetailData) => void;
   onBack: () => void;
 }
 
-type VintageTier = 'GENESIS' | 'SPARTACUS' | 'REX' | 'OG' | 'PIONEER' | 'EXPLORER' | 'FRONTIER';
-
-const VINTAGE_META: Record<VintageTier, { label: string; color: string; period: string }> = {
-  GENESIS:   { label: 'GENESIS',   color: '#9B59B6', period: 'Q1–Q2 2023' },
-  SPARTACUS: { label: 'SPARTACUS', color: '#FFD700', period: 'Q3–Q4 2023' },
-  REX:       { label: 'REX',       color: '#00D9B5', period: 'H1 2024'    },
-  OG:        { label: 'OG',        color: '#00FF88', period: 'H2 2024'    },
-  PIONEER:   { label: 'PIONEER',   color: '#6C8EF5', period: '2025'       },
-  EXPLORER:  { label: 'EXPLORER',  color: '#C0C0C0', period: '2026'       },
-  FRONTIER:  { label: 'FRONTIER',  color: 'var(--text-muted)', period: '2027+' },
-};
-
-function getVintageBadge(ts: number): VintageTier {
-  const d = new Date(ts);
-  const y = d.getFullYear();
-  const m = d.getMonth();
-  if (y < 2023 || (y === 2023 && m <= 5)) return 'GENESIS';
-  if (y === 2023)                          return 'SPARTACUS';
-  if (y === 2024 && m <= 5)                return 'REX';
-  if (y === 2024)                          return 'OG';
-  if (y === 2025)                          return 'PIONEER';
-  if (y === 2026)                          return 'EXPLORER';
-  return 'FRONTIER';
-}
-
-const ANCHOR_BLOCK = 1_977_800;
-const ANCHOR_TIME_MS = 1_772_640_000_000;
-const AVG_BLOCK_MS = 64_000;
-
-function estimateMintTimestamp(mintBlock: number): number {
-  return ANCHOR_TIME_MS - (ANCHOR_BLOCK - mintBlock) * AVG_BLOCK_MS;
-}
-
-export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: TotemTokenDetailProps) {
+export function TotemTokenDetail({ token, activeAccountAddress, onNavigate, onSendToken, onBack }: TotemTokenDetailProps) {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showEraInfo, setShowEraInfo] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
+  const [walletAddresses, setWalletAddresses] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [copiedOwner, setCopiedOwner] = useState(false);
 
@@ -100,6 +73,7 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
         const stored = await chrome.storage.local.getTyped('walletAddresses');
         if (stored.walletAddresses?.length > 0) {
           setCurrentAddress(stored.walletAddresses[0].address);
+          setWalletAddresses(stored.walletAddresses.map((a) => a.address).filter(Boolean));
         }
       } catch (e) {
         console.warn('[TokenDetail] Failed to load address:', e);
@@ -107,6 +81,78 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
     };
     loadAddress();
   }, []);
+
+  // Portfolio entries do not carry the mint block. Try the archive vintage
+  // endpoint first, then fall back to the held-coin token descriptor, which is
+  // where the PWA gets the same mint block for standard tokens.
+  useEffect(() => {
+    if (isMinima || mintBlock != null) return;
+    let cancelled = false;
+
+    const setFromBlock = (block: number, timestamp?: number | null) => {
+      if (cancelled) return;
+      setMintBlock(block);
+      setMintTimestamp(
+        timestamp && Number.isFinite(timestamp) ? timestamp : estimateMintTimestamp(block)
+      );
+    };
+
+    const fetchVintage = async () => {
+      try {
+        const [apiBase, projectId] = await Promise.all([getApiBase(), getProjectId()]);
+        const headers = { 'x-api-key': projectId };
+
+        const vintageRes = await fetch(
+          `${apiBase}/v1/wallet/tokens/${encodeURIComponent(token.tokenId)}/vintage`,
+          { headers }
+        );
+        if (vintageRes.ok && !cancelled) {
+          const vintage = await vintageRes.json() as { mintBlock?: number | null; mintTimestamp?: number | null };
+          const block = Number(vintage.mintBlock);
+          if (Number.isFinite(block) && block > 0) {
+            setFromBlock(
+              block,
+              vintage.mintTimestamp && Number.isFinite(Number(vintage.mintTimestamp))
+                ? Number(vintage.mintTimestamp)
+                : null
+            );
+            return;
+          }
+        }
+
+        const addresses = [...new Set([
+          ...walletAddresses,
+          ...(activeAccountAddress ? [activeAccountAddress] : []),
+        ])];
+        if (addresses.length === 0 || cancelled) return;
+
+        const coinsRes = await fetch(`${apiBase}/v1/wallet/coins`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addresses }),
+        });
+        if (!coinsRes.ok || cancelled) return;
+        const data = await coinsRes.json() as {
+          coins?: Array<{
+            tokenId?: string;
+            tokenid?: string;
+            created?: string;
+            token?: { created?: string };
+          }>;
+        };
+        const match = data.coins?.find((coin) =>
+          String(coin.tokenId ?? coin.tokenid ?? '').toLowerCase() === token.tokenId.toLowerCase()
+        );
+        const created = Number(match?.token?.created ?? match?.created);
+        if (Number.isFinite(created) && created > 0) setFromBlock(created);
+      } catch {
+        // No badge when the archive cannot resolve the vintage.
+      }
+    };
+
+    fetchVintage();
+    return () => { cancelled = true; };
+  }, [isMinima, token.tokenId, mintBlock, walletAddresses.join('|'), activeAccountAddress]);
 
   useEffect(() => {
     if (!artworkUrl) {
@@ -189,6 +235,12 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
 
   const handleSend = () => onSendToken(token);
 
+  const vintageTier = mintTimestamp ? getVintageTier(mintTimestamp) : null;
+  const vintage = vintageTier ? VINTAGE_META[vintageTier] : null;
+  const mintDateLabel = mintTimestamp
+    ? new Date(mintTimestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null;
+
   if (isNFT) {
     const editionsOwned = parseInt(token.balance || '0', 10);
     const supplyNum = totalSupply ? parseInt(totalSupply, 10) : undefined;
@@ -199,11 +251,6 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
                       : supplyNum <= 100 ? 'RARE'
                       : supplyNum <= 1000? 'LIMITED EDITION'
                       : 'OPEN EDITION';
-    const vintageTier = mintTimestamp ? getVintageBadge(mintTimestamp) : null;
-    const vintage = vintageTier ? VINTAGE_META[vintageTier] : null;
-    const mintDateLabel = mintTimestamp
-      ? new Date(mintTimestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      : null;
     const verifiedDomain = token.webvalidate
       ? (() => { try { return new URL(token.webvalidate!).hostname; } catch { return token.webvalidate; } })()
       : null;
@@ -263,20 +310,8 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {vintage && (
-                <span
-                  title={vintage.period}
-                  style={{
-                    fontSize: '9px', fontWeight: 700, padding: '3px 7px',
-                    borderRadius: '2px', letterSpacing: '0.08em',
-                    background: `rgba(${hexToRgb(vintage.color)}, 0.18)`,
-                    border: `1px solid ${vintage.color}`,
-                    color: vintage.color,
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
-                  {vintage.label}
-                </span>
+              {vintage && vintageTier && (
+                <EraBadge tier={vintageTier} onClick={() => setShowEraInfo(true)} />
               )}
               {rarityLabel && (
                 <span style={{
@@ -373,17 +408,8 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
             {mintBlock != null && (
               <NftMetaRow label="VINTAGE">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {vintage && (
-                    <span style={{
-                      fontSize: '9px', fontWeight: 700, padding: '2px 5px',
-                      borderRadius: '2px', letterSpacing: '0.08em',
-                      background: `rgba(${hexToRgb(vintage.color)}, 0.15)`,
-                      border: `1px solid ${vintage.color}`,
-                      color: vintage.color,
-                      fontFamily: 'var(--font-mono)',
-                    }}>
-                      {vintage.label}
-                    </span>
+                  {vintage && vintageTier && (
+                    <EraBadge tier={vintageTier} onClick={() => setShowEraInfo(true)} />
                   )}
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                     Block #{mintBlock.toLocaleString()}{mintDateLabel ? ` · ${mintDateLabel}` : ''}
@@ -477,6 +503,12 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
         {showReceiveModal && currentAddress && (
           <ReceiveModal address={currentAddress} onClose={() => setShowReceiveModal(false)} />
         )}
+
+        <EraInfoModal
+          open={showEraInfo}
+          onClose={() => setShowEraInfo(false)}
+          currentTier={vintageTier}
+        />
       </div>
     );
   }
@@ -545,6 +577,14 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
                   {token.tokenName}
                 </Typography>
               )}
+              {!isMinima && vintageTier && (
+                <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <EraBadge tier={vintageTier} onClick={() => setShowEraInfo(true)} />
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                    {vintage?.period}{mintDateLabel ? ` · ${mintDateLabel}` : ''}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -610,19 +650,15 @@ export function TotemTokenDetail({ token, onNavigate, onSendToken, onBack }: Tot
         {showReceiveModal && currentAddress && (
           <ReceiveModal address={currentAddress} onClose={() => setShowReceiveModal(false)} />
         )}
+
+        <EraInfoModal
+          open={showEraInfo}
+          onClose={() => setShowEraInfo(false)}
+          currentTier={vintageTier}
+        />
       </div>
     </div>
   );
-}
-
-function hexToRgb(hex: string): string {
-  if (hex.startsWith('var(')) return '128,128,128';
-  const clean = hex.replace('#', '');
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return '128,128,128';
-  return `${r},${g},${b}`;
 }
 
 function NftMetaRow({ label, children }: { label: string; children: React.ReactNode }) {
