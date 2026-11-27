@@ -98,6 +98,7 @@ export {
 export {
   signTxDraft,
   signState,
+  signInitialChannelState,
   prepareStateUpdate,
   buildStateUpdate,
   type PreparedStateUpdate,

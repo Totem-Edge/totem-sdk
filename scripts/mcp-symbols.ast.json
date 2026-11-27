@@ -1509,6 +1509,11 @@
           "signature": "withDepositVerifier(provider: ChainStateProvider): ChainStateProvider & DepositVerifier",
           "doc": "Default `DepositVerifier` over any `ChainStateProvider`. The live path uses\n`getCoin`; the MMR-root path returns `null` unless the base provider knows a\nroot (concrete providers override `getMmrRoot`)."
         },
+        "confirmationDepth": {
+          "kind": "function",
+          "signature": "confirmationDepth(created: string | number | undefined | null, tipBlock: number): number | null",
+          "doc": "The one chain-confirmation definition (OMN-124).\n\nA coin created in block `created` has `tip - created` confirmations at\n`tipBlock` — zero while it sits in its creation block — and `null` when depth\ncannot be proven (missing/invalid creation height, or a future-dated coin).\nCallers must treat `null` as unconfirmed.\n\n`@totemsdk/chain-provider` and `@totemsdk/omnia` both re-use this function so\nthey cannot disagree about the same coin at a threshold boundary."
+        },
         "HostedProvider": {
           "kind": "class",
           "signature": "export class HostedProvider implements ChainStateProvider"
@@ -3249,6 +3254,11 @@
         "decodeMx": {
           "kind": "const",
           "signature": "parseMxAddress = parse_mx_address_wasm"
+        },
+        "confirmationDepth": {
+          "kind": "function",
+          "signature": "confirmationDepth(created: string | number | undefined | null, tipBlock: number): number | null",
+          "doc": "The one chain-confirmation definition (OMN-124).\n\nA coin created in block `created` has `tip - created` confirmations at\n`tipBlock` — zero while it sits in its creation block — and `null` when depth\ncannot be proven (missing/invalid creation height, or a future-dated coin).\nCallers must treat `null` as unconfirmed.\n\n`@totemsdk/chain-provider` and `@totemsdk/omnia` both re-use this function so\nthey cannot disagree about the same coin at a threshold boundary."
         },
         "toNodeScript": {
           "kind": "function",
@@ -9183,7 +9193,7 @@
         },
         "AllocationStatus": {
           "kind": "type",
-          "signature": "export type AllocationStatus = 'active' | 'reserved' | 'released' | 'depleted' | 'invalid'"
+          "signature": "export type AllocationStatus = | 'active' | 'reserved' /** OMN-114: capital is being recovered"
         },
         "CommitmentStatus": {
           "kind": "type",
@@ -9739,6 +9749,11 @@
           "kind": "function",
           "signature": "releaseLiquidityAllocation(allocation: LiquidityAllocation, now?: number): LiquidityAllocation"
         },
+        "markAllocationSettling": {
+          "kind": "function",
+          "signature": "markAllocationSettling(allocation: LiquidityAllocation, now?: number): LiquidityAllocation",
+          "doc": "OMN-114: an allocation whose capital is being recovered. Not available."
+        },
         "markAllocationDepleted": {
           "kind": "function",
           "signature": "markAllocationDepleted(allocation: LiquidityAllocation, now?: number): LiquidityAllocation"
@@ -9881,6 +9896,11 @@
         "registerLiquidityPosition": {
           "kind": "function",
           "signature": "registerLiquidityPosition(state: LiquidityBondRegistryState, position: LiquidityPosition): LiquidityBondRegistryState"
+        },
+        "findPositionByCommitment": {
+          "kind": "function",
+          "signature": "findPositionByCommitment(state: LiquidityBondRegistryState, commitmentId: string): LiquidityPosition | undefined",
+          "doc": "OMN-111: the position derived from a commitment, if one exists."
         },
         "attachLiquidityReceipt": {
           "kind": "function",
@@ -11293,7 +11313,12 @@
         },
         "SigningIntentState": {
           "kind": "type",
-          "signature": "export type SigningIntentState = 'pending' | 'signed' | 'abandoned'"
+          "signature": "export type SigningIntentState = 'pending' | 'signed' | 'abandoned' | 'ambiguous'"
+        },
+        "markSigningAttemptAmbiguous": {
+          "kind": "function",
+          "signature": "markSigningAttemptAmbiguous(channelId: string, sequence: number, payloadHash: string): Promise<void>",
+          "doc": "OMN-109: the signer's outcome is unknown (it may hold a signature). The intent\nstays blocking; only an explicit reconciliation may resolve it."
         },
         "ChannelCapacityError": {
           "kind": "class",
@@ -11319,9 +11344,19 @@
           "kind": "class",
           "signature": "export class ChannelStatusError extends Error"
         },
+        "SignerRefusalError": {
+          "kind": "class",
+          "signature": "export class SignerRefusalError extends Error",
+          "doc": "OMN-109: a signer refused before producing anything. The signing guard may be\nreleased and the same payload retried."
+        },
+        "SignerOutcomeUnknownError": {
+          "kind": "class",
+          "signature": "export class SignerOutcomeUnknownError extends Error",
+          "doc": "OMN-109: the signer may have produced a signature (timeout, transport loss,\ninterrupted response). The signing guard stays sealed and the intent stays\nambiguous until it is reconciled explicitly."
+        },
         "buildEltooScript": {
           "kind": "function",
-          "signature": "buildEltooScript(parties: ChannelParticipant[], contestDelayBlocks?: number | bigint): string",
+          "signature": "buildEltooScript(parties: ChannelParticipant[], contestDelayBlocks?: number | bigint, options?: EltooScriptOptions): string",
           "doc": "Eltoo channel script (RFC-039, CUSTODY-POLICY §2).\n\nTwo spend paths, **both requiring `MULTISIG(2 A B)`**:\n  - **Update** (`SETTLEMENT` false): `BOTHSIGNED` + `SEQUENCE GT\n    PREVSEQUENCE` — advance the off-chain state.\n  - **Settlement** (`SETTLEMENT` true): `BOTHSIGNED` + `SEQUENCE EQ\n    PREVSEQUENCE` after `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` — close on the\n    pre-signed state.\n\nUnilateral close is achieved by **broadcasting the co-signed close package**:\neach state carries an update + settlement transaction pre-signed by *both*\nparties (`settlement.ts` `startUnilateralClose`/`finalizeUnilateralClose`), and\nbecause the witness already contains both signatures, *either party can relay\nit alone* — no counterparty liveness. `BOTHSIGNED` here is therefore the output\nconstraint: only a transaction both parties signed (the agreed split) can be\nspent. A single-signer settlement branch would let one party pay itself\neverything, so it must never be added without an explicit output constraint.\n\nThe settlement `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` is a *relative* contest\ndelay and is deliberately not converted to an absolute `@BLOCK`: each update\nresets it by design. It cannot be weaponised to push the victim's clock because\nboth update and settlement require `BOTHSIGNED` — no one can move the coin to\nreset coinage without the victim's signature."
         },
         "normalizeScript": {
@@ -11334,7 +11369,7 @@
         },
         "buildAndHashEltooScript": {
           "kind": "function",
-          "signature": "buildAndHashEltooScript(parties: ChannelParticipant[]): { script: string; address: string; }"
+          "signature": "buildAndHashEltooScript(parties: ChannelParticipant[], options?: EltooScriptOptions): { script: string; address: string; }"
         },
         "COINID_ELTOO": {
           "kind": "const",
@@ -11468,6 +11503,11 @@
           "signature": "signState(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner, signerPort?: SignerPort): Promise<Partial<SignedChannelState>>",
           "doc": "Signs a channel update state and returns the full partial `SignedChannelState`.\n\nThis is the local-signer path: prepare -> sign both digests -> commit -> finalize.\nFor a wallet/coordinator flow use `prepareStateUpdate` + `finalizeStateUpdate`."
         },
+        "signInitialChannelState": {
+          "kind": "function",
+          "signature": "signInitialChannelState(channel: OmniaChannel, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner, signerPort?: SignerPort): Promise<Partial<SignedChannelState>>",
+          "doc": "OMN-098: sign the sequence-0 state a channel must hold before its funding is\nbroadcast. The returned partial state carries this party's update, settlement\nand close-package signatures; the counterparty's partial state is merged with\n`attachCounterpartySignature`, then `verifyClosePackage` must pass."
+        },
         "prepareStateUpdate": {
           "kind": "function",
           "signature": "prepareStateUpdate(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<PreparedStateUpdate>",
@@ -11545,35 +11585,35 @@
         },
         "DefaultEltooPaymentProgram": {
           "kind": "const",
-          "signature": "DefaultEltooPaymentProgram: ChannelProgram = { id: ELTOO_PAYMENT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string { return buildElt"
+          "signature": "DefaultEltooPaymentProgram: ChannelProgram = { id: ELTOO_PAYMENT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): strin"
         },
         "CounterProgram": {
           "kind": "const",
-          "signature": "CounterProgram: ChannelProgram = { id: COUNTER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ 'AS"
+          "signature": "CounterProgram: ChannelProgram = { id: COUNTER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { const base = b"
         },
         "MeterProgram": {
           "kind": "const",
-          "signature": "MeterProgram: ChannelProgram = { id: METER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ 'ASSERT"
+          "signature": "MeterProgram: ChannelProgram = { id: METER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { const base = build"
         },
         "HTLCPaymentProgram": {
           "kind": "const",
-          "signature": "HTLCPaymentProgram: ChannelProgram = { id: HTLC_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return injectEltooScript(parties, [ `LET PREIMAGEHASH=SHA3(STATE(${HTLC_PRE"
+          "signature": "HTLCPaymentProgram: ChannelProgram = { id: HTLC_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { return inject"
         },
         "VaultProgram": {
           "kind": "const",
-          "signature": "VaultProgram: ChannelProgram = { id: VAULT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return injectEltooScript(parties, [ `LET LOCKEDVALUE=STATE(${VAULT_LOCKED_VALUE_"
+          "signature": "VaultProgram: ChannelProgram = { id: VAULT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { return injectEltoo"
         },
         "TreasuryProgram": {
           "kind": "const",
-          "signature": "TreasuryProgram: ChannelProgram = { id: TREASURY_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return injectEltooScript(parties, [ `LET SPENT=STATE(${TREASURY_SPENT_PORT"
+          "signature": "TreasuryProgram: ChannelProgram = { id: TREASURY_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { return injec"
         },
         "MembershipProgram": {
           "kind": "const",
-          "signature": "MembershipProgram: ChannelProgram = { id: MEMBERSHIP_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return injectEltooScript(parties, [ `LET ROOT=STATE(${MEMBERSHIP_MEMBE"
+          "signature": "MembershipProgram: ChannelProgram = { id: MEMBERSHIP_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { return i"
         },
         "AssetProgram": {
           "kind": "const",
-          "signature": "AssetProgram: ChannelProgram = { id: ASSET_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return injectEltooScript(parties, [ `LET A=STATE(${ASSET_HOLDER_A_BALANCE_PORT})"
+          "signature": "AssetProgram: ChannelProgram = { id: ASSET_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string { return injectEltoo"
         },
         "COUNTER_ACTION_DECREMENT": {
           "kind": "const",
@@ -11944,8 +11984,7 @@
         },
         "beginSigningAttempt": {
           "kind": "function",
-          "signature": "beginSigningAttempt(intent: { channelId: string; sequence: number; payloadHash: string; purpose: string; reservationIds?: string[]; }): Promise<void>",
-          "doc": "Record the intent to sign `(channelId, sequence, payloadHash)` before any\nWOTS signature exists. Throws `DoubleSignError` when another payload was\nalready signed — or may still have been signed — at that sequence."
+          "signature": "beginSigningAttempt(intent: { channelId: string; sequence: number; payloadHash: string; purpose: string; reservationIds?: string[]; }): Promise<void>"
         },
         "commitSigningAttempt": {
           "kind": "function",
@@ -12009,6 +12048,11 @@
           "kind": "function",
           "signature": "confirmUpdateBroadcast(channel: OmniaChannel, opts: ConfirmUpdateOptions, chainProvider: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
           "doc": "Record that the latest signed update is confirmed on chain.\n\nEltoo settlement spends the channel coin at its *on-chain* state, so\n`onChainSequence` and `latestCoinId` must track the last confirmed update. They\nare read from the coin itself — not from the off-chain sequence, and not from a\ncaller-supplied transaction — so a signed-but-unbroadcast state cannot move them.\n\nThe coin must be under the channel script address, have the requested\nconfirmation depth, and carry the sequence and port-102 commitment of\n`latestState`."
+        },
+        "signingJournalIsInMemory": {
+          "kind": "function",
+          "signature": "signingJournalIsInMemory(): boolean",
+          "doc": "OMN-108: true while the built-in in-memory journal is installed. The default\nexists for tests and single-process tools; a host that signs channel state\nmust install a durable journal, otherwise the signing watermark is lost on\nrestart and independent processes do not share it."
         },
         "createWalletFundingWitnessBuilder": {
           "kind": "function",
@@ -12146,6 +12190,11 @@
           "kind": "function",
           "signature": "finalizeUnilateralClose(channel: OmniaChannel, chainProvider: ChainStateProvider, broadcastProofs?: OmniaWitnessProofs): Promise<UnilateralCloseFinalizeResult>"
         },
+        "confirmUnilateralSettlement": {
+          "kind": "function",
+          "signature": "confirmUnilateralSettlement(channel: OmniaChannel, chainProvider: ChainStateProvider, minConfirmations?: number): Promise<OmniaChannel>",
+          "doc": "OMN-101: final transition of a unilateral close.\n\nRequires the broadcast settlement transaction to be visible on chain and deep\nenough. A broadcast that never confirms — or is reorged — leaves the channel\nin `closing_unilateral` and keeps monitoring alive."
+        },
         "replaceUnilateralCloseState": {
           "kind": "function",
           "signature": "replaceUnilateralCloseState(channel: OmniaChannel, newerState: SignedChannelState, chainProvider: ChainStateProvider, broadcastProofs?: OmniaWitnessProofs): Promise<OmniaChannel>",
@@ -12180,7 +12229,7 @@
         },
         "OmniaMessageType": {
           "kind": "type",
-          "signature": "export type OmniaMessageType = | 'CHANNEL_PROPOSAL' | 'STATE_UPDATE' | 'SETTLEMENT_PROPOSAL' | 'ACK' | 'ERROR' // RFC-035 Phase B — peer coordination (additive",
+          "signature": "export type OmniaMessageType = | 'CHANNEL_PROPOSAL' // OMN-098: pre-funding co-signature of the initial sequence-0 state. | 'CHANNEL_OPEN_COSIGN' | 'CHANNEL_OPEN_COSIGN_REPLY' | 'STATE_UPDATE' | 'SETT",
           "doc": "Messaging protocol types for Omnia P2P transport layer.\n\nThese types are used by framing.ts, stream.ts, peer.ts, swarm.ts, relay.ts,\nand integration.ts. They are exported from omnia's main index.ts for external\nconsumers (e.g."
         },
         "OmniaMessage": {
@@ -13170,8 +13219,7 @@
         },
         "createPolicySignerPort": {
           "kind": "function",
-          "signature": "createPolicySignerPort(base: SignerPort, policy?: SignerPolicy): SignerPort",
-          "doc": "Wrap a signer port with policy checks. The underlying port may be a local\nsigner, KMS/HSM/MPC adapter, or hosted policy engine; this wrapper only\nenforces the deployment policy and disclosure requirements."
+          "signature": "createPolicySignerPort(base: SignerPort, policy?: SignerPolicy): SignerPort"
         },
         "SignerAuditRecord": {
           "kind": "interface",
@@ -13732,8 +13780,13 @@
         },
         "releaseAllocation": {
           "kind": "function",
-          "signature": "releaseAllocation(params: ReleaseAllocationParams, registry: LiquidityBondRegistryState): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState; }",
-          "doc": "Release an allocation and restore its position's available liquidity."
+          "signature": "releaseAllocation(params: ReleaseAllocationParams, registry: LiquidityBondRegistryState): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState; recovered: boolean; }",
+          "doc": "Release an allocation and restore its position's available liquidity.\n\nOMN-114: releasing is an accounting claim that the capital came back. Without\nverified recovery evidence the allocation is parked as `settling` and the\nposition keeps its committed capital — availability only increases after\n`confirmAllocationRecovery` verifies the recovery."
+        },
+        "confirmAllocationRecovery": {
+          "kind": "function",
+          "signature": "confirmAllocationRecovery(params: ReleaseAllocationParams, registry: LiquidityBondRegistryState): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState; }",
+          "doc": "OMN-114: confirm a parked release once recovery is verified. The allocation\nmust be `settling`; the evidence must cover the full amount."
         },
         "rebalancePoolCapital": {
           "kind": "function",
@@ -18870,6 +18923,11 @@
           "kind": "const",
           "signature": "parseMxAddress: typeof parse_mx_address_wasm"
         },
+        "confirmationDepth": {
+          "kind": "function",
+          "signature": "confirmationDepth(created: string | number | undefined | null, tipBlock: number): number | null",
+          "doc": "The one chain-confirmation definition (OMN-124).\n\nA coin created in block `created` has `tip - created` confirmations at\n`tipBlock` — zero while it sits in its creation block — and `null` when depth\ncannot be proven (missing/invalid creation height, or a future-dated coin).\nCallers must treat `null` as unconfirmed.\n\n`@totemsdk/chain-provider` and `@totemsdk/omnia` both re-use this function so\nthey cannot disagree about the same coin at a threshold boundary."
+        },
         "toNodeScript": {
           "kind": "function",
           "signature": "toNodeScript(script: string): string",
@@ -21470,8 +21528,7 @@
         },
         "verifyTxPoWWork": {
           "kind": "function",
-          "signature": "verifyTxPoWWork(txpowHex: string): VerifyResult",
-          "doc": "Relay-side work verification from raw TxPoW hex.\n\nParses the TxPoW hex into header and body by locating the hasBody byte via\nbody-hash verification. Computes the canonical TxPoW ID (SHA3-256 of the\nheader only), extracts mTxnDifficulty from the TxBody, and verifies:\n  txpowId < mTxnDifficulty\n\nFalls back to TX_POW_MIN_DIFFICULTY as a spam filter when:\n  - The hex is invalid or malformed\n  - No valid header/body split can be found (non-standard structure)\n  - mTxnDifficulty cannot be extracted from the body\n\nPureMinima performs authoritative work verification on submission; this\nfunction is a first-pass relay-side filter."
+          "signature": "verifyTxPoWWork(txpowHex: string, options?: VerifyTxPoWWorkOptions): VerifyResult"
         },
         "verifyTxPoWParts": {
           "kind": "function",
@@ -21481,6 +21538,11 @@
         "VerifyResult": {
           "kind": "interface",
           "signature": "export interface VerifyResult"
+        },
+        "VerifyTxPoWWorkOptions": {
+          "kind": "interface",
+          "signature": "export interface VerifyTxPoWWorkOptions",
+          "doc": "Relay-side work verification from raw TxPoW hex.\n\nParses the TxPoW hex into header and body by locating the hasBody byte via\nbody-hash verification. Computes the canonical TxPoW ID (SHA3-256 of the\nheader only), extracts mTxnDifficulty from the TxBody, and verifies:\n  txpowId < mTxnDifficulty\n\nOMN-126: input that cannot be parsed as a TxPoW is INVALID. The previous\nfallback hashed the raw bytes as a proxy id and evaluated it against the floor\ndifficulty, so a malformed payload could report valid work. The fallback is\nstill available for diagnostics but only behind an explicit opt-in.\n\nPureMinima performs authoritative work verification on submission; this\nfunction is a first-pass relay-side filter."
         },
         "calibrateHashRate": {
           "kind": "function",
@@ -21875,6 +21937,11 @@
           "kind": "function",
           "signature": "computeVtxoLeaf(vtxo: OmniaVtxo): string"
         },
+        "assertUniqueOutputIds": {
+          "kind": "function",
+          "signature": "assertUniqueOutputIds(ids: readonly string[], makeError: (message: string) => Error): void",
+          "doc": "OMN-117: every VTXO transformation that produces a batch of outputs must\nassert their identifiers are unique. Identical amounts with identical nonces\nderive identical ids, and the proof map is keyed by id, so collisions\noverwrite or confuse output records. Shared by split and merge."
+        },
         "computeVtxoId": {
           "kind": "function",
           "signature": "computeVtxoId(params: ComputeVtxoIdParams): string"
@@ -22132,9 +22199,14 @@
           "kind": "interface",
           "signature": "export interface EpochPublished"
         },
+        "EpochClaim": {
+          "kind": "interface",
+          "signature": "export interface EpochClaim",
+          "doc": "OMN-106: a pre-signing reservation. The claim is durable before the operator\nsigns, so a concurrent append for the same input or epoch fails before a\nsignature exists, and a crash mid-append leaves a record that recovery can\ncomplete instead of double-spending."
+        },
         "EpochEvent": {
           "kind": "type",
-          "signature": "export type EpochEvent = EpochRecord | EpochPublished"
+          "signature": "export type EpochEvent = EpochRecord | EpochPublished | EpochClaim"
         },
         "EpochAuthorityOptions": {
           "kind": "interface",

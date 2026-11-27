@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-27T04:16:25.728Z. 152 findings, 16 open.
+Generated 2026-11-27T05:40:20.553Z. 152 findings, 14 open.
 
 sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 
@@ -26,8 +26,8 @@ sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 | `OMN-067` | critical | sdk-defect | fixed | `@totemsdk/omnia-lsp-provider` | Admission validates the consumer contribution only, then the host swaps the two sides |
 | `OMN-074` → `CAN-012` | critical | sdk-defect | fixed | `@totemsdk/omnia-splice` | A splice successor is identified by address, token and amount only, not by lineage from the splice |
 | `OMN-096` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia` | The watchtower treats a stale-state successor as channel continuity |
-| `OMN-097` | critical | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-splice`, `@totemsdk/omnia-host` | No consensus-enforced channel domain: identical parties and delay share a script |
-| `OMN-098` | critical | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/omnia-lsp-provider` | A channel is funded before either party holds a unilateral exit package |
+| `OMN-097` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-splice`, `@totemsdk/omnia-host` | No consensus-enforced channel domain: identical parties and delay share a script |
+| `OMN-098` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/omnia-lsp-provider` | A channel is funded before either party holds a unilateral exit package |
 | `OMN-106` | critical | sdk-defect | fixed | `@totemsdk/vtxo` | VTXO epoch admission has a check-then-sign race |
 | `OMN-108` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Signing admission reads an unreadable journal as "no history" |
 | `OMN-110` | critical | sdk-defect | fixed | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-pool` | A liquidity position can become active without funding evidence |

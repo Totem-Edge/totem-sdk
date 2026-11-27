@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T04:16:25.728Z",
+  "generatedAt": "2026-11-27T05:40:20.553Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -1267,7 +1267,7 @@
     {
       "id": "OMN-097",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "No consensus-enforced channel domain: identical parties and delay share a script",
       "packages": [
@@ -1304,23 +1304,27 @@
           "Hawk and Java agree on the rejection."
         ],
         "tests": [
-          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+          "tests/unit/omnia/src/__tests__/omnia.test.ts",
+          "tests/unit/omnia-splice/src/__tests__/splice-tx-units.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia test"
         ]
       },
+      "links": {
+        "fixedIn": "PENDING"
+      },
       "origin": {
         "audit": "Omnia adversarial audit — 26 November 2026",
         "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
         "verification": "code-confirmed",
-        "note": "reporter id OMN-095"
+        "note": "reporter id OMN-095; fixed with a versioned v2 eltoo script: the channel id is hashed to a fixed domain, pinned as STATE(103) in the script, written by the funding transaction and required unchanged by both update and settlement branches; splice outputs preserve it and legacy v1 proposals are accepted only when they match exactly. Java/Hawk parity must be confirmed before release (RFC-082)"
       }
     },
     {
       "id": "OMN-098",
       "kind": "sdk-defect",
-      "status": "open",
+      "status": "fixed",
       "severity": "critical",
       "title": "A channel is funded before either party holds a unilateral exit package",
       "packages": [
@@ -1357,17 +1361,22 @@
           "A restart after funding can always start a unilateral close."
         ],
         "tests": [
-          "tests/unit/omnia/src/__tests__/omnia.test.ts"
+          "tests/unit/omnia/src/__tests__/omnia.test.ts",
+          "tests/unit/omnia-host/src/__tests__/prepare-submit-open.test.ts",
+          "tests/unit/omnia-host/src/__tests__/e2e.test.ts"
         ],
         "verification": [
           "pnpm --filter @totemsdk/omnia test"
         ]
       },
+      "links": {
+        "fixedIn": "PENDING"
+      },
       "origin": {
         "audit": "Omnia adversarial audit — 26 November 2026",
         "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
         "verification": "code-confirmed",
-        "note": "reporter id OMN-096"
+        "note": "reporter id OMN-096; fixed by making a co-signed sequence-0 state with a verified close package a precondition of the funding broadcast: the opening handshake exchanges CHANNEL_OPEN_COSIGN/REPLY before funding, finalizeChannelOpening verifies the state and close package and refuses otherwise, and local-dev opens require an explicit flag (RFC-082)"
       }
     },
     {

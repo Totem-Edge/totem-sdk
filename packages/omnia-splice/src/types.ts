@@ -36,6 +36,8 @@ export interface SpliceTxOutput {
   stateVarSequence: number;
   /** Optional V2 state commitment (binds off-chain balances to the splice TX). */
   stateVarCommitment?: string;
+  /** OMN-097: channel domain preserved by a v2 eltoo script. */
+  stateVarDomain?: string;
 }
 
 export interface SpliceTxDraft {

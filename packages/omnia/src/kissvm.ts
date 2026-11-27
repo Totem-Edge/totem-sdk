@@ -1,7 +1,7 @@
 import { unscaledToAmount } from '@totemsdk/core';
 import { evaluateScript, KissvmLimitError, type ScriptWitness, type TxContext } from '@totemsdk/kissvm';
 import type { OmniaChannel, OmniaTxDraft, SignedChannelState, StateValue } from './types.js';
-import { buildSettlementTx, computeOmniaTxDigest, deserializeTxDraft, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
+import { buildSettlementTx, channelDomainId, computeOmniaTxDigest, deserializeTxDraft, STATE_DOMAIN_PORT, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
 import { buildProgramUpdateTx } from './program.js';
 
 function stateValuesToContext(values: StateValue[]): Record<number, string> {
@@ -24,9 +24,11 @@ function signatureWitness(channel: OmniaChannel, state: SignedChannelState): Scr
 
 function previousUpdateState(channel: OmniaChannel): Record<number, string> {
   if (channel.latestState) return stateValuesToContext(channel.latestState.stateVariables);
+  const domain = channelDomainId(channel);
   return stateValuesToContext([
     { port: STATE_SETTLEMENT_PORT, value: false, type: 'bool' },
     { port: STATE_SEQUENCE_PORT, value: BigInt(channel.currentSequence), type: 'number' },
+    ...(domain === undefined ? [] : [{ port: STATE_DOMAIN_PORT, value: domain, type: 'hex' as const }]),
   ]);
 }
 

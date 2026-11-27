@@ -22,6 +22,7 @@ import {
   minimaOutputCoinIdsForDraft,
   omniaDraftToCanonicalMinimaBytes,
   STATE_SEQUENCE_PORT,
+  STATE_DOMAIN_PORT,
   STATE_COMMITMENT_V2_PORT,
   toRawMinima,
 } from './transactions.js';
@@ -91,6 +92,17 @@ export interface ChannelOpeningPlan {
 }
 
 export interface FinalizeChannelOpeningOptions {
+  /**
+   * OMN-098: the co-signed sequence-0 state carrying a verified close package.
+   * Funding is refused without it: the on-chain coin must never exist before
+   * both parties hold an independent recovery path.
+   */
+  initialState?: import('./types.js').SignedChannelState;
+  /**
+   * Test/dev escape hatch only. Never set this on a network funding path: it
+   * funds a channel whose capital is stranded behind cooperation.
+   */
+  allowMissingInitialState?: boolean;
   /** Serialized witness assembled by the caller (preferred when available). */
   fundingWitnessBytes?: Uint8Array;
   /** Wallet/coordinator flow: signature over `plan.fundingDigest`. */
@@ -121,7 +133,10 @@ export async function buildChannelOpening(
   const parties = [params.localParty, params.remoteParty];
   const program = resolveChannelProgram(params.program);
   const contestDelayBlocks = params.contestDelayBlocks;
-  const script = program.buildScript(parties, { contestDelayBlocks });
+  // OMN-097: the channel id is the immutable on-chain domain. Generate it before
+  // the script so the script can pin it.
+  const channelId = generateChannelId();
+  const script = program.buildScript(parties, { contestDelayBlocks, domainId: channelId });
   const address = scriptAddress(script);
   const tokenId = params.tokenId ?? TOKENID_MINIMA;
   const tokenScale = params.tokenScale ?? 0;
@@ -147,7 +162,7 @@ export async function buildChannelOpening(
     [params.fundingCoinId],
     [coinAmountAtoms(fundingCoin) * 10n ** BigInt(tokenScale)],
     [fundingCoin.address],
-    [],
+    [{ port: STATE_DOMAIN_PORT, value: channelId, type: 'hex' }],
     [{ storeState: fundingCoin.storestate === true, stateVariables: [] }],
   );
   const fundingTxBytes = omniaDraftToCanonicalMinimaBytes(fundingDraft);
@@ -164,7 +179,6 @@ export async function buildChannelOpening(
     }
   }
 
-  const channelId = generateChannelId();
   const balances: Record<string, bigint> = {
     [params.localParty.partyId]: params.localAmount,
     [params.remoteParty.partyId]: params.remoteAmount,
@@ -236,6 +250,31 @@ export async function finalizeChannelOpening(
   opts: FinalizeChannelOpeningOptions,
   chainProvider: ChainStateProvider,
 ): Promise<{ channel: OmniaChannel; proposal: ChannelProposal; fundingTxId: string }> {
+  // OMN-098: the initial state and its close package are a precondition of the
+  // irreversible funding broadcast, and are verified before anything is sent.
+  let initialState = opts.initialState;
+  if (!initialState) {
+    if (!opts.allowMissingInitialState) {
+      throw new Error(
+        'finalizeChannelOpening requires a co-signed initial state with a verified close package '
+        + 'before the funding transaction is broadcast (allowMissingInitialState is for local dev only)',
+      );
+    }
+  } else {
+    if (initialState.sequence !== 0) {
+      throw new Error(`initial channel state must be sequence 0, got ${initialState.sequence}`);
+    }
+    const openingBalances = plan.channel.openingBalances ?? plan.channel.balances;
+    const reconciled = Object.entries(openingBalances).every(
+      ([partyId, amount]) => initialState!.balances[partyId] === amount,
+    ) && Object.keys(initialState.balances).length === Object.keys(openingBalances).length;
+    if (!reconciled) throw new Error('initial channel state balances do not match the opening split');
+    const closeCheck = verifyClosePackage(plan.channel, initialState);
+    if (!closeCheck.valid) {
+      throw new Error(`initial channel state close package is invalid: ${closeCheck.errors.join('; ')}`);
+    }
+  }
+
   const fundingCoin = await chainProvider.getCoin(plan.inputCoinId);
   if (!fundingCoin) {
     throw new Error(`Funding coin ${plan.inputCoinId} not found on chain`);
@@ -315,6 +354,9 @@ export async function finalizeChannelOpening(
   const channel: OmniaChannel = {
     ...plan.channel,
     fundingTxId,
+    ...(initialState
+      ? { latestState: initialState, currentSequence: initialState.sequence, balances: initialState.balances }
+      : {}),
     status: initialStatus,
     updatedAt: Date.now(),
   };
@@ -333,7 +375,10 @@ export async function createChannel(
   if (params.fundingWitnessBytes?.length) {
     const { channel, proposal } = await finalizeChannelOpening(
       plan,
-      { fundingWitnessBytes: params.fundingWitnessBytes },
+      {
+        fundingWitnessBytes: params.fundingWitnessBytes,
+        allowMissingInitialState: params.allowMissingInitialState,
+      },
       chainProvider,
     );
     return { channel, proposal };
@@ -348,6 +393,7 @@ export async function createChannel(
       fundingSignature: signature,
       fundingProofs: params.fundingProofs,
       fundingScript: params.fundingScript,
+      allowMissingInitialState: params.allowMissingInitialState,
     },
     chainProvider,
   );
@@ -436,12 +482,23 @@ export async function acceptChannel(
     }
   }
   const program = resolveChannelProgram({ id: proposal.programId, version: proposal.programVersion });
-  const script = program.buildScript(parties, { contestDelayBlocks: proposal.contestDelayBlocks });
-  const address = scriptAddress(script);
-
+  // OMN-097: the acceptor rebuilds the same v2 script, pinned to the proposal's
+  // channel id; the script-equality check below then proves both sides agree on
+  // the domain.
+  let script = program.buildScript(parties, {
+    contestDelayBlocks: proposal.contestDelayBlocks,
+    domainId: proposal.channelId,
+  });
   if (script !== proposal.fundingScript) {
-    throw new Error('Script mismatch: recomputed script does not match proposal');
+    // Legacy v1 proposal (no channel domain). New channels are always v2; accept
+    // an existing v1 proposal only when its script matches exactly.
+    const legacy = program.buildScript(parties, { contestDelayBlocks: proposal.contestDelayBlocks });
+    if (legacy !== proposal.fundingScript) {
+      throw new Error('Script mismatch: recomputed script does not match proposal');
+    }
+    script = legacy;
   }
+  const address = scriptAddress(script);
   if (proposal.fundingAddress && proposal.fundingAddress !== address) {
     throw new Error('Proposal fundingAddress does not match the eltoo script address');
   }
@@ -673,7 +730,7 @@ export function attachCounterpartySignature(
   counterIndices: import('@totemsdk/wots-lease').SigningIndices,
   counterClosePackage?: SignedClosePackage,
 ): { channel: OmniaChannel; signedState: SignedChannelState } {
-  if (!partialState.sequence || !partialState.balances || !partialState.transactionHex) {
+  if (partialState.sequence === undefined || !partialState.balances || !partialState.transactionHex) {
     throw new Error('Partial state is incomplete');
   }
 

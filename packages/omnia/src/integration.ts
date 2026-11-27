@@ -15,7 +15,9 @@ import {
   verifyState,
   verifyStateForCoSign,
   signState,
+  signInitialChannelState,
 } from './sign.js';
+import { verifyClosePackage } from './close-package.js';
 import {
   proposeSettlement,
   signSettlementRequest,
@@ -268,6 +270,10 @@ export function createOmniaIntegration(
         _handleChannelProposal(peer, msg, store, config, false);
         return;
       }
+      if (msg.type === 'CHANNEL_OPEN_COSIGN') {
+        void _handleChannelOpenCosign(peer, msg, store, config);
+        return;
+      }
       if (FACTORY_TYPES.has(msg.type)) {
         void config.onFactoryMessage?.(peer, msg);
         return;
@@ -307,6 +313,11 @@ export function bindPeerIntegration(
         if (!routeChannelProposal) break;
         _handleChannelProposal(peer, msg, store, config, false);
         break;
+      case 'CHANNEL_OPEN_COSIGN':
+        _handleChannelOpenCosign(peer, msg, store, config).catch(() => {
+          _sendError(peer, msg.channelId, msg.nonce, 'CHANNEL_OPEN_COSIGN handler failed');
+        });
+        break;
       case 'STATE_UPDATE':
         _handleStateUpdate(peer, msg, store, config).catch(() => {
           _sendError(peer, msg.channelId, msg.nonce, 'STATE_UPDATE handler failed');
@@ -324,6 +335,79 @@ export function bindPeerIntegration(
 }
 
 // ── Private handlers ──────────────────────────────────────────────────────────
+
+function _sendReply(
+  peer: OmniaPeer,
+  type: 'CHANNEL_OPEN_COSIGN_REPLY',
+  channelId: string,
+  nonce: number,
+  payload: unknown,
+): void {
+  peer.sendMessage({ type, channelId, nonce, payload }).catch(() => { /* best-effort */ });
+}
+
+/**
+ * OMN-098: co-sign the initial sequence-0 state before the initiator broadcasts
+ * funding. The acceptor needs no on-chain coin: the proposal and script are
+ * validated, the initiator's partial state is merged, and the full state must
+ * carry a verified close package before it is stored or acknowledged.
+ */
+async function _handleChannelOpenCosign(
+  peer: OmniaPeer,
+  msg: OmniaMessage,
+  store: ChannelStore,
+  config: OmniaIntegrationConfig,
+): Promise<void> {
+  try {
+    const payload = msg.payload as {
+      proposal?: ChannelProposal;
+      partial?: Partial<SignedChannelState>;
+    } | undefined;
+    if (!payload?.proposal || !payload.partial) {
+      throw new Error('CHANNEL_OPEN_COSIGN requires a proposal and a partial initial state');
+    }
+    if (!config.signer || !config.leaseProvider) {
+      throw new Error('initial-state co-sign requires a local signer and lease provider');
+    }
+    const proposal = payload.proposal;
+    // No chain provider: funding has not been broadcast by design.
+    const channel = await acceptChannel(proposal, undefined, 0, {
+      localPublicKeyDigest: config.signer.publicKeyDigest,
+      remoteTransportPubkey: peer.pubkey,
+      allowShortContestDelay: config.allowShortContestDelay
+        ?? process.env.OMNIA_ALLOW_SHORT_CONTEST_DELAY === '1',
+    });
+    const initiator = proposal.localParty;
+    const partial = payload.partial;
+    const initiatorSignature = partial.signatures?.[initiator.partyId];
+    const initiatorIndices = partial.signingIndices?.[initiator.partyId];
+    if (!initiatorSignature || !initiatorIndices || !partial.closePackage) {
+      throw new Error('initiator partial state is missing its signature, indices or close package');
+    }
+
+    const withSigner: OmniaChannel = { ...channel, localSigner: config.signer };
+    const localPartial = await signInitialChannelState(withSigner, config.leaseProvider, config.signer);
+    const merged = attachCounterpartySignature(
+      withSigner,
+      localPartial,
+      initiator.partyId,
+      initiatorSignature,
+      initiatorIndices,
+      partial.closePackage,
+    );
+    const check = verifyClosePackage(merged.channel, merged.signedState);
+    if (!check.valid) {
+      throw new Error(`initial state close package is invalid: ${check.errors.join('; ')}`);
+    }
+    store.set(merged.channel.channelId, merged.channel);
+    _sendReply(peer, 'CHANNEL_OPEN_COSIGN_REPLY', channel.channelId, msg.nonce, { partial: localPartial });
+  } catch (err) {
+    if (process.env.OMNIA_DEBUG) {
+      console.error('[omnia-integration] initial-state co-sign rejected:', err instanceof Error ? err.message : String(err));
+    }
+    _sendError(peer, msg.channelId, msg.nonce, `initial-state co-sign failed: ${String(err)}`);
+  }
+}
 
 
 /** OMN-040: exact allocation comparison for idempotent opening replays. */

@@ -11,6 +11,7 @@ import { SpliceBalanceConservationError, SpliceInsufficientFundsError } from './
 
 const STATE_SETTLEMENT_PORT = 100;
 const STATE_SEQUENCE_PORT = 101;
+const STATE_DOMAIN_PORT = 103;
 const STATE_COMMITMENT_V2_PORT = 102;
 
 /**
@@ -112,6 +113,10 @@ export function buildSpliceTx(
       stateVarSettlement: false,
       stateVarSequence: nextSequence,
       stateVarCommitment: stateCommitment,
+      // OMN-097: a v2 script requires the successor to keep the channel domain.
+      ...(new RegExp(`STATE\\(${STATE_DOMAIN_PORT}\\)`, 'i').test(channel.fundingScript)
+        ? { stateVarDomain: channel.channelId }
+        : {}),
     },
   ];
 
@@ -212,13 +217,18 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
           ...(out.stateVarCommitment !== undefined
             ? [svToJson(STATE_COMMITMENT_V2_PORT, out.stateVarCommitment, 'hex')]
             : []),
+          ...(out.stateVarDomain !== undefined
+            ? [svToJson(STATE_DOMAIN_PORT, out.stateVarDomain, 'hex')]
+            : []),
         ]
       : [],
   }));
 
+  const domain = draft.outputs.find((out) => out.storeState)?.stateVarDomain;
   const state = [
     svToJson(STATE_SETTLEMENT_PORT, false, 'bool'),
     svToJson(STATE_SEQUENCE_PORT, BigInt(draft.nextSequence), 'number'),
+    ...(domain === undefined ? [] : [svToJson(STATE_DOMAIN_PORT, domain, 'hex')]),
   ];
 
   return serializeTransaction(JSON.stringify({ inputs, outputs, state, linkhash: '0x00' }));

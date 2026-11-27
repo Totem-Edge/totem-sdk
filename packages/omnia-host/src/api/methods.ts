@@ -20,6 +20,8 @@ import {
   timeoutHTLC,
   updateState,
   attachCounterpartySignature,
+  signInitialChannelState,
+  verifyClosePackage,
   makeSelfCustody,
   buildStateUpdate,
   finalizeStateUpdateWithIndices,
@@ -177,6 +179,11 @@ export interface HostApiContext {
    * before capital is decremented. Without it, pool payouts fail closed.
    */
   settlementVerifier?: PayoutSettlementVerifier;
+  /**
+   * OMN-098 test/dev escape hatch. A network open must carry a peer-co-signed
+   * initial state; only a local single-party test may skip it.
+   */
+  allowLocalOnlyOpen?: boolean;
   /**
    * OMN-114: verifies that an allocation's capital actually came back before the
    * release restores availability. Without it, releases fail closed.
@@ -1432,9 +1439,22 @@ function registerPreparedPayMethods(
         };
       }
 
+      // OMN-098: before the irreversible broadcast, obtain the counterparty's
+      // co-signature of the sequence-0 state and require a verified close
+      // package. Local-only test opens may skip this explicitly.
+      const remote = entry.plan.channel.parties.find(
+        (party) => party.partyId !== context.localParticipant!.partyId,
+      );
+      if (!remote && !context.allowLocalOnlyOpen) {
+        throw new Error('channel plan does not carry a counterparty to co-sign the initial state');
+      }
+      const initialState = remote
+        ? await coSignInitialChannelState(context, entry.plan, remote)
+        : undefined;
+
       const { channel, proposal, fundingTxId } = await finalizeChannelOpening(
         entry.plan,
-        finalizeOpts,
+        { ...finalizeOpts, ...(initialState ? { initialState } : {}), allowMissingInitialState: context.allowLocalOnlyOpen === true },
         context.chainProvider!,
       );
       context.channels.set(channel.channelId, { ...channel, localSigner: context.signer });
@@ -2915,6 +2935,77 @@ function registerPreparedPayMethods(
   methods.set('omnia/executePoolPayout', executePoolPayoutMethod);
 }
 
+/**
+ * OMN-098: obtain the counterparty's co-signature of the sequence-0 state and
+ * return the merged, close-package-verified state that must exist before the
+ * funding transaction is broadcast. Test/dev local opens may skip it.
+ */
+export async function coSignInitialChannelState(
+  ctx: HostApiContext,
+  plan: ChannelOpeningPlan,
+  remote: ChannelParticipant,
+): Promise<SignedChannelState | undefined> {
+  if (ctx.allowLocalOnlyOpen) return undefined;
+  if (!ctx.swarm) {
+    throw new Error(
+      'opening a channel requires a peer to co-sign the initial state (allowLocalOnlyOpen is for local dev only)',
+    );
+  }
+  if (!ctx.signer || !ctx.leaseProvider) {
+    throw new Error('opening a channel requires a signer and lease provider for the initial state');
+  }
+  const provisional: OmniaChannel = { ...plan.channel, localSigner: ctx.signer };
+  const localPartial = await signInitialChannelState(
+    provisional,
+    ctx.leaseProvider as never,
+    ctx.signer,
+  );
+  const peer = await ctx.swarm.connectToPeer(
+    remote.publicKeyDigest,
+    provisional.channelId,
+    remote.transportPubkey,
+  );
+  const reply = await requestPeerReply(
+    peer,
+    {
+      type: 'CHANNEL_OPEN_COSIGN',
+      channelId: provisional.channelId,
+      nonce: Date.now(),
+      payload: { proposal: plan.proposal, partial: localPartial },
+    },
+    provisional.channelId,
+    30_000,
+    ['CHANNEL_OPEN_COSIGN_REPLY', 'ERROR'],
+  );
+  if (reply?.type !== 'CHANNEL_OPEN_COSIGN_REPLY') {
+    const payload = (reply?.payload ?? {}) as { error?: unknown };
+    throw new Error(
+      typeof payload.error === 'string'
+        ? `counterparty refused the initial state: ${payload.error}`
+        : 'counterparty did not co-sign the initial channel state',
+    );
+  }
+  const remotePartial = ((reply.payload ?? {}) as { partial?: Partial<SignedChannelState> }).partial;
+  const sig = remotePartial?.signatures?.[remote.partyId];
+  const indices = remotePartial?.signingIndices?.[remote.partyId];
+  if (!remotePartial?.closePackage || !sig || !indices) {
+    throw new Error('counterparty initial-state reply is missing its signature or close package');
+  }
+  const merged = attachCounterpartySignature(
+    provisional,
+    localPartial,
+    remote.partyId,
+    sig,
+    indices,
+    remotePartial.closePackage,
+  );
+  const closeCheck = verifyClosePackage(merged.channel, merged.signedState);
+  if (!closeCheck.valid) {
+    throw new Error(`initial channel state close package is invalid: ${closeCheck.errors.join('; ')}`);
+  }
+  return merged.signedState;
+}
+
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
   const methods = new Map<string, JsonRpcHandler>();
   const register = (name: string, handler: JsonRpcHandler, alias: string): void => {
@@ -3281,7 +3372,30 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
           remote.transportPubkey,
         );
       }
-      const created = await createChannel(createParams, context.chainProvider);
+      // OMN-098: the initial close package must be co-signed before funding.
+      const plan = await buildChannelOpening(createParams, context.chainProvider);
+      const initialState = await coSignInitialChannelState(context, plan, remote);
+      let finalizeOpts: Parameters<typeof finalizeChannelOpening>[1];
+      if (createParams.fundingWitnessBytes?.length) {
+        finalizeOpts = { fundingWitnessBytes: createParams.fundingWitnessBytes };
+      } else if (createParams.fundingSigner && createParams.fundingProofs) {
+        finalizeOpts = {
+          fundingSignature: await createParams.fundingSigner(plan.fundingDigest),
+          fundingProofs: createParams.fundingProofs,
+          fundingScript: createParams.fundingScript,
+        };
+      } else {
+        throw new Error('openChannel requires serialized fundingWitnessBytes for broadcast');
+      }
+      const created = await finalizeChannelOpening(
+        plan,
+        {
+          ...finalizeOpts,
+          ...(initialState ? { initialState } : {}),
+          allowMissingInitialState: context.allowLocalOnlyOpen === true,
+        },
+        context.chainProvider,
+      );
       context.channels.set(created.channel.channelId, {
         ...created.channel,
         localSigner: context.signer,

@@ -1,7 +1,7 @@
 import { MINIMA_DECIMALS, atomsToAmount, sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
 import type { OmniaChannel, OmniaTxDraft, StateValue, TxOutputDraft, HTLCRecord, SignedChannelState } from './types.js';
-import { COINID_ELTOO } from './script.js';
+import { COINID_ELTOO, deriveChannelDomain } from './script.js';
 import {
   computeDraftDigest,
   computeDraftJsonDigest,
@@ -59,12 +59,25 @@ function compareCodeUnits(a: string, b: string): number {
 export const STATE_SETTLEMENT_PORT = 100;
 export const STATE_SEQUENCE_PORT = 101;
 export const STATE_COMMITMENT_V2_PORT = 102;
+/** OMN-097: immutable channel domain, enforced by a v2 eltoo script. */
+export const STATE_DOMAIN_PORT = 103;
 
-function channelStateVars(settlement: boolean, sequence: number): StateValue[] {
+function channelStateVars(settlement: boolean, sequence: number, domainId?: string): StateValue[] {
   return [
     { port: STATE_SETTLEMENT_PORT, value: settlement, type: 'bool' },
     { port: STATE_SEQUENCE_PORT, value: BigInt(sequence), type: 'number' },
+    ...(domainId === undefined ? [] : [{ port: STATE_DOMAIN_PORT, value: domainId, type: 'hex' as const }]),
   ];
+}
+
+/**
+ * OMN-097: the domain id a channel's script enforces, or undefined for a legacy
+ * v1 script. Only v2 scripts carry the domain state port.
+ */
+export function channelDomainId(channel: Pick<OmniaChannel, 'channelId' | 'fundingScript'>): string | undefined {
+  return new RegExp(`STATE\\(${STATE_DOMAIN_PORT}\\)`, 'i').test(channel.fundingScript)
+    ? deriveChannelDomain(channel.channelId)
+    : undefined;
 }
 
 function strip0x(hex: string): string {
@@ -213,7 +226,7 @@ export function computeStateCommitmentV2(
   opts?: { settlement?: boolean; programStateVariables?: StateValue[] },
 ): Uint8Array {
   const programStateVariables = (opts?.programStateVariables ?? [])
-    .filter(sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT].includes(sv.port))
+    .filter(sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT, STATE_DOMAIN_PORT].includes(sv.port))
     .map(normalizeStateValueForCommitment)
     .sort((a, b) => a.port - b.port);
 
@@ -259,14 +272,16 @@ function channelStateVarsV2(
   pendingHTLCs: HTLCRecord[],
   programStateVariables: StateValue[] = [],
 ): StateValue[] {
-  const base = channelStateVars(settlement, sequence);
+  const base = channelStateVars(settlement, sequence, channelDomainId(channel));
   const commitment = computeStateCommitmentV2(channel, sequence, balances, pendingHTLCs, {
     settlement,
     programStateVariables,
   });
   return [
     ...base,
-    ...programStateVariables.filter(sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT].includes(sv.port)),
+    ...programStateVariables.filter(
+      sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT, STATE_DOMAIN_PORT].includes(sv.port),
+    ),
     { port: STATE_COMMITMENT_V2_PORT, value: bytesToHexLocal(commitment), type: 'hex' },
   ];
 }

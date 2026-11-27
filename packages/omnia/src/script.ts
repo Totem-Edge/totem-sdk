@@ -1,8 +1,14 @@
-import { computeScriptAddress, toNodeScript } from '@totemsdk/core';
+import { computeScriptAddress, sha3_256, toNodeScript } from '@totemsdk/core';
 import type { ChannelParticipant } from './types.js';
 
 const COINID_ELTOO = '0x01';
 const ELTOO_CONTEST_DELAY_BLOCKS = 256;
+/**
+ * OMN-097: the immutable channel domain, a state port every continuation must
+ * preserve. The script pins it to a constant, so two channels between the same
+ * parties and delay have different scripts and addresses.
+ */
+export const STATE_DOMAIN_PORT = 103;
 
 function kissHex(hex: string): string {
   const raw = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
@@ -13,6 +19,34 @@ function kissHex(hex: string): string {
     throw new Error(`publicKeyDigest must be exactly 64 hex characters, got ${JSON.stringify(hex)}`);
   }
   return '0x' + raw.toUpperCase();
+}
+
+/**
+ * OMN-097: the on-chain domain value for a channel id. Hashing keeps the state
+ * value fixed-length and lets any channel-id format (including test ids) bind
+ * without weakening the invariant: the script pins this exact constant and every
+ * continuation must preserve it.
+ */
+export function deriveChannelDomain(channelId: string): string {
+  if (typeof channelId !== 'string' || channelId.length === 0) {
+    throw new Error('channel domain id must be a non-empty string');
+  }
+  const digest = sha3_256(new TextEncoder().encode(channelId));
+  return '0x' + Buffer.from(digest).toString('hex').toUpperCase();
+}
+
+function kissDomain(domainId: string): string {
+  const derived = deriveChannelDomain(domainId);
+  return '0x' + derived.slice(2);
+}
+
+export interface EltooScriptOptions {
+  /**
+   * OMN-097: immutable channel domain id. When present the script is v2 and
+   * enforces `STATE(103)` equals this constant and that every continuation
+   * preserves it. Omit only for legacy v1 scripts.
+   */
+  domainId?: string;
 }
 
 /**
@@ -43,6 +77,7 @@ function kissHex(hex: string): string {
 export function buildEltooScript(
   parties: ChannelParticipant[],
   contestDelayBlocks: number | bigint = ELTOO_CONTEST_DELAY_BLOCKS,
+  options: EltooScriptOptions = {},
 ): string {
   if (!Array.isArray(parties)) {
     throw new Error(`parties must be an array of channel participants, got ${parties === null ? 'null' : typeof parties}`);
@@ -73,19 +108,30 @@ export function buildEltooScript(
     throw new Error('parties must have distinct publicKeyDigest values; a duplicate key collapses MULTISIG(2) to 1-of-1');
   }
 
+  const domain = options.domainId === undefined ? undefined : kissDomain(options.domainId);
+  const domainLines = domain === undefined
+    ? []
+    : [
+        `LET DOMAIN=STATE(${STATE_DOMAIN_PORT})`,
+        `LET PREVDOMAIN=PREVSTATE(${STATE_DOMAIN_PORT})`,
+        `ASSERT DOMAIN EQ ${domain}`,
+      ];
   const script = [
     'LET SETTLEMENT=STATE(100)',
     'LET SEQUENCE=STATE(101)',
     'LET PREVSEQUENCE=PREVSTATE(101)',
+    ...domainLines,
     `LET BOTHSIGNED=MULTISIG(2 ${pkA} ${pkB})`,
     'IF SETTLEMENT THEN',
     '    ASSERT BOTHSIGNED',
+    ...(domain === undefined ? [] : ['    ASSERT DOMAIN EQ PREVDOMAIN']),
     '    ASSERT SEQUENCE EQ PREVSEQUENCE',
     `    ASSERT @COINAGE GTE ${delay}`,
     '    RETURN TRUE',
     'ENDIF',
     'ASSERT BOTHSIGNED',
     'ASSERT SEQUENCE GT PREVSEQUENCE',
+    ...(domain === undefined ? [] : ['ASSERT DOMAIN EQ PREVDOMAIN']),
     'RETURN TRUE',
   ].join('\n');
 
@@ -100,8 +146,11 @@ export function scriptAddress(script: string): string {
   return computeScriptAddress(script);
 }
 
-export function buildAndHashEltooScript(parties: ChannelParticipant[]): { script: string; address: string } {
-  const script = buildEltooScript(parties);
+export function buildAndHashEltooScript(
+  parties: ChannelParticipant[],
+  options: EltooScriptOptions = {},
+): { script: string; address: string } {
+  const script = buildEltooScript(parties, ELTOO_CONTEST_DELAY_BLOCKS, options);
   const address = scriptAddress(script);
   return { script, address };
 }

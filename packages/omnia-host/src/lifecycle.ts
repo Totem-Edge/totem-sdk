@@ -120,6 +120,8 @@ export interface OmniaHostDependencies {
   transportPubkey?: string;
   /** Test/dev: allow a local-only pay without a peer co-signature (OMN-024). */
   allowLocalOnlyPay?: boolean;
+  /** OMN-098 test/dev only: fund a channel without a peer-co-signed initial state. */
+  allowLocalOnlyOpen?: boolean;
   /** OMN-042: trusted chain verifier for VTXO exit transactions. */
   vtxoExitVerifier?: import('@totemsdk/vtxo').VtxoExitVerifier;
   /** OMN-025: verifier for an exit entitlement's witness. */
@@ -1138,6 +1140,7 @@ export function createOmniaHost(
             spliceLeaseProvider,
             custodyMode: config.custodyMode ?? 'self',
             allowLocalOnlyPay: dependencies.allowLocalOnlyPay,
+            allowLocalOnlyOpen: dependencies.allowLocalOnlyOpen,
             vtxoExitVerifier: dependencies.vtxoExitVerifier,
             vtxoExitWitnessVerifier: dependencies.vtxoExitWitnessVerifier,
             allocationContext: dependencies.allocationContext,

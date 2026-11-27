@@ -29,7 +29,7 @@ import { buildChannelOpening, finalizeChannelOpening, updateState } from './chan
 import { proposeSettlement, markChannelClosing, markChannelClosed } from './settlement.js';
 import type { FundingWitnessBuilder } from './funding-witness.js';
 import type { OmniaSwarm, OmniaSwarmConfig } from './messaging-types.js';
-import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel } from './types.js';
+import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, SignedChannelState } from './types.js';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
@@ -168,9 +168,12 @@ export function createRelayOmniaOperations(
         localAmount: createParams.localAmount,
         remoteAmount: createParams.remoteAmount,
       });
+      // OMN-098: the caller must supply the peer-co-signed sequence-0 state; a
+      // wallet cannot fund a channel that has no independent exit package yet.
+      const initialState = params.initialState as SignedChannelState | undefined;
       const created = await finalizeChannelOpening(
         plan,
-        { fundingWitnessBytes },
+        { fundingWitnessBytes, ...(initialState ? { initialState } : {}) },
         chainProvider,
       );
       const channel: OmniaChannel = { ...created.channel, localSigner: signer };

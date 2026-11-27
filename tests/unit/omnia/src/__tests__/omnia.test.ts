@@ -41,6 +41,9 @@ import {
   confirmUpdateBroadcast,
   _resetChannelWatermarks,
 } from '../channel';
+import { finalizeChannelOpening } from '../channel';
+import { signInitialChannelState } from '../sign';
+import { verifyClosePackage } from '../close-package';
 import {
   addHTLC,
   fulfillHTLC,
@@ -62,7 +65,7 @@ import {
   signSettlementRequest,
   markChannelClosed,
 } from '../settlement';
-import { buildEltooScript, buildAndHashEltooScript, scriptAddress, COINID_ELTOO, ELTOO_CONTEST_DELAY_BLOCKS } from '../script';
+import { buildEltooScript, buildAndHashEltooScript, deriveChannelDomain, scriptAddress, COINID_ELTOO, ELTOO_CONTEST_DELAY_BLOCKS } from '../script';
 import {
   buildFundingTx,
   buildUpdateTx,
@@ -358,6 +361,49 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
     expect(addr1.length).toBeGreaterThan(0);
   });
 
+  it('OMN-097: a v2 script pins an immutable channel domain', () => {
+    const domainA = '0x' + '11'.repeat(16);
+    const domainB = '0x' + '22'.repeat(16);
+    const scriptA = buildEltooScript([alice, bob], 256, { domainId: domainA });
+    const scriptB = buildEltooScript([alice, bob], 256, { domainId: domainB });
+    expect(scriptA).toMatch(/STATE\(103\)/);
+    expect(scriptA).toMatch(/PREVSTATE\(103\)/);
+    expect(scriptA.toUpperCase()).toContain(deriveChannelDomain(domainA).toUpperCase());
+    expect(scriptA).not.toBe(scriptB);
+    expect(scriptAddress(scriptA)).not.toBe(scriptAddress(scriptB));
+    // Both branches preserve the domain on every continuation.
+    expect((scriptA.match(/ASSERT DOMAIN EQ PREVDOMAIN/gi) ?? []).length).toBe(2);
+    expect(scriptA.toUpperCase()).toContain(`ASSERT DOMAIN EQ ${deriveChannelDomain(domainA).toUpperCase()}`);
+  });
+
+  it('OMN-097: rejects an empty domain id', () => {
+    expect(() => buildEltooScript([alice, bob], 256, { domainId: '' })).toThrow(/domain id/);
+  });
+
+  it('OMN-097: a sibling channel with the same parties cannot execute the state', () => {
+    const idA = '0x' + '11'.repeat(16);
+    const idB = '0x' + '22'.repeat(16);
+    const scriptA = buildEltooScript([alice, bob], 256, { domainId: idA });
+    const scriptB = buildEltooScript([alice, bob], 256, { domainId: idB });
+    const channelA = makeTestChannel({
+      channelId: idA,
+      fundingScript: scriptA,
+      fundingAddress: scriptAddress(scriptA),
+    });
+    const channelB = makeTestChannel({
+      channelId: idB,
+      fundingScript: scriptB,
+      fundingAddress: scriptAddress(scriptB),
+    });
+    const updateA = buildUpdateTx(channelA, 1, { alice: 500n, bob: 500n }, []);
+    const updateB = buildUpdateTx(channelB, 1, { alice: 500n, bob: 500n }, []);
+    // The signed payload commits to the channel's on-chain address and domain.
+    expect(Buffer.from(computeOmniaTxDigest(updateA)).toString('hex'))
+      .not.toBe(Buffer.from(computeOmniaTxDigest(updateB)).toString('hex'));
+    expect(updateA.stateVariables.find((sv) => sv.port === 103)?.value)
+      .not.toBe(updateB.stateVariables.find((sv) => sv.port === 103)?.value);
+  });
+
   it('throws for party counts other than 2', () => {
     expect(() => buildEltooScript([alice])).toThrow();
     expect(() => buildEltooScript([alice, bob, alice])).toThrow();
@@ -376,6 +422,59 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
   it('accepts a bigint contest delay and rejects unsafe values', () => {
     expect(buildEltooScript([alice, bob], 256n)).toContain('@COINAGE GTE 256');
     expect(() => buildEltooScript([alice, bob], 2n ** 60n)).toThrow(/safe non-negative integer/);
+  });
+});
+
+describe('OMN-098 — initial state exists before funding', () => {
+  it('both parties co-sign a sequence-0 state with a verifiable close package', async () => {
+    const channel = makeTestChannel();
+    const alicePartial = await signInitialChannelState(
+      channel,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const bobPartial = await signInitialChannelState(
+      channel,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('bob', BOB_PKD),
+    );
+    const merged = attachCounterpartySignature(
+      channel,
+      alicePartial,
+      'bob',
+      bobPartial.signatures!.bob,
+      bobPartial.signingIndices!.bob,
+      bobPartial.closePackage,
+    );
+    expect(merged.signedState.sequence).toBe(0);
+    expect(merged.signedState.closePackage).toBeDefined();
+    // Either party alone holds every signature needed to exit.
+    expect(merged.signedState.closePackage!.update.signatures.alice).toBeDefined();
+    expect(merged.signedState.closePackage!.update.signatures.bob).toBeDefined();
+    expect(merged.signedState.closePackage!.settlement.signatures.alice).toBeDefined();
+    expect(merged.signedState.closePackage!.settlement.signatures.bob).toBeDefined();
+    expect(verifyClosePackage(merged.channel, merged.signedState).valid).toBe(true);
+  });
+
+  it('refuses to finalize funding without a co-signed initial state', async () => {
+    const plan = { channel: makeTestChannel(), proposal: {} } as any;
+    await expect(finalizeChannelOpening(plan, {} as any, {} as any))
+      .rejects.toThrow(/co-signed initial state/);
+  });
+
+  it('refuses an initial state whose close package is missing or invalid', async () => {
+    const channel = makeTestChannel();
+    const partial = await signInitialChannelState(
+      channel,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const plan = { channel, proposal: {} } as any;
+    await expect(finalizeChannelOpening(
+      plan,
+      { initialState: { ...partial, closePackage: undefined } as any },
+      {} as any,
+    )).rejects.toThrow(/close package is invalid/);
   });
 });
 
@@ -680,6 +779,7 @@ describe('@totemsdk/omnia — createChannel', () => {
       tokenId: '0x00',
       fundingCoinId: '0x' + 'aa'.repeat(32),
       fundingWitnessBytes: new Uint8Array([0x09, 0x09]),
+      allowMissingInitialState: true,
     };
     const { channel, proposal } = await createChannel(params, chainProvider as any);
     expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(1);
@@ -720,6 +820,7 @@ describe('@totemsdk/omnia — createChannel', () => {
       tokenId: '0x00',
       fundingCoinId: '0x' + 'aa'.repeat(32),
       fundingWitnessBytes: new Uint8Array([0x09, 0x09]),
+      allowMissingInitialState: true,
       minConfirmations: 3,
     };
     await expect(createChannel(params, shallow as any)).resolves.toMatchObject({
@@ -785,6 +886,7 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       remoteAmount: 400n,
       fundingCoinId: '0x' + 'aa'.repeat(32),
       fundingWitnessBytes: new Uint8Array([0x09, 0x09]),
+      allowMissingInitialState: true,
       program: customProgram,
     }, chainProvider as any);
 
@@ -2978,6 +3080,7 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
         tokenId: '0x00',
         fundingCoinId: '0x' + 'aa'.repeat(32),
         fundingWitnessBytes: new Uint8Array([0x09, 0x09]),
+        allowMissingInitialState: true,
       },
       chain as any,
     );

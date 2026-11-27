@@ -63,15 +63,19 @@ function normalizeHex(value: string): string {
   return value.replace(/^0x/i, '').toLowerCase();
 }
 
-function injectEltooScript(parties: ChannelParticipant[], additions: string[]): string {
-  return toNodeScript(buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ELTOO_INJECTION_ANCHOR, ...additions].join('\n')));
+function injectEltooScript(
+  parties: ChannelParticipant[],
+  additions: string[],
+  options: { domainId?: string } = {},
+): string {
+  return toNodeScript(buildEltooScript(parties, undefined, options).replace(ELTOO_INJECTION_ANCHOR, [ELTOO_INJECTION_ANCHOR, ...additions].join('\n')));
 }
 
 export const DefaultEltooPaymentProgram: ChannelProgram = {
   id: ELTOO_PAYMENT_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string {
-    return buildEltooScript(parties, options?.contestDelayBlocks);
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
+    return buildEltooScript(parties, options?.contestDelayBlocks, { domainId: options?.domainId });
   },
   buildStateVariables(_input: ChannelProgramBuildStateInput): StateValue[] {
     return [];
@@ -81,8 +85,8 @@ export const DefaultEltooPaymentProgram: ChannelProgram = {
 export const CounterProgram: ChannelProgram = {
   id: COUNTER_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
-    const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
+    const base = buildEltooScript(parties, undefined, { domainId: options?.domainId }).replace(ELTOO_INJECTION_ANCHOR, [
       'ASSERT bothsigned',
       'ASSERT sequence GT prevsequence',
       `LET COUNTER=STATE(${COUNTER_STATE_PORT})`,
@@ -162,8 +166,8 @@ export const CounterProgram: ChannelProgram = {
 export const MeterProgram: ChannelProgram = {
   id: METER_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
-    const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
+    const base = buildEltooScript(parties, undefined, { domainId: options?.domainId }).replace(ELTOO_INJECTION_ANCHOR, [
       'ASSERT bothsigned',
       'ASSERT sequence GT prevsequence',
       `LET READING=STATE(${METER_READING_PORT})`,
@@ -226,7 +230,7 @@ programs.set(`${MeterProgram.id}@${MeterProgram.version}`, MeterProgram);
 export const HTLCPaymentProgram: ChannelProgram = {
   id: HTLC_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
     return injectEltooScript(parties, [
       `LET PREIMAGEHASH=SHA3(STATE(${HTLC_PREIMAGE_PORT}))`,
       `LET LOCKED=STATE(${HTLC_LOCKED_AMOUNT_PORT})`,
@@ -237,7 +241,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
       `    ASSERT PREIMAGEHASH EQ STATE(${HTLC_HASHLOCK_PORT}) OR @BLOCK GTE TIMEOUTBLOCK OR PREVSTATE(${HTLC_CLAIMED_PORT}) EQ TRUE`,
       '    RETURN TRUE',
       'ENDIF',
-    ]);
+    ], { domainId: options?.domainId });
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
@@ -350,7 +354,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
 export const VaultProgram: ChannelProgram = {
   id: VAULT_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
     return injectEltooScript(parties, [
       `LET LOCKEDVALUE=STATE(${VAULT_LOCKED_VALUE_PORT})`,
       `LET SWEPT=STATE(${VAULT_SWEPT_PORT})`,
@@ -365,7 +369,7 @@ export const VaultProgram: ChannelProgram = {
       `IF LOCKEDVALUE LT PREVSTATE(${VAULT_LOCKED_VALUE_PORT}) THEN`,
       '    ASSERT SWEPT',
       'ENDIF',
-    ]);
+    ], { domainId: options?.domainId });
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
@@ -459,12 +463,12 @@ export const VaultProgram: ChannelProgram = {
 export const TreasuryProgram: ChannelProgram = {
   id: TREASURY_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
     return injectEltooScript(parties, [
       `LET SPENT=STATE(${TREASURY_SPENT_PORT})`,
       `LET CAP=STATE(${TREASURY_SPEND_CAP_PORT})`,
       'ASSERT SPENT LTE CAP',
-    ]);
+    ], { domainId: options?.domainId });
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
@@ -550,12 +554,12 @@ export const TreasuryProgram: ChannelProgram = {
 export const MembershipProgram: ChannelProgram = {
   id: MEMBERSHIP_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
     return injectEltooScript(parties, [
       `LET ROOT=STATE(${MEMBERSHIP_MEMBER_ROOT_PORT})`,
       `LET POOL=STATE(${MEMBERSHIP_DIVIDEND_POOL_PORT})`,
       'ASSERT POOL GTE 0',
-    ]);
+    ], { domainId: options?.domainId });
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [
@@ -635,7 +639,7 @@ export const MembershipProgram: ChannelProgram = {
 export const AssetProgram: ChannelProgram = {
   id: ASSET_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number; domainId?: string }): string {
     return injectEltooScript(parties, [
       `LET A=STATE(${ASSET_HOLDER_A_BALANCE_PORT})`,
       `LET B=STATE(${ASSET_HOLDER_B_BALANCE_PORT})`,
@@ -643,7 +647,7 @@ export const AssetProgram: ChannelProgram = {
       'ASSERT A GTE 0',
       'ASSERT B GTE 0',
       'ASSERT A + B EQ TOTAL',
-    ]);
+    ], { domainId: options?.domainId });
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     if (!transition) return [

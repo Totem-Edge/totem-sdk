@@ -247,6 +247,11 @@ export interface CreateChannelParams {
   /** Scale factor for coloured coins. 0 = native Minima. Default: 0. */
   tokenScale?: number;
   fundingCoinId: string;
+  /**
+   * OMN-098 test/dev escape hatch: allow funding without a co-signed sequence-0
+   * state. Never set this on a network open.
+   */
+  allowMissingInitialState?: boolean;
   /** Serialized Minima witness for the funding transaction input(s). Required for createChannel broadcast. */
   fundingWitnessBytes?: Uint8Array;
   /**
@@ -385,7 +390,10 @@ export interface ChannelProgram {
    * that embed an eltoo-style contest delay (the default eltoo program); other
    * programs may ignore it.
    */
-  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string;
+  buildScript(
+    parties: ChannelParticipant[],
+    options?: { contestDelayBlocks?: number; domainId?: string },
+  ): string;
   buildStateVariables(input: ChannelProgramBuildStateInput): StateValue[];
   validateTransition?(input: ChannelProgramValidateTransitionInput): ChannelProgramValidationResult;
 }

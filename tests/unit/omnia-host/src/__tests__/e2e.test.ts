@@ -19,6 +19,7 @@ jest.mock('@totemsdk/txpow', () => ({
 
 import http from 'node:http';
 import { createOmniaHost } from '../lifecycle.js';
+import { acceptChannel, signInitialChannelState } from '@totemsdk/omnia';
 import { createHostSigning } from '../signing.js';
 import { loadConfigFromEnv } from '../config.js';
 
@@ -64,6 +65,18 @@ describe('omnia-host end-to-end (real control server)', () => {
       OMNIA_LOCAL_ADDRESS_INDEX: '1',
     }));
 
+    // Bob's own lease provider: the host lease is bound to alice's address slot.
+    let bobSlot = 0;
+    const bobLease = {
+      reserveKeyUse: jest.fn(async () => ({
+        reservationId: `bob-res-${++bobSlot}`,
+        indices: { addressIndex: 1, l1: bobSlot, l2: 0 },
+        expiresAt: Date.now() + 60_000,
+      })),
+      commitKeyUse: jest.fn(async () => undefined),
+      burnReservation: jest.fn(async () => undefined),
+    } as any;
+
     const chainProvider = {
       broadcastTxPoW: jest.fn(async () => ({ txpowid: '0xtxpow-e2e' })),
       getCoin: jest.fn(async (id: string) => ({
@@ -95,6 +108,16 @@ describe('omnia-host end-to-end (real control server)', () => {
           const deliver = async () => {
             if (!cb || !last) return;
             let reply: any = { type: 'ACK', channelId: last.channelId };
+            if (last.type === 'CHANNEL_OPEN_COSIGN') {
+              const { proposal } = last.payload as { proposal: import('@totemsdk/omnia').ChannelProposal };
+              const bobChannel = await acceptChannel(proposal, undefined, 0, { allowShortContestDelay: true });
+              const partial = await signInitialChannelState(
+                { ...bobChannel, localSigner: bobSigning.signer },
+                bobLease,
+                bobSigning.signer,
+              );
+              reply = { type: 'CHANNEL_OPEN_COSIGN_REPLY', channelId: last.channelId, nonce: last.nonce, payload: { partial } };
+            }
             if (last.type === 'SETTLEMENT_PROPOSAL') {
               const digest = Buffer.from(String(last.payload.digestHex).replace(/^0x/, ''), 'hex');
               const signature = await bobSigning.signer.sign(digest, { addressIndex: 1, l1: 5, l2: 0 });

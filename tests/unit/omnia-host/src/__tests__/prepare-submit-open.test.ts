@@ -54,6 +54,7 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
         settlementAddress: '0x' + '44'.repeat(32),
       },
       custodyMode: 'self',
+      allowLocalOnlyOpen: true,
     } as unknown as HostApiContext;
 
     const methods = createHostMethods(context);
@@ -95,6 +96,70 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
     expect(submitTransaction).toHaveBeenCalledTimes(1);
   });
 
+  it('OMN-098: refuses to fund a channel without a peer-co-signed initial state', async () => {
+    const config = loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: `${dbPath}-noinit` });
+    const signing = createHostSigning(config);
+    const chainProvider = {
+      getCoin: jest.fn(async () => ({
+        coinid: '0x' + 'cc'.repeat(32),
+        amount: '1000',
+        address: '0x' + 'dd'.repeat(32),
+        tokenid: '0x00',
+        spent: false,
+        created: '1',
+      })),
+      getToken: jest.fn(async () => ({ script: 'RETURN TRUE' })),
+      submitTransaction: jest.fn(async () => ({ success: true, txpowid: 'tx-funding' })),
+      getTip: jest.fn(async () => ({ block: 10 })),
+    };
+    const context = {
+      channels: new Map(),
+      preparedOpen: new Map(),
+      operations: {
+        get: () => undefined,
+        create: () => ({ operationId: 'op', status: 'pending' }),
+        transition: () => ({ operationId: 'op', status: 'committed' }),
+        listByStatus: () => [],
+      },
+      signer: signing.signer,
+      leaseProvider: signing.leaseProvider,
+      chainProvider,
+      localParticipant: {
+        partyId: 'alice',
+        publicKeyDigest: signing.publicKeyDigest,
+        addressIndex: 0,
+        settlementAddress: '0x' + '44'.repeat(32),
+      },
+      custodyMode: 'self',
+    } as unknown as HostApiContext;
+
+    const methods = createHostMethods(context);
+    const prepared = await methods.get('omnia/prepareOpenChannel')!({
+      operationId: 'prep-open-noinit',
+      remotePartyId: 'bob',
+      remotePublicKeyDigest: '0x' + 'bb'.repeat(32),
+      remoteAddressIndex: 1,
+      remoteSettlementAddress: '0x' + '55'.repeat(32),
+      localAmount: '600',
+      remoteAmount: '400',
+      fundingCoinId: '0x' + 'cc'.repeat(32),
+    });
+    const requests = (prepared as any).requests;
+    const indices = { addressIndex: 0, l1: 0, l2: 0 };
+    const intentSignature = await signing.signer.sign(signRequestPayload(requests.intent), indices);
+    const fundingSignature = await signing.signer.sign(requests.funding.digest, indices);
+
+    await expect(methods.get('omnia/submitOpenChannel')!({
+      operationId: 'submit-open-noinit',
+      preparedOperationId: 'prep-open-noinit',
+      intentSignature: hex(intentSignature),
+      fundingSignature: hex(fundingSignature),
+      fundingCoinProofsHex: ['0x01'],
+      fundingScriptProofsHex: ['0x02'],
+    })).rejects.toThrow(/co-sign the initial state/);
+    expect(chainProvider.submitTransaction).not.toHaveBeenCalled();
+  });
+
   it('R2: rejects an atom integer where the RPC expects decimal MINIMA text', async () => {
     const config = loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED, OMNIA_HOST_DB: `${dbPath}-guard` });
     const signing = createHostSigning(config);
@@ -117,6 +182,7 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
         settlementAddress: '0x' + '44'.repeat(32),
       },
       custodyMode: 'self',
+      allowLocalOnlyOpen: true,
     } as unknown as HostApiContext;
     const methods = createHostMethods(context);
     await expect(methods.get('omnia/prepareOpenChannel')!({
@@ -214,6 +280,7 @@ describe('omnia prepareOpenChannel / submitOpenChannel', () => {
         settlementAddress: '0x' + '44'.repeat(32),
       },
       custodyMode: 'self',
+      allowLocalOnlyOpen: true,
     } as unknown as HostApiContext;
 
     const methods = createHostMethods(context);

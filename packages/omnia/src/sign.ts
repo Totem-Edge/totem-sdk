@@ -411,6 +411,30 @@ export async function signState(
 }
 
 /**
+ * OMN-098: sign the sequence-0 state a channel must hold before its funding is
+ * broadcast. The returned partial state carries this party's update, settlement
+ * and close-package signatures; the counterparty's partial state is merged with
+ * `attachCounterpartySignature`, then `verifyClosePackage` must pass.
+ */
+export async function signInitialChannelState(
+  channel: OmniaChannel,
+  leaseProvider: WotsLeaseProvider,
+  signer?: ChannelSigner,
+  signerPort?: SignerPort,
+): Promise<Partial<SignedChannelState>> {
+  if (channel.currentSequence !== 0 || channel.latestState) {
+    throw new Error('signInitialChannelState only applies to a channel that has no state yet');
+  }
+  return signState(
+    channel,
+    { newSequence: 0, newBalances: { ...channel.balances } },
+    leaseProvider,
+    signer,
+    signerPort,
+  );
+}
+
+/**
  * Verify a channel state signature using off-chain WOTS verification.
  *
   * Rebuilds the canonical Minima update transaction digest and verifies it

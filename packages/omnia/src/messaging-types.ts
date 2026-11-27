@@ -13,6 +13,9 @@
 
 export type OmniaMessageType =
   | 'CHANNEL_PROPOSAL'
+  // OMN-098: pre-funding co-signature of the initial sequence-0 state.
+  | 'CHANNEL_OPEN_COSIGN'
+  | 'CHANNEL_OPEN_COSIGN_REPLY'
   | 'STATE_UPDATE'
   | 'SETTLEMENT_PROPOSAL'
   | 'ACK'
