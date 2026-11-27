@@ -1,6 +1,6 @@
 import { OmniaVtxo, MergeVtxosParams, MergeResult, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoMergeError, VtxoOwnershipError } from './errors.js';
-import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
+import { assertUniqueOutputIds, computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
 
 
 /**
@@ -18,11 +18,11 @@ export function mergeVtxos(
     throw new VtxoMergeError('Merge requires at least 2 VTXOs');
   }
 
+  // OMN-117: one shared uniqueness guard for every VTXO transformation.
   const ids = vtxos.map(v => v.vtxoId);
-  const uniqueIds = new Set(ids);
-  if (uniqueIds.size !== ids.length) {
-    throw new VtxoMergeError('Duplicate VTXO IDs detected in merge — double-counting prevented');
-  }
+  assertUniqueOutputIds(ids, () =>
+    new VtxoMergeError('Duplicate VTXO IDs detected in merge — double-counting prevented'),
+  );
 
   for (const vtxo of vtxos) {
     if (vtxo.status !== 'active') {

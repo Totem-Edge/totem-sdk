@@ -132,7 +132,7 @@ export function releaseUpdateGuard(channelId: string, sequence: number, payloadH
 // dependency) so the record survives a restart.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type SigningIntentState = 'pending' | 'signed' | 'abandoned';
+export type SigningIntentState = 'pending' | 'signed' | 'abandoned' | 'ambiguous';
 
 export interface SigningIntent {
   channelId: string;
@@ -319,6 +319,18 @@ export async function commitSigningAttempt(
   payloadHash: string,
 ): Promise<void> {
   await transitionSigningAttempt(channelId, sequence, payloadHash, 'signed');
+}
+
+/**
+ * OMN-109: the signer's outcome is unknown (it may hold a signature). The intent
+ * stays blocking; only an explicit reconciliation may resolve it.
+ */
+export async function markSigningAttemptAmbiguous(
+  channelId: string,
+  sequence: number,
+  payloadHash: string,
+): Promise<void> {
+  await transitionSigningAttempt(channelId, sequence, payloadHash, 'ambiguous');
 }
 
 /**

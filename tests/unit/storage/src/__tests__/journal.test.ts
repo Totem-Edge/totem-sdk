@@ -15,6 +15,7 @@ import { FileStore } from '../adapters/file-store.js';
 import { SqliteStore } from '../adapters/sqlite-store.js';
 import { createJournal, JOURNAL_RECORD_VERSION, type Journal } from '../journal.js';
 import { StorageError } from '../errors.js';
+import type { CasStore, StorageAdapterWithCapabilities } from '../types.js';
 
 interface AuditRecord {
   kind: string;
@@ -32,7 +33,86 @@ function makeJournal(adapter: Parameters<typeof createJournal<AuditRecord>>[0]) 
   return createJournal<AuditRecord>(adapter, VOLATILE);
 }
 
+/**
+ * OMN-123: a thin second view over one underlying store. Distinct object
+ * identity means a distinct in-process lock, which models a second process
+ * sharing the same durable backend.
+ */
+function secondProcessView(
+  base: MemoryStore,
+  hooks: { beforeEntryWrite?: (key: string) => Promise<void> } = {},
+): StorageAdapterWithCapabilities & CasStore {
+  return {
+    capabilities: base.capabilities,
+    failurePolicy: base.failurePolicy,
+    get: (key) => base.get(key),
+    async set(key, value) {
+      if (hooks.beforeEntryWrite && key.includes('entry:')) await hooks.beforeEntryWrite(key);
+      return base.set(key, value);
+    },
+    remove: (key) => base.remove(key),
+    clear: () => base.clear(),
+    keys: () => base.keys(),
+    has: (key) => base.has(key),
+    conditionalUpdate: (key, update) => base.conditionalUpdate(key, update),
+  };
+}
+
 describe('createJournal', () => {
+  describe('OMN-123: append and recovery are mutually exclusive', () => {
+    it('defers recovery while another writer is mid-append, then converges', async () => {
+      const base = new MemoryStore();
+      let releaseWrite!: () => void;
+      const paused = new Promise<void>((resolve) => { releaseWrite = resolve; });
+      let reachedWrite!: () => void;
+      const atWrite = new Promise<void>((resolve) => { reachedWrite = resolve; });
+      let pausedOnce = false;
+
+      const writer = makeJournal(secondProcessView(base, {
+        beforeEntryWrite: async () => {
+          if (pausedOnce) return;
+          pausedOnce = true;
+          reachedWrite();
+          await paused;
+        },
+      }));
+      const recoverer = makeJournal(secondProcessView(base));
+
+      const append = writer.append(recordOf('audit', 'r-1'));
+      // The writer has bumped the head and is blocked writing entry:1.
+      await atWrite;
+
+      const deferred = await recoverer.recover();
+      expect(deferred.deferred).toBe(true);
+      expect(deferred.headAfter).toBe(1);
+      expect(deferred.repairedUnrecordedTail).toBe(false);
+
+      releaseWrite();
+      await append;
+
+      const converged = await recoverer.recover();
+      expect(converged.deferred).toBeUndefined();
+      expect(converged.headAfter).toBe(1);
+      expect(converged.repairedUnrecordedTail).toBe(false);
+      expect(await recoverer.count()).toBe(1);
+    });
+
+    it('takes over an expired lease and repairs a genuinely abandoned tail', async () => {
+      const base = new MemoryStore();
+      const writer = makeJournal(secondProcessView(base));
+      // Simulate a crash after the head bump: head is 1 but entry:1 was never written
+      // and the dead writer's lease has expired.
+      await base.set('totem_journal:v1:head', 1);
+      await base.set('totem_journal:v1:append-lease', { token: 'dead', expiresAt: Date.now() - 1 });
+
+      const recovery = await writer.recover();
+      expect(recovery.deferred).toBeUndefined();
+      expect(recovery.repairedUnrecordedTail).toBe(true);
+      expect(recovery.headAfter).toBe(0);
+      expect(await writer.getHead()).toBe(0);
+    });
+  });
+
   describe('MemoryStore (volatile) — parity', () => {
     let adapter: MemoryStore;
     let journal: Journal<AuditRecord>;

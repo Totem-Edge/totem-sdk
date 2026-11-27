@@ -250,6 +250,28 @@ export function verifyConservation(params: ConservationInput): VerifyVtxoResult 
   const poolId = inputs[0].poolId;
   const tokenId = inputs[0].tokenId;
 
+  // OMN-118: duplicate or negative records must fail centrally, before any
+  // aggregate is compared — a doubled input inflates the sum and a negative
+  // output lets a crafted set pass conservation.
+  const seenInputs = new Set<string>();
+  for (const vtxo of inputs) {
+    if (!vtxo.vtxoId) errors.push('Input is missing vtxoId');
+    else if (seenInputs.has(vtxo.vtxoId)) errors.push(`Duplicate input ${vtxo.vtxoId}`);
+    else seenInputs.add(vtxo.vtxoId);
+    if (vtxo.amount < BigInt(0)) errors.push(`Input ${vtxo.vtxoId} has a negative amount ${vtxo.amount}`);
+  }
+  const seenOutputs = new Set<string>();
+  for (const vtxo of outputs) {
+    if (!vtxo.vtxoId) errors.push('Output is missing vtxoId');
+    else if (seenOutputs.has(vtxo.vtxoId)) errors.push(`Duplicate output ${vtxo.vtxoId}`);
+    else seenOutputs.add(vtxo.vtxoId);
+    if (vtxo.amount < BigInt(0)) errors.push(`Output ${vtxo.vtxoId} has a negative amount ${vtxo.amount}`);
+  }
+  // An id cannot appear on both sides of the transition.
+  for (const id of seenOutputs) {
+    if (seenInputs.has(id)) errors.push(`VTXO ${id} appears as both input and output`);
+  }
+
   for (const vtxo of inputs) {
     if (vtxo.poolId !== poolId) {
       errors.push(`Input pool mismatch: ${vtxo.poolId} vs ${poolId}`);

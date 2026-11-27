@@ -4,6 +4,7 @@
 
 import {
   createEmptyLiquidityBondRegistryState,
+  createLiquidityCommitment,
   computeRegistryRoot,
   registerSettledFeePayout,
   type LiquidityBondRegistryState,
@@ -13,8 +14,10 @@ import {
 import {
   createOmniaPool,
   depositToPool,
+  createPositionFromCommitment,
   allocatePositionCapital,
   releaseAllocation,
+  confirmAllocationRecovery,
   rebalancePoolCapital,
   recordPoolFee,
   claimFees,
@@ -145,6 +148,25 @@ describe('omnia-pool', () => {
     expect(result.state.positions[result.position.positionId]).toBeDefined();
   });
 
+  it('OMN-111: one accepted commitment backs exactly one position', () => {
+    const { manifest } = createOmniaPool(basePoolParams(), registry);
+    const commitment = createLiquidityCommitment({
+      poolId: 'pool-1',
+      lpAddress: lp,
+      asset: manifest.asset,
+      amount: 100000n,
+      purpose: 'omnia-channel-capital',
+      terms: manifest.lockTerms,
+      funding: { utxoRef: '0xFUND-OMN111', tokenId, amount: 100000n, status: 'chain-confirmed' },
+    });
+
+    const first = createPositionFromCommitment(commitment, manifest, registry);
+    const retry = createPositionFromCommitment(commitment, manifest, first.registry);
+
+    expect(retry.position.positionId).toBe(first.position.positionId);
+    expect(Object.values(retry.registry.positions)).toHaveLength(1);
+  });
+
   it('refuses a deposit whose funding fails on-chain verification', async () => {
     const { manifest } = createOmniaPool(basePoolParams(), registry);
     await expect(
@@ -214,7 +236,7 @@ describe('omnia-pool', () => {
         amount: '40000',
         allocationType: 'channel-capital',
         purpose: 'omnia-channel-capital',
-        target: { type: 'channel', params: {} as never },
+        target: { type: 'channel', params: { localAmount: 20000n, remoteAmount: 20000n } as never },
         ctx: { omnia: port },
       },
       state,
@@ -254,7 +276,7 @@ describe('omnia-pool', () => {
           amount: '40000',
           allocationType: 'channel-capital',
           purpose: 'omnia-channel-capital',
-          target: { type: 'channel', params: {} as never },
+          target: { type: 'channel', params: { localAmount: 20000n, remoteAmount: 20000n } as never },
           ctx: { omnia: port },
         },
         state,
@@ -284,7 +306,7 @@ describe('omnia-pool', () => {
         amount: '30000',
         allocationType: 'factory-capital',
         purpose: 'omnia-factory-capital',
-        target: { type: 'factory', params: { participants: [], tokenId, bundle: {} as never } },
+        target: { type: 'factory', params: { participants: [], tokenId, bundle: {} as never, totalAmount: 30000n } },
         ctx: { factory: port },
       },
       state,
@@ -314,8 +336,8 @@ describe('omnia-pool', () => {
       from: 'a',
       to: 'b',
       tokenId: '0x00',
-      availableBalance: 1000n,
-      htlcCapacity: 1000n,
+      availableBalance: 100000n,
+      htlcCapacity: 100000n,
       feeRate: 0n,
     } as unknown as import('@totemsdk/omnia-router').ChannelGraphEdge;
     const result = await allocatePositionCapital(
@@ -497,10 +519,121 @@ describe('omnia-pool', () => {
       state,
     );
 
-    const result = releaseAllocation({ allocation, position: allocPos }, allocReg);
+    const result = releaseAllocation({
+      allocation,
+      position: allocPos,
+      recovery: { evidenceRef: 'channel-close-tx', recoveredAmount: 60000n, verified: true },
+    }, allocReg);
     expect(result.position.allocatedAmount).toBe(0n);
     expect(result.position.availableAmount).toBe(100000n);
     expect(result.allocation.status).toBe('released');
+  });
+
+  it('OMN-112: refuses an allocation beyond risk-adjusted headroom before executing', async () => {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const first = await allocatePositionCapital(
+      {
+        position,
+        amount: '60000',
+        allocationType: 'manual-reserve',
+        purpose: 'community-liquidity',
+        target: { type: 'reserve', purpose: 'hold' },
+      },
+      state,
+    );
+    const port: OmniaExecutionPort = {
+      createChannel: jest.fn(),
+      updateState: jest.fn(),
+      addHTLC: jest.fn(),
+      fulfillHTLC: jest.fn(),
+      proposeSettlement: jest.fn(),
+      verifyStateForCoSign: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+      closeChannel: jest.fn(),
+    };
+    await expect(allocatePositionCapital(
+      {
+        position: { ...first.position, effectiveAmount: 100000n },
+        amount: '50000',
+        allocationType: 'channel-capital',
+        purpose: 'omnia-channel-capital',
+        target: { type: 'channel', params: { localAmount: 25000n, remoteAmount: 25000n } as never },
+        ctx: { omnia: port },
+      },
+      first.registry,
+    )).rejects.toThrow(/risk-adjusted headroom/);
+    expect(port.createChannel).not.toHaveBeenCalled();
+  });
+
+  it('OMN-113: refuses a target that deploys a different amount', async () => {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const port: OmniaExecutionPort = {
+      createChannel: jest.fn(),
+      updateState: jest.fn(),
+      addHTLC: jest.fn(),
+      fulfillHTLC: jest.fn(),
+      proposeSettlement: jest.fn(),
+      verifyStateForCoSign: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+      closeChannel: jest.fn(),
+    };
+    await expect(allocatePositionCapital(
+      {
+        position,
+        amount: '40000',
+        allocationType: 'channel-capital',
+        purpose: 'omnia-channel-capital',
+        target: { type: 'channel', params: { localAmount: 10000n, remoteAmount: 10000n } as never },
+        ctx: { omnia: port },
+      },
+      state,
+    )).rejects.toThrow(/deploys 20000 but the allocation is 40000/);
+    expect(port.createChannel).not.toHaveBeenCalled();
+  });
+
+  it('OMN-114: parks a release without recovery evidence and restores liquidity only after confirmation', async () => {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const { allocation, position: allocPos, registry: allocReg } = await allocatePositionCapital(
+      {
+        position,
+        amount: '60000',
+        allocationType: 'channel-capital',
+        purpose: 'omnia-channel-capital',
+        target: { type: 'reserve', purpose: 'hold' },
+      },
+      state,
+    );
+
+    const parked = releaseAllocation({ allocation, position: allocPos }, allocReg);
+    expect(parked.recovered).toBe(false);
+    expect(parked.allocation.status).toBe('settling');
+    expect(parked.position.allocatedAmount).toBe(60000n);
+    expect(parked.position.availableAmount).toBe(40000n);
+
+    const confirmed = confirmAllocationRecovery({
+      allocation: parked.allocation,
+      position: parked.position,
+      recovery: { evidenceRef: 'channel-close-tx', recoveredAmount: 60000n, verified: true },
+    }, parked.registry);
+    expect(confirmed.allocation.status).toBe('released');
+    expect(confirmed.position.allocatedAmount).toBe(0n);
+    expect(confirmed.position.availableAmount).toBe(100000n);
+
+    expect(() => confirmAllocationRecovery({
+      allocation: parked.allocation,
+      position: parked.position,
+      recovery: { evidenceRef: 'unverified', recoveredAmount: 60000n, verified: false },
+    }, parked.registry)).toThrow(/verified settlement evidence/);
   });
 
   it('rebalances capital between targets', async () => {
@@ -523,6 +656,7 @@ describe('omnia-pool', () => {
     const result = await rebalancePoolCapital(
       {
         from: allocation,
+        recovery: { evidenceRef: 'recovered', recoveredAmount: 50000n, verified: true },
         toTarget: { type: 'reserve', purpose: 'new' },
         amount: '30000',
       },
@@ -565,7 +699,8 @@ describe('omnia-pool', () => {
     const result = await rebalancePoolCapital(
       {
         from: allocation,
-        toTarget: { type: 'vtxo', pool: vtxoPool, params: { owner: lp, amount: 25000n, nonce: 'n2' } },
+        recovery: { evidenceRef: 'recovered', recoveredAmount: 50000n, verified: true },
+        toTarget: { type: 'vtxo', pool: vtxoPool, params: { owner: lp, amount: 30000n, nonce: 'n2' } },
         amount: '30000',
         ctx: { vtxo: port },
       },

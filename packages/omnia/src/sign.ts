@@ -12,10 +12,13 @@ import type {
 import {
   BalanceConservationError,
   SequenceError,
+  SignerOutcomeUnknownError,
+  SignerRefusalError,
 } from './errors.js';
 import { serializeTxDraft, computeOmniaTxDigest, stateVariablesEqual, stateCommitmentV2Matches } from './transactions.js';
 import {
   abandonSigningAttempt,
+  markSigningAttemptAmbiguous,
   beginSigningAttempt,
   commitSigningAttempt,
   enforceUpdateGuards,
@@ -265,6 +268,21 @@ export async function signState(
   signerPort?: SignerPort,
 ): Promise<Partial<SignedChannelState>> {
   const effectiveSigner = resolveSignerOrThrow(channel, signer);
+  // OMN-121: a policy signer needs the amount being signed. Derive it from the
+  // transition itself (largest balance move or the pending HTLC value) instead
+  // of leaving it to caller metadata, so a spending limit cannot be bypassed by
+  // omitting `context.amount`.
+  let movedAmount = 0n;
+  for (const [partyId, next] of Object.entries(update.newBalances)) {
+    const previous = channel.balances[partyId] ?? 0n;
+    const delta = next > previous ? next - previous : previous - next;
+    if (delta > movedAmount) movedAmount = delta;
+  }
+  const pendingHtlcAmount = channel.pendingHTLCs
+    .filter((htlc) => htlc.status === 'pending')
+    .reduce((sum, htlc) => sum + htlc.amount, 0n);
+  if (pendingHtlcAmount > movedAmount) movedAmount = pendingHtlcAmount;
+
   const signDigest = async (
     digest: Uint8Array,
     indices: SigningIndices,
@@ -279,7 +297,7 @@ export async function signState(
       kind: 'chain',
       domain: 'channel',
       digest,
-      context: { summary: purpose },
+      context: { summary: purpose, asset: channel.tokenId, amount: movedAmount.toString() },
       signers: [signerPort.publicKeyDigest],
       signingIndices: indices,
       custody: makeSelfCustody(),
@@ -320,19 +338,56 @@ export async function signState(
       throw err;
     }
   })();
+  /**
+   * OMN-109: an external signer that throws has an unknown outcome — it may
+   * already have produced (and even released) a signature. Only a definite
+   * refusal may release the guard; everything else seals the sequence.
+   */
+  const signKnownOutcome = async (
+    digest: Uint8Array,
+    indices: typeof prepared.updateReservation.indices,
+    purpose: string,
+    external: boolean,
+  ): Promise<Uint8Array> => {
+    try {
+      return await signDigest(digest, indices, purpose);
+    } catch (err) {
+      if (err instanceof SignerRefusalError) throw err;
+      if (err instanceof SignerOutcomeUnknownError) {
+        sealUpdateGuard(channel.channelId, prepared.newSequence);
+        await markSigningAttemptAmbiguous(channel.channelId, prepared.newSequence, payloadHash).catch(() => {});
+        throw err;
+      }
+      if (!external) {
+        // A local in-process signer that throws never returned a signature, so
+        // the failure is definite and the attempt may be retried.
+        throw err;
+      }
+      sealUpdateGuard(channel.channelId, prepared.newSequence);
+      await markSigningAttemptAmbiguous(channel.channelId, prepared.newSequence, payloadHash).catch(() => {});
+      throw new SignerOutcomeUnknownError(
+        `signer outcome is unknown for channel ${channel.channelId} sequence ${prepared.newSequence}; `
+        + 'the signing guard stays sealed until the attempt is reconciled',
+        err,
+      );
+    }
+  };
+
   try {
-    const updateSignature = await signDigest(
+    const updateSignature = await signKnownOutcome(
       prepared.updateDigest,
       prepared.updateReservation.indices,
       `channel-update-seq-${prepared.newSequence}`,
+      Boolean(signerPort),
     );
     // From the first signature onward a different payload at this sequence must
     // never be signed, even if the rest of the flow fails.
     sealUpdateGuard(channel.channelId, prepared.newSequence);
-    const settlementSignature = await signDigest(
+    const settlementSignature = await signKnownOutcome(
       prepared.settlementDigest,
       prepared.settlementReservation.indices,
       `channel-settlement-seq-${prepared.newSequence}`,
+      Boolean(signerPort),
     );
     await leaseProvider.commitKeyUse(
       prepared.updateReservation.reservationId,

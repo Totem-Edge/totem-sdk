@@ -1,3 +1,4 @@
+import { feeEvidenceKey } from './fees.js';
 import type {
   LiquidityBondRegistryState,
   LiquidityPoolManifest,
@@ -71,9 +72,27 @@ export function registerLiquidityPosition(
   state: LiquidityBondRegistryState,
   position: LiquidityPosition
 ): LiquidityBondRegistryState {
+  // OMN-111: one commitment backs at most one position. A retry must return the
+  // existing position instead of minting a second liability.
+  const existing = position.commitmentId
+    ? findPositionByCommitment(state, position.commitmentId)
+    : undefined;
+  if (existing && existing.positionId !== position.positionId) {
+    throw new Error(
+      `commitment ${position.commitmentId} already backs position ${existing.positionId}`,
+    );
+  }
   const positions = { ...state.positions };
   positions[position.positionId] = position;
   return { ...state, positions, updatedAt: Date.now() };
+}
+
+/** OMN-111: the position derived from a commitment, if one exists. */
+export function findPositionByCommitment(
+  state: LiquidityBondRegistryState,
+  commitmentId: string
+): LiquidityPosition | undefined {
+  return Object.values(state.positions).find((p) => p.commitmentId === commitmentId);
 }
 
 export function attachLiquidityReceipt(
@@ -99,6 +118,17 @@ export function attachLiquidityFeeRecord(
   state: LiquidityBondRegistryState,
   record: LiquidityFeeRecord
 ): LiquidityBondRegistryState {
+  // OMN-125: evidence is consumed exactly once. Re-submitting the same
+  // earn-proof for the same position would inflate recorded earnings.
+  const key = feeEvidenceKey(record);
+  if (key !== null) {
+    const duplicate = Object.values(state.feeRecords)
+      .flat()
+      .some((existingRecord) => feeEvidenceKey(existingRecord) === key);
+    if (duplicate) {
+      throw new Error(`fee earn-proof already recorded for position ${record.positionId}`);
+    }
+  }
   const feeRecords = { ...state.feeRecords };
   const existing = feeRecords[record.positionId] ?? [];
   feeRecords[record.positionId] = [...existing, record];
@@ -155,8 +185,11 @@ export function listPositionsByLp(
 }
 
 export function listActivePositions(state: LiquidityBondRegistryState): LiquidityPosition[] {
-  return Object.values(state.positions).filter((p) =>
-    p.status === 'active' || p.status === 'allocated' || p.status === 'partially-reserved'
+  // OMN-110: active liquidity requires chain-confirmed funding.
+  return Object.values(state.positions).filter(
+    (p) =>
+      p.funding?.status === 'chain-confirmed' &&
+      (p.status === 'active' || p.status === 'allocated' || p.status === 'partially-reserved'),
   );
 }
 
@@ -170,8 +203,8 @@ export function listWithdrawablePositions(
   now: number
 ): LiquidityPosition[] {
   return Object.values(state.positions).filter((p) => {
-    if (p.funding?.status === 'invalid') return false;
-    if (p.funding && p.funding.status !== 'chain-confirmed') return false;
+    // OMN-110: absent funding is not evidence — never withdrawable.
+    if (p.funding?.status !== 'chain-confirmed') return false;
     if (p.status === 'depleted' || p.status === 'invalid' || p.status === 'expired') return false;
     if (p.lockTerms.lockType === 'none') return true;
     if (p.lockTerms.earlyWithdrawalAllowed) return true;

@@ -187,6 +187,7 @@ export function mxToHex(address: string): string {
 
 // Merkle Mountain Range (original JS — types and helpers)
 export * from './mmr.js';
+export { confirmationDepth } from './confirmation.js';
 
 // Script Types, Witness Serializer, Contract Helpers
 export * from './scripts/index.js';

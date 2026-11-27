@@ -82,7 +82,14 @@ export type AllocationType =
   | 'vtxo-backing'
   | 'manual-reserve';
 
-export type AllocationStatus = 'active' | 'reserved' | 'released' | 'depleted' | 'invalid';
+export type AllocationStatus =
+  | 'active'
+  | 'reserved'
+  /** OMN-114: capital is being recovered; it is not available liquidity. */
+  | 'settling'
+  | 'released'
+  | 'depleted'
+  | 'invalid';
 
 export type CommitmentStatus = 'draft' | 'signed' | 'accepted' | 'rejected' | 'expired' | 'cancelled';
 

@@ -1,6 +1,6 @@
 import { OmniaVtxo, SplitVtxoParams, SplitResult, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoAmountError, VtxoSplitError } from './errors.js';
-import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
+import { assertUniqueOutputIds, computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
 
 
 /**
@@ -51,6 +51,9 @@ export function splitVtxo(
       nonce: params.nonces[i],
     })
   );
+
+  // OMN-117: duplicate output ids would collide in the proof map.
+  assertUniqueOutputIds(outputIds, (message) => new VtxoSplitError(message));
 
   const inputVtxo: OmniaVtxo = {
     ...vtxo,

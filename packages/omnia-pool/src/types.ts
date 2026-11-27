@@ -381,13 +381,30 @@ export type AllocationResult = {
   signedTransition?: RegistrySignedTransition;
 };
 
+/**
+ * OMN-114: evidence that allocated capital actually came back. `verified` is
+ * only ever set by a live verifier; a bare claim parks the release.
+ */
+export interface AllocationRecoveryEvidence {
+  /** Reference to the settlement/return evidence (channel close tx, factory return, ...). */
+  evidenceRef: string;
+  /** Amount actually recovered, in atoms. */
+  recoveredAmount: bigint;
+  /** True only when a live verifier confirmed the evidence. */
+  verified: boolean;
+}
+
 export type ReleaseAllocationParams = {
   allocation: LiquidityAllocation;
   position: LiquidityPosition;
+  /** Verified recovery evidence. Without it the release is parked as settling. */
+  recovery?: AllocationRecoveryEvidence;
 };
 
 export type RebalanceAllocationParams = {
   from: LiquidityAllocation;
+  /** OMN-114: verified recovery evidence for the source allocation. */
+  recovery?: AllocationRecoveryEvidence;
   toTarget: AllocationTarget;
   amount: string;
   ctx?: OmniaPoolAllocationContext;

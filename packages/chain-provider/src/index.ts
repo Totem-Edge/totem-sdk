@@ -23,6 +23,8 @@ export {
   withDepositVerifier,
 } from './verify-deposit.js';
 
+export { confirmationDepth } from './chain-confirmation.js';
+
 export { HostedProvider } from './providers/hosted.js';
 export type { HostedProviderConfig } from './providers/hosted.js';
 

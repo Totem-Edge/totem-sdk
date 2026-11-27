@@ -11,7 +11,7 @@ import {
 } from '../fees.js';
 import { createLiquidityPosition } from '../position.js';
 import { createLiquidityCommitment } from '../commitment.js';
-import { createEmptyLiquidityBondRegistryState, registerLiquidityPosition } from '../registry.js';
+import { attachLiquidityFeeRecord, createEmptyLiquidityBondRegistryState, registerLiquidityPosition } from '../registry.js';
 
 function makePosition() {
   const commitment = createLiquidityCommitment({
@@ -28,6 +28,47 @@ const passVerifier = {
 const failVerifier = {
   verifyFeeProof: async () => ({ valid: false, reason: 'no matching HTLC fulfillment' }),
 };
+
+describe('OMN-125: fee evidence is consumed once', () => {
+  function record(htlcId: string) {
+    return recordLiquidityFee({
+      positionId: 'pos-1',
+      poolId: 'pool-1',
+      feeAsset: 'MINIMA',
+      grossFeeAmount: 10n,
+      lpFeeAmount: 8n,
+      operatorFeeAmount: 2n,
+      source: 'route-fee',
+      earnProof: { htlcId },
+    });
+  }
+
+  it('rejects the same earn-proof recorded twice for a position', () => {
+    let state = createEmptyLiquidityBondRegistryState();
+    state = attachLiquidityFeeRecord(state, record('h-1'));
+    expect(() => attachLiquidityFeeRecord(state, record('h-1'))).toThrow(/already recorded/);
+  });
+
+  it('keeps distinct evidence and distinct sources', () => {
+    let state = createEmptyLiquidityBondRegistryState();
+    state = attachLiquidityFeeRecord(state, record('h-1'));
+    state = attachLiquidityFeeRecord(state, record('h-2'));
+    const otherSource = { ...record('h-1'), source: 'rfq-spread' as const };
+    state = attachLiquidityFeeRecord(state, otherSource);
+    expect(state.feeRecords['pos-1']).toHaveLength(3);
+  });
+
+  it('allows multiple non-earnable adjustments without evidence', () => {
+    let state = createEmptyLiquidityBondRegistryState();
+    const adjustment = recordLiquidityFee({
+      positionId: 'pos-1', poolId: 'pool-1', feeAsset: 'MINIMA',
+      grossFeeAmount: 1n, source: 'manual-adjustment',
+    });
+    state = attachLiquidityFeeRecord(state, adjustment);
+    state = attachLiquidityFeeRecord(state, { ...adjustment, feeRecordId: 'fee-2' });
+    expect(state.feeRecords['pos-1']).toHaveLength(2);
+  });
+});
 
 describe('fees', () => {
   describe('recordLiquidityFee', () => {

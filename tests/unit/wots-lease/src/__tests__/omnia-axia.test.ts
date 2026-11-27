@@ -78,6 +78,38 @@ describe('OmniaAxiaLeaseProvider', () => {
     expect(watermark.unavailableCount).toBeGreaterThan(0);
   });
 
+  test('OMN-122: rejects a partial lease response instead of defaulting indices to zero', async () => {
+    const fetchImpl = jest.fn(async () =>
+      jsonResponse({ leaseToken: 'lease-token-partial', leaseId: 'lease-partial', addressIndex: 0, l1: 5 }),
+    );
+    await expect(provider(fetchImpl).reserveKeyUse({ treeId: 'omnia-channel-0x3' }))
+      .rejects.toThrow(/incomplete or invalid WOTS index/);
+  });
+
+  test('OMN-122: rejects an index leased for a different wallet address', async () => {
+    const fetchImpl = jest.fn(async () =>
+      jsonResponse({ leaseToken: 'lease-token-wrong', leaseId: 'lease-wrong', addressIndex: 7, l1: 1, l2: 1 }),
+    );
+    await expect(provider(fetchImpl).reserveKeyUse({ treeId: 'omnia-channel-0x4' }))
+      .rejects.toThrow(/wallet address/);
+  });
+
+  test('OMN-122: records a local reservation before the lease is returned', async () => {
+    const fetchImpl = jest.fn(async () =>
+      jsonResponse({ leaseToken: 'lease-token-local', leaseId: 'lease-local', addressIndex: 0, l1: 3, l2: 4 }),
+    );
+    const lease = provider(fetchImpl);
+    const reservation = await lease.reserveKeyUse({ treeId: 'omnia-channel-0x5' });
+    const watermark = await lease.getLocalWatermark('omnia-channel-0x5');
+    expect(watermark.unavailableCount).toBeGreaterThan(0);
+
+    // The same index can never be leased twice: the second prepare returns it
+    // again and the local watermark rejects it.
+    await expect(lease.reserveKeyUse({ treeId: 'omnia-channel-0x5' }))
+      .rejects.toThrow(/already-used WOTS index/);
+    expect(reservation.indices).toEqual({ addressIndex: 0, l1: 3, l2: 4 });
+  });
+
   test('fails closed when /prepare rejects', async () => {
     const fetchImpl = jest.fn(async () =>
       jsonResponse({ error: 'Daily WOTS signing limit reached' }, false, 429),

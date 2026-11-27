@@ -42,6 +42,27 @@ async function assertClaimable(vtxo: OmniaVtxo, owner: string) {
   expect(exit.draft.amount).toBe(vtxo.amount);
 }
 
+describe('OMN-117: split output identifiers are unique', () => {
+  it('refuses equal amounts with identical nonces', () => {
+    const pool = newPool('dup');
+    const { vtxo: funding } = mintVtxo(pool, { owner: 'operator-1', amount: 20_000n, nonce: 'dup-mint' }, NOW);
+    expect(() =>
+      splitVtxo(funding, { amounts: [10_000n, 10_000n], nonces: ['same', 'same'] }, NOW + 1),
+    ).toThrow(/Duplicate VTXO IDs/);
+  });
+
+  it('accepts equal amounts with distinct nonces', () => {
+    const pool = newPool('dup-ok');
+    const { vtxo: funding } = mintVtxo(pool, { owner: 'operator-1', amount: 20_000n, nonce: 'dup-mint' }, NOW);
+    const { outputs } = splitVtxo(
+      funding,
+      { amounts: [10_000n, 10_000n], nonces: ['one', 'two'] },
+      NOW + 1,
+    );
+    expect(new Set(outputs.map((o) => o.vtxoId)).size).toBe(2);
+  });
+});
+
 describe('multiparty VTXO — M1 six-owner fan-out', () => {
   it('splits one pool claim into six owner-bound claims and each owner can exit its share', async () => {
     const pool = newPool('m1');

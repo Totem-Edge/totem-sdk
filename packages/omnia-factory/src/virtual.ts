@@ -131,6 +131,11 @@ export function buildVirtualChannelOpen(
     );
   }
   const [partyAId, partyBId] = parties;
+  // OMN-127: identical participants would make both allocation deductions write
+  // the same key, silently overwriting one side.
+  if (!partyAId || !partyBId || partyAId === partyBId) {
+    throw new Error('Virtual channel participants must be two distinct party ids');
+  }
   const amountA = amounts[partyAId] ?? 0n;
   const amountB = amounts[partyBId] ?? 0n;
   if (amountA < 0n || amountB < 0n) throw new Error('Virtual channel amounts must be non-negative');

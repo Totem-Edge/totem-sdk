@@ -27,6 +27,11 @@ export function releaseLiquidityAllocation(allocation: LiquidityAllocation, now?
   return { ...allocation, status: 'released', releasedAt: now ?? Date.now() };
 }
 
+/** OMN-114: an allocation whose capital is being recovered. Not available. */
+export function markAllocationSettling(allocation: LiquidityAllocation, now?: number): LiquidityAllocation {
+  return { ...allocation, status: 'settling', metadata: { ...allocation.metadata, settlingAt: now ?? Date.now() } };
+}
+
 export function markAllocationDepleted(allocation: LiquidityAllocation, now?: number): LiquidityAllocation {
   return { ...allocation, status: 'depleted', releasedAt: now ?? Date.now() };
 }
@@ -38,9 +43,14 @@ export function verifyLiquidityAllocation(params: VerifyLiquidityAllocationParam
     return { ok: false, reason: 'Allocation amount must be positive', code: 'ALLOCATION_INVALID' };
   }
 
-  const available = position.amount - (position.allocatedAmount ?? 0n);
+  // OMN-112: headroom is the risk-adjusted capacity minus BOTH allocated and
+  // reserved capital. Verifying against the gross amount would let a position
+  // overcommit what it can actually support.
+  const capacity = position.effectiveAmount ?? position.amount;
+  const committed = (position.allocatedAmount ?? 0n) + (position.reservedAmount ?? 0n);
+  const available = capacity > committed ? capacity - committed : 0n;
   if (allocation.amount > available) {
-    return { ok: false, reason: 'Allocation exceeds position amount', code: 'ALLOCATION_EXCEEDS_POSITION' };
+    return { ok: false, reason: 'Allocation exceeds position headroom', code: 'ALLOCATION_EXCEEDS_POSITION' };
   }
 
   return { ok: true, code: 'OK' };

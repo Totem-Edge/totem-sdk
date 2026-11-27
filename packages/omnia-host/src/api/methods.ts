@@ -178,6 +178,17 @@ export interface HostApiContext {
    */
   settlementVerifier?: PayoutSettlementVerifier;
   /**
+   * OMN-114: verifies that an allocation's capital actually came back before the
+   * release restores availability. Without it, releases fail closed.
+   */
+  allocationRecoveryVerifier?: (request: {
+    positionId: string;
+    allocationId: string;
+    amount: bigint;
+    evidenceRef: string;
+    recoveredAmount: bigint;
+  }) => Promise<{ valid: boolean; reason?: string }>;
+  /**
    * OMN-007: verifies VTXO claim signatures over the canonical claim preimage
    * against the signer's trusted key. Without it, claim verification fails closed.
    */
@@ -2761,7 +2772,40 @@ function registerPreparedPayMethods(
     if (!stored) throw new Error(`Pool position ${positionId} not found`);
     if (!stored.allocation) throw new Error(`Pool position ${positionId} has no allocation`);
     const poolRegistry = poolRegistryFor(stored.position.poolId, stored.registry);
-    const released = releaseAllocation({ allocation: stored.allocation, position: stored.position }, poolRegistry);
+    // OMN-114: releasing restores availability, so it needs verified evidence
+    // that the capital came back. A caller assertion alone is not evidence.
+    const rawRecovery = params.recovery && typeof params.recovery === 'object'
+      ? params.recovery as { evidenceRef?: unknown; recoveredAmount?: unknown }
+      : undefined;
+    const evidenceRef = rawRecovery?.evidenceRef;
+    if (typeof evidenceRef !== 'string' || evidenceRef.length === 0) {
+      throw new Error('releasePoolAllocation requires recovery.evidenceRef');
+    }
+    let recoveredAmount: bigint;
+    try {
+      recoveredAmount = BigInt(String(rawRecovery?.recoveredAmount));
+    } catch {
+      throw new Error('releasePoolAllocation requires an integer recovery.recoveredAmount');
+    }
+    const verifier = context.allocationRecoveryVerifier;
+    if (!verifier) {
+      throw new Error('releasePoolAllocation requires an allocation recovery verifier');
+    }
+    const check = await verifier({
+      positionId,
+      allocationId: stored.allocation.allocationId,
+      amount: stored.allocation.amount,
+      evidenceRef,
+      recoveredAmount,
+    });
+    if (!check.valid) {
+      throw new Error(`allocation recovery failed: ${check.reason ?? 'evidence not confirmed'}`);
+    }
+    const released = releaseAllocation({
+      allocation: stored.allocation,
+      position: stored.position,
+      recovery: { evidenceRef, recoveredAmount, verified: true },
+    }, poolRegistry);
     commitPoolRegistry(stored.position.poolId, released.registry);
     context.poolPositions.set(positionId, { ...stored, position: released.position, registry: released.registry, allocation: undefined });
     return { success: true, position: jsonSafe(released.position), registry: jsonSafe(released.registry) };

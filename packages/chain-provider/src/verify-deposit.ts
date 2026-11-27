@@ -9,6 +9,7 @@
  */
 
 import { bytesToHex, decodeMx, hexToBytes, sha3_256, toHex, verifyMMRProof } from '@totemsdk/core';
+import { confirmationDepth } from './chain-confirmation.js';
 import type {
   ChainStateProvider,
   Coin,
@@ -70,13 +71,12 @@ export function evaluateDeposit(coin: Coin, spent: boolean, params: VerifyDeposi
   const ownedByOwner = addressesEqual(coin.address, params.ownerAddress) || addressesEqual(coin.miniaddress ?? coin.address, params.ownerAddress);
   const tokenMatches = params.tokenId ? coin.tokenid === params.tokenId : coin.tokenid === '0x00' || coin.tokenid === '0x01';
   const amountSufficient = params.claimedAmount === undefined || compareAmounts(coin.amount, params.claimedAmount) >= 0;
-  const confirmed = isConfirmed(coin);
-  // OMN-054: depth is computed from the coin's creation block and the tip. If
-  // either is missing, the depth gate cannot pass.
-  const created = Number(coin.created ?? 0);
-  const depth = params.chainTip !== undefined && created > 0
-    ? params.chainTip - created + 1
-    : undefined;
+  // OMN-054/OMN-124: depth comes from the shared definition. When a tip is
+  // supplied it is authoritative — a positive `mmrentry` alone cannot confirm a
+  // coin. Without a tip, fall back to the node's chain-presence flag.
+  const depthValue = confirmationDepth(coin.created, params.chainTip ?? Number.NaN);
+  const depth = depthValue === null ? undefined : depthValue;
+  const confirmed = depth !== undefined ? depth >= 1 : isConfirmed(coin);
   const depthSufficient = params.minConfirmations === undefined
     ? true
     : depth !== undefined && depth >= params.minConfirmations;

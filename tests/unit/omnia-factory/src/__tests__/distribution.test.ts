@@ -371,6 +371,19 @@ describe('OMN-058 checkpoint enforcement', () => {
     expect(() => buildVirtualChannelClose(withVc, vc)).toThrow(/checkpoint mode/);
   });
 
+  it('OMN-127: refuses a virtual channel whose two participants are the same party', async () => {
+    const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
+      settlement: 'per-party',
+      enforceCheckpoints: false,
+      allowUnenforceableAllocations: true,
+    });
+    const active = { ...plan.factory, status: 'active' as const };
+    expect(() => buildVirtualChannelOpen(active as never, ['alice', 'alice'], { alice: 10n }))
+      .toThrow(/distinct party ids/);
+    expect(() => buildVirtualChannelOpen(active as never, ['alice', 'bob'], { alice: 10n, bob: 10n }))
+      .not.toThrow();
+  });
+
   it('allows them only when the factory explicitly opts out', async () => {
     const plan = await buildFactoryOpening(PARTICIPANTS as never, '0x00', 0, undefined, undefined, {
       settlement: 'per-party',

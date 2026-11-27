@@ -296,6 +296,11 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     }
 
     const peel = codec.peel(params.envelope, self);
+    if (peel.kind === 'invalid') {
+      // OMN-119: a malformed envelope is refused; it never makes this relay the
+      // recipient of a payment it did not earn.
+      throw new Error(`invalid routing envelope: ${peel.reason}`);
+    }
     if (peel.kind === 'final') {
       // Recipient hop: settle only when the application can supply the
       // preimage. Otherwise the HTLC stays pending and the caller sees an

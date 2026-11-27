@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-26T18:01:10.824Z. 152 findings, 38 open.
+Generated 2026-11-27T04:16:25.728Z. 152 findings, 16 open.
 
 sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 
@@ -28,10 +28,10 @@ sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 | `OMN-096` | critical | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia` | The watchtower treats a stale-state successor as channel continuity |
 | `OMN-097` | critical | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-splice`, `@totemsdk/omnia-host` | No consensus-enforced channel domain: identical parties and delay share a script |
 | `OMN-098` | critical | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/omnia-lsp-provider` | A channel is funded before either party holds a unilateral exit package |
-| `OMN-106` | critical | sdk-defect | open | `@totemsdk/vtxo` | VTXO epoch admission has a check-then-sign race |
+| `OMN-106` | critical | sdk-defect | fixed | `@totemsdk/vtxo` | VTXO epoch admission has a check-then-sign race |
 | `OMN-108` | critical | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Signing admission reads an unreadable journal as "no history" |
-| `OMN-110` | critical | sdk-defect | open | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-pool` | A liquidity position can become active without funding evidence |
-| `OMN-111` | critical | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | One accepted commitment can create multiple liquidity positions |
+| `OMN-110` | critical | sdk-defect | fixed | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-pool` | A liquidity position can become active without funding evidence |
+| `OMN-111` | critical | sdk-defect | fixed | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | One accepted commitment can create multiple liquidity positions |
 | `CAN-001` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/tx-builder` | Channel funding draft silently drops the unspent part of the funding coin |
 | `CAN-002` | high | sdk-defect | fixed | `@totemsdk/proof`, `@totemsdk/manifest` | Manifest proofs are not bound to the manifest they attest |
 | `CAN-004` | high | sdk-defect | fixed | `@totemsdk/omnia`, `@totemsdk/omnia-host` | Non-custodial channel open races the chain: the acceptor validates the funding coin before it can be mined |
@@ -111,26 +111,26 @@ sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 | `OMN-101` | high | sdk-defect | fixed | `@totemsdk/omnia` | A unilateral settlement broadcast is recorded as a completed closure |
 | `OMN-102` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | The distributed multi-hop branch bypasses the durable operation lifecycle |
 | `OMN-103` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia-router` | Cross-token locality is decided from the inbound channel only |
-| `OMN-104` | high | sdk-defect | open | `null` | The S4 harness can report S4_PASS without asserting settlement |
-| `OMN-105` | high | sdk-defect | in-progress | `@totemsdk/omnia-host` | Automated watcher actions bypass the channel mutation coordinator |
-| `OMN-107` | high | sdk-defect | open | `@totemsdk/vtxo` | Epoch recovery reconstructs history without authenticating it |
-| `OMN-109` | high | sdk-defect | open | `@totemsdk/omnia` | An interrupted signer response can release the signing guard |
-| `OMN-112` | high | sdk-defect | open | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-pool` | Allocation verification ignores reserved and risk-adjusted capital |
-| `OMN-113` | high | sdk-defect | open | `@totemsdk/omnia-pool` | The recorded allocation amount is not bound to the executed operation |
-| `OMN-114` | high | sdk-defect | open | `@totemsdk/omnia-pool` | An allocation can be released without proof of capital recovery |
-| `OMN-115` | high | sdk-defect | open | `@totemsdk/omnia-factory` | Factory persistence permits a stale record to overwrite a newer one |
-| `OMN-116` | high | sdk-defect | open | `@totemsdk/omnia-splice` | Splice acceptance can regress a finalized record |
-| `OMN-117` | high | sdk-defect | open | `@totemsdk/vtxo` | VTXO split outputs can receive duplicate identifiers |
-| `OMN-118` | high | sdk-defect | open | `@totemsdk/vtxo` | VTXO conservation verification accepts duplicate and negative records |
-| `OMN-119` | high | sdk-defect | open | `@totemsdk/omnia-router` | A malformed routing envelope is interpreted as a final destination |
-| `OMN-120` | high | sdk-defect | open | `@totemsdk/omnia-relay` | Routing advertisements include channels that are not active |
-| `OMN-121` | high | sdk-defect | open | `@totemsdk/omnia-host`, `@totemsdk/omnia` | The signing policy is skipped when a request carries no amount |
-| `OMN-122` | high | sdk-defect | open | `@totemsdk/wots-lease` | The Axia lease adapter does not defensively validate remote indices |
-| `OMN-123` | high | sdk-defect | open | `@totemsdk/storage` | Journal recovery can race an in-progress append |
-| `OMN-124` | high | sdk-defect | open | `@totemsdk/chain-provider`, `@totemsdk/omnia` | Confirmation depth is computed differently across packages |
-| `OMN-125` | high | sdk-defect | open | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | Fee earn-proofs can be appended more than once |
-| `OMN-126` | high | sdk-defect | open | `@totemsdk/txpow` | The TxPoW work verifier fails open when parsing fails |
-| `OMN-127` | high | sdk-defect | open | `@totemsdk/omnia-factory` | Virtual-channel planning accepts the same participant twice |
+| `OMN-104` | high | sdk-defect | fixed | `null` | The S4 harness can report S4_PASS without asserting settlement |
+| `OMN-105` | high | sdk-defect | fixed | `@totemsdk/omnia-host` | Automated watcher actions bypass the channel mutation coordinator |
+| `OMN-107` | high | sdk-defect | fixed | `@totemsdk/vtxo` | Epoch recovery reconstructs history without authenticating it |
+| `OMN-109` | high | sdk-defect | fixed | `@totemsdk/omnia` | An interrupted signer response can release the signing guard |
+| `OMN-112` | high | sdk-defect | fixed | `@totemsdk/liquidity-bond`, `@totemsdk/omnia-pool` | Allocation verification ignores reserved and risk-adjusted capital |
+| `OMN-113` | high | sdk-defect | fixed | `@totemsdk/omnia-pool` | The recorded allocation amount is not bound to the executed operation |
+| `OMN-114` | high | sdk-defect | fixed | `@totemsdk/omnia-pool` | An allocation can be released without proof of capital recovery |
+| `OMN-115` | high | sdk-defect | fixed | `@totemsdk/omnia-factory` | Factory persistence permits a stale record to overwrite a newer one |
+| `OMN-116` | high | sdk-defect | fixed | `@totemsdk/omnia-splice` | Splice acceptance can regress a finalized record |
+| `OMN-117` | high | sdk-defect | fixed | `@totemsdk/vtxo` | VTXO split outputs can receive duplicate identifiers |
+| `OMN-118` | high | sdk-defect | fixed | `@totemsdk/vtxo` | VTXO conservation verification accepts duplicate and negative records |
+| `OMN-119` | high | sdk-defect | fixed | `@totemsdk/omnia-router` | A malformed routing envelope is interpreted as a final destination |
+| `OMN-120` | high | sdk-defect | fixed | `@totemsdk/omnia-relay` | Routing advertisements include channels that are not active |
+| `OMN-121` | high | sdk-defect | fixed | `@totemsdk/omnia-host`, `@totemsdk/omnia` | The signing policy is skipped when a request carries no amount |
+| `OMN-122` | high | sdk-defect | fixed | `@totemsdk/wots-lease` | The Axia lease adapter does not defensively validate remote indices |
+| `OMN-123` | high | sdk-defect | fixed | `@totemsdk/storage` | Journal recovery can race an in-progress append |
+| `OMN-124` | high | sdk-defect | fixed | `@totemsdk/chain-provider`, `@totemsdk/omnia` | Confirmation depth is computed differently across packages |
+| `OMN-125` | high | sdk-defect | fixed | `@totemsdk/omnia-pool`, `@totemsdk/liquidity-bond` | Fee earn-proofs can be appended more than once |
+| `OMN-126` | high | sdk-defect | fixed | `@totemsdk/txpow` | The TxPoW work verifier fails open when parsing fails |
+| `OMN-127` | high | sdk-defect | fixed | `@totemsdk/omnia-factory` | Virtual-channel planning accepts the same participant twice |
 | `CAN-005` | medium | sdk-defect | open | `@totemsdk/omnia`, `@totemsdk/omnia-host` | The initiator discards the peer ERROR frame, so a rejected open reports only acknowledged=false |
 | `CAN-012` | medium | sdk-defect | fixed | `@totemsdk/omnia-splice` | Splice successor selection matches on address, token and amount only |
 | `CAN-015` | medium | sdk-defect | fixed | `@totemsdk/omnia-router` | Router rollback cannot release HTLCs early and reports failure as if liquidity were returned |

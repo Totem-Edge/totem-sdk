@@ -86,6 +86,19 @@ describe('createDurableFactoryStore', () => {
       expect(reopened?.pendingSignatures.alice).toEqual(new Uint8Array(64).fill(0x42));
     });
 
+    it('OMN-115: refuses a stale factory record that would roll back the sequence', async () => {
+      const store = createDurableFactoryStore(new MemoryStore(), VOLATILE);
+      const factory = await factoryMidSigningRound();
+      const newer: ChannelFactory = { ...factory, currentSequence: factory.currentSequence + 2 };
+      const stale: ChannelFactory = { ...factory, currentSequence: factory.currentSequence + 1 };
+      await store.saveFactory(newer);
+      await expect(store.saveFactory(stale)).rejects.toMatchObject({ code: 'write-failed' });
+      expect((await store.getFactory(factory.factoryId))?.currentSequence).toBe(newer.currentSequence);
+      // Replaying the same sequence is idempotent.
+      await store.saveFactory(newer);
+      expect((await store.getFactory(factory.factoryId))?.currentSequence).toBe(newer.currentSequence);
+    });
+
     it('lists all factories', async () => {
       const store = createDurableFactoryStore(new MemoryStore(), VOLATILE);
       const f = await createFactory([ALICE, BOB], '0x00', makeMockBundle(ALICE.publicKeyDigest));

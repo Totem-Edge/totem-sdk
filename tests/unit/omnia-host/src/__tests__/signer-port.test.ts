@@ -130,6 +130,24 @@ describe('createPolicySignerPort', () => {
     }))).rejects.toThrow(/custody mode/);
   });
 
+  it('OMN-121: refuses a request with no amount under a spending limit', async () => {
+    const port = createPolicySignerPort(base, { maxAmount: 100n });
+    await expect(port.sign(request({
+      signers: [signing.publicKeyDigest],
+      context: { summary: 'No amount' },
+    }))).rejects.toThrow(/requires a request amount/);
+
+    await expect(port.sign(request({
+      signers: [signing.publicKeyDigest],
+      context: { summary: 'Not a number', amount: 'lots' },
+    }))).rejects.toThrow(/not an integer/);
+
+    await expect(port.sign(request({
+      signers: [signing.publicKeyDigest],
+      context: { summary: 'Negative', amount: '-1' },
+    }))).rejects.toThrow(/negative/);
+  });
+
   it('fails closed for hosted signing without an acknowledgement', async () => {
     const port = createPolicySignerPort(base, {
       allowedModes: ['hosted'],

@@ -110,7 +110,8 @@ describe('createOmniaRelayClient — routing source ladder (RFC-034 §6.1)', () 
   const channel = (): OmniaChannel =>
     ({
       channelId: 'ch-own',
-      status: 'open',
+      status: 'active',
+      fundingCoinId: '0xFUND',
       tokenId: '0x00',
       totalValue: 1_000_000n,
       currentSequence: 1,
@@ -121,6 +122,15 @@ describe('createOmniaRelayClient — routing source ladder (RFC-034 §6.1)', () 
       pendingHTLCs: [],
       balances: { alice: 1_000_000n, bob: 0n },
     }) as unknown as OmniaChannel;
+
+  it('OMN-120: only active channels become routing edges', () => {
+    const port = createChannelRoutingPort(() => [
+      channel(),
+      { ...channel(), channelId: 'ch-opening', status: 'opening' },
+      { ...channel(), channelId: 'ch-closing', status: 'closing_mutual' },
+    ]);
+    expect([...port.snapshot()].map((e) => e.channelId)).toEqual(['ch-own', 'ch-own']);
+  });
 
   it('returns explicit UNSUPPORTED when no graph source and no own channels', async () => {
     const client = createOmniaRelayClient({ swarm: fakeSwarm() });

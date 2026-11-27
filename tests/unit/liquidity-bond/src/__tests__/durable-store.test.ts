@@ -15,7 +15,7 @@ import { StorageError } from '@totemsdk/storage/errors';
 import { createDurableLiquidityBondStore } from '../durable-store.js';
 import { createLiquidityPoolManifest } from '../pool-manifest.js';
 import { createLiquidityCommitment } from '../commitment.js';
-import { createLiquidityPosition } from '../position.js';
+import { activateLiquidityPosition, createLiquidityPosition } from '../position.js';
 import { issueLiquidityReceipt } from '../receipt.js';
 import { createLiquidityAllocation } from '../allocation.js';
 import { recordLiquidityFee } from '../fees.js';
@@ -35,6 +35,7 @@ function makeCommitment(commitmentId = 'c-1'): LiquidityCommitment {
   return createLiquidityCommitment({
     poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
     purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+    funding: { utxoRef: 'utxo-demo', tokenId: '0x00', amount: 1000n, status: 'chain-confirmed' },
   });
 }
 
@@ -92,7 +93,7 @@ describe('createDurableLiquidityBondStore', () => {
 
     it('lists active and withdrawable positions', async () => {
       const commitment = makeCommitment();
-      const position = createLiquidityPosition({ commitment, poolId: 'pool-1' });
+      const position = activateLiquidityPosition(createLiquidityPosition({ commitment, poolId: 'pool-1' }));
       await store.registerPosition(position);
       expect(await store.listActivePositions()).toHaveLength(1);
       expect(await store.listWithdrawablePositions(0)).toHaveLength(1);

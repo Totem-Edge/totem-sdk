@@ -1,3 +1,4 @@
+import { canonicalJson } from '@totemsdk/core';
 import type {
   EarnableFeeSource,
   FeePayoutRef,
@@ -17,6 +18,24 @@ const EANABLE_SOURCES: ReadonlySet<string> = new Set(['route-fee', 'rfq-spread',
 
 export function isEarnableSource(source: string): source is EarnableFeeSource {
   return EANABLE_SOURCES.has(source);
+}
+
+/**
+ * OMN-125: identity of the evidence backing an earnable fee. Two records with
+ * the same evidence for the same position are one earning, not two.
+ */
+export function feeEvidenceKey(
+  record: Pick<LiquidityFeeRecord, 'positionId' | 'source' | 'earnProof' | 'proofRef'>,
+): string | null {
+  const proof = record.earnProof ?? record.proofRef;
+  if (proof === undefined || proof === null) return null;
+  let canonical: string;
+  try {
+    canonical = canonicalJson(proof);
+  } catch {
+    throw new Error('fee earn-proof cannot be canonicalised for replay protection');
+  }
+  return `${record.source}:${record.positionId}:${canonical}`;
 }
 
 export function recordLiquidityFee(params: RecordLiquidityFeeParams): LiquidityFeeRecord {

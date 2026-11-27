@@ -5,6 +5,7 @@ import {
   verifyDepositMmrProof,
   withDepositVerifier,
 } from '../verify-deposit';
+import { confirmationDepth } from '../chain-confirmation';
 import { MinimaRpcProvider } from '../providers/minima-rpc';
 import type { ChainStateProvider } from '../types';
 import type { MinimaRpcClient } from '@totemsdk/minima-rpc';
@@ -21,6 +22,47 @@ const baseCoin = {
 function providerWith(coin: unknown): Pick<ChainStateProvider, 'getCoin'> {
   return { getCoin: jest.fn().mockResolvedValue(coin) };
 }
+
+describe('confirmationDepth (OMN-124 shared definition)', () => {
+  it('is zero in the creation block and n at created + n', () => {
+    expect(confirmationDepth(100, 100)).toBe(0);
+    expect(confirmationDepth(100, 101)).toBe(1);
+    expect(confirmationDepth(100, 106)).toBe(6);
+  });
+
+  it('fails closed when depth cannot be proven', () => {
+    expect(confirmationDepth(undefined, 100)).toBeNull();
+    expect(confirmationDepth(null, 100)).toBeNull();
+    expect(confirmationDepth('nonsense', 100)).toBeNull();
+    expect(confirmationDepth(101, 100)).toBeNull();
+    expect(confirmationDepth(100, Number.NaN)).toBeNull();
+  });
+
+  it('applies the same depth to the deposit gate at the boundary', async () => {
+    const inCreationBlock = await verifyDeposit(
+      providerWith({ ...baseCoin, created: '100' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', chainTip: 100, minConfirmations: 1 },
+    );
+    expect(inCreationBlock.confirmations).toBe(0);
+    expect(inCreationBlock.valid).toBe(false);
+
+    const oneDeep = await verifyDeposit(
+      providerWith({ ...baseCoin, created: '100' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', chainTip: 101, minConfirmations: 1 },
+    );
+    expect(oneDeep.confirmations).toBe(1);
+    expect(oneDeep.valid).toBe(true);
+  });
+
+  it('ignores a positive mmrentry as confirmation when a tip is supplied', async () => {
+    const result = await verifyDeposit(
+      providerWith({ ...baseCoin, created: '100', mmrentry: '9999' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', chainTip: 100, requireConfirmed: true },
+    );
+    expect(result.confirmed).toBe(false);
+    expect(result.valid).toBe(false);
+  });
+});
 
 describe('verifyDeposit', () => {
   it('passes all gates for an unspent, owned, sufficiently funded coin', async () => {

@@ -156,6 +156,92 @@ describe('EpochAuthority (V0 spend-state)', () => {
     await expect(authority.append(one.receipt, one.root)).rejects.toThrow(/stale/);
   });
 
+  it('OMN-106: serialises concurrent appends so only one claim can win an input', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const a = await signed(receipt({ receiptId: 'r-a', inputIds: ['v1'], outputIds: ['v2'] }), [vtxo('v2', 100n)], 100n);
+    const b = await signed(receipt({ receiptId: 'r-b', inputIds: ['v1'], outputIds: ['v9'] }), [vtxo('v9', 100n)], 100n);
+
+    const results = await Promise.allSettled([
+      authority.append(a.receipt, a.root),
+      authority.append(b.receipt, b.root),
+    ]);
+    const ok = results.filter((r) => r.status === 'fulfilled');
+    expect(ok).toHaveLength(1);
+    const state = await authority.current();
+    expect([...state.spentInputIds]).toContain('v1');
+    expect(state.epoch).toBe(1);
+  });
+
+  it('OMN-106: two authorities over one journal resolve the race deterministically', async () => {
+    const j = journal();
+    const one = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const two = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const a = await signed(receipt({ receiptId: 'r-a', inputIds: ['v1'], outputIds: ['v2'] }), [vtxo('v2', 100n)], 100n);
+    const b = await signed(receipt({ receiptId: 'r-b', inputIds: ['v1'], outputIds: ['v9'] }), [vtxo('v9', 100n)], 100n);
+
+    const results = await Promise.allSettled([
+      one.append(a.receipt, a.root),
+      two.append(b.receipt, b.root),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    // Exactly one signed epoch exists; no second signature was produced.
+    const records = (await j.read()).map((e) => e.record).filter((e) => e.kind === 'epoch');
+    expect(records).toHaveLength(1);
+  });
+
+  it('OMN-106: a reservation left by a crash is reported and resumable', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const { root, receipt: r1 } = await signed(receipt(), outputs1, 300n);
+    // Simulate a crash between reservation and the signed epoch record.
+    await j.append({
+      kind: 'claim',
+      poolId: POOL,
+      epoch: 1,
+      root,
+      receiptId: r1.receiptId,
+      inputIds: [...r1.inputIds],
+      at: 1,
+    });
+
+    const reopened = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    expect((await reopened.recover()).unfinishedClaims.map((c) => c.receiptId)).toEqual(['r-1']);
+    await reopened.append(r1, root);
+    expect((await reopened.recover()).unfinishedClaims).toEqual([]);
+    expect((await reopened.current()).epoch).toBe(1);
+  });
+
+  it('OMN-107: recovery rejects a tampered epoch signature', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const one = await signed(receipt(), outputs1, 300n);
+    await authority.append(one.receipt, one.root);
+
+    const events = (await j.read()).map((e) => e.record);
+    const bad = events.map((e) =>
+      e.kind === 'epoch' ? { ...e, signature: 'deadbeef' } : e,
+    );
+    const forged = createJournal<EpochEvent>(new MemoryStore(), {
+      namespace: `test-epoch-forged:${Math.random()}:v1:`,
+      requireAckMode: 'volatile',
+    });
+    for (const record of bad) await forged.append(record);
+
+    const reopened = new EpochAuthority({ poolId: POOL, journal: forged, operator });
+    await expect(reopened.recover()).rejects.toThrow(/signature does not verify/);
+  });
+
+  it('OMN-107: recovery rejects two roots for one epoch', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const a = await signed(receipt({ receiptId: 'r-a', inputIds: ['v1'], outputIds: ['v2'] }), [vtxo('v2', 100n)], 100n);
+    const b = await signed(receipt({ receiptId: 'r-b', inputIds: ['v3'], outputIds: ['v9'] }), [vtxo('v9', 100n)], 100n);
+    await j.append({ kind: 'epoch', poolId: POOL, epoch: 1, root: a.root, receiptId: 'r-a', inputIds: ['v1'], outputIds: ['v2'], at: 1, signature: '' });
+    await j.append({ kind: 'epoch', poolId: POOL, epoch: 1, root: b.root, receiptId: 'r-b', inputIds: ['v3'], outputIds: ['v9'], at: 1, signature: '' });
+    await expect(authority.recover()).rejects.toThrow(/signature does not verify|two receipts/);
+  });
+
   it('rejects an epoch gap', async () => {
     const j = journal();
     const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });

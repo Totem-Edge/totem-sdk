@@ -21,6 +21,7 @@ function makeCommitment() {
   return createLiquidityCommitment({
     poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
     purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+    funding: { utxoRef: 'utxo-demo', tokenId: '0x00', amount: 1000n, status: 'chain-confirmed' },
   });
 }
 
@@ -29,9 +30,46 @@ describe('position', () => {
     it('creates a position from commitment', () => {
       const commitment = makeCommitment();
       const pos = createLiquidityPosition({ commitment, poolId: 'pool-1' });
-      expect(pos.status).toBe('active');
+      expect(pos.status).toBe('committed');
       expect(pos.amount).toBe(1000n);
       expect(pos.availableAmount).toBe(1000n);
+    });
+  });
+
+  describe('OMN-110: no funding, no liquidity', () => {
+    it('keeps an unfunded record as a draft with no available liquidity', () => {
+      const commitment = createLiquidityCommitment({
+        poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
+        purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+      });
+      const pos = createLiquidityPosition({ commitment, poolId: 'pool-1' });
+      expect(pos.status).toBe('draft');
+      expect(pos.availableAmount).toBe(0n);
+      expect(computeAvailableLiquidity(pos)).toBe(0n);
+      expect(verifyLiquidityPosition({ position: pos, pool: makePool() }).code).toBe('POSITION_UNFUNDED');
+    });
+
+    it('refuses to activate a position whose funding is absent', () => {
+      const commitment = createLiquidityCommitment({
+        poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
+        purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+      });
+      const pos = createLiquidityPosition({ commitment, poolId: 'pool-1' });
+      expect(() => activateLiquidityPosition(pos)).toThrow(/without chain-confirmed funding/);
+    });
+
+    it('takes the amount from the verified funding, not the commitment', () => {
+      const commitment = createLiquidityCommitment({
+        poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 9000n,
+        purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+      });
+      const pos = createLiquidityPosition({
+        commitment,
+        poolId: 'pool-1',
+        funding: { utxoRef: 'utxo-1', tokenId: '0x00', amount: 1000n, status: 'chain-confirmed' },
+      });
+      expect(pos.amount).toBe(1000n);
+      expect(pos.status).toBe('committed');
     });
   });
 

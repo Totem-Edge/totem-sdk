@@ -108,6 +108,21 @@ export interface ComputeVtxoIdParams {
   epoch?: number;
 }
 
+/**
+ * OMN-117: every VTXO transformation that produces a batch of outputs must
+ * assert their identifiers are unique. Identical amounts with identical nonces
+ * derive identical ids, and the proof map is keyed by id, so collisions
+ * overwrite or confuse output records. Shared by split and merge.
+ */
+export function assertUniqueOutputIds(
+  ids: readonly string[],
+  makeError: (message: string) => Error,
+): void {
+  if (new Set(ids).size !== ids.length) {
+    throw makeError('Duplicate VTXO IDs detected in output batch — every output needs a unique nonce');
+  }
+}
+
 export function computeVtxoId(params: ComputeVtxoIdParams): string {
   const input = [
     VTXO_ID_DOMAIN,

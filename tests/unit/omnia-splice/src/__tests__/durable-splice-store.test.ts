@@ -152,6 +152,43 @@ describe('createDurableSpliceStore', () => {
       await expect(store.saveAcceptance(acceptanceForUnknown)).rejects.toMatchObject({ code: 'write-failed' });
     });
 
+    it('OMN-116: a replayed acceptance cannot regress a finalized splice', async () => {
+      const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
+      const channel = await quiesce(makeChannel());
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
+      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
+      await store.saveProposal(proposal);
+      await store.saveAcceptance(acceptance);
+      await store.markFinalized(proposal.spliceId);
+
+      await expect(store.saveAcceptance(acceptance)).rejects.toMatchObject({ code: 'write-failed' });
+      expect((await store.getSplice(proposal.spliceId))?.status).toBe('finalized');
+    });
+
+    it('OMN-116: a conflicting acceptance for one splice is rejected', async () => {
+      const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
+      const channel = await quiesce(makeChannel());
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
+      const acceptance = await acceptSplice(channel, proposal, makeLeaseProvider(PKD_BOB), { verifySignature: () => true });
+      await store.saveProposal(proposal);
+      await store.saveAcceptance(acceptance);
+
+      // Replaying the same acceptance is idempotent.
+      await store.saveAcceptance(acceptance);
+      expect((await store.getSplice(proposal.spliceId))?.status).toBe('accepted');
+
+      await expect(store.saveAcceptance({ ...acceptance, acceptorSignature: new Uint8Array(1).fill(9) }))
+        .rejects.toMatchObject({ code: 'write-failed' });
+    });
+
+    it('OMN-116: refuses to finalize a splice that was never accepted', async () => {
+      const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
+      const channel = await quiesce(makeChannel());
+      const proposal = await proposeSpliceIn(channel, NEW_COIN_ID, 200n, makeLeaseProvider(PKD_ALICE), { alice: 700n, bob: 500n }, SPLICE_COIN_ADDRESS);
+      await store.saveProposal(proposal);
+      await expect(store.markFinalized(proposal.spliceId)).rejects.toMatchObject({ code: 'write-failed' });
+    });
+
     it('marks a splice finalized', async () => {
       const store = createDurableSpliceStore(new MemoryStore(), VOLATILE);
       const channel = await quiesce(makeChannel());

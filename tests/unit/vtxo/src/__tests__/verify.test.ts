@@ -114,6 +114,45 @@ describe('verifyConservation — lte mode (default)', () => {
   });
 });
 
+describe('OMN-118: conservation rejects duplicate and negative records', () => {
+  const build = (noncePrefix: string) => {
+    const pool = createPool(
+      { operator: 'op-1', tokenId: 'token-0', totalCapacity: BigInt(1_000_000), nonce: `${noncePrefix}-pool` },
+      NOW,
+    );
+    const { vtxo: a } = mintVtxo(pool, { owner: 'alice', amount: 1000n, nonce: `${noncePrefix}-a` }, NOW);
+    const { vtxo: b } = mintVtxo(pool, { owner: 'bob', amount: 1000n, nonce: `${noncePrefix}-b` }, NOW);
+    return { a, b };
+  };
+
+  it('rejects a duplicated input that would inflate the budget', () => {
+    const { a, b } = build('dup-in');
+    const result = verifyConservation({ inputs: [a, a], outputs: [b, { ...b, amount: 2000n, vtxoId: 'out-2' }] });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/Duplicate input/);
+  });
+
+  it('rejects a duplicated output', () => {
+    const { a, b } = build('dup-out');
+    const result = verifyConservation({ inputs: [a], outputs: [b, b] });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/Duplicate output/);
+  });
+
+  it('rejects individually negative amounts', () => {
+    const { a, b } = build('neg');
+    const result = verifyConservation({ inputs: [{ ...a, amount: -1000n }], outputs: [b] });
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/negative amount/);
+  });
+
+  it('rejects an id on both sides and an empty id', () => {
+    const { a, b } = build('sides');
+    expect(verifyConservation({ inputs: [a], outputs: [a] }).valid).toBe(false);
+    expect(verifyConservation({ inputs: [{ ...a, vtxoId: '' }], outputs: [b] }).valid).toBe(false);
+  });
+});
+
 describe('verifyConservation — strict mode', () => {
   it('passes when output sum equals input sum', () => {
     const pool = createPool(

@@ -59,7 +59,13 @@ export {
   type MinWorkSource,
 } from './difficulty.js';
 
-export { verifyProofOfWork, verifyTxPoWWork, verifyTxPoWParts, type VerifyResult } from './verify.js';
+export {
+  verifyProofOfWork,
+  verifyTxPoWWork,
+  verifyTxPoWParts,
+  type VerifyResult,
+  type VerifyTxPoWWorkOptions,
+} from './verify.js';
 
 export {
   calibrateHashRate,

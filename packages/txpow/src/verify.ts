@@ -221,17 +221,29 @@ export function verifyTxPoWParts(
  * header only), extracts mTxnDifficulty from the TxBody, and verifies:
  *   txpowId < mTxnDifficulty
  *
- * Falls back to TX_POW_MIN_DIFFICULTY as a spam filter when:
- *   - The hex is invalid or malformed
- *   - No valid header/body split can be found (non-standard structure)
- *   - mTxnDifficulty cannot be extracted from the body
+ * OMN-126: input that cannot be parsed as a TxPoW is INVALID. The previous
+ * fallback hashed the raw bytes as a proxy id and evaluated it against the floor
+ * difficulty, so a malformed payload could report valid work. The fallback is
+ * still available for diagnostics but only behind an explicit opt-in.
  *
  * PureMinima performs authoritative work verification on submission; this
  * function is a first-pass relay-side filter.
  *
  * @param txpowHex  Hex-encoded serialized TxPoW (TxHeader | 0x01 | TxBody).
  */
-export function verifyTxPoWWork(txpowHex: string): VerifyResult {
+export interface VerifyTxPoWWorkOptions {
+  /**
+   * Opt in to the legacy proxy-id floor for unparseable input. Never enable
+   * this on an admission or relay path: it can certify input that is not a
+   * TxPoW.
+   */
+  allowUnparsedProxy?: boolean;
+}
+
+export function verifyTxPoWWork(
+  txpowHex: string,
+  options: VerifyTxPoWWorkOptions = {},
+): VerifyResult {
   if (typeof txpowHex !== 'string' || !/^[0-9a-fA-F]+$/.test(txpowHex)) {
     return {
       valid: false,
@@ -257,7 +269,16 @@ export function verifyTxPoWWork(txpowHex: string): VerifyResult {
     return verifyTxPoWParts(parsed.headerBytes, parsed.bodyBytes);
   }
 
-  // Fallback: use sha3_256 of the full bytes as a proxy id against the floor
+  if (!options.allowUnparsedProxy) {
+    return {
+      valid: false,
+      txpowId: '',
+      difficulty: toHex(TX_POW_MIN_DIFFICULTY),
+      reason: 'could not parse TxPoW structure',
+    };
+  }
+
+  // Diagnostic-only fallback: use sha3_256 of the full bytes as a proxy id.
   const proxyId = computeTxPoWId(bytes);
   return {
     ...verifyProofOfWork(proxyId, TX_POW_MIN_DIFFICULTY),

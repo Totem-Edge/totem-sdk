@@ -169,6 +169,7 @@ export {
 export {
   createLiquidityAllocation,
   releaseLiquidityAllocation,
+  markAllocationSettling,
   markAllocationDepleted,
   verifyLiquidityAllocation,
   sumActiveAllocations,
@@ -218,6 +219,7 @@ export {
   updateLiquidityPool,
   registerLiquidityCommitment,
   registerLiquidityPosition,
+  findPositionByCommitment,
   attachLiquidityReceipt,
   attachLiquidityAllocation,
   attachLiquidityFeeRecord,

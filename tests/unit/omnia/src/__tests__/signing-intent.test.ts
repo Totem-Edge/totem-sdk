@@ -18,8 +18,9 @@ import {
   setSigningJournal,
 } from '../guards.js';
 import type { SigningIntent, SigningIntentJournal } from '../guards.js';
-import { DoubleSignError, SequenceError } from '../errors.js';
+import { DoubleSignError, SequenceError, SignerOutcomeUnknownError, SignerRefusalError } from '../errors.js';
 import type { ChannelSigner, OmniaChannel } from '../types.js';
+import type { SignRequest, SignerPort } from '../custody.js';
 
 /** A journal that is explicitly *not* the in-memory default, so the simulated
  *  restart below (which clears process memory) leaves its records intact. */
@@ -111,6 +112,83 @@ describe('OMN-039 signing intents', () => {
   afterEach(() => {
     setSigningJournal(undefined);
     _resetChannelWatermarks();
+  });
+
+  it('OMN-121: supplies the amount derived from the transition to the signer port', async () => {
+    const channel = makeChannel(pkd);
+    const seen: SignRequest[] = [];
+    const port: SignerPort = {
+      publicKeyDigest: pkd,
+      async sign(req) {
+        seen.push(req);
+        return signer.sign(req.digest, req.signingIndices!);
+      },
+    };
+    await signState(
+      channel,
+      { newSequence: 2, newBalances: { alice: 500n, bob: 500n } },
+      makeLeaseProvider(),
+      signer,
+      port,
+    );
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen[0].context.amount).toBe('100');
+    expect(seen[0].context.asset).toBe('0x00');
+  });
+
+  it('OMN-109: an unknown signer outcome keeps the sequence sealed', async () => {
+    const journal = durableJournal();
+    setSigningJournal(journal);
+    const channel = makeChannel(pkd);
+    const port: SignerPort = {
+      publicKeyDigest: pkd,
+      async sign() {
+        throw new Error('signer request timed out');
+      },
+    };
+
+    await expect(signState(
+      channel,
+      { newSequence: 2, newBalances: { alice: 500n, bob: 500n } },
+      makeLeaseProvider(),
+      signer,
+      port,
+    )).rejects.toBeInstanceOf(SignerOutcomeUnknownError);
+
+    expect(journal.intents).toHaveLength(1);
+    expect(journal.intents[0].state).toBe('ambiguous');
+
+    // The guard is sealed: a different payload at the same sequence is refused
+    // even though no signature was returned to this process.
+    await expect(signState(
+      channel,
+      { newSequence: 2, newBalances: { alice: 0n, bob: 1000n } },
+      makeLeaseProvider(),
+      signer,
+    )).rejects.toBeInstanceOf(DoubleSignError);
+  });
+
+  it('OMN-109: a definite signer refusal stays retryable', async () => {
+    const journal = durableJournal();
+    setSigningJournal(journal);
+    const channel = makeChannel(pkd);
+    const update = { newSequence: 2, newBalances: { alice: 500n, bob: 500n } };
+    let attempts = 0;
+    const port: SignerPort = {
+      publicKeyDigest: pkd,
+      async sign(req) {
+        attempts++;
+        if (attempts === 1) throw new SignerRefusalError('policy denied this request');
+        return signer.sign(req.digest, req.signingIndices!);
+      },
+    };
+
+    await expect(signState(channel, update, makeLeaseProvider(), signer, port))
+      .rejects.toBeInstanceOf(SignerRefusalError);
+    // The refusal was definite, so the same payload may be retried.
+    const retried = await signState(channel, update, makeLeaseProvider(), signer, port);
+    expect(retried.sequence).toBe(2);
+    expect(retried.signatures?.['alice']).toBeDefined();
   });
 
   it('blocks a conflicting payload at the same sequence after a restart', async () => {

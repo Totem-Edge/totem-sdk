@@ -202,7 +202,14 @@ describe('OMN-043 allocation targets', () => {
       amount: '1',
       allocationType: 'channel-capital',
       purpose: 'omnia-channel-capital',
-      target: { type: 'channel', params: { fundingCoinId: '0x' + '33'.repeat(32) } },
+      target: {
+        type: 'channel',
+        params: {
+          fundingCoinId: '0x' + '33'.repeat(32),
+          localAmount: atoms('0.5'),
+          remoteAmount: atoms('0.5'),
+        },
+      },
     }) as any;
     expect(allocated.success).toBe(true);
     expect(omnia.createChannel).toHaveBeenCalled();

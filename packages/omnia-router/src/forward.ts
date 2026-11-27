@@ -29,7 +29,12 @@ export type PeelResult =
   /** This node is the recipient — no onward hop. */
   | { kind: 'final' }
   /** Forward to `next`; `onward` is the remaining envelope for that hop (absent at the last hop). */
-  | { kind: 'forward'; next: ForwardHop; onward?: string };
+  | { kind: 'forward'; next: ForwardHop; onward?: string }
+  /**
+   * OMN-119: the envelope could not be decoded. This is NOT a final hop — an
+   * intermediary must refuse it rather than become the recipient.
+   */
+  | { kind: 'invalid'; reason: string };
 
 export interface RoutingEnvelopeCodec {
   /**
@@ -73,20 +78,44 @@ export function createCleartextRoutingCodec(): RoutingEnvelopeCodec {
       return JSON.stringify(wire);
     },
     peel(envelope) {
-      let parsed: WireHop[];
+      let parsed: unknown;
       try {
-        parsed = JSON.parse(envelope) as WireHop[];
+        parsed = JSON.parse(envelope);
       } catch {
-        return { kind: 'final' };
+        return { kind: 'invalid', reason: 'envelope is not valid JSON' };
       }
-      if (!Array.isArray(parsed) || parsed.length === 0) return { kind: 'final' };
-      const [head, ...rest] = parsed;
+      if (!Array.isArray(parsed)) {
+        return { kind: 'invalid', reason: 'envelope is not a hop list' };
+      }
+      // A valid, explicitly empty hop list is the final-hop marker. It is
+      // distinguishable from a decode failure, which is `invalid` (OMN-119).
+      if (parsed.length === 0) return { kind: 'final' };
+      const [head, ...rest] = parsed as WireHop[];
+      if (
+        !head ||
+        typeof head !== 'object' ||
+        typeof head.to !== 'string' ||
+        head.to.length === 0 ||
+        typeof head.amount !== 'string' ||
+        typeof head.tokenId !== 'string'
+      ) {
+        return { kind: 'invalid', reason: 'hop is missing a destination, amount or token' };
+      }
+      let amount: bigint;
+      let timeoutBlock: bigint | undefined;
+      try {
+        amount = BigInt(head.amount);
+        if (amount <= 0n) return { kind: 'invalid', reason: 'hop amount must be positive' };
+        if (head.timeoutBlock !== undefined) timeoutBlock = BigInt(head.timeoutBlock);
+      } catch {
+        return { kind: 'invalid', reason: 'hop amount or timeout is not an integer' };
+      }
       const next: ForwardHop = {
         via: head.to,
-        amount: BigInt(head.amount),
+        amount,
         tokenId: head.tokenId,
         ...(head.channelId ? { channelId: head.channelId } : {}),
-        ...(head.timeoutBlock ? { timeoutBlock: BigInt(head.timeoutBlock) } : {}),
+        ...(timeoutBlock !== undefined ? { timeoutBlock } : {}),
       };
       return rest.length > 0
         ? { kind: 'forward', next, onward: JSON.stringify(rest) }

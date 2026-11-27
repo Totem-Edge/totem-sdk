@@ -26,7 +26,12 @@ export interface RoutingProvider {
 export function channelGraphEdges(channels: Iterable<OmniaChannel>): ChannelGraphEdge[] {
   const edges: ChannelGraphEdge[] = [];
   for (const channel of channels) {
-    if (channel.status === 'closed') continue;
+    // OMN-120: only an active channel is routable. Activation (OMN-099) already
+    // requires peer acknowledgement plus funding depth, so status is the
+    // funding evidence; opening/funding-pending/closing/disputing channels must
+    // never appear as edges. A closing channel is withdrawn on the next rebuild.
+    if (channel.status !== 'active') continue;
+    if (!channel.fundingCoinId) continue;
     const [first, second] = channel.parties;
     if (!first || !second) continue;
     const pending = channel.pendingHTLCs

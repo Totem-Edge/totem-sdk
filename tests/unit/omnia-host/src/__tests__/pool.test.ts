@@ -40,6 +40,10 @@ describe('pool host API', () => {
         getTip: async () => ({ block: 10, hash: '0x01' }),
       },
       custodyMode: 'self',
+      allocationRecoveryVerifier: async ({ evidenceRef, recoveredAmount, amount }) =>
+        evidenceRef === 'channel-close-tx' && recoveredAmount >= amount
+          ? { valid: true }
+          : { valid: false, reason: 'no recovered capital for this evidence' },
       settlementVerifier: {
         verifySettlement: async ({ settlement, amount, recipientAddress, poolId, positionId, withdrawalId }) => {
           const evidence = settlement as {
@@ -99,7 +103,10 @@ describe('pool host API', () => {
     });
     expect(allocated).toMatchObject({ success: true, position: { allocatedAmount: '50000' } });
 
-    const released = await methods.get('omnia/releasePoolAllocation')!({ positionId });
+    const released = await methods.get('omnia/releasePoolAllocation')!({
+      positionId,
+      recovery: { evidenceRef: 'channel-close-tx', recoveredAmount: (10n ** 60n).toString() },
+    });
     expect(released).toMatchObject({ success: true, position: { allocatedAmount: '0' } });
 
     await methods.get('omnia/withdrawPool')!({

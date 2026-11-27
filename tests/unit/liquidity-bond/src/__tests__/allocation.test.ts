@@ -5,15 +5,16 @@ import {
   verifyLiquidityAllocation,
   sumActiveAllocations,
 } from '../allocation.js';
-import { createLiquidityPosition } from '../position.js';
+import { activateLiquidityPosition, createLiquidityPosition } from '../position.js';
 import { createLiquidityCommitment } from '../commitment.js';
 
 function makePosition(amount = 1000n) {
   const commitment = createLiquidityCommitment({
     poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount,
     purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+    funding: { utxoRef: 'utxo-alloc', tokenId: '0x00', amount, status: 'chain-confirmed' },
   });
-  return createLiquidityPosition({ commitment, poolId: 'pool-1' });
+  return activateLiquidityPosition(createLiquidityPosition({ commitment, poolId: 'pool-1' }));
 }
 
 describe('allocation', () => {

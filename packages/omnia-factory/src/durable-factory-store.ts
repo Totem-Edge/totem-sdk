@@ -82,6 +82,18 @@ export function createDurableFactoryStore(
   return {
     async saveFactory(factory: ChannelFactory): Promise<void> {
       await mutate((state) => {
+        const existing = state.factories[factory.factoryId];
+        // OMN-115: factory state is ordered by `currentSequence`. A delayed
+        // writer holding an older record must not roll the factory back, even
+        // though the snapshot CAS accepts the write itself.
+        if (existing && factory.currentSequence < existing.currentSequence) {
+          throw new StorageError(
+            `refusing to overwrite factory ${factory.factoryId} sequence ${existing.currentSequence} `
+            + `with stale sequence ${factory.currentSequence}`,
+            'write-failed',
+            { key: factory.factoryId },
+          );
+        }
         const factories = { ...state.factories, [factory.factoryId]: factory };
         return { ...state, factories };
       });

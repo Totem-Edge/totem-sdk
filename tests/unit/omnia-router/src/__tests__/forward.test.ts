@@ -33,14 +33,23 @@ describe('createCleartextRoutingCodec (RFC-035 B4)', () => {
     expect(second.onward).toBeUndefined();
   });
 
-  it('reports final for an empty envelope', () => {
+  it('keeps an explicit empty hop list as the final-hop marker', () => {
     const codec = createCleartextRoutingCodec();
     expect(codec.peel(codec.build([]), { publicKeyDigest: 'Z' }).kind).toBe('final');
+    expect(codec.peel('[]', { publicKeyDigest: 'Z' }).kind).toBe('final');
   });
 
-  it('reports final for malformed envelopes', () => {
+  it('reports invalid for malformed envelopes (OMN-119)', () => {
     const codec = createCleartextRoutingCodec();
-    expect(codec.peel('not-json', { publicKeyDigest: 'Z' }).kind).toBe('final');
+    const peeled = codec.peel('not-json', { publicKeyDigest: 'Z' });
+    expect(peeled.kind).toBe('invalid');
+    if (peeled.kind === 'invalid') expect(peeled.reason).toMatch(/JSON/);
+  });
+
+  it('OMN-119: rejects a hop with no destination instead of treating it as final', () => {
+    const codec = createCleartextRoutingCodec();
+    expect(codec.peel(JSON.stringify([{ amount: '10', tokenId: '0x00' }]), { publicKeyDigest: 'Z' }).kind).toBe('invalid');
+    expect(codec.peel(JSON.stringify({}), { publicKeyDigest: 'Z' }).kind).toBe('invalid');
   });
 
   it('carries each hop timeout so a forwarder can bound the outgoing HTLC', () => {

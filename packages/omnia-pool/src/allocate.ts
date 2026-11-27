@@ -8,6 +8,7 @@ import {
   attachLiquidityAllocation,
   createLiquidityAllocation,
   markAllocationDepleted,
+  markAllocationSettling,
   registerLiquidityPosition,
   releaseLiquidityAllocation,
   sumActiveAllocations,
@@ -77,6 +78,67 @@ async function verifyChannelForCoSign(
   }
 }
 
+function asBigInt(value: unknown): bigint | undefined {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return BigInt(value);
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) return BigInt(value);
+  return undefined;
+}
+
+/** OMN-113: the execution target must deploy the authorised amount. */
+function assertTargetAmount(target: AllocationTarget, amount: bigint): void {
+  switch (target.type) {
+    case 'channel': {
+      const local = asBigInt(target.params.localAmount);
+      const remote = asBigInt(target.params.remoteAmount);
+      if (local === undefined || remote === undefined) {
+        throw new Error('channel target must declare localAmount and remoteAmount');
+      }
+      if (local + remote !== amount) {
+        throw new Error(
+          `channel target deploys ${local + remote} but the allocation is ${amount}`,
+        );
+      }
+      return;
+    }
+    case 'vtxo': {
+      const minted = asBigInt(target.params.amount);
+      if (minted === undefined || minted !== amount) {
+        throw new Error(`vtxo target mints ${String(target.params.amount)} but the allocation is ${amount}`);
+      }
+      return;
+    }
+    case 'factory': {
+      const declared = asBigInt((target.params as { totalAmount?: unknown }).totalAmount)
+        ?? asBigInt((target.params as { amount?: unknown }).amount);
+      if (declared === undefined) {
+        throw new Error('factory target must declare totalAmount or amount');
+      }
+      if (declared !== amount) {
+        throw new Error(`factory target deploys ${declared} but the allocation is ${amount}`);
+      }
+      return;
+    }
+    case 'router': {
+      const capacity = asBigInt(target.channel.htlcCapacity);
+      if (capacity !== undefined && capacity < amount) {
+        throw new Error(`router edge capacity ${capacity} is below the allocation ${amount}`);
+      }
+      return;
+    }
+    case 'reserve':
+      return;
+  }
+}
+
+/** OMN-113: the created channel must hold exactly the authorised amount. */
+function assertDeployedChannelAmount(channel: unknown, amount: bigint): void {
+  const total = asBigInt((channel as { totalValue?: unknown } | null | undefined)?.totalValue);
+  if (total !== undefined && total !== amount) {
+    throw new Error(`created channel totalValue ${total} does not match the allocation ${amount}`);
+  }
+}
+
 /**
  * Allocate capital from a position to a specific Omnia execution backend.
  */
@@ -93,6 +155,8 @@ export async function allocatePositionCapital(
     );
   }
 
+  if (amount <= 0n) throw new Error('allocation amount must be positive');
+
   const allocation = createLiquidityAllocation({
     positionId: position.positionId,
     poolId: position.poolId,
@@ -102,10 +166,29 @@ export async function allocatePositionCapital(
     metadata: params.metadata,
   });
 
+  // OMN-112: headroom is checked BEFORE any backend is executed, using the
+  // risk-adjusted capacity and both allocated and reserved capital. The registry
+  // is the authority for what is already committed, so a stale position object
+  // cannot understate it.
+  const capacity = position.effectiveAmount ?? position.amount;
+  const registryCommitted = sumActiveAllocations(registry.allocations[position.positionId] ?? []);
+  const recordedCommitted = (position.allocatedAmount ?? 0n) + (position.reservedAmount ?? 0n);
+  const committed = registryCommitted > recordedCommitted ? registryCommitted : recordedCommitted;
+  const headroom = capacity > committed ? capacity - committed : 0n;
+  if (amount > headroom) {
+    throw new Error(
+      `allocation ${amount} exceeds risk-adjusted headroom ${headroom} (capacity ${capacity}, committed ${committed})`,
+    );
+  }
+
   const verify = verifyLiquidityAllocation({ allocation, position });
   if (!verify.ok) {
     throw new Error(verify.reason ?? 'allocation verification failed');
   }
+
+  // OMN-113: the executed operation must deploy exactly the authorised amount.
+  // The caller cannot pass a target that moves a different sum.
+  assertTargetAmount(params.target, amount);
 
   // Execute against the appropriate backend if a port is supplied.
   let execution: unknown;
@@ -115,6 +198,7 @@ export async function allocatePositionCapital(
         throw new Error('omnia execution port required for channel allocation');
       }
       const channel = await params.ctx.omnia.createChannel(params.target.params);
+      assertDeployedChannelAmount(channel, amount);
       await verifyChannelForCoSign(params.ctx, channel, position.poolId, params.anchorRoot);
       await persistChannelSnapshot(params.ctx, channel);
       execution = channel;
@@ -145,6 +229,10 @@ export async function allocatePositionCapital(
         params.target.pool,
         params.target.params,
       );
+      const minted = result as { vtxo?: { amount?: bigint } } | undefined;
+      if (minted?.vtxo?.amount !== undefined && minted.vtxo.amount !== amount) {
+        throw new Error(`deployed VTXO amount ${minted.vtxo.amount} does not match the allocation ${amount}`);
+      }
       execution = result;
       break;
     }
@@ -194,11 +282,33 @@ export async function allocatePositionCapital(
 
 /**
  * Release an allocation and restore its position's available liquidity.
+ *
+ * OMN-114: releasing is an accounting claim that the capital came back. Without
+ * verified recovery evidence the allocation is parked as `settling` and the
+ * position keeps its committed capital — availability only increases after
+ * `confirmAllocationRecovery` verifies the recovery.
  */
 export function releaseAllocation(
   params: ReleaseAllocationParams,
   registry: LiquidityBondRegistryState,
-): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState } {
+): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState; recovered: boolean } {
+  const recovery = params.recovery;
+  const recovered = recovery?.verified === true && recovery.recoveredAmount >= params.allocation.amount;
+  if (!recovered) {
+    const settling = markAllocationSettling(params.allocation);
+    const allocations = { ...registry.allocations };
+    const list = allocations[params.position.positionId] ?? [];
+    allocations[params.position.positionId] = list.map((a) =>
+      a.allocationId === settling.allocationId ? settling : a,
+    );
+    return {
+      allocation: settling,
+      position: params.position,
+      registry: { ...registry, allocations },
+      recovered: false,
+    };
+  }
+
   const released = releaseLiquidityAllocation(params.allocation);
   const active = (registry.allocations[params.position.positionId] ?? []).filter(
     (a) => a.allocationId !== released.allocationId && a.status === 'active',
@@ -226,7 +336,30 @@ export function releaseAllocation(
   let nextRegistry: LiquidityBondRegistryState = { ...registry, allocations };
   nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
 
-  return { allocation: released, position: updatedPosition, registry: nextRegistry };
+  return { allocation: released, position: updatedPosition, registry: nextRegistry, recovered: true };
+}
+
+/**
+ * OMN-114: confirm a parked release once recovery is verified. The allocation
+ * must be `settling`; the evidence must cover the full amount.
+ */
+export function confirmAllocationRecovery(
+  params: ReleaseAllocationParams,
+  registry: LiquidityBondRegistryState,
+): { allocation: LiquidityAllocation; position: LiquidityPosition; registry: LiquidityBondRegistryState } {
+  const recovery = params.recovery;
+  if (recovery?.verified !== true) {
+    throw new Error('allocation recovery requires verified settlement evidence');
+  }
+  if (recovery.recoveredAmount < params.allocation.amount) {
+    throw new Error(
+      `recovered ${recovery.recoveredAmount} is less than the allocation ${params.allocation.amount}`,
+    );
+  }
+  if (params.allocation.status !== 'settling') {
+    throw new Error(`allocation ${params.allocation.allocationId} is not pending settlement`);
+  }
+  return releaseAllocation({ ...params, allocation: { ...params.allocation, status: 'active' } }, registry);
 }
 
 /**
@@ -242,10 +375,20 @@ export async function rebalancePoolCapital(
   position: LiquidityPosition;
   registry: LiquidityBondRegistryState;
 }> {
-  const { allocation: released, position: releasedPosition, registry: releasedRegistry } = releaseAllocation(
-    { allocation: params.from, position },
+  const releasedResult = releaseAllocation(
+    { allocation: params.from, position, recovery: params.recovery },
     registry,
   );
+  if (!releasedResult.recovered) {
+    // OMN-114: rebalancing would redeploy capital that has not come back.
+    return {
+      released: releasedResult.allocation,
+      newAllocation: releasedResult.allocation,
+      position: releasedResult.position,
+      registry: releasedResult.registry,
+    };
+  }
+  const { allocation: released, position: releasedPosition, registry: releasedRegistry } = releasedResult;
 
   const newAllocation = await allocatePositionCapital(
     {

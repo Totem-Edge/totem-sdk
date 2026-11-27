@@ -236,17 +236,18 @@ describe('verifyTxPoWWork — error paths', () => {
     expect(result.reason).toMatch(/invalid hex/);
   });
 
-  it('falls back to proxy id for unparseable hex of sufficient length', () => {
+  it('OMN-126: rejects unparseable input instead of certifying a proxy id', () => {
     const randomHex = Buffer.from(new Uint8Array(200).fill(0x42)).toString('hex');
     const result = verifyTxPoWWork(randomHex);
     expect(result.valid).toBe(false);
-    expect(result.txpowId).toMatch(/^0x[0-9a-f]{64}$/);
-    expect(result.difficulty).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(result.txpowId).toBe('');
+    expect(result.reason).toMatch(/could not parse/);
   });
 
-  it('returns a reason string on fallback', () => {
+  it('OMN-126: keeps the proxy fallback only behind an explicit opt-in', () => {
     const randomHex = Buffer.from(new Uint8Array(200).fill(0x42)).toString('hex');
-    const result = verifyTxPoWWork(randomHex);
-    expect(typeof result.reason).toBe('string');
+    const result = verifyTxPoWWork(randomHex, { allowUnparsedProxy: true });
+    expect(result.txpowId).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(result.reason).toMatch(/proxy id/);
   });
 });

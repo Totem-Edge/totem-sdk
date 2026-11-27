@@ -368,7 +368,12 @@ describe('autonomous rebalance slice', () => {
         action: 'pay',
         nonce: 'rebalance-1',
         allocation: {
-          params: { from: allocation, toTarget: { type: 'reserve', purpose: 'new' }, amount: '30000' },
+          params: {
+            from: allocation,
+            recovery: { evidenceRef: 'recovered', recoveredAmount: 50000n, verified: true },
+            toTarget: { type: 'reserve', purpose: 'new' },
+            amount: '30000',
+          },
           position,
           registry: state,
         },

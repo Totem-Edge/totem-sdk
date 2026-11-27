@@ -40,6 +40,7 @@ export type {
 
 export type { PaymentIntent, AgentPolicy, AgentReceipt } from './types.js';
 export type { SigningIntent, SigningIntentJournal, SigningIntentState } from './guards.js';
+export { markSigningAttemptAmbiguous } from './guards.js';
 
 export {
   ChannelCapacityError,
@@ -48,6 +49,8 @@ export {
   SequenceError,
   SigningIndexMonotonicityError,
   ChannelStatusError,
+  SignerRefusalError,
+  SignerOutcomeUnknownError,
 } from './errors.js';
 
 export {

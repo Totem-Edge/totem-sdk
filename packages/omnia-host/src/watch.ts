@@ -64,6 +64,13 @@ export interface ChannelWatchOptions {
   retryDelayMs?: number;
   /** Clock/sleep injection for tests. */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * OMN-105: the host's per-channel mutation coordinator. When supplied, every
+   * action runs inside the same lock RPC and peer handlers take, and the
+   * channel is reloaded after the lock is acquired so the action cannot write
+   * over a newer state.
+   */
+  lock?: (channelId: string, run: () => Promise<void>) => Promise<void>;
 }
 
 export interface ChannelWatchService {
@@ -90,6 +97,7 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
   const attempts = Math.max(1, options.maxAttempts ?? 3);
   const retryDelayMs = options.retryDelayMs ?? 250;
   const sleep = options.sleep ?? defaultSleep;
+  const withLock = options.lock ?? ((_channelId: string, run: () => Promise<void>) => run());
   const closed = new Set<string>();
   /** Latest known channel coin per channel, advanced across updates/splices. */
   const trackedCoin = new Map<string, string>();
@@ -198,15 +206,24 @@ export function createChannelWatchService(options: ChannelWatchOptions): Channel
     const findings = await scan();
 
     for (const finding of findings) {
-      const channel = options.channels.get(finding.channelId);
-      if (!channel) continue;
+      if (!options.channels.get(finding.channelId)) continue;
       try {
         if (finding.kind === 'unilateral-close' && options.onUnilateralClose) {
-          await withRetry(() => options.onUnilateralClose!(channel, finding));
-          closed.add(channel.channelId);
+          // OMN-105: take the coordinator, then reload the authoritative channel
+          // so the action writes over the state it observed, not a stale copy.
+          await withRetry(() => withLock(finding.channelId, async () => {
+            const current = options.channels.get(finding.channelId);
+            if (!current) return;
+            await options.onUnilateralClose!(current, finding);
+          }));
+          closed.add(finding.channelId);
         } else if (finding.kind === 'htlc-expiring' && options.onHtlcExpiring && finding.htlcId) {
-          const htlc = channel.pendingHTLCs.find((h) => h.htlcId === finding.htlcId);
-          if (htlc) await withRetry(() => options.onHtlcExpiring!(channel, htlc, finding));
+          await withRetry(() => withLock(finding.channelId, async () => {
+            const current = options.channels.get(finding.channelId);
+            if (!current) return;
+            const htlc = current.pendingHTLCs.find((h) => h.htlcId === finding.htlcId);
+            if (htlc) await options.onHtlcExpiring!(current, htlc, finding);
+          }));
         }
       } catch {
         // Leave the finding unprocessed; the next pass retries it.

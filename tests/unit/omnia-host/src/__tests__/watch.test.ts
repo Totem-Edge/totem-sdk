@@ -4,6 +4,7 @@
 
 import type { OmniaChannel, HTLCRecord } from '@totemsdk/omnia';
 import { createChannelWatchService } from '../watch.js';
+import { withChannelLock } from '../channel-lock.js';
 
 function channel(over: Partial<OmniaChannel> = {}): OmniaChannel {
   return {
@@ -46,6 +47,57 @@ function htlc(over: Partial<HTLCRecord> = {}): HTLCRecord {
     ...over,
   };
 }
+
+describe('OMN-105: watcher actions take the channel coordinator', () => {
+  it('waits for a concurrent RPC mutation of the same channel', async () => {
+    const events: string[] = [];
+    let releaseRpc!: () => void;
+    const rpcHeld = withChannelLock('chan-1', async () => {
+      events.push('rpc-start');
+      await new Promise<void>((resolve) => { releaseRpc = resolve; });
+      events.push('rpc-end');
+    });
+    const service = createChannelWatchService({
+      channels: new Map([['chan-1', channel()]]),
+      chain: { getTip: async () => ({ block: 100 }), getCoin: async () => ({ spent: true }) },
+      lock: (channelId, run) => withChannelLock(channelId, run),
+      onUnilateralClose: () => { events.push('watcher'); },
+    });
+
+    const running = service.runOnce();
+    // Give the watcher time to reach the action; it must block on the lock.
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(events).toEqual(['rpc-start']);
+
+    releaseRpc();
+    await rpcHeld;
+    await running;
+    expect(events).toEqual(['rpc-start', 'rpc-end', 'watcher']);
+  });
+
+  it('reloads the authoritative channel after acquiring the lock', async () => {
+    const channels = new Map([['chan-1', channel({ pendingHTLCs: [htlc()] })]]);
+    let seenMarker: number | undefined;
+    const service = createChannelWatchService({
+      channels,
+      chain: { getTip: async () => ({ block: 105 }), getCoin: async () => ({ spent: false }) },
+      lock: (channelId, run) => withChannelLock(channelId, async () => {
+        // A peer/RPC mutation lands while the watcher was queued.
+        const latest = channels.get(channelId)!;
+        channels.set(channelId, {
+          ...latest,
+          updatedAt: 999,
+          stateLog: [{ sequence: 2, timestamp: 2, balances: {}, htlcCount: 0, event: 'update' }],
+        });
+        await run();
+      }),
+      onHtlcExpiring: (current) => { seenMarker = current.updatedAt; },
+    });
+
+    await service.runOnce();
+    expect(seenMarker).toBe(999);
+  });
+});
 
 describe('createChannelWatchService', () => {
   it('detects a unilateral close when the funding coin is spent', async () => {

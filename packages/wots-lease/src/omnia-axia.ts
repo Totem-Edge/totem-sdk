@@ -117,10 +117,31 @@ export class OmniaAxiaLeaseProvider implements WotsLeaseProvider {
     const leaseToken = raw.leaseToken ?? raw.lease?.leaseToken;
     if (!leaseToken) throw new Error('Omnia Axia lease prepare returned no leaseToken');
 
+    // OMN-122: the lease is only usable when the server returns the complete
+    // index it assigned. A missing index must never silently become 0 — that
+    // would reuse a leaf the remote server did not actually lease.
+    const rawAddressIndex = raw.addressIndex ?? raw.lease?.addressIndex;
+    const rawL1 = raw.l1 ?? raw.lease?.l1;
+    const rawL2 = raw.l2 ?? raw.lease?.l2;
+    if (
+      !Number.isInteger(rawAddressIndex) ||
+      !Number.isInteger(rawL1) ||
+      !Number.isInteger(rawL2) ||
+      (rawAddressIndex as number) < 0 ||
+      (rawL1 as number) < 0 ||
+      (rawL2 as number) < 0
+    ) {
+      throw new Error('Omnia Axia lease prepare returned an incomplete or invalid WOTS index');
+    }
+    if (rawAddressIndex !== this.addressIndex) {
+      throw new Error(
+        `Omnia Axia lease prepare returned addressIndex ${String(rawAddressIndex)} for wallet address ${this.addressIndex}`,
+      );
+    }
     const indices: SigningIndices = {
-      addressIndex: raw.addressIndex ?? raw.lease?.addressIndex ?? this.addressIndex,
-      l1: raw.l1 ?? raw.lease?.l1 ?? 0,
-      l2: raw.l2 ?? raw.lease?.l2 ?? 0,
+      addressIndex: rawAddressIndex as number,
+      l1: rawL1 as number,
+      l2: rawL2 as number,
     };
     const reservationId = raw.leaseId ?? raw.lease?.leaseId ?? txId;
     const expiresAt = Date.now() + (raw.leaseTTL ?? ttlMs);
@@ -131,6 +152,11 @@ export class OmniaAxiaLeaseProvider implements WotsLeaseProvider {
         `Omnia Axia lease server returned an already-used WOTS index for ${params.treeId}`,
       );
     }
+
+    // OMN-122: reserve the index locally before returning it, so a concurrent
+    // reservation or a later refresh cannot hand the same leaf out again even
+    // if the remote guarantee does not hold.
+    await this.watermark.markUnavailable(params.treeId, indices, 'reserved');
 
     const lease: StoredLease = {
       leaseId: reservationId,

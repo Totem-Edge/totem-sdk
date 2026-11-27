@@ -31,6 +31,7 @@ export {
 export {
   allocatePositionCapital,
   releaseAllocation,
+  confirmAllocationRecovery,
   rebalancePoolCapital,
   quiescePosition,
 } from './allocate.js';

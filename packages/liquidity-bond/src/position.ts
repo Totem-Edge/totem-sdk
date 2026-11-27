@@ -12,10 +12,14 @@ export function createLiquidityPosition(params: CreateLiquidityPositionParams): 
   const now = params.createdAt ?? Date.now();
   positionCounter++;
   const funding = params.funding ?? params.commitment.funding;
-  // The position's amount comes from the VERIFIED funding proof, never from the
-  // self-declared commitment.amount — an attacker must prove real coins on-chain.
+  // OMN-110: the position's spendable amount comes from the VERIFIED funding
+  // proof, never from the self-declared commitment.amount — an attacker must
+  // prove real coins on-chain. An unfunded record stays representable, but as a
+  // draft with no available liquidity rather than an active position.
   const chainConfirmed = funding?.status === 'chain-confirmed';
   const amount = chainConfirmed && funding ? funding.amount : params.commitment.amount;
+  const availableAmount = chainConfirmed && funding ? funding.amount : 0n;
+  const status = chainConfirmed ? 'committed' : funding?.status === 'invalid' ? 'invalid' : 'draft';
   return {
     positionId: `pos-${now}-${positionCounter}`,
     commitmentId: params.commitment.commitmentId,
@@ -25,13 +29,13 @@ export function createLiquidityPosition(params: CreateLiquidityPositionParams): 
     providerBondRef: params.providerBondRef,
     asset: params.commitment.asset,
     amount,
-    effectiveAmount: amount,
+    effectiveAmount: availableAmount,
     purpose: params.commitment.purpose,
-    status: funding ? 'committed' : 'active',
+    status,
     lockTerms: params.commitment.terms,
     allocatedAmount: 0n,
     reservedAmount: 0n,
-    availableAmount: amount,
+    availableAmount,
     funding,
     omniaChannelId: params.omniaChannelId,
     factoryId: params.factoryId,
@@ -52,12 +56,20 @@ export function createLiquidityPosition(params: CreateLiquidityPositionParams): 
  * is the phantom-deposit seam.
  */
 export function activateLiquidityPosition(position: LiquidityPosition, now?: number): LiquidityPosition {
-  if (position.funding && position.funding.status !== 'chain-confirmed') {
+  // OMN-110: absent funding is not evidence. Only a chain-confirmed proof can
+  // back an active position.
+  if (!position.funding) {
+    throw new Error('cannot activate a position without chain-confirmed funding');
+  }
+  if (position.funding.status !== 'chain-confirmed') {
     throw new Error(
       position.funding.status === 'invalid'
         ? 'cannot activate a position with invalid funding'
         : 'cannot activate a position whose funding is not chain-confirmed',
     );
+  }
+  if (position.funding.amount !== position.amount) {
+    throw new Error('cannot activate a position whose amount differs from its verified funding');
   }
   return { ...position, status: 'active', updatedAt: now ?? Date.now() };
 }
@@ -75,6 +87,8 @@ export function markLiquidityPositionInvalid(position: LiquidityPosition, reason
 }
 
 export function computeAvailableLiquidity(position: LiquidityPosition): bigint {
+  // OMN-110: only verified funding contributes liquidity.
+  if (position.funding?.status !== 'chain-confirmed') return 0n;
   const allocated = position.allocatedAmount ?? 0n;
   const reserved = position.reservedAmount ?? 0n;
   // RFC-020 H7: both allocations AND reservations consume liquidity — the sum,
@@ -97,6 +111,21 @@ export function verifyLiquidityPosition(params: VerifyLiquidityPositionParams): 
 
   if (position.amount <= 0n) {
     return { ok: false, reason: 'Position amount must be positive', code: 'POSITION_INVALID' };
+  }
+
+  // OMN-110: a position without chain-confirmed funding is a draft, not bond.
+  if (!position.funding) {
+    return { ok: false, reason: 'Position has no funding evidence', code: 'POSITION_UNFUNDED' };
+  }
+  if (position.funding.status !== 'chain-confirmed') {
+    return { ok: false, reason: 'Position funding is not chain-confirmed', code: 'POSITION_UNFUNDED' };
+  }
+  if (position.funding.amount !== position.amount) {
+    return { ok: false, reason: 'Position amount does not match verified funding', code: 'POSITION_INVALID' };
+  }
+
+  if (position.status === 'draft') {
+    return { ok: false, reason: 'Position is not active', code: 'POSITION_INVALID' };
   }
 
   if (position.status === 'depleted') {

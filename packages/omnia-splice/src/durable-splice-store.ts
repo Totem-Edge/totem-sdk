@@ -79,6 +79,13 @@ function assertSpliceState(state: SpliceStoreState): void {
   }
 }
 
+/** OMN-116: two acceptances are the same when they bind the same signer and signature. */
+function sameAcceptance(a: SpliceAcceptance, b: SpliceAcceptance): boolean {
+  return a.acceptorPublicKeyDigest === b.acceptorPublicKeyDigest
+    && a.channelId === b.channelId
+    && a.acceptorSignature === b.acceptorSignature;
+}
+
 export function createDurableSpliceStore(
   adapter: StorageAdapterWithCapabilities & CasStore,
   options: DurableSpliceStoreOptions = {},
@@ -129,6 +136,24 @@ export function createDurableSpliceStore(
             { key: acceptance.spliceId },
           );
         }
+        // OMN-116: accepted → finalized is the only forward path. A replayed or
+        // delayed acceptance may not regress a finalized record, and a second,
+        // different acceptance for the same splice is a conflict.
+        if (existing.status === 'finalized') {
+          throw new StorageError(
+            `splice ${acceptance.spliceId} is already finalized; acceptance cannot regress it`,
+            'write-failed',
+            { key: acceptance.spliceId },
+          );
+        }
+        if (existing.acceptance) {
+          if (sameAcceptance(existing.acceptance, acceptance)) return state;
+          throw new StorageError(
+            `conflicting acceptance for splice ${acceptance.spliceId}`,
+            'write-failed',
+            { key: acceptance.spliceId },
+          );
+        }
         return {
           ...state,
           splices: {
@@ -164,6 +189,16 @@ export function createDurableSpliceStore(
       await mutate((state) => {
         const existing = state.splices[spliceId];
         if (!existing) return state;
+        // OMN-116: only an accepted splice may finalize; finalizing twice is an
+        // idempotent no-op and a pending splice is a caller error.
+        if (existing.status === 'finalized') return state;
+        if (existing.status !== 'accepted' || !existing.acceptance) {
+          throw new StorageError(
+            `splice ${spliceId} cannot finalize before it is accepted`,
+            'write-failed',
+            { key: spliceId },
+          );
+        }
         return {
           ...state,
           splices: {

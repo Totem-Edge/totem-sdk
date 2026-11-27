@@ -20,6 +20,7 @@ import {
   registerLiquidityPosition,
   attachLiquidityReceipt,
   computeEffectiveLiquidityAmount,
+  findPositionByCommitment,
   verifyLiquidityCommitment,
   type CreateLiquidityCommitmentParams,
   type LiquidityBondRegistryState,
@@ -159,6 +160,11 @@ export function createPositionFromCommitment(
   position: LiquidityPosition;
   registry: LiquidityBondRegistryState;
 } {
+  // OMN-111: a commitment is a unique key. A retry returns the position that
+  // already exists instead of minting a second liability against one deposit.
+  const existing = findPositionByCommitment(registry, commitment.commitmentId);
+  if (existing) return { position: existing, registry };
+
   const effectiveAmount = computeEffectiveLiquidityAmount(
     { amount: commitment.amount } as LiquidityPosition,
     pool.riskPolicy,
@@ -241,6 +247,29 @@ export async function depositToPool(
     params.pool,
     positionRegistry,
   );
+
+  // OMN-111: a retried deposit must not issue a second LP receipt for the same
+  // position; recorded liabilities stay equal to real backing capital.
+  if (position.receiptId) {
+    const existingReceipt = finalRegistry.receipts[position.receiptId];
+    if (existingReceipt) {
+      return {
+        poolId: params.pool.poolId,
+        pool: params.pool,
+        position,
+        receipt: existingReceipt,
+        state: finalRegistry,
+        signedTransition: await maybeSignTransition(params.rooting, finalRegistry, {
+          type: 'deposit',
+          poolId: params.pool.poolId,
+          positionId: position.positionId,
+          commitmentId: accepted.commitmentId,
+          receiptId: existingReceipt.receiptId,
+          amount: position.amount,
+        }),
+      };
+    }
+  }
 
   const signedTransition = await maybeSignTransition(params.rooting, finalRegistry, {
     type: 'deposit',

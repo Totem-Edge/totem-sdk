@@ -15,10 +15,11 @@ import {
   listPositionsByLp,
   listActivePositions,
   listWithdrawablePositions,
+  findPositionByCommitment,
 } from '../registry.js';
 import { createLiquidityPoolManifest } from '../pool-manifest.js';
 import { createLiquidityCommitment } from '../commitment.js';
-import { createLiquidityPosition } from '../position.js';
+import { activateLiquidityPosition, createLiquidityPosition } from '../position.js';
 import { issueLiquidityReceipt } from '../receipt.js';
 import { createLiquidityAllocation } from '../allocation.js';
 import { recordLiquidityFee } from '../fees.js';
@@ -35,11 +36,12 @@ function makeCommitment(poolId = 'pool-1') {
   return createLiquidityCommitment({
     poolId, lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
     purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
+    funding: { utxoRef: 'utxo-demo', tokenId: '0x00', amount: 1000n, status: 'chain-confirmed' },
   });
 }
 
 function makePosition(poolId = 'pool-1') {
-  return createLiquidityPosition({ commitment: makeCommitment(poolId), poolId });
+  return activateLiquidityPosition(createLiquidityPosition({ commitment: makeCommitment(poolId), poolId }));
 }
 
 describe('registry', () => {
@@ -71,6 +73,23 @@ describe('registry', () => {
       let state = createEmptyLiquidityBondRegistryState();
       state = registerLiquidityPosition(state, makePosition());
       expect(Object.keys(state.positions)).toHaveLength(1);
+    });
+  });
+
+  describe('OMN-111: one position per commitment', () => {
+    it('rejects a second position derived from the same commitment', () => {
+      let state = createEmptyLiquidityBondRegistryState();
+      const first = makePosition();
+      state = registerLiquidityPosition(state, first);
+      const second = { ...first, positionId: 'pos-second' };
+      expect(() => registerLiquidityPosition(state, second)).toThrow(/already backs position/);
+    });
+
+    it('finds the position for a commitment', () => {
+      let state = createEmptyLiquidityBondRegistryState();
+      const position = makePosition();
+      state = registerLiquidityPosition(state, position);
+      expect(findPositionByCommitment(state, position.commitmentId!)?.positionId).toBe(position.positionId);
     });
   });
 

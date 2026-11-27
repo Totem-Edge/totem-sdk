@@ -12,6 +12,31 @@ export class DoubleSignError extends Error {
   }
 }
 
+/**
+ * OMN-109: a signer refused before producing anything. The signing guard may be
+ * released and the same payload retried.
+ */
+export class SignerRefusalError extends Error {
+  /** Marks the outcome as definite: no signature escaped the signer. */
+  readonly definite = true;
+  constructor(message: string) {
+    super(message);
+    this.name = 'SignerRefusalError';
+  }
+}
+
+/**
+ * OMN-109: the signer may have produced a signature (timeout, transport loss,
+ * interrupted response). The signing guard stays sealed and the intent stays
+ * ambiguous until it is reconciled explicitly.
+ */
+export class SignerOutcomeUnknownError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message);
+    this.name = 'SignerOutcomeUnknownError';
+  }
+}
+
 export class BalanceConservationError extends Error {
   constructor(public readonly expected: bigint, public readonly got: bigint) {
     super(`Balance conservation violated: totalValue=${expected}, sum(balances+htlcs)=${got}`);

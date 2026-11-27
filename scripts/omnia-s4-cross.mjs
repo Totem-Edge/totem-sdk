@@ -73,6 +73,56 @@ async function host(base, method, params = {}, timeoutMs = 180_000) {
   return body.result;
 }
 
+/** OMN-104: every S4_PASS is gated on the asserted invariants below. */
+function fail(message) {
+  throw new Error(`S4 assertion failed: ${message}`);
+}
+
+function atomsOf(value) {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return BigInt(Math.round(value));
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (text === '') fail('empty amount');
+    return text.includes('.') ? amountToAtoms(text) : BigInt(text);
+  }
+  fail(`not an amount: ${JSON.stringify(value)}`);
+}
+
+function assertOk(label, response) {
+  if (response === null || typeof response !== 'object') fail(`${label} returned no result`);
+  if (response.success === false) fail(`${label} reported failure: ${JSON.stringify(response.error ?? response)}`);
+  if (response.error) fail(`${label} reported an error: ${JSON.stringify(response.error)}`);
+}
+
+function balanceDelta(before, after, expectedAtoms, label) {
+  const names = new Set([...Object.keys(before), ...Object.keys(after)]);
+  let decreased = 0n;
+  let increased = 0n;
+  let changes = 0;
+  for (const name of names) {
+    const delta = atomsOf(after[name] ?? 0) - atomsOf(before[name] ?? 0);
+    if (delta === 0n) continue;
+    changes += 1;
+    if (delta < 0n) decreased -= delta;
+    else increased += delta;
+  }
+  if (changes !== 2 || decreased !== expectedAtoms || increased !== expectedAtoms) {
+    fail(`${label}: expected one party to gain and one to lose ${expectedAtoms}, got ${JSON.stringify({ before, after })}`);
+  }
+}
+
+function assertConservation(label, state) {
+  const total = atomsOf(state.totalValue);
+  const balances = Object.values(state.balances ?? {}).reduce((sum, v) => sum + atomsOf(v), 0n);
+  const htlc = (state.pendingHTLCs ?? [])
+    .filter((h) => h.status === 'pending')
+    .reduce((sum, h) => sum + atomsOf(h.amount), 0n);
+  if (balances + htlc !== total) {
+    fail(`${label}: balances ${balances} + pending HTLCs ${htlc} != totalValue ${total}`);
+  }
+}
+
 async function waitFor(label, attempts, delayMs, fn) {
   let last;
   for (let i = 0; i < attempts; i += 1) {
@@ -175,12 +225,14 @@ async function main() {
   if (!active) throw new Error('channel active timed out (120 attempts)');
   log('A status', active.status, 'fundingCoin', active.fundingCoinId);
 
+  const payAtoms = amountToAtoms(PAY_AMOUNT);
   const paid = await host(HOST_A, 'totem_omniaPay', {
     operationId: `s4-pay-${Date.now()}`,
     channelId,
     amount: payAmount,
   });
   log('pay', JSON.stringify(paid));
+  assertOk('pay', paid);
 
   const stateB = await waitFor('counterparty state update', 60, 1_000, async () => {
     const state = await host(HOST_B, 'totem_omniaGetChannelState', { channelId });
@@ -189,6 +241,20 @@ async function main() {
   const stateA = await host(HOST_A, 'totem_omniaGetChannelState', { channelId });
   log('A seq', stateA.currentSequence, JSON.stringify(stateA.balances));
   log('B seq', stateB.currentSequence, JSON.stringify(stateB.balances));
+
+  // OMN-104: the payment must be the same transition on both hosts, must move
+  // exactly the paid amount, and must conserve the channel's value.
+  if (stateA.currentSequence !== stateB.currentSequence) {
+    fail(`peer sequences differ: A=${stateA.currentSequence} B=${stateB.currentSequence}`);
+  }
+  const balancesA = JSON.stringify(stateA.balances ?? {});
+  const balancesB = JSON.stringify(stateB.balances ?? {});
+  if (balancesA !== balancesB) {
+    fail(`peer balances differ: A=${balancesA} B=${balancesB}`);
+  }
+  balanceDelta(active.balances ?? {}, stateA.balances ?? {}, payAtoms, 'pay');
+  assertConservation('A', stateA);
+  assertConservation('B', stateB);
 
   // The eltoo contest delay is relative to the funding coin's @COINAGE, which is
   // evaluated at the next block; wait delay + 1 blocks before settling.
@@ -216,12 +282,43 @@ async function main() {
     },
   });
   log('settle', JSON.stringify(settlement));
+  assertOk('settle', settlement);
+  const settlementTxId = settlement.settlementTxId ?? settlement.settlementPayload?.txpowId;
+  if (!settlementTxId) fail('settle returned no settlement transaction id');
 
   const closed = await host(HOST_A, 'totem_omniaCloseChannel', {
     operationId: `s4-close-${Date.now()}`,
     channelId,
   });
   log('close', JSON.stringify(closed));
+  assertOk('close', closed);
+
+  // OMN-104: closure is confirmed on BOTH hosts, and the settlement outputs pay
+  // each party at least the balance the closed channel recorded.
+  const closedState = await waitFor('channel closure on A', 60, 1_000, async () => {
+    const state = await host(HOST_A, 'totem_omniaGetChannelState', { channelId });
+    return state.status === 'closed' ? state : null;
+  });
+  const closedStateB = await waitFor('channel closure on B', 60, 1_000, async () => {
+    const state = await host(HOST_B, 'totem_omniaGetChannelState', { channelId });
+    return state.status === 'closed' ? state : null;
+  });
+  assertConservation('A closed', closedState);
+  assertConservation('B closed', closedStateB);
+
+  const settlementAddresses = [whoA.settlementAddress, whoB.settlementAddress].filter(Boolean);
+  if (settlementAddresses.length === 2) {
+    for (const address of settlementAddresses) {
+      const coinsAt = await node(NODE_A, `coins address:${address}`);
+      const listAt = Array.isArray(coinsAt) ? coinsAt : (coinsAt?.coins ?? []);
+      const totalAt = listAt
+        .filter((c) => !c.spent && (!c.tokenid || c.tokenid === '0x00'))
+        .reduce((sum, c) => sum + amountToAtoms(String(c.amount)), 0n);
+      if (totalAt <= 0n) fail(`settlement output is missing for ${address}`);
+    }
+  } else {
+    log('settlement address check skipped: a host did not report settlementAddress');
+  }
 
   const result = {
     stage: 'S4',
@@ -230,7 +327,7 @@ async function main() {
     nodes: { A: NODE_A, B: NODE_B },
     channelId,
     fundingCoinId: coin.coinid,
-    settlementTxId: settlement.settlementTxId ?? settlement.settlementPayload?.txpowId,
+    settlementTxId,
     sequence: stateB.currentSequence,
     balances: stateB.balances,
     pass: true,

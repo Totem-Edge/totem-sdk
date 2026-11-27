@@ -1,3 +1,4 @@
+import { confirmationDepth } from '@totemsdk/core';
 import { ELTOO_CONTEST_DELAY_BLOCKS } from './script.js';
 import type { OmniaChannel } from './types.js';
 
@@ -30,10 +31,10 @@ export function confirmationsAt(
   coin: ChainCoinView | null | undefined,
   tipBlock: number,
 ): number | null {
-  const created = coinCreatedBlock(coin);
-  if (created === null) return null;
-  if (!Number.isSafeInteger(tipBlock) || created > tipBlock) return null;
-  return tipBlock - created;
+  // OMN-124: delegate to the shared chain-provider definition so every package
+  // agrees at the boundary (a coin in its creation block has zero
+  // confirmations).
+  return confirmationDepth(coin?.created, tipBlock);
 }
 
 /**

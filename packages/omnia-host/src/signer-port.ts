@@ -8,6 +8,7 @@
 
 import { bytesToHex } from '@totemsdk/core';
 import {
+  SignerRefusalError,
   assertCustodyAllowsSigning,
   assertSignRequest,
   custodyDisclosureId,
@@ -108,6 +109,15 @@ export interface SignerPolicy {
  * signer, KMS/HSM/MPC adapter, or hosted policy engine; this wrapper only
  * enforces the deployment policy and disclosure requirements.
  */
+/**
+ * OMN-109: every pre-sign refusal is definite — no signature escaped — so the
+ * caller may retry. A failure from `base.sign` itself stays an unknown outcome
+ * and is propagated untouched.
+ */
+function refuse(message: string): never {
+  throw new SignerRefusalError(message);
+}
+
 export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = {}): SignerPort {
   return {
     publicKeyDigest: base.publicKeyDigest,
@@ -139,22 +149,34 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
           mfaVerified: false,
           reason: err instanceof Error ? err.message : String(err),
         });
-        throw err;
+        throw err instanceof SignerRefusalError ? err : new SignerRefusalError(err instanceof Error ? err.message : String(err));
       }
       if (policy.allowedDomains && !policy.allowedDomains.includes(request.domain)) {
-        throw new Error(`domain ${request.domain} is not allowed by policy`);
+        refuse(`domain ${request.domain} is not allowed by policy`);
       }
       if (policy.allowedModes && !policy.allowedModes.includes(request.custody.mode)) {
-        throw new Error(`custody mode ${request.custody.mode} is not allowed by policy`);
+        refuse(`custody mode ${request.custody.mode} is not allowed by policy`);
       }
       if (policy.requireDisclosure && (!request.custody.disclosureHash || !request.custody.disclosureVersion)) {
-        throw new Error('policy requires a disclosure hash and version');
+        refuse('policy requires a disclosure hash and version');
       }
       const amount = request.context.amount;
-      if (policy.maxAmount !== undefined && amount !== undefined) {
-        const parsed = BigInt(amount);
+      if (policy.maxAmount !== undefined) {
+        // OMN-121: a spending limit is only meaningful when the amount is
+        // known. A request that omits it is refused, not exempted; signers that
+        // can derive the amount from the transition must supply it.
+        if (amount === undefined) {
+          refuse('policy requires a request amount; this request carries none');
+        }
+        let parsed: bigint;
+        try {
+          parsed = BigInt(amount);
+        } catch {
+          refuse(`request amount ${String(amount)} is not an integer`);
+        }
+        if (parsed < 0n) refuse(`request amount ${parsed} is negative`);
         if (parsed > policy.maxAmount) {
-          throw new Error(`request amount ${parsed} exceeds policy limit ${policy.maxAmount}`);
+          refuse(`request amount ${parsed} exceeds policy limit ${policy.maxAmount}`);
         }
       }
       let mfaVerified = false;
@@ -180,7 +202,11 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
           }
         }
       }
-      await policy.authorize?.(request);
+      try {
+        await policy.authorize?.(request);
+      } catch (err) {
+        refuse(err instanceof Error ? err.message : String(err));
+      }
       const signature = await base.sign(request);
       await policy.audit?.({ ...auditBase, decision: 'allow', mfaVerified });
       return signature;

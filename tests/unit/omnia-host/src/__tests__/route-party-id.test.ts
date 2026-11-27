@@ -10,7 +10,7 @@ function channel(): OmniaChannel {
   return {
     channelId: 'vc-route-1',
     fundingTxId: '',
-    fundingCoinId: '',
+    fundingCoinId: '0x' + 'cc'.repeat(32),
     fundingScript: 'RETURN TRUE',
     programId: 'eltoo-payment',
     programVersion: 1,

@@ -1177,6 +1177,10 @@ export function createOmniaHost(
       try {
         watchService = createChannelWatchService({
           channels: channelStore as unknown as Map<string, OmniaChannel>,
+          // OMN-105: watcher actions share the coordinator RPC and peer handlers
+          // use, so an automatic contest cannot interleave with an operator or
+          // peer-driven mutation of the same channel.
+          lock: (channelId, run) => withChannelLock(channelId, run),
           chain: {
             getTip: async () => ({ block: Number((await chainAdapter!.getTip()).block) }),
             getCoin: async (coinId) => {

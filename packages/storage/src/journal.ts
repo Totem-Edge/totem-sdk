@@ -74,6 +74,11 @@ export interface JournalOptions<T> {
   readonly migrate?: (version: number, record: unknown) => T;
   /** Optional structural validation run on every appended/read record. */
   readonly validate?: (record: T) => void | never;
+  /**
+   * OMN-123: how long an append/recovery lease may be held before another
+   * writer may take it over (a crashed holder leaves it behind). Default 30s.
+   */
+  readonly appendLeaseTtlMs?: number;
 }
 
 export interface JournalRecoveryReport {
@@ -85,6 +90,11 @@ export interface JournalRecoveryReport {
   readonly repairedUnrecordedTail: boolean;
   /** seqs missing below the contiguous tail — corruption the journal refuses. */
   readonly gapAt: readonly number[];
+  /**
+   * OMN-123: true when another writer holds the append lease, so recovery did
+   * not run. The caller retries; no state was changed.
+   */
+  readonly deferred?: boolean;
 }
 
 export interface Journal<T> {
@@ -167,6 +177,56 @@ export function createJournal<T>(
 
   const ns = options.namespace ?? DEFAULT_NAMESPACE;
   const headKey = ns + HEAD_KEY;
+  const leaseKey = ns + 'append-lease';
+  const leaseTtlMs = options.appendLeaseTtlMs ?? 30_000;
+
+  /**
+   * OMN-123: append and recovery are mutually exclusive across writers, not
+   * just across this process. A lease is taken (CAS) before the head bump and
+   * released after the entry write, so recovery can never observe a paused
+   * append's head bump as an abandoned tail. A crashed holder's lease expires
+   * and is taken over; the head CAS then still guards the repair.
+   */
+  interface AppendLease { token: string; expiresAt: number }
+
+  async function tryAcquireLease(): Promise<string | null> {
+    const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const result = await adapter.conditionalUpdate<AppendLease | null>(leaseKey, (current) => {
+      if (current && typeof current === 'object' && current.expiresAt > Date.now()) {
+        return { abort: 'append lease held' };
+      }
+      return { next: { token, expiresAt: Date.now() + leaseTtlMs } };
+    });
+    return result.applied ? token : null;
+  }
+
+  async function releaseLease(token: string): Promise<void> {
+    try {
+      await adapter.conditionalUpdate<AppendLease | null>(leaseKey, (current) =>
+        current && typeof current === 'object' && current.token === token
+          ? { next: null }
+          : { abort: 'not the lease owner' },
+      );
+    } catch {
+      // The lease expires on its own; never fail the append over its release.
+    }
+  }
+
+  async function withAppendLease<V>(run: () => Promise<V>): Promise<V> {
+    const token = await tryAcquireLease();
+    if (token === null) {
+      throw new StorageError(
+        'journal append lease is held by another writer; retry when it completes',
+        'unavailable',
+        { key: leaseKey },
+      );
+    }
+    try {
+      return await run();
+    } finally {
+      await releaseLease(token);
+    }
+  }
   const entryKey = (seq: number): string => `${ns}entry:${seq}`;
   const migrate = options.migrate;
   const validate = options.validate ?? (() => undefined);
@@ -255,7 +315,7 @@ export function createJournal<T>(
         throw new StorageError(`journal append failed validation: ${(err as Error).message}`, 'write-failed');
       }
 
-      return withJournalLock(adapter, async () => {
+      return withJournalLock(adapter, () => withAppendLease(async () => {
         const bump = await adapter.conditionalUpdate<number>(headKey, (current) => ({
           next: (current ?? 0) + 1,
         }));
@@ -283,7 +343,7 @@ export function createJournal<T>(
           });
         }
         return entry;
-      });
+      }));
     },
 
     async appendBatch(records: readonly T[]): Promise<JournalEntry<T>[]> {
@@ -323,6 +383,28 @@ export function createJournal<T>(
     },
 
     async recover(): Promise<JournalRecoveryReport> {
+      return withJournalLock(adapter, async () => {
+        const lease = await tryAcquireLease();
+        if (lease === null) {
+          const headBefore = await readHead();
+          return {
+            headBefore,
+            headAfter: headBefore,
+            repairedUnrecordedTail: false,
+            gapAt: [],
+            deferred: true,
+          };
+        }
+        try {
+          return await recoverLocked();
+        } finally {
+          await releaseLease(lease);
+        }
+      });
+    },
+  };
+
+  async function recoverLocked(): Promise<JournalRecoveryReport> {
       const headBefore = await readHead();
       const tail = await contiguousTail(headBefore);
       // A hole strictly below the contiguous tail means a *durably recorded*
@@ -348,6 +430,5 @@ export function createJournal<T>(
         repairedUnrecordedTail,
         gapAt: [],
       };
-    },
-  };
+  }
 }
