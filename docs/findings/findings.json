@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T05:40:20.553Z",
+  "generatedAt": "2026-11-27T06:45:41.835Z",
   "findings": [
     {
       "id": "CAN-006",
@@ -1305,6 +1305,7 @@
         ],
         "tests": [
           "tests/unit/omnia/src/__tests__/omnia.test.ts",
+          "tests/unit/omnia/src/__tests__/eltoo-v2-parity.test.ts",
           "tests/unit/omnia-splice/src/__tests__/splice-tx-units.test.ts"
         ],
         "verification": [
@@ -1318,7 +1319,7 @@
         "audit": "Omnia adversarial audit — 26 November 2026",
         "auditedCommit": "c818f5ecd5bfda21f6cb91f143f010e9931f9181",
         "verification": "code-confirmed",
-        "note": "reporter id OMN-095; fixed with a versioned v2 eltoo script: the channel id is hashed to a fixed domain, pinned as STATE(103) in the script, written by the funding transaction and required unchanged by both update and settlement branches; splice outputs preserve it and legacy v1 proposals are accepted only when they match exactly. Java/Hawk parity must be confirmed before release (RFC-082)"
+        "note": "reporter id OMN-095; fixed with a versioned v2 eltoo script: the channel id is hashed to a fixed domain, pinned as STATE(103) in the script, written by the funding transaction and required unchanged by both update and settlement branches; splice outputs preserve it and legacy v1 proposals are accepted only when they match exactly. Java/Hawk parity must be confirmed before release (RFC-082); Hawk/Java KISSVM parity confirmed: the eight omnia-v2 domain cases match the pinned minima-core oracle c2a54a2 exactly (linux differential digest ef0bc4d6…f426e4f5), and the SDK evaluator is pinned by eltoo-v2-parity.test.ts"
       }
     },
     {

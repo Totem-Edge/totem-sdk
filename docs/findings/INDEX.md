@@ -1,6 +1,6 @@
 # Canary findings
 
-Generated 2026-11-27T05:40:20.553Z. 152 findings, 14 open.
+Generated 2026-11-27T06:45:41.835Z. 152 findings, 14 open.
 
 sdk-defect: 143 · environment-blocked: 1 · sdk-gap: 6 · canary-coverage: 2
 

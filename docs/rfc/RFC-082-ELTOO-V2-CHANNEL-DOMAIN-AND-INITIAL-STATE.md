@@ -100,11 +100,41 @@ the opening window the funding coin existed with no independent recovery path.
 `allowMissingInitialState` (SDK) and `allowLocalOnlyOpen` / `allowLocalOnlyPay`
 (host) are explicit local-dev escapes; they are never set on a network open.
 
-## 3. Release requirements
+## 3. Parity confirmation
+
+The covenant was evaluated against the pinned Java oracle and Hawk's C++ KISSVM
+during the same differential (`hawk-node/tests/parity/kernel/run_kernel.sh`):
+
+```
+kernel_digest: ef0bc4d6a986524bce37b192808301b022b8da0392e902d501ac6b05f426e4f5
+oracle_commit: c2a54a2e46b2c3a4fd541b80e7d7f5e7afe7d4da
+PASS
+```
+
+Eight `omnia-v2/` cases are compared line-for-line:
+
+| case | Hawk = Java (parse;success;exception) |
+| --- | --- |
+| update-ok | 1;1;0 |
+| update-sibling-domain | 1;0;0 |
+| update-changed-domain | 1;0;0 |
+| update-missing-domain | 1;0;1 |
+| settlement-ok | 1;1;0 |
+| settlement-short-coinage | 1;0;0 |
+| settlement-sibling-domain | 1;0;0 |
+| settlement-changed-domain | 1;0;0 |
+
+The same eight cases are pinned in the SDK by
+`tests/unit/omnia/src/__tests__/eltoo-v2-parity.test.ts` (including exact script
+equality with the harness literal), so the TypeScript, C++ and Java evaluators
+are checked against one fixture.
+
+## 4. Release requirements
 
 - **Hawk and the Java node must implement the v2 script and reject a v1 state
-  replayed against a v2 channel** before this ships as the default. Verify with
-  the Hawk script evaluation used for other covenant changes.
+  replayed against a v2 channel** before this ships as the default. The KISSVM
+  parity above covers evaluation of the covenant; the Java node's own channel
+  code (if it builds eltoo scripts) must also emit `STATE(103)`.
 - The SDK-side tests cover the script, funding/settlement/update state ports,
   splice preservation, the co-sign handshake, and the funding gate
   (`tests/unit/omnia/src/__tests__/omnia.test.ts`,
