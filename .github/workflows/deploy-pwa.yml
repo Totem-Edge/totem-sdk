@@ -1,0 +1,83 @@
+name: Deploy Totem PWA
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Cloudflare Pages branch (main = production, web-preview = preview)'
+        required: false
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pwa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy wallet.totem.ing/web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-pnpm
+
+      # The PWA consumes @totemsdk/* workspace packages, whose compiled dist/
+      # is gitignored. Build the dependency closure used by the wallet. Do not
+      # include @totemsdk/core-wasm: its pkg/ artifacts are committed and its
+      # build requires wasm-pack.
+      - name: Build PWA SDK dependencies
+        run: |
+          pnpm \
+            --filter @totemsdk/core \
+            --filter @totemsdk/connect \
+            --filter @totemsdk/realtime \
+            --filter @totemsdk/root-identity \
+            --filter @totemsdk/chain-provider \
+            --filter @totemsdk/wots-lease \
+            --filter @totemsdk/storage \
+            --filter @totemsdk/identity \
+            --filter @totemsdk/omnia-relay \
+            --filter @totemsdk/omnia \
+            --filter @totemsdk/omnia-router \
+            --filter @totemsdk/omnia-factory \
+            --filter @totemsdk/omnia-splice \
+            --filter @totemsdk/agent-policy \
+            --filter @totemsdk/authority \
+            --filter @totemsdk/proof \
+            --filter @totemsdk/manifest \
+            --filter @totemsdk/kissvm \
+            --filter @totemsdk/stream-transport \
+            run build
+
+      - name: Build PWA for /web/
+        working-directory: extensions/totem-pwa-wallet
+        env:
+          VITE_BASE_PATH: /web/
+        run: npm run build
+
+      - name: Verify production paths
+        working-directory: extensions/totem-pwa-wallet
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f dist/manifest.webmanifest
+          test -f dist/provider.js
+          test -f dist/sw.js
+          grep -q 'src="/web/assets/' dist/index.html
+          echo "PWA build verified for /web/"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: extensions/totem-pwa-wallet
+          command: pages deploy dist --project-name=totem-pwa-wallet --branch=${{ github.event.inputs.branch || 'main' }}
