@@ -85,5 +85,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: extensions/totem-pwa-wallet
-          command: pages deploy dist --project-name=totem-pwa-wallet --branch=${{ github.event.inputs.branch || 'main' }}
+          command: pages deploy extensions/totem-pwa-wallet/dist --project-name=totem-pwa-wallet --branch=${{ github.event.inputs.branch || 'main' }}
