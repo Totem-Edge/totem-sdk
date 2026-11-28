@@ -19,7 +19,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const core = require('../packages/core/dist/cjs/index.js');
-const vtxo = require('../packages/omnia-vtxo/dist/cjs/index.js');
+const vtxo = require('../packages/vtxo/dist/cjs/index.js');
 
 const JSON_ONLY = process.argv.includes('--json');
 const log = (...args) => { if (!JSON_ONLY) console.log(...args); };

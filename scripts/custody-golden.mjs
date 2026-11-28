@@ -39,7 +39,7 @@ async function build() {
     dist('statechain'),
     dist('omnia'),
     dist('omnia-factory'),
-    dist('omnia-vtxo'),
+    dist('vtxo'),
   ]);
   return {
     '@totemsdk/statechain': statechain.buildStatechainScript(A),

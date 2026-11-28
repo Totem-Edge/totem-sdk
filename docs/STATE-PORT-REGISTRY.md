@@ -31,7 +31,7 @@ or a `SAMESTATE` range spanning it.
 | `legacy` | 0–99 | legacy scripts, `statechain` | general/legacy state ports |
 | `omnia-control` | 100–119 | `omnia*` | channel/factory control — `100` SETTLEMENT, `101` SEQUENCE, `102` COMMITMENT, `103` escape |
 | `omnia-programs` | 120–183 | `omnia` (`program.ts`) | COUNTER 120–122, METER 130–133, HTLC 140–144, VAULT 150–152, TREASURY 160–164, MEMBERSHIP 170–172, ASSET 180–183 |
-| `omnia-share` | 128–229 | `omnia-factory`, `omnia-vtxo` | per-party share band, **base 128** (max 102 parties) |
+| `omnia-share` | 128–229 | `omnia-factory`, `vtxo` | per-party share band, **base 128** (max 102 parties) |
 | **MSHS-2** | **230–255** | **node (MASH / MSHS-2)** | reserved — header `R/ROOTS_BLOB/SECRETS_BLOB/TREE_SIG` at 230–233, `PROOF` at 234–255; **no `SAMESTATE` range may span this band** |
 
 ## 4. Rules
@@ -49,7 +49,7 @@ or a `SAMESTATE` range spanning it.
 | `statechain` | statechain | `legacy` | — |
 | `omnia` | channel | `omnia-control`, `omnia-programs` | — |
 | `omnia-factory` | factory | `omnia-control`, `omnia-share` | `FACTORY_BALANCE_PORT_BASE = 128` |
-| `omnia-vtxo` | vtxo | `omnia-control`, `omnia-share` | `POOL_SHARE_PORT_BASE = 128` |
+| `vtxo` | vtxo | `omnia-control`, `omnia-share` | `POOL_SHARE_PORT_BASE = 128` |
 
 ## 6. What the gate enforces
 

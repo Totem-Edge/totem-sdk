@@ -24,8 +24,8 @@ table and pass an instruction‑budget check**. This is that table and check.
 | | | omnia | `omnia-control` (100–119), `omnia-programs` (120–183) | **ok** (795 + ~75 = 870 ≤ 1024) |
 | `mash+omnia-factory` | factory | mash | `mshs` (230–255) | |
 | | | omnia-factory | `omnia-control` (100–119), `omnia-share` (128–229) | **ok** (795 + ~60 = 855 ≤ 1024, distribution escape) |
-| `mash+omnia-vtxo` | vtxo | mash | `mshs` (230–255) | |
-| | | omnia-vtxo | `omnia-control` (100–119), `omnia-share` (128–229) | **ok** (795 + ~143 = 938 ≤ 1024) |
+| `mash+vtxo` | vtxo | mash | `mshs` (230–255) | |
+| | | vtxo | `omnia-control` (100–119), `omnia-share` (128–229) | **ok** (795 + ~143 = 938 ≤ 1024) |
 
 Port ranges per participant are the union of its declared bands (see
 [`STATE-PORT-REGISTRY.md`](STATE-PORT-REGISTRY.md)). Within a composite they are pairwise disjoint.

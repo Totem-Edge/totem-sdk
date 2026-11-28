@@ -14,7 +14,7 @@
  *      KISSVM instruction limit (R-MASH-4/R-MASH-5);
  *   4. prints the **port-allocation table** (the artifact R-MASH-4 requires).
  *
- * Requires built dist of: kissvm, omnia, omnia-factory, omnia-vtxo.
+ * Requires built dist of: kissvm, omnia, omnia-factory, vtxo.
  * Usage: node scripts/check-composite-ports.mjs
  */
 import './lib/init-core-wasm.mjs';
@@ -42,7 +42,7 @@ const resolveBand = (id) => (id === 'mshs' ? { id: 'mshs', from: MSHS.from, to: 
 const { parseScript } = await load('packages/kissvm/dist/index.js');
 const { buildEltooScript } = await load('packages/omnia/dist/index.js');
 const factory = await load('packages/omnia-factory/dist/index.js');
-const vtxo = await load('packages/omnia-vtxo/dist/index.js');
+const vtxo = await load('packages/vtxo/dist/index.js');
 
 const pk = (b) => '0x' + String(b).repeat(2).padStart(2, '0').slice(0, 2).repeat(32);
 const holder = (i) => '0x' + (16 + i).toString(16).padStart(2, '0').repeat(32);
@@ -59,7 +59,7 @@ const omniaScripts = {
       { partyId: 'b', publicKeyDigest: holder(1), addressIndex: 1, contributionAmount: 1000n, settlementAddress: holder(1) },
     ],
   }),
-  'omnia-vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: [holder(0)], exitBlock: 100 }),
+  'vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: [holder(0)], exitBlock: 100 }),
 };
 
 /** Path-independent upper bound on a script's op count: its AST node count. */

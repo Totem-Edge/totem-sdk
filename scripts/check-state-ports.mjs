@@ -14,7 +14,7 @@
  *   4. declared share bases match the package constants; and
  *   5. builders refuse to emit out-of-band ports.
  *
- * Requires built dist of: statechain, omnia, omnia-factory, omnia-vtxo.
+ * Requires built dist of: statechain, omnia, omnia-factory, vtxo.
  * Usage: node scripts/check-state-ports.mjs   (after `npm run build`)
  */
 import './lib/init-core-wasm.mjs';
@@ -57,7 +57,7 @@ for (const [pkg, spec] of Object.entries(REGISTRY.packages)) {
 const { buildStatechainScript } = await load('packages/statechain/dist/index.js');
 const { buildEltooScript } = await load('packages/omnia/dist/index.js');
 const factory = await load('packages/omnia-factory/dist/index.js');
-const vtxo = await load('packages/omnia-vtxo/dist/index.js');
+const vtxo = await load('packages/vtxo/dist/index.js');
 
 const AVG_HOLDER_COUNT = 3;
 const pk = (b) => '0x' + String(b).repeat(2).padStart(2, '0').slice(0, 2).repeat(32);
@@ -74,7 +74,7 @@ const scripts = {
       partyId: `p${i}`, publicKeyDigest: holder(i), addressIndex: i, contributionAmount: 1000n, settlementAddress: holder(i),
     })),
   ),
-  'omnia-vtxo': vtxo.buildPoolScript({
+  'vtxo': vtxo.buildPoolScript({
     operatorPublicKeyDigest: pk('aa'),
     holders: Array.from({ length: AVG_HOLDER_COUNT }, (_, i) => holder(i)),
     exitBlock: 100,
@@ -114,7 +114,7 @@ check(
 
 // ── builders must refuse to emit out-of-band ports ───────────────────────────
 check(
-  `omnia-vtxo refuses > ${vtxo.POOL_MAX_HOLDERS} holders`,
+  `vtxo refuses > ${vtxo.POOL_MAX_HOLDERS} holders`,
   throws(() => vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: Array.from({ length: vtxo.POOL_MAX_HOLDERS + 1 }, (_, i) => holder(i % 240)), exitBlock: 1 })),
 );
 check(

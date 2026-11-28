@@ -14,13 +14,13 @@
     { "id": "mash-committed-state", "from": 0, "to": 1, "owner": "node (MASH committed-state carrier)", "notes": "MSHS-2 committed-owner-v1: STATE(0)=current state preimage, STATE(1)=signed successor. Only used in committed mode (the state root is also committed into the locking script)." },
     { "id": "omnia-control", "from": 100, "to": 119, "owner": "omnia*", "notes": "channel/factory control (100 SETTLEMENT, 101 SEQUENCE, 102 COMMITMENT, 103 escape)" },
     { "id": "omnia-programs", "from": 120, "to": 183, "owner": "omnia (program.ts)", "notes": "channel program ports (COUNTER 120-122, METER 130-133, HTLC 140-144, VAULT 150-152, TREASURY 160-164, MEMBERSHIP 170-172, ASSET 180-183)" },
-    { "id": "omnia-share", "from": 128, "to": 229, "owner": "omnia-factory, omnia-vtxo", "notes": "per-party share band, base 128 (POOL_SHARE_PORT_BASE / FACTORY_BALANCE_PORT_BASE); capped below the MSHS floor 230 → max 102 parties" }
+    { "id": "omnia-share", "from": 128, "to": 229, "owner": "omnia-factory, vtxo", "notes": "per-party share band, base 128 (POOL_SHARE_PORT_BASE / FACTORY_BALANCE_PORT_BASE); capped below the MSHS floor 230 → max 102 parties" }
   ],
   "packages": {
     "statechain": { "coinClass": "statechain", "bands": ["legacy"] },
     "omnia": { "coinClass": "channel", "bands": ["omnia-control", "omnia-programs"] },
     "omnia-factory": { "coinClass": "factory", "bands": ["omnia-control", "omnia-share"] },
-    "omnia-vtxo": { "coinClass": "vtxo", "bands": ["omnia-control", "omnia-share"] }
+    "vtxo": { "coinClass": "vtxo", "bands": ["omnia-control", "omnia-share"] }
   },
   "mashModes": {
     "_note": "Per-coin (per-address) deployment policies over one PK_ROOT and a SHARED lifetime counter (Q_MAX = 2^28). Both modes are available at once across a system — wallet for Omnia/capital coins, committed for state coins; they are mutually exclusive only on the SAME coin.",
@@ -39,7 +39,7 @@
   },
   "shareBases": {
     "omnia-factory": { "export": "FACTORY_BALANCE_PORT_BASE", "expected": 128 },
-    "omnia-vtxo": { "export": "POOL_SHARE_PORT_BASE", "expected": 128 }
+    "vtxo": { "export": "POOL_SHARE_PORT_BASE", "expected": 128 }
   },
   "instructionBudget": {
     "kissvmMaxInstructions": 1024,
@@ -64,12 +64,12 @@
         { "id": "omnia-factory", "bands": ["omnia-control", "omnia-share"] }
       ]
     },
-    "mash+omnia-vtxo": {
+    "mash+vtxo": {
       "coinClass": "vtxo",
       "instructionBudget": "ok",
       "participants": [
         { "id": "mash", "bands": ["mshs"] },
-        { "id": "omnia-vtxo", "bands": ["omnia-control", "omnia-share"] }
+        { "id": "vtxo", "bands": ["omnia-control", "omnia-share"] }
       ]
     }
   },

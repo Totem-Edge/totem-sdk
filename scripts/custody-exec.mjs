@@ -38,7 +38,7 @@ function check(name, cond) {
 }
 
 const { wotsAddressData } = await load('packages/core/dist/index.js');
-const { buildPoolScript } = await load('packages/omnia-vtxo/dist/index.js');
+const { buildPoolScript } = await load('packages/vtxo/dist/index.js');
 const { buildFactoryScript } = await load('packages/omnia-factory/dist/index.js');
 const { evaluateScript } = await load('packages/kissvm/dist/index.js');
 
@@ -54,7 +54,7 @@ function ev(script, ctx, signerKeys) {
   return evaluateScript(script, { signatures }, ctx).passed;
 }
 
-// ── omnia-vtxo pool owner exit ──────────────────────────────────────────────
+// ── vtxo pool owner exit ──────────────────────────────────────────────
 const pool = buildPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: 100 });
 function poolExit({ spentShare, successorShare, amount, signers, remainder, exitBlockState = '100' }) {
   const outputs = [{ address: wotsAddressData(OWNER), amount: BigInt(spentShare), tokenId: '0x00', keepState: false }];
@@ -70,7 +70,7 @@ function poolExit({ spentShare, successorShare, amount, signers, remainder, exit
     simulationMode: true,
   }, signers);
 }
-console.log('custody-exec: omnia-vtxo pool owner exit');
+console.log('custody-exec: vtxo pool owner exit');
 check('full-share exit is satisfiable', poolExit({ spentShare: 1000, successorShare: 0, amount: 1000, signers: [ownerKey] }));
 check('partial-share exit is satisfiable (payout@0, remainder@1)',
   poolExit({ spentShare: 1000, successorShare: 0, amount: 1500, signers: [ownerKey], remainder: 500 }));

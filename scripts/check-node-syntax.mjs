@@ -8,7 +8,7 @@
  * canonical — i.e. `toNodeScript(script) === script` — so the emitters cannot drift
  * back to node-invalid syntax.
  *
- * Requires built dist of: core, statechain, omnia, omnia-factory, omnia-vtxo.
+ * Requires built dist of: core, statechain, omnia, omnia-factory, vtxo.
  * Usage: node scripts/check-node-syntax.mjs
  */
 import './lib/init-core-wasm.mjs';
@@ -28,7 +28,7 @@ const { toNodeScript } = await load('packages/core/dist/index.js');
 const { buildStatechainScript } = await load('packages/statechain/dist/index.js');
 const { buildEltooScript } = await load('packages/omnia/dist/index.js');
 const factory = await load('packages/omnia-factory/dist/index.js');
-const vtxo = await load('packages/omnia-vtxo/dist/index.js');
+const vtxo = await load('packages/vtxo/dist/index.js');
 
 const pk = (b) => '0x' + String(b).repeat(2).padStart(2, '0').slice(0, 2).repeat(32);
 const holder = (i) => '0x' + (16 + i).toString(16).padStart(2, '0').repeat(32);
@@ -43,7 +43,7 @@ const scripts = {
     { partyId: 'a', publicKeyDigest: holder(0), addressIndex: 0, contributionAmount: 1000n, settlementAddress: holder(0) },
     { partyId: 'b', publicKeyDigest: holder(1), addressIndex: 1, contributionAmount: 1000n, settlementAddress: holder(1) },
   ]),
-  'omnia-vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: [holder(0)], exitBlock: 100 }),
+  'vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: [holder(0)], exitBlock: 100 }),
 };
 
 for (const [name, script] of Object.entries(scripts)) {

@@ -18,7 +18,7 @@
  * A fully isolated Minima *node* run (real chain inclusion) remains the L4 bar;
  * this is the cross-implementation VM check.
  *
- * Requires: built dist (omnia-vtxo, omnia-factory, kissvm, core) AND the kissvm
+ * Requires: built dist (vtxo, omnia-factory, kissvm, core) AND the kissvm
  * wasm nodejs build (`cd packages/kissvm/rust && wasm-pack build --target nodejs
  * --out-dir pkg-node`). Usage: node scripts/custody-exec-vm.mjs
  */
@@ -51,7 +51,7 @@ const coreWasmMod = await load('packages/core-wasm/pkg-web/totemsdk_core_wasm.js
 await coreWasmMod.default(readFileSync(CORE_WASM_BG));
 
 const { evaluateScript, toWasmWitness } = await load('packages/kissvm/dist/index.js');
-const { buildPoolScript } = await load('packages/omnia-vtxo/dist/index.js');
+const { buildPoolScript } = await load('packages/vtxo/dist/index.js');
 const { buildFactoryScript } = await load('packages/omnia-factory/dist/index.js');
 const { TreeKey, wotsAddressData } = await load('packages/core/dist/index.js');
 
@@ -140,7 +140,7 @@ const poolExit = ({
     prevState: { 100: '0', 101: '0', 102: '100', 128: String(spentShare), ...prevStateExtra },
   };
 };
-console.log('real VM: omnia-vtxo pool owner exit (real TreeSignature, Rust/WASM vs TS)');
+console.log('real VM: vtxo pool owner exit (real TreeSignature, Rust/WASM vs TS)');
 both('full-share exit with real holder sig', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1000 }), true);
 both('partial-share exit (payout@0, remainder@1)', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1500, remainder: 500 }), true);
 both('rejected: successor does not zero the share', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 1000, amount: 1000 }), false);
@@ -153,7 +153,7 @@ both('rejected: payout exceeds the committed share', pool, signWith([holderKey])
 // Two holders: one exits, the other's share must survive.
 const pool2 = buildPoolScript({ operatorPublicKeyDigest: operator, holders: [holder, holder2], exitBlock: 100 });
 const pool2Exit = (overrides) => poolExit({ ...overrides });
-console.log('real VM: omnia-vtxo pool multi-holder exit (share preservation)');
+console.log('real VM: vtxo pool multi-holder exit (share preservation)');
 both('accepted: exit preserves the other holder share', pool2, signWith([holderKey]), pool2Exit({ spentShare: 1000, successorShare: 0, amount: 1500, remainder: 500, stateExtra: { 129: '500' }, prevStateExtra: { 129: '500' } }), true);
 both('rejected: exit zeroes another holder share', pool2, signWith([holderKey]), pool2Exit({ spentShare: 1000, successorShare: 0, amount: 1500, remainder: 500, stateExtra: { 129: '0' }, prevStateExtra: { 129: '500' } }), false);
 
@@ -166,7 +166,7 @@ const poolCoopCtx = {
   state: { 101: '1', 102: '100', 128: '1000' },
   prevState: { 101: '0', 102: '100', 128: '1000' },
 };
-console.log('real VM: omnia-vtxo pool cooperative update MULTISIG(2)');
+console.log('real VM: vtxo pool cooperative update MULTISIG(2)');
 both('accepted with operator + holder real sigs', pool, signWith([operatorKey, holderKey]), poolCoopCtx, true);
 both('rejected with only the holder sig (2-of-2 unmet)', pool, signWith([holderKey]), poolCoopCtx, false);
 both('rejected: cooperative update mutates the exit clock', pool, signWith([operatorKey, holderKey]), { ...poolCoopCtx, state: { ...poolCoopCtx.state, 102: '50' } }, false);
