@@ -37,13 +37,17 @@ jobs:
         run: |
           pnpm \
             --filter @totemsdk/core \
+            --filter @totemsdk/txpow \
+            --filter @totemsdk/tx-builder \
             --filter @totemsdk/connect \
             --filter @totemsdk/realtime \
-            --filter @totemsdk/root-identity \
             --filter @totemsdk/chain-provider \
             --filter @totemsdk/wots-lease \
+            --filter @totemsdk/root-identity \
             --filter @totemsdk/storage \
-            --filter @totemsdk/identity \
+            --filter @totemsdk/minima-rpc \
+            --filter @totemsdk/replication \
+            --filter @totemsdk/lookup-protocol \
             --filter @totemsdk/omnia-relay \
             --filter @totemsdk/omnia \
             --filter @totemsdk/omnia-router \
@@ -51,7 +55,9 @@ jobs:
             --filter @totemsdk/omnia-splice \
             --filter @totemsdk/agent-policy \
             --filter @totemsdk/authority \
+            --filter @totemsdk/identity \
             --filter @totemsdk/proof \
+            --filter @totemsdk/intelligence \
             --filter @totemsdk/manifest \
             --filter @totemsdk/kissvm \
             --filter @totemsdk/stream-transport \
