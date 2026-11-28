@@ -34,6 +34,28 @@ built directory explicitly:
 npx wrangler pages deploy dist --project-name=totem-pwa-wallet
 ```
 
+The supported release path is the **Deploy Totem PWA** GitHub Actions workflow
+(`.github/workflows/deploy-pwa.yml`). It builds the PWA with
+`VITE_BASE_PATH=/web/`, verifies the production assets, and deploys with
+`wrangler pages deploy`.
+
+Required repo secrets:
+
+```text
+CLOUDFLARE_API_TOKEN   # Pages:Edit
+CLOUDFLARE_ACCOUNT_ID
+```
+
+Run it:
+
+```bash
+gh workflow run deploy-pwa.yml --repo Totem-Edge/totem-sdk \
+  --ref main -f branch=main
+```
+
+Use `branch=web-preview` for the preview alias. A push to `main` does not deploy
+the PWA automatically; manual dispatch is the promotion gate.
+
 Preview the `/web` migration without touching production:
 
 ```bash
