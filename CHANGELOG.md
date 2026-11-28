@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `@totemsdk/connect` typed channel identity (3.3.0)
+
+- `omniaOpenChannel(origin, params)` now types the provider channel identity
+  fields the extension has accepted since the LSP work: required
+  `remotePublicKeyDigest`, plus optional `remoteAddressIndex`,
+  `remoteSettlementAddress` and `remoteTransportPubkey`. The published 3.2.0
+  was built before those fields landed in `src`, so typed consumers had to
+  bypass the helper with a raw provider request. Callers of the typed helper
+  must now pass `remotePublicKeyDigest`.
+
 ### Added — `@totemsdk/claim`
 
 - New `@totemsdk/claim` package: payload-agnostic `ClaimEnvelope`, the

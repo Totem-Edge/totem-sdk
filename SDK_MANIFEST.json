@@ -212,7 +212,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "3.2.0",
+      "version": "3.3.0",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
